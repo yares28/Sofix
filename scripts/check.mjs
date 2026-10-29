@@ -65,7 +65,12 @@ function local() {
   const backend = touches("backend/");
   let frontend = touches("frontend/") || touches("extension/"); // the extension's logic is unit-tested in frontend/lib
   const clock = touches("clock/") || touches(".github/workflows/"); // its tests also read the workflows' timers
-  if (!backend && !frontend && !clock) return console.log("Nothing to check: no backend, frontend, extension or clock change.");
+  // Offline and cheap, including Markdown-only changes: referenced code can stale a contract too.
+  run("documentation tests", "node --test scripts/tests/docs.test.mjs", ROOT);
+  if (!backend && !frontend && !clock) {
+    run("documentation drift", "node scripts/docs.mjs check", ROOT);
+    return console.log("No application checks needed: no backend, frontend, extension or clock change.");
+  }
   if (clock) run("clock tests", 'node --test "clock/test/*.test.js"', ROOT);
 
   if (backend) {
@@ -97,6 +102,9 @@ function local() {
     run("typecheck", "npm run typecheck", cwd);
     run("vitest", "npm test", cwd);
   }
+
+  // Formatting and schema generation above may have changed a reviewed dependency.
+  run("documentation drift", "node scripts/docs.mjs check", ROOT);
 
   if (!files || files.some((f) => /^frontend\/(app|components|hooks)\/|\.css$/.test(f))) {
     console.log("UI changed: run the page's spec (npx playwright test e2e/<page>.e2e.ts) and look at it at 1440 and 390 px.");

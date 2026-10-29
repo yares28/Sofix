@@ -1,5 +1,7 @@
 # Sofix
 
+Documentation: [operational context and lookup](docs/context.md), [deep audit and ten-upgrade plan](docs/documentation_audit.md).
+
 Sofix is a private, single-user LaLiga fixture-difficulty and Sorare decision board. It combines an independently
 backtested football model, bookmaker prices, the owner's Sorare collection and explicit lineup actions in a premium
 white, installable web app.

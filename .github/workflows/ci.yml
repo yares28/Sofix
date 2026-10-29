@@ -73,6 +73,12 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Documentation contracts and drift
+        working-directory: .
+        run: |
+          node --test scripts/tests/docs.test.mjs
+          node scripts/docs.mjs check
+
       - name: Generated API types are up to date
         run: |
           npm run gen:types

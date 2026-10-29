@@ -3,8 +3,7 @@
 **Review date:** 2026-09-27 · **Method:** source/route/schema review, model artifact inspection, deterministic browser
 walkthrough, extension review harness, backend/frontend/design test runs, and cross-checking every tracked Markdown file.
 
-This report is a current-state audit, not a future vision. It records what the code does, where the UI communicates
-that behavior correctly, and where implementation, tests or older documents are still logically inconsistent.
+This report records the 27 September review, with dated later additions; its opening inventory and assumptions are historical. For current Play recommendation behavior use [the operational contracts](context.md). Requirements and release evidence in newer task plans remain separately authoritative.
 
 ## Executive conclusion
 
@@ -106,15 +105,14 @@ S4 recording/replay infrastructure is done, fitted-model validation is open.
 
 ### Reward simulation assumptions
 
-The planner uses 3,000 seeded draws, score SD 17.6 and beam width 120. The following limitations need measurement:
+The September review described common spread and independent lineup misses. Those implementation descriptions are superseded
+by [PLAN-REWARDS-001](context.md#plan-rewards-001) and [FORECAST-RAW-001](context.md#forecast-raw-001): current whole-plan
+simulation shares player outcomes, models game correlations, and uses individual spread where available. The frontend keeps
+an independent-outcome fallback only for older plans lacking a published likely result. The correction affects planning copies,
+not saved raw comparison evidence.
 
-- player scores use a common spread rather than position/player/opponent-specific residual distributions;
-- lineup outcomes simplify correlation between teammates, opponents and shared cards;
-- combined “chance of any reward” multiplies miss probabilities as if plan outcomes were independent;
-- reward cutoffs use the best available comparable history/current room evidence but competition populations change.
-
-These make the percentage a decision aid, not a calibrated promise. Replay data should test calibration before any
-model or UI claims become stronger.
+The validation limitation remains: reward cutoffs/populations and distribution/correlation assumptions need measured replay
+calibration. Shared simulation is not proof of calibrated probabilities, and a small aggregate reward count is insufficient.
 
 ## Logical inconsistencies and open issues
 

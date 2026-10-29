@@ -282,7 +282,7 @@ no longer simulates a lineup's players independently: `publish.gameweek_payload`
 positions and side (a keeper and his defenders +0.29, a keeper against the other side's forwards −0.26, ...), and the simulation draws correlated scores. Reward chances, ranges and the plans ranked by them
 follow. The captain is chosen among all the starters by what his captaincy wins on average (then the chance of a reward, then the expected score), on 3,000 simulated weeks each (28 Oct 2026: the top-three rule picked the week's best starter 9 times in 32).
 
-Common SD is 17.6. Source is published (“sorare”, “form”, “no game”). The score if he starts is fitted (keepers and outfield, above); their blind check on the weeks
+The spread can be player-specific; 17.6 is the fallback. Planning correction uses measured spread only when a forecast lacks its own SD (see [FORECAST-RAW-001](context.md#forecast-raw-001)). Source is published (“sorare”, “form”, “no game”). The score if he starts is fitted (keepers and outfield, above); their blind check on the weeks
 held out from 1 Oct runs with `keeper_fit` / `outfield_fit --holdout 2026-10-01` (docs/sorare_plan.md S4).
 
 How it is checked (roadmap 3.1, `app.sorare.backtest`): for every game in the owner's players' exported history
@@ -360,10 +360,9 @@ tier whole). Each step prioritizes expected essence and whole-plan candidates ar
 at most five are published. Each published tier carries the score that reached it in the reference week (`need`). The two
 reward units remain separate and are never converted by an exchange rate. The page shows no chance-weighted average: a
 lineup shows its first tier's reward and score, a plan its most likely result (`likelyResult` in `frontend/lib/play.ts`,
-lineups independent, a Room's fee always paid).
+using the job's joint simulation when present; the legacy missing-field fallback assumes independent lineups, and Room fees are shown separately).
 
-Cutoffs are the mean, rank by rank, of every comparable finished week of the season (about as much football, `sync.season_weeks`, `publish.season_reference`; 28 Oct 2026: 24.3 points off the real cut-off on GW13-25 against 29.2 for the latest comparable week), filled a week per refresh; rooms pool their samples. Probabilities use common spread and simplify
-teammate/opponent/shared-lineup correlation; combined “any reward” treats plan misses as independent. They are aids,
+Cutoffs are the mean, rank by rank, of every comparable finished week of the season (about as much football, `sync.season_weeks`, `publish.season_reference`; 28 Oct 2026: 24.3 points off the real cut-off on GW13-25 against 29.2 for the latest comparable week), filled a week per refresh; rooms pool their samples. Probabilities use available player spread and modeled game correlations; whole-plan rewards share each player's simulated outcome across lineups. Combined “any reward” counts paid simulated weeks rather than multiplying lineup misses (see [PLAN-REWARDS-001](context.md#plan-rewards-001)). They are aids,
 not guarantees. `runs` controls repeated randomized searches; the fixed seed keeps identical input reproducible.
 
 ## 10. Replay

@@ -3,9 +3,13 @@
 Sofix is a private, single-user **LaLiga fixture-difficulty and Sorare decision board**. The English UI uses premium
 white styling and `GW` / `Gameweek` wording. Ratings/recommendations are independent and documented.
 
-Read [PLAN.md](PLAN.md), the [user manual](docs/user_manual.md), [research report](docs/research_report.md),
+Always read this file and [CLAUDE.md](CLAUDE.md). For Play recommendation logic, begin with
+[the context router](docs/context.md) and `node scripts/docs.mjs lookup "task and affected paths"`;
+read every returned contract and its dependencies before changing behavior. All owner rules below still apply.
+Other domains (including UI, extension actions, missions and football tuning), and unmapped parts of mixed tasks,
+still require [PLAN.md](PLAN.md), the [user manual](docs/user_manual.md), [research report](docs/research_report.md),
 [calculation guide](docs/how_it_works.md) and current [football](docs/next_features_plan.md) /
-[Sorare](docs/sorare_plan.md) plans before changing behavior.
+[Sorare](docs/sorare_plan.md) plans. The router must not silently exempt an unmigrated domain.
 
 ## Architecture
 

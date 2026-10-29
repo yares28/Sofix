@@ -10,12 +10,13 @@ adds how to find information, the design bar, which skills to use and what done 
 
 Do not guess or ask the owner for information that can be established from the project. Find it first:
 
-1. Start with AGENTS.md, the [user manual](docs/user_manual.md), the [research report](docs/research_report.md),
-   [PLAN.md](PLAN.md), and the relevant document under `docs/`.
+1. Start with AGENTS.md and this guide, then [the context router](docs/context.md). Play recommendation logic uses its
+   routed contracts; unmigrated and mixed-task domains retain AGENTS.md's six-guide reading requirement.
 2. Confirm current behavior in the implementation, schemas, migrations, generated artifacts, tests, workflows and
    configuration examples. Search the repository with `rg`/`rg --files` before assuming something is absent.
 3. For live or time-sensitive facts, inspect the appropriate authoritative source or service without exposing secrets.
-4. If sources disagree, prefer executable/current evidence, record the contradiction, and update the affected docs.
+4. If sources disagree, code establishes observed behavior and owner requirements establish intended behavior. Record
+   the contradiction; do not use code or a passing test to silently override a requirement. Update affected docs with the distinction.
 5. Ask the owner only when the answer requires a private choice, unavailable credential, destructive approval or
    information that cannot be recovered safely from the repository and its configured sources.
 
@@ -63,8 +64,9 @@ Sofix already has a design system, so the design skills serve it; they never rep
 
 ## Done means
 
-1. Behavior/copy matches [PLAN.md](PLAN.md), [how_it_works.md](docs/how_it_works.md) and the
-   [research report](docs/research_report.md); the frontend renders backend decisions instead of re-deriving them.
+1. Behavior/copy matches the owner requirements and applicable [current contracts](docs/context.md), with unmigrated
+   behavior checked against [PLAN.md](PLAN.md), [how_it_works.md](docs/how_it_works.md) and the dated
+   [research report](docs/research_report.md). Resolve known contradictions explicitly; the frontend renders backend decisions instead of re-deriving them.
 2. `node scripts/check.mjs` passes; a visible change also passed its page spec and the desktop + phone look.
 3. The doc the change affects (manual or plan) is updated in the same commit, in a line or two.
 4. Pushed to `main`, and `node scripts/check.mjs --live` says all clear; the reply ends with its "Test it" links.

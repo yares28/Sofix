@@ -79,11 +79,13 @@ held-out check is open). The xScore is:
 xScore = P(plays at least once) × expected Sorare score if he plays
 ```
 
-Sorare projection/play odds are preferred; last-five form with priors is fallback. Double gameweeks use chance of any
-appearance and a best-of-two uplift. The optimizer uses seeded 3,000-draw simulation, score SD 17.6, beam width 120
-and repeated randomized whole-week searches; it returns up to five materially different plans. It enforces synced
-slots/caps/bonuses/uniqueness/substitution rules. Cash and essence stay separate, while candidate ranking normalizes
-both objectives. Reward chances remain estimates with known spread/correlation assumptions.
+Current recommendation contracts: [source and score identities](docs/context.md#forecast-sources-001),
+[raw evidence versus planning adjustment](docs/context.md#forecast-raw-001), and
+[whole-plan rewards](docs/context.md#plan-rewards-001). Starting chances prefer FF, Sorare, then Sofix where available;
+own game scores omit Sorare projection, while the generic no-own-score fallback and alternate Sorare strategy remain distinct.
+The optimizer enforces competition/card/substitution rules and searches whole plans with seeded simulations, player-specific
+spread when available and a fallback otherwise. Essence is weighted by the leagues the owner plays; contenders are compared
+on the same planning numbers. Cash and essence stay separate. Reward estimates retain unvalidated spread/correlation assumptions.
 
 ## Operating contract
 

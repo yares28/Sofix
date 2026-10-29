@@ -226,7 +226,7 @@ Read only the day the page shows, not the entire history. Preserve the automatic
 
 **Requires:** EXTENSION-ACTIONS-001.
 
-Scope: window-based Arcade recommendations. The current source treats a lineup as entered on the current step; settlement is five minutes after its last game, a clear opens the next step, and other simultaneous entries on that step are insurance rather than queued future steps. A miss costs a life; losing the last life resets to step one. Each clear pays again; clearing the top also restarts at step one. The current objective is expected repeat cash won, not the highest step reached; non-cash clears only break ties and are not converted into cash. Preserve held cards, settlement time and actual source state. Read the dated source evidence in the linked plan before changing external-game semantics.
+Scope: window-based Arcade recommendations. The current source treats a lineup as entered on the current step; settlement is five minutes after its last game, a clear opens the next step, and other simultaneous entries on that step are insurance rather than queued future steps. A miss costs a life; losing the last life resets to step one. Each clear pays again; clearing the top also restarts at step one. The objective compares each prize's chance of being cleared at least once by the last listed game, the top step first (comparePrizes); within half a point the next prize down decides. It never uses a probability-weighted average of rewards, and cash and non-cash rewards are never converted into each other. A lineup comes from its window's own kickoffs unless a wider span is better by two points at some prize, and a card below 50% to start is left out while a likely starter fills its slot. Preserve held cards, settlement time and actual source state. Read the dated source evidence in the linked plan before changing external-game semantics.
 
 windowsOf groups kickoffs within 75 minutes of the first game in each window. quickLineup selects unique players across positional slots. Unknown start chance is currently treated as one in moments, while a known zero remains zero; this is an explicit modeling assumption, not observed certainty. With fewer than three played games, spread is 0.33 times score rather than zero. The approximate normal ranking and exact simulated lineup construction are different calculations.
 
@@ -1259,12 +1259,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-29",
-        "note": "Reviewed upstream repeat-reward objective, top-step reset, cash parsing and new two-climb regression on 29 October; contract updated.",
+        "note": "Read arcadeClimb.ts, arcadePlan.ts, the climb tests and arcade-rework.md after the 29 Oct prize-chance, close-kickoff and likely-starter changes; objective text updated; real-board behaviour not yet observed (no live set until 30 Oct).",
         "files": {
-          "frontend/lib/arcadeClimb.ts": "cc6e6ab38c503667c5971aa023c856e8f3f49551f05261ce22bb7afe893e25d6",
-          "frontend/lib/arcadePlan.ts": "70612e47d4d7a5b8106e1ff2cd3e6f86a03fafd5aff79c746a717b4c89ed4f3b",
-          "plans/arcade-rework.md": "3d5e35d9040e6cbe368b7e0a09b311d22db0f24df1bd836d09ca0676cf2009e2",
-          "frontend/lib/arcadeClimb.test.ts": "0f8b304d6f109ad209094ca4b97699e846ebc1c2f7f5a003ad1b8c3c2458cb24",
+          "frontend/lib/arcadeClimb.ts": "652a1b45f2fcadc44831a278f621695ed4481255f9d848794478265ef690ad4d",
+          "frontend/lib/arcadePlan.ts": "9d77ca0d6571b63a11e8a98cc35787d216ed88dd96d05411351bc4ce7d1ec7d1",
+          "plans/arcade-rework.md": "ae45e982616f72addba27474a1dcfc7286b9f1a112b78c47aa05c593076ccdcd",
+          "frontend/lib/arcadeClimb.test.ts": "bc51f48042d4cce8a43b1fac1f0bfac73b25027757cfe561e08a89e345d4389f",
           "frontend/lib/arcadePlan.test.ts": "b9892134e9898ee0a6b845c7625fc16917cd90275725bb66e270cf9c69796128"
         }
       }

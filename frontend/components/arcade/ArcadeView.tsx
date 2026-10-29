@@ -14,6 +14,12 @@ import { FdrContext } from "./Fdr";
 import ArcadeMissions from "./ArcadeMissions";
 import ArcadePacks from "./ArcadePacks";
 import ArcadePlanner, { climbStep } from "./ArcadePlanner";
+import SegmentedControl from "../SegmentedControl";
+
+/** The page's three views (owner, 29 Oct), switched like the other pages; the last one chosen is remembered in this browser. */
+type View = "play" | "packs" | "players";
+const VIEWS: { value: View; label: string }[] = [{ value: "play", label: "Play now" }, { value: "packs", label: "Missions & packs" }, { value: "players", label: "Players" }];
+const VIEW_KEY = "sofix-arcade-view";
 
 /** The least time between two reads when you come back to the tab. */
 const REREAD_MS = 3 * 60_000;
@@ -85,6 +91,8 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
   const [extras, setExtras] = useState<ArcadeExtras | null | "reading">("reading");
   useEffect(() => { void readArcadeExtras(arcade).then(setExtras); }, [arcade]); // once per read
   const ready = extras === "reading" ? null : extras;
+  const [view, setView] = useState<View>(() => { try { return (VIEWS.find((v) => v.value === localStorage.getItem(VIEW_KEY))?.value) ?? "play"; } catch { return "play"; } });
+  const pick = (next: View) => { setView(next); try { localStorage.setItem(VIEW_KEY, next); } catch { /* blocked: not remembered */ } };
   // Every card's outlook in each of its club's games, by game.
   const outlooks = useMemo(() => {
     const out = new Map<string, Outlook[]>();
@@ -166,11 +174,19 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
           : extras === null ? `Predictions need extension ${ARCADE_PLAN_VERSION}: reload it on chrome://extensions. Until then cards are scored on nothing.`
           : extras.unread.length ? `Not read this time: ${extras.unread.join(", ")}.` : null}
       </p>
-      {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} actions={actions} /> : null}
-      {ready && planOutlooks ? <ArcadePlanner arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} status={ready.status ?? {}} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
-      <ArcadePacks arcade={arcade} />
-      <ArcadeMissions arcade={arcade} outlooks={outlooks} />
-      <ArcadeCards cards={arcade.cards} games={arcade.games} outlooks={outlooks} />
+      <div className="arc-views"><SegmentedControl<View> label="Arcade view" size="lg" value={view} onChange={pick} options={VIEWS} /></div>
+      {/* Every view stays mounted (hidden, not removed), so a switch keeps its reads, picks and page. */}
+      <div className="arc-view" hidden={view !== "play"}>
+        {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} actions={actions} /> : null}
+        {ready && planOutlooks ? <ArcadePlanner arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} status={ready.status ?? {}} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
+      </div>
+      <div className="arc-view" hidden={view !== "packs"}>
+        <ArcadeMissions arcade={arcade} outlooks={outlooks} />
+        <ArcadePacks arcade={arcade} />
+      </div>
+      <div className="arc-view" hidden={view !== "players"}>
+        <ArcadeCards cards={arcade.cards} games={arcade.games} outlooks={outlooks} />
+      </div>
     </FdrContext.Provider>
   );
 }

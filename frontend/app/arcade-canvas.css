@@ -333,3 +333,9 @@
 .arc-main :is(.arc-card, .arc-lineup, .arc-club-cards, .arc-pitch li, .arc-picks, .arc-fan) img { border-radius: 0; box-shadow: none; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .24)); }
 .arc-main .arc-pitch li.is-captain img { filter: drop-shadow(0 0 1.5px var(--accent)) drop-shadow(0 0 1.5px var(--accent)) drop-shadow(0 12px 14px rgba(0, 0, 0, .24)); }
 .arc-main .arc-card-blank { border-radius: 9% / 5.6%; background: linear-gradient(165deg, #3b3e46, #16171b 72%); color: #fff; align-content: end; justify-items: center; text-align: center; font-weight: 600; line-height: 1.2; padding: 10% 8% 14%; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), 0 8px 14px -6px rgba(0, 0, 0, .35); }
+
+/* The three views: one switch under the hero, as on the other pages. */
+.arc-views { display: flex; justify-content: center; margin: 8px 0 12px; }
+.arc-views .segmented { max-width: 100%; }
+.arc-view { display: grid; gap: 28px; }
+.arc-view[hidden] { display: none; }

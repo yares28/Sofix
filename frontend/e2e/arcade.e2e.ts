@@ -54,6 +54,9 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
+/** The page's three views: Play now, Missions & packs, Players. */
+const show = (page: Page, view: string) => page.getByRole("group", { name: "Arcade view" }).getByRole("button", { name: view }).click();
+
 const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS, version = "0.4.14", holdPast = false) => page.addInitScript(([answers, version, holdPast]) => {
   Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_id: string, message: { type: string; step?: string; game?: string }, reply: (answer: unknown) => void) {
     if (message.type === "ping") return reply({ ok: true, version, sorareUser: "owner", appReachable: true });
@@ -73,6 +76,7 @@ test("Arcade shows the step you are on, its target, reward and lineups left, you
   await expect(step).toContainText("10 gems");
   await expect(page.locator(".arc-move .arc-lives")).toHaveAttribute("aria-label", "3 of 4 lives");
   await expect(page.locator(".arc-wallet")).toContainText("3,200");
+  await show(page, "Players");
   await expect(page.locator(".arc-grid .arc-card").first()).toHaveAttribute("aria-label", "Defender Three");
   expect(await smallText(page, 11)).toEqual([]);
 
@@ -95,6 +99,7 @@ test("collection cards keep their evidence compact and all reads in the hero too
   await expect(toolbar.getByRole("button", { name: "Refresh scores", exact: true })).toBeVisible();
   await expect(toolbar.getByRole("button", { name: "Refresh board and cards" })).toBeVisible();
   await expect(toolbar.getByRole("button", { name: "Refresh start percentages" })).toBeVisible();
+  await show(page, "Players");
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
   const card = page.locator(".arc-grid .arc-card");
   await expect(card.locator(".arc-art .arc-card-score")).toContainText("0");
@@ -133,6 +138,7 @@ test("collection fixture buttons align scores and starts, filters reset paginati
   }, "0.4.17");
   await page.goto("/arcade");
   const gallery = page.locator(".arc-cards");
+  await show(page, "Players");
   await expect(gallery.locator(".arc-card")).toHaveCount(12);
   const first = gallery.locator(".arc-card").first();
   await expect(first.locator(".arc-card-start")).toHaveText("50%");
@@ -199,6 +205,7 @@ test("each card shows Sorare's start % for its next game, and the read button re
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: saved ? { [GAME]: { p: [9000, 1792579200] } } : {} } }));
   await withExtension(page);
   await page.goto("/arcade");
+  await show(page, "Players");
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
   await expect(page.locator(".arc-grid .arc-card-start")).toHaveText("—");
   await expect(page.locator(".arc-grid").getByRole("button", { name: /Club v Rival/ })).toBeVisible();
@@ -214,8 +221,10 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   await withExtension(page);
   await page.goto("/arcade");
   // Player One: no projection, so his played average (60) × 50% start × (1 + 10% Holo + 4% club) = 34.
+  await show(page, "Players");
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
   await expect(page.locator(".arc-grid .arc-card-score b")).toHaveText("34");
+  await show(page, "Play now");
   await expect(page.locator(".arc-pitch li")).toHaveCount(5); // the five on the pitch
   await expect(page.locator(".arc-scale-tick.is-aim")).toContainText("Step 2");
   await page.getByText("Each card's numbers").click();
@@ -278,6 +287,7 @@ test("Gems and packs: what your gems buy for an Icon, new players or a collectio
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
   await withExtension(page, ANSWERS, "0.4.18");
   await page.goto("/arcade");
+  await show(page, "Missions & packs");
   const gems = page.locator(".arc-gems");
   await gems.getByRole("button", { name: "Read the odds" }).click();
   // Silver's one slot is always the Icon "new" (10 gems); 40 gems buy four.
@@ -339,6 +349,7 @@ test("with extension 0.4.15 Sorare's start % come from the open Sorare tab, ever
   await page.getByRole("button", { name: "Start percentage read details" }).click();
   await expect(page.locator(".arc-read")).toContainText("Read from your Sorare tab");
   await expect(page.getByRole("button", { name: "Refresh start percentages" })).toBeVisible();
+  await show(page, "Players");
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
   await expect(page.locator(".arc-grid .arc-card-start")).toHaveText("85%");
 });
@@ -361,6 +372,7 @@ test("a LaLiga streak mission gets Sofix's best five for its target, and a Decis
     ] },
   }, "0.4.17");
   await page.goto("/arcade");
+  await show(page, "Missions & packs");
   const missions = page.locator(".arc-missions");
   await expect(missions).toContainText("Your best five for it");
   await expect(missions).toContainText("to reach 300");
@@ -389,6 +401,7 @@ test("a Decisive Player Picker already filled shows your pick's chance, and five
     ] },
   }, "0.4.17");
   await page.goto("/arcade");
+  await show(page, "Missions & packs");
   const missions = page.locator(".arc-missions");
   await expect(missions.getByRole("heading", { name: "Today's missions" })).toBeVisible();
   await expect(missions.locator(".arc-own > li")).toHaveCount(1);
@@ -412,6 +425,7 @@ test("cold mission picks do not wait for projections and one window changes ever
   const players = SQUAD.map(([,slug], k) => ({ slug, allPlayerGameScores: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: Array.from({ length: 40 }, (_, i) => ({ scoreStatus: "FINAL", anyGame: { date: new Date(Date.parse(KICKOFF) - (i + 1) * 86400000).toISOString() }, anyPlayerGameStats: { minsPlayed: 90, gameStarted: true }, detailedScore: (i + k) % 3 ? [] : [{ stat: "goals", statValue: 1 }] })) } }));
   await withExtension(page, { ...ANSWERS, "arcade-missions": { currentUser: { setPlayTasks: missions } }, "arcade-decisive": { players } }, "0.4.17", true);
   await page.goto("/arcade");
+  await show(page, "Missions & packs");
   const section = page.locator(".arc-missions");
   await expect(section.locator(".arc-own")).toContainText("Locked");
   await expect(section.locator(".arc-alternatives > li")).toHaveCount(10);
@@ -446,6 +460,7 @@ test("coming back to the tab after opening packs reads your cards again, at most
   await page.clock.fastForward("03:01");
   await back();
   await expect(page.locator(".arc-wallet")).toContainText("7"); // the packed card counts; the other set's does not
+  await show(page, "Players");
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("packed");
   await expect(page.locator(".arc-count")).toHaveText("1–1 of 1");
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("old set");

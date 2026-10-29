@@ -37,16 +37,14 @@ or session cookie. Lineup changes remain a deliberate **Check → Draft → Ente
 ## Production architecture
 
 ```text
-football-data.org ──┐
-football-data.co.uk ├─> GitHub Actions refresh ─> Neon/read_models ─> Next.js on Vercel ─> PWA
-The Odds API ───────┤
-Sorare GraphQL ─────┘
-
-signed-in sorare.com tab <─> Chrome extension <─> Next.js extension endpoints
+Public football/Sorare sources -> GitHub Actions/Python -> Neon rows + read_models
+                                                        -> private R2 blocks -> Next.js/Vercel -> browser
+Signed-in sorare.com <-> allowlisted Chrome extension <-> Next.js session routes
+Local development -> copied R2 blocks or the mock API; server writes -> Neon
 ```
 
 Production does not need a continuously running Python server. FastAPI is the local-development and typed-API
-fallback. The Python job publishes complete page models to Neon and revalidates the app's one-hour caches.
+fallback. Python persists page models in Neon, copies them to private R2 and revalidates the app. Production pages read R2 only; version discovery and payload caches have different lifetimes. See [publication contracts](docs/context.md#publication-r2-001).
 
 ## Repository map
 

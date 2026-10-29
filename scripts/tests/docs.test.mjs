@@ -112,6 +112,17 @@ test("inventory is deterministic and includes route/table identities but exclude
   assert.doesNotMatch(inventory(f.root, files), /route.test/);
 });
 
+test("inventory derives schedules from the timetable so timer edits invalidate the generated reference", t => {
+  const f = fixture(t);
+  mkdirSync(join(f.root, "clock"));
+  const path = join(f.root, "clock/timetable.json");
+  writeFileSync(path, JSON.stringify({ jobs: [{ workflow: "refresh.yml", cron: "7 12 * * *" }] }));
+  const before = inventory(f.root, ["clock/timetable.json"]);
+  assert.match(before, /7 12 \* \* \*/);
+  writeFileSync(path, JSON.stringify({ jobs: [{ workflow: "refresh.yml", cron: "8 12 * * *" }] }));
+  assert.notEqual(inventory(f.root, ["clock/timetable.json"]), before);
+});
+
 test("a test title mentioned only in a comment is not executable evidence", t => {
   const f = fixture(t);
   writeFileSync(join(f.root, "src/check.test.ts"), '// rejects late input\nit("other case", () => {});\n');

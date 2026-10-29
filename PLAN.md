@@ -89,7 +89,7 @@ on the same planning numbers. Cash and essence stay separate. Reward estimates r
 
 ## Operating contract
 
-- Schedule: 07:17 and 22:43 UTC daily, Tuesday 13:23 and Friday 17:23 UTC.
+- Schedule: [clock/timetable.json](clock/timetable.json), reproduced in [the generated inventory](docs/context.md#generated-repository-discovery-inventory); UTC timers, Madrid display.
 - Order: schema check → sync → odds → predict → Sorare → publish → revalidate.
 - Unattended jobs never migrate; one refresh at a time; button cooldown ten minutes.
 - Page models cache for one hour and revalidate after publish; no browser DB polling.
@@ -124,6 +124,5 @@ Ligue 1, 22 October 2026: full 18-club FDR board and independently validated FDR
 
 Champions League and Europa League passed their separate held-out FDR and player xScore gates. Automatic
 coverage is 36 clubs each, league phase and published knockouts, with per-game model selection in mixed
-weeks. Conference failed both the football gate and independent player FDR-contribution gate and remains
-disabled. No retuning on the exposed holdout. See [delivery and real-data evidence](plans/european-fdr-xscore.md)
+weeks. Conference is available provisionally under [the owner-directed release](plans/conference-release.md); its independent football/player-contribution gates remain unpassed. No retuning on the exposed holdout. See [delivery and real-data evidence](plans/european-fdr-xscore.md)
 and [frozen reports](docs/european_validation/CL.json).

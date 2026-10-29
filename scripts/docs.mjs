@@ -131,6 +131,10 @@ export function inventory(root, files) {
       rows.push(`| table | \`${match[1]}\` | \`backend/app/models.py\` |`);
     }
   }
+  if (files.includes("clock/timetable.json")) {
+    const { jobs } = JSON.parse(read(root, "clock/timetable.json"));
+    for (const job of jobs) rows.push(`| UTC schedule | \`${job.workflow}: ${job.cron}\` | \`clock/timetable.json\` |`);
+  }
   return "<!-- inventory:start -->\n| Kind | Identity | Source |\n|---|---|---|\n" + rows.join("\n") + "\n<!-- inventory:end -->";
 }
 

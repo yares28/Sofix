@@ -6,13 +6,10 @@ and [research report](research_report.md) for caveats.
 ## 1. Source to screen
 
 ```text
-football-data.org fixtures/results ─┐
-football-data.co.uk history ────────┼─> GitHub refresh ─> Neon normalized rows + complete read_models
-The Odds API prices ────────────────┤                                  │
-Sorare public GraphQL ──────────────┘                                  v
-                                                               cached Next.js/PWA
-                                                                        │
-signed-in Sorare session <─ local allowlisted extension <───────────────┘
+Public football/Sorare sources -> GitHub Actions/Python -> Neon rows + read_models
+                                                        -> private R2 blocks -> Next.js/Vercel -> browser
+Signed-in sorare.com <-> allowlisted Chrome extension <-> Next.js session routes
+Local development -> copied R2 blocks or the mock API; server writes -> Neon
 ```
 
 Production has no always-running Python server. FastAPI is local/typed fallback. Refresh order:
@@ -28,7 +25,7 @@ Production has no always-running Python server. FastAPI is local/typed fallback.
 A partial unique index permits one running refresh. Button retry is ten minutes. Steps record status/timing and publish
 usable state where possible even when an optional source fails.
 
-Schedule in UTC: daily 07:17 and 22:43, Tuesday 13:23, Friday 17:23. Control converts to Madrid time.
+The UTC schedule is generated from [clock/timetable.json](../clock/timetable.json) in [the operational inventory](context.md#generated-repository-discovery-inventory). Control displays Madrid time; clock dispatch and job completion are separate states.
 
 ## 2. Football inputs
 
@@ -636,7 +633,7 @@ Nothing was seeded by the migration itself; steps 7–8 need no further migratio
 | Web cache/load | `frontend/lib/api.ts`, `playData.ts`, `db.ts` |
 | Football UI | `frontend/components/Overview.tsx`, `DifficultyGrid.tsx`, `FixtureBoard.tsx` |
 | Sorare UI/Apply | `frontend/components/play/`, `components/cards/`, `lib/apply.ts` |
-| Extension | `extension/background.js`, `core.js`, `bridge.js`, `content.js`, `overlay.js/css`, `drawer.js` |
+| Extension | `extension/background.js`, `core.js`, `bridge.js`, `content.js`, `overlay.js/css`, `dock.js` |
 | Operations | `.github/workflows/refresh.yml`, `league-history.yml`, `frontend/app/control/`, `frontend/lib/github.ts` |
 
 Audit player comparisons follow the top-bar GW and rank confirmed actuals before DNP/pending; summaries rank average actual. Saved per-game `sources` and FF match attribution are exposed only when the record predates the GW lock. Older published rows restore these from the same cached `score_record` and exact player/game. Sorare numeric `gameStarted` flags are normalized to booleans on ingestion and comparison, including cached frontend rows; absent flags remain unknown. See [follow-up contract](../plans/audit-followups.md).

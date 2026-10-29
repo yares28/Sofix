@@ -1,16 +1,13 @@
 # Architecture
 
-**Current 2026-09-28.** Production is a scheduled Python publisher plus cached Next.js reader—not a permanent FastAPI
+**Publication boundary reviewed 2026-10-29; other sections retain their dated scope.** Production is a scheduled Python publisher plus cached Next.js reader—not a permanent FastAPI
 deployment.
 
 ```text
- football-data.org ─┐
- football-data.co.uk├─> GitHub Actions / Python refresh ─> Neon normalized tables + read_models
- The Odds API ──────┤       schema→sync→odds→predict              │
- Sorare GraphQL ────┘       →Sorare→publish→revalidate            v
-                                                        Next.js/Vercel → PWA/browser
-                                                               │
- signed-in sorare.com tab <─ allowlisted Chrome extension <────┘
+Public football/Sorare sources -> GitHub Actions/Python -> Neon rows + read_models
+                                                        -> private R2 blocks -> Next.js/Vercel -> browser
+Signed-in sorare.com <-> allowlisted Chrome extension <-> Next.js session routes
+Local development -> copied R2 blocks or the mock API; server writes -> Neon
 ```
 
 ## Runtime ownership
@@ -21,7 +18,7 @@ deployment.
 | Python | Sources, normalization, Dixon-Coles, market fit, Sorare plan/replay, publishing, local FastAPI | Serve production pages continuously |
 | Neon | Normalized state, run log, pre-lock replay rows, complete page JSON | Compute forecasts |
 | Next.js/Vercel | Server-only reads/validation/cache, refresh dispatch/status, extension API | Run Python or expose DB credentials |
-| Chrome extension | Overlay and six allowlisted session operations | Store password/cookies, general proxy, automatic entry |
+| Chrome extension | Overlay and explicitly allowlisted session operations | Store password/cookies, general proxy, automatic entry |
 
 ## Refresh lifecycle
 
@@ -32,17 +29,19 @@ deployment.
 5. Replace predictions for the current model version.
 6. Sync Sorare, plan lineups and retain pre-lock forecasts.
 7. Replace `grid`, `system`, `sorare` and `sorare_references` read models.
-8. Authenticated `/api/revalidate`; otherwise one-hour cache expiry catches up.
+8. Synchronize web blocks to R2, then authenticated `/api/revalidate`; inspect upload results separately from database persistence.
 
 Steps record status/timing and are isolated so an optional-source failure need not blank every page. The run still
 fails visibly when a step fails.
 
 ## Web/cache boundary
 
-- `DATABASE_URL` is server-only Neon HTTP. Without it, local pages call `API_BASE_URL` (default `127.0.0.1:8000`).
-- Named one-hour tags cover football, system and Sorare models; failures are not cached.
-- Refresh status is dynamic/no-store because it combines GitHub workflow and DB run state.
-- There is no client polling of DB-backed pages. Neon free-limit suspension has a specific owner-facing state.
+- Production page reads use private R2 blocks, keyed by version/ETag; DATABASE_URL remains server-only for writes.
+- Local development uses SOFIX_BLOCKS_DIR; the mock/API fallback is separate from production reads.
+- Version discovery and payload caches have different lifetimes; see [PUBLICATION-R2-001](context.md#publication-r2-001).
+- Upload, cache invalidation and rendering are separate outcomes. A completed job alone does not establish visible freshness.
+- Recovery, same-second sync tolerance and protected block families: [PUBLICATION-SYNC-001](context.md#publication-sync-001).
+- Quota selection and missing status diagnosis: [DATABASE-SELECTION-001](context.md#database-selection-001).
 
 ## Model boundaries
 

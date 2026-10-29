@@ -1,6 +1,6 @@
-# Repository context: Play recommendations
+# Repository context: operational contracts
 
-This is the operational reference for the first migrated domain. The [audit and ten-upgrade plan](documentation_audit.md) retains the findings, scope and implementation record. Other domains remain on their existing guides; the inventory below is discovery, not a claim that every route has a migrated contract.
+This operational reference covers Play, publication/recovery, Audit evidence, extension actions, mission records, Arcade climb, UI navigation and Conference release authority. Coverage is bounded by each contract; detailed feature guides remain required for behavior outside those boundaries. The [audit and ten-upgrade plan](documentation_audit.md) retains the findings, scope and implementation record. Other domains remain on their existing guides; the inventory below is discovery, not a claim that every route has a migrated contract.
 
 ## Start and authority
 
@@ -27,7 +27,8 @@ The lookup returns complete contract sections, the reason for each match, transi
 | Late capture, failed source, null versus zero | FORECAST-PRELOCK-001 | Audit filtering is a consumer with additional conditions, not a new capture permission |
 | Missing/delayed receipt, correction, browser closed | REWARD-SETTLEMENT-001 | Actual receipts differ from estimated plan outcomes |
 | Stale Play despite a completed job | PUBLICATION-R2-001 | Recovery recipe below; full deployment/migration work stays under AGENTS.md |
-| Conference availability, UI-only edit, missions or Arcade | Legacy fallback | [roadmap](../plans/roadmap.md), task plan and six general guides; no inferred Play coverage |
+| Audit / extension / missions / Arcade / UI / Conference | AUDIT-EVIDENCE-001 / EXTENSION-ACTIONS-001 / MISSIONS-RECORD-001 / ARCADE-CLIMB-001 / UI-NAVIGATION-001 / CONFERENCE-RELEASE-001 | Read the domain contract plus its feature plan; this does not waive existing legacy-guide requirements |
+| Publication repair / database quota / local setup / timers | PUBLICATION-SYNC-001 / DATABASE-SELECTION-001 / LOCAL-ISOLATION-001 / SCHEDULE-CLOCK-001 | Owner action boundaries remain mandatory |
 
 ## Contract format and evidence limits
 
@@ -140,6 +141,116 @@ Play’s `sorareWrittenAt` version lookup caches for one hour, while split paylo
 **Exceptions/limits:** this contract covers the inspected paths, not a full recovery audit. Old opening comments/diagrams claiming pages read Neon are stale supporting prose. No recovery step here authorizes production SQL, a manual project switch, a bulk copy, an automatic write retry or extra production-page sweeps.
 
 **Why/example:** database timestamp newer than the visible bucket block means inspect upload/sync evidence before blaming the renderer. Bucket current but old version discovered means inspect revalidation/version cache. An answering database does not prove complete historical records. Existing tests cover unchanged timestamps, changed-block publication and R2 reads; they do not prove a live cross-service atomic publish.
+
+<a id="publication-sync-001"></a>
+## PUBLICATION-SYNC-001
+
+**Scope/status:** normal job publication reconciliation; implemented. **Requires:** PUBLICATION-R2-001, LOCAL-ISOLATION-001.
+
+**Rule:** list R2 before reading Neon timestamps, then upload missing or sufficiently older blocks in batches of 50. Delete vanished ordinary blocks through the normal publisher, while preserving excluded switch/ledger and R2-only families. Player histories and refresh runs have their own publishers; a missing ordinary read-model row does not authorize deleting those objects. Compare uploaded, deleted and failed counts separately.
+
+**Boundary:** R2 timestamps have whole-second precision. A database rewrite within the one-second tolerance is deliberately considered current; if its immediate upload failed, sync may leave the old block until another write. This is a known recovery limitation, not proof of immediate convergence. Without R2 configuration, zero counters mean no work attempted, not successful publication.
+
+**Recovery:** inspect existing computation, database-write and upload evidence in that order. A missing bucket block and an old cached version require different diagnoses. Use mocked sync tests locally; do not invoke production sync/delete functions as a diagnostic. Production repair, database copies and manual switches retain the owner's action boundaries. Preserve old evidence when reporting partial results.
+
+**Example:** fresh, stale, missing and same-second blocks in the sync fixture produce two uploads; a vanished ordinary block is deleted, a player history block is retained. The test does not prove a live cross-service transaction.
+
+<a id="database-selection-001"></a>
+## DATABASE-SELECTION-001
+
+**Scope/status:** normal scheduled database selection and quota move; implemented, with owner-only manual repair. **Requires:** PUBLICATION-R2-001, LOCAL-ISOLATION-001.
+
+**Rule:** choose the latest-written answering project, not a fixed project name. Quota refusal is an expected unavailable candidate. At the configured 4 GiB threshold, the scheduled move chooses an answering spare with known usage below the limit and the least sent bytes. Unknown usage is not zero evidence: a failed usage API can leave the refresh running while preventing a move. The status note must remain visible.
+
+**Boundary:** copy_all requires matching Alembic versions before copying tables. Migrate every production project through the owner process; never alter spare settings, reset a project or call the copy/move command manually without authorization. Preserve neon_live and neon_status. Availability and latest-write selection do not prove historical completeness; the retained GW25 gap is a separate reconciliation task.
+
+**Diagnosis:** missing neon_status on R2 establishes only that this status read returned nothing. It does not by itself prove a missing API key, exhausted quota, broken database or failed refresh. Inspect existing job/status publication evidence before attributing the cause. Do not print connection strings or query every project as a speculative repair.
+
+**Example:** a newer unavailable project loses to an older answering project. An answering spare with unknown transfer usage cannot be selected as the measured least-used target. Existing pure tests cover selection and thresholds; they are not a production copy drill.
+
+<a id="local-isolation-001"></a>
+## LOCAL-ISOLATION-001
+
+**Scope/status:** development and deterministic verification; required and implemented. **Requires:** none.
+
+**Rule:** ordinary local work uses SQLite/mocks and copied R2 blocks, never a production database address in local settings. Python allows production only in GitHub Actions or with the exact explicit SOFIX_PRODUCTION=1 guard; this technical bypass is not permission to write production. Web development uses SOFIX_BLOCKS_DIR; npm run dev refreshes the daily copy through its predev script. Keep one real-data dev server, bound to 127.0.0.1. Run npm from frontend only.
+
+**Recipe:** use the existing backend virtualenv, set POSTGRES_URL=sqlite:// and empty POSTGRES_MIGRATION_URL for tests, then run the selected pytest cases. From frontend run npm test with specific test files. npm run blocks downloads the authorized R2 copy and writes local files; it is not a fully offline command. Load/performance loops use mock data. No production refresh, migration, token export or database copy is a prerequisite for these tests.
+
+**Boundary/example:** SOFIX_PRODUCTION=yes is rejected; the exact value 1 permits connection but does not override owner authorization. A missing local block is missing local data, not a reason to add a Neon fallback to page loaders.
+
+<a id="schedule-clock-001"></a>
+## SCHEDULE-CLOCK-001
+
+**Scope/status:** Cloudflare clock dispatching GitHub workflows; implemented. **Requires:** none.
+
+**Rule:** clock/timetable.json is the source for UTC schedule entries; the generated inventory below reproduces them. GitHub runs the jobs, while the Worker starts due workflows. The ten-minute catch-up window includes this minute and the preceding nine. Before dispatch, the clock checks whether any run of that workflow was created since its due slot; this suppresses duplicates from clock, button or push. Cron day-of-month and weekday are both required in this implementation; no current entry constrains both.
+
+**Exceptions:** missing GITHUB_TOKEN starts nothing and logs that fact. A list/dispatch failure is reported, not evidence that the downstream job ran. A timer match is not proof of completed data refresh. GitHub backup schedule behavior lives in the workflow; do not count it as an independent requirement to duplicate every Worker dispatch.
+
+**Diagnosis/recipe:** from root run node --test clock/test/*.test.js against mocked dispatch. Inspect the existing last-run timestamps and clock logs for a missed slot. Never manually dispatch refresh after a backend push that already triggers it. Document schedule changes by regenerating the inventory, not by maintaining another list of times. No production page sweep or paid service is needed.
+
+<a id="audit-evidence-001"></a>
+## AUDIT-EVIDENCE-001
+
+**Requires:** FORECAST-PRELOCK-001.
+
+Scope: aggregate Audit evidence, independent of the top-bar week. Preserve player/game/source identity and pre-lock capture. A known start result can count before the whole GW ends; full-GW score comparison retains its settlement boundary. FINAL, REVIEWING and explicit DID_NOT_PLAY rows still require internally consistent played/started evidence. An explicit nonappearance is different from an unknown appearance. Permanent game rows and legacy records must not double count overlap. Late score-record values are cleared; saved per-game values are used only with pre-lock said_at.
+
+The owner requires starters and substitutes apart, the within-seven-points comparison, and a too-few-to-tell label below 100 cases except the Sofix-versus-Sorare rates shown from the first game. Source-specific denominators must remain visible. Existing tests cover partial double GWs, sold players, unknown appearance, idle publication and overlap. They do not establish prospective calibration. Never borrow the reward receipt clock to finalize Audit scores.
+
+<a id="extension-actions-001"></a>
+## EXTENSION-ACTIONS-001
+
+**Requires:** WEEK-IDENTITY-001.
+
+Scope: session-bound actions and extension integration. Public GraphQL remains read-only. Check, Draft and Enter are separate explicit owner actions; never chain them or retry an uncertain write automatically. A timeout after Enter is an unknown outcome: inspect entered status before another owner-directed action. A saved draft is not an entered lineup. Slot/card/captain identities must match the intended competition and GW.
+
+Both worker and page bridge enforce allowlists; current code also includes read operations for missions and Arcade, so the old six-operation description is historical, not a complete capability list. Inspect both allowlists and tests whenever adding an operation. Never store passwords/cookies or turn the bridge into a general proxy. Overlay numbers require the extension token; owner/account identity matching is not enforced yet. The overlay opens Apply and has no write buttons.
+
+Use dock.js, not the removed drawer.js. Read the manifest template for current hosts, including bounded Futbol Fantasy match reads. Before an extension release run node extension/scripts/configure.mjs, then the owner reloads once; generated config/manifest are secret-bearing and ignored. Mock bridge tests do not prove an authenticated real-session flow.
+
+<a id="missions-record-001"></a>
+## MISSIONS-RECORD-001
+
+**Requires:** FORECAST-PRELOCK-001, PUBLICATION-R2-001.
+
+Scope: mission evidence, concurrent writes and display replay. Mission day, rarity, source task instance, player and game are separate identity keys. Daily records coexist with readable legacy monthly records. Missing dates may receive the requested baseline, never fabricated past predictions. Preserve capture time, late/reconstructed/coverage status and unknown versus false outcomes.
+
+Owner-approved counterfactual replay is a display projection; Audit and writes retain original captured evidence. Source task aliases may reconcile identity, but may not redirect an override to a different task. Owner edits keep revision and source picks. Optimistic merge compares stored JSON, retries local storage conflicts up to five times, and uploads a changed record to R2. This storage retry does not authorize retrying Sorare entry. A failed upload is not an atomic database-and-bucket transaction.
+
+Read only the day the page shows, not the entire history. Preserve the automatic daily Decisive Picker baseline and the source-specific rules for other loaded missions; never promise every mission was captured when coverage is missing. Extend the existing recovery/replay/concurrent-write tests before changing these boundaries; the selected GW lock is not a universal mission-day cutoff.
+
+<a id="arcade-climb-001"></a>
+## ARCADE-CLIMB-001
+
+**Requires:** EXTENSION-ACTIONS-001.
+
+Scope: window-based Arcade recommendations. The current source treats a lineup as entered on the current step; settlement is five minutes after its last game, a clear opens the next step, and other simultaneous entries on that step are insurance rather than queued future steps. A miss costs a life; losing the last life resets to step one. Each clear pays again; clearing the top also restarts at step one. The current objective is expected repeat cash won, not the highest step reached; non-cash clears only break ties and are not converted into cash. Preserve held cards, settlement time and actual source state. Read the dated source evidence in the linked plan before changing external-game semantics.
+
+windowsOf groups kickoffs within 75 minutes of the first game in each window. quickLineup selects unique players across positional slots. Unknown start chance is currently treated as one in moments, while a known zero remains zero; this is an explicit modeling assumption, not observed certainty. With fewer than three played games, spread is 0.33 times score rather than zero. The approximate normal ranking and exact simulated lineup construction are different calculations.
+
+Counterexample: several lineups on step two cannot be presented as one automatically reserved lineup for each later step. No recommendation spends lives or gems automatically. Pack odds and inventory assumptions require their own source evidence; these climb contracts do not certify pack values or authorize purchases.
+
+<a id="ui-navigation-001"></a>
+## UI-NAVIGATION-001
+
+**Requires:** WEEK-IDENTITY-001, PUBLICATION-R2-001.
+
+Scope: shared week selection and page implementation. One date-selected week resolves each page's relevant football round and Sorare GW; these numbers are not interchangeable. A Sorare span covering two football rounds has separate round addresses while retaining one Sorare plan. No planned GW means unavailable, not an invented identifier. Audit and current Cards/Players snapshots retain their explicit exceptions.
+
+Start independent reads together, never await reads in a loop, and send client components only displayed fields. Long link lists disable prefetch. Use the existing LinkPending bars rather than introducing loading.tsx delays. R2 page reads must not become database polling; timers run minutes apart and only while visible. Preserve all design rules in CLAUDE.md and AGENTS.md, including card art, crests, text floor, named containers, accessible controls and reduced motion.
+
+Acceptance for a visible change still requires the changed page spec, local real-data desktop/mobile inspection in the owner's Chrome and navigation on a production build. Shared-shell/week changes require the full mock browser suite. No automated production page sweep substitutes for that proof. These requirements remain mandatory even when static routing succeeds.
+
+<a id="conference-release-001"></a>
+## CONFERENCE-RELEASE-001
+
+**Requires:** none.
+
+Scope: Conference release authority. The owner's 23 October release decision supersedes waiting for a full prospective season as a product availability gate. Conference is available provisionally with the fixed recovery candidate; independent football/player-benefit gates remain unpassed. Do not relabel the candidate validated, retune on the observed diagnostic holdout or borrow LaLiga artifacts. CL/EL retain their separate validated guards.
+
+Coverage is all 36 main-stage clubs and their current players/calendar; qualifiers remain deferred. xScore requires an eligible selected-week game and actual playing-side identity. A release receipt is historical evidence, not proof that today's sources or deployment were rechecked. Read the release plan and archived artifact proofs for exact cohorts, hashes and exceptions. Counterexample: an old statement that Conference failed a validation gate does not imply the owner-directed provisional feature is unavailable.
 
 <!-- contracts:end -->
 
@@ -265,6 +376,23 @@ Generated from tracked plus unignored local file paths and SQLAlchemy table decl
 | table | `match_odds` | `backend/app/models.py` |
 | table | `match_forecasts` | `backend/app/models.py` |
 | table | `player_absences` | `backend/app/models.py` |
+| UTC schedule | `refresh.yml: 17 7 * * *` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 7 12 * * *` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 37 13 * * 1` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 7 15 * * 1` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 7 15 * * 2` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 37 13 * * 3` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 7 15 * * 3` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 37 13 * * 4` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 7 15 * * 4` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 43 22 * * *` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 23 13 * * 2` | `clock/timetable.json` |
+| UTC schedule | `refresh.yml: 23 17 * * 5` | `clock/timetable.json` |
+| UTC schedule | `near-lock.yml: */30 * * * *` | `clock/timetable.json` |
+| UTC schedule | `score-checks.yml: 11,41 * * * *` | `clock/timetable.json` |
+| UTC schedule | `league-history.yml: 30 3 * * *` | `clock/timetable.json` |
+| UTC schedule | `games-export.yml: 47 5 * * *` | `clock/timetable.json` |
+| UTC schedule | `conference-recording.yml: 17 10 * * *` | `clock/timetable.json` |
 <!-- inventory:end -->
 
 ## Contract registry and source-review fingerprints
@@ -753,6 +881,475 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/r2.test.ts": "9cd13cf1dd62a42da3a4635672d2801eca93f686841a3552bceab974f0a7d7e5"
         }
       }
+    },
+    {
+      "id": "PUBLICATION-SYNC-001",
+      "aliases": [
+        "publication recovery",
+        "missing block",
+        "R2 sync"
+      ],
+      "paths": [
+        "backend/app/services/r2.py",
+        "backend/app/services/player_blocks.py"
+      ],
+      "requires": [
+        "PUBLICATION-R2-001",
+        "LOCAL-ISOLATION-001"
+      ],
+      "sources": [
+        {
+          "path": "backend/app/services/r2.py",
+          "symbol": "sync"
+        },
+        {
+          "path": "backend/app/services/player_blocks.py",
+          "symbol": "publish"
+        }
+      ],
+      "tests": [
+        {
+          "path": "backend/tests/test_r2_sync.py",
+          "symbol": "test_sync_uploads_missing_and_older_blocks_and_deletes_gone_ones"
+        }
+      ],
+      "anchor": "publication-sync-001",
+      "status": "implemented",
+      "review": {
+        "date": "2026-10-29",
+        "note": "Inspected implementation and available tests; execution receipt recorded separately.",
+        "files": {
+          "backend/app/services/r2.py": "b203c6f542dada96bc0388aee7205098101502206839a99ff15924989bd8a6fb",
+          "backend/app/services/player_blocks.py": "2a15cfcb76203f5eee8f626c0c55aa99497876aac99dd135cb045a6be97130c1",
+          "backend/tests/test_r2_sync.py": "9c6ff41457ff5feb0611be204dcda0cc2adaeb5e0b3c7de0ca8e871ebe419c22"
+        }
+      }
+    },
+    {
+      "id": "DATABASE-SELECTION-001",
+      "aliases": [
+        "Neon selection",
+        "database quota",
+        "missing Neon status",
+        "database move"
+      ],
+      "paths": [
+        "backend/app/jobs/neon_switch.py"
+      ],
+      "requires": [
+        "PUBLICATION-R2-001",
+        "LOCAL-ISOLATION-001"
+      ],
+      "sources": [
+        {
+          "path": "backend/app/jobs/neon_switch.py",
+          "symbol": "pick"
+        },
+        {
+          "path": "backend/app/jobs/neon_switch.py",
+          "symbol": "move_to"
+        },
+        {
+          "path": "backend/app/jobs/neon_switch.py",
+          "symbol": "copy_all"
+        },
+        {
+          "path": "backend/app/jobs/neon_switch.py",
+          "symbol": "sent_bytes"
+        }
+      ],
+      "tests": [
+        {
+          "path": "backend/tests/test_neon_switch.py",
+          "symbol": "test_live_project_is_the_one_written_last_among_those_answering"
+        },
+        {
+          "path": "backend/tests/test_neon_switch.py",
+          "symbol": "test_moves_at_the_limit_to_the_answering_project_that_sent_least"
+        }
+      ],
+      "anchor": "database-selection-001",
+      "status": "implemented",
+      "review": {
+        "date": "2026-10-29",
+        "note": "Inspected implementation and available tests; execution receipt recorded separately.",
+        "files": {
+          "backend/app/jobs/neon_switch.py": "5bb9f0c1c3140cb2729e4f03c8ba2019994e4620b037770e5a0305da92b8f276",
+          "backend/tests/test_neon_switch.py": "2cc6a9ab7347b1c69634da8f79d09e13b2e765bf17564033782dff7e5f23a3bb"
+        }
+      }
+    },
+    {
+      "id": "LOCAL-ISOLATION-001",
+      "aliases": [
+        "local development",
+        "production guard",
+        "local blocks"
+      ],
+      "paths": [
+        "backend/app/db.py",
+        "frontend/scripts/blocks.mjs"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "backend/app/db.py",
+          "symbol": "production_allowed"
+        },
+        {
+          "path": "frontend/lib/r2.ts",
+          "symbol": "blocksAvailable"
+        },
+        {
+          "path": "frontend/package.json"
+        }
+      ],
+      "tests": [
+        {
+          "path": "backend/tests/test_r2_sync.py",
+          "symbol": "test_only_github_jobs_or_a_deliberate_run_reach_production"
+        },
+        {
+          "path": "frontend/lib/r2.test.ts"
+        }
+      ],
+      "anchor": "local-isolation-001",
+      "status": "implemented",
+      "review": {
+        "date": "2026-10-29",
+        "note": "Inspected implementation and available tests; execution receipt recorded separately.",
+        "files": {
+          "backend/app/db.py": "c873193fd1af1704c4a839ae0772594c9d37544458a7308bc9a73016cefc097a",
+          "frontend/lib/r2.ts": "b88fe976b7cfff062f337b28df1c935e98f366dd291c2db1cfc70666a0638194",
+          "frontend/package.json": "fd9cc0aae255d031077aabab94606e3ff1c59acbf6b2b044c825ac9291d8951e",
+          "backend/tests/test_r2_sync.py": "9c6ff41457ff5feb0611be204dcda0cc2adaeb5e0b3c7de0ca8e871ebe419c22",
+          "frontend/lib/r2.test.ts": "9cd13cf1dd62a42da3a4635672d2801eca93f686841a3552bceab974f0a7d7e5"
+        }
+      }
+    },
+    {
+      "id": "SCHEDULE-CLOCK-001",
+      "aliases": [
+        "refresh schedule",
+        "clock diagnosis",
+        "timers",
+        "timetable"
+      ],
+      "paths": [
+        "clock/",
+        ".github/workflows/refresh.yml",
+        ".github/workflows/near-lock.yml"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "clock/src/clock.js",
+          "symbol": "due"
+        },
+        {
+          "path": "clock/src/clock.js",
+          "symbol": "tick"
+        },
+        {
+          "path": "clock/timetable.json"
+        },
+        {
+          "path": ".github/workflows/refresh.yml"
+        }
+      ],
+      "tests": [
+        {
+          "path": "clock/test/clock.test.js"
+        }
+      ],
+      "anchor": "schedule-clock-001",
+      "status": "implemented",
+      "review": {
+        "date": "2026-10-29",
+        "note": "Inspected implementation and available tests; execution receipt recorded separately.",
+        "files": {
+          "clock/src/clock.js": "d1c9ca65b5e06c59a38d9dbacbdce72d3e3bbd2e5faafeb0db581727d297ebca",
+          "clock/timetable.json": "86241a108823e509f86904ba9005f21cb0307f369871b6ee1cfccd5960a54eca",
+          ".github/workflows/refresh.yml": "b22a326c2746b078e4520930ceec6d50f87896cd7154deb1fab6bbcdef7cb6fe",
+          "clock/test/clock.test.js": "642c93350966e1b89b1080e6602804e44e3b92a23d3d1070823eda6c36e3184c"
+        }
+      }
+    },
+    {
+      "id": "AUDIT-EVIDENCE-001",
+      "anchor": "audit-evidence-001",
+      "status": "implemented",
+      "aliases": [
+        "Audit comparison",
+        "score audit",
+        "start audit"
+      ],
+      "paths": [
+        "backend/app/sorare/player_audit.py",
+        "frontend/lib/auditData.ts"
+      ],
+      "requires": [
+        "FORECAST-PRELOCK-001"
+      ],
+      "sources": [
+        {
+          "path": "backend/app/sorare/player_audit.py"
+        },
+        {
+          "path": "backend/app/sorare/audit.py"
+        }
+      ],
+      "tests": [
+        {
+          "path": "backend/tests/test_player_audit.py"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Source-inspected boundaries; referenced suites are evidence locations, not a claim of live verification.",
+        "files": {
+          "backend/app/sorare/player_audit.py": "3436b64cf197d937aefbd51a213af0e28c396ebab23ff8b883e52091bea89427",
+          "backend/app/sorare/audit.py": "d41db332566ac8bfac5d589399fd0c4f106fe09e3f1e5f24081eef4ced9a49b1",
+          "backend/tests/test_player_audit.py": "af8a452ab14847a26158b6aba04a3dcb9f6f88f356bc254ad67ba3129ef5c175"
+        }
+      }
+    },
+    {
+      "id": "EXTENSION-ACTIONS-001",
+      "anchor": "extension-actions-001",
+      "status": "implemented",
+      "aliases": [
+        "extension actions",
+        "Apply",
+        "Sorare entry",
+        "page bridge"
+      ],
+      "paths": [
+        "extension/",
+        "frontend/lib/apply.ts",
+        "frontend/lib/extension.ts"
+      ],
+      "requires": [
+        "WEEK-IDENTITY-001"
+      ],
+      "sources": [
+        {
+          "path": "extension/background.js"
+        },
+        {
+          "path": "extension/bridge.js"
+        },
+        {
+          "path": "extension/manifest.template.json"
+        },
+        {
+          "path": "frontend/lib/apply.ts"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/lib/apply.test.ts"
+        },
+        {
+          "path": "frontend/lib/extensionBridge.test.ts"
+        },
+        {
+          "path": "frontend/lib/extensionBackground.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Source-inspected boundaries; referenced suites are evidence locations, not a claim of live verification.",
+        "files": {
+          "extension/background.js": "042f4f6de642633a9dea3760b265753a2ae0a21b665345ed0f79370842b3bfc3",
+          "extension/bridge.js": "7c9df0d57d06b4a705c04ba68af35b92e6b928474292a8c1accd631158842642",
+          "extension/manifest.template.json": "c7f54bc4343c77d94ba93aaa6834727367ae2839bd9d9b778fa3dd46d5ba6c4e",
+          "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
+          "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
+          "frontend/lib/extensionBridge.test.ts": "186d7ae03119f8294abf259ac869b22ce36fc446f089373457353e0087a15473",
+          "frontend/lib/extensionBackground.test.ts": "0ef9b2440b0dd0e654543769b30b2095c7031b4cd80a73d70bcbca58376cb9ed"
+        }
+      }
+    },
+    {
+      "id": "MISSIONS-RECORD-001",
+      "anchor": "missions-record-001",
+      "status": "implemented",
+      "aliases": [
+        "mission log",
+        "missions",
+        "mission replay"
+      ],
+      "paths": [
+        "frontend/lib/mission",
+        "backend/app/sorare/missions.py"
+      ],
+      "requires": [
+        "FORECAST-PRELOCK-001",
+        "PUBLICATION-R2-001"
+      ],
+      "sources": [
+        {
+          "path": "frontend/lib/missionLog.ts"
+        },
+        {
+          "path": "frontend/lib/missionStore.ts"
+        },
+        {
+          "path": "frontend/lib/missionEdits.ts"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/lib/missionStore.test.ts"
+        },
+        {
+          "path": "frontend/lib/missionRecovery.test.ts"
+        },
+        {
+          "path": "frontend/lib/missionReplay.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Source-inspected boundaries; referenced suites are evidence locations, not a claim of live verification.",
+        "files": {
+          "frontend/lib/missionLog.ts": "3df75f1d6e635861c7cf91fcb241786b696e35f9e6125892b0b58c24c742a6bc",
+          "frontend/lib/missionStore.ts": "f46a2fac065d8befeaecc39b0f148266d55463ba27611e8bc92e6147963a317a",
+          "frontend/lib/missionEdits.ts": "65d2b754e926eb544480c1b26c6c8a2ff10e5d8c26b43ebd1b4e330e1836cf10",
+          "frontend/lib/missionStore.test.ts": "0ea7bae77e7eec6ad1140443db10b221088799ee05a0068f1e4f12743d0ae780",
+          "frontend/lib/missionRecovery.test.ts": "e74d08cf1dc992e218f8def889d4ec92976f2d0d95def287799d4af414d7eea6",
+          "frontend/lib/missionReplay.test.ts": "bdb2432509b4d37554c382f770edc78c85179f87c96164672c0da91641bc8d35"
+        }
+      }
+    },
+    {
+      "id": "ARCADE-CLIMB-001",
+      "anchor": "arcade-climb-001",
+      "status": "implemented",
+      "aliases": [
+        "Arcade climb",
+        "Arcade",
+        "climb window"
+      ],
+      "paths": [
+        "frontend/lib/arcade"
+      ],
+      "requires": [
+        "EXTENSION-ACTIONS-001"
+      ],
+      "sources": [
+        {
+          "path": "frontend/lib/arcadeClimb.ts"
+        },
+        {
+          "path": "frontend/lib/arcadePlan.ts"
+        },
+        {
+          "path": "plans/arcade-rework.md"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/lib/arcadeClimb.test.ts"
+        },
+        {
+          "path": "frontend/lib/arcadePlan.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Reviewed upstream repeat-reward objective, top-step reset, cash parsing and new two-climb regression on 29 October; contract updated.",
+        "files": {
+          "frontend/lib/arcadeClimb.ts": "cc6e6ab38c503667c5971aa023c856e8f3f49551f05261ce22bb7afe893e25d6",
+          "frontend/lib/arcadePlan.ts": "70612e47d4d7a5b8106e1ff2cd3e6f86a03fafd5aff79c746a717b4c89ed4f3b",
+          "plans/arcade-rework.md": "3d5e35d9040e6cbe368b7e0a09b311d22db0f24df1bd836d09ca0676cf2009e2",
+          "frontend/lib/arcadeClimb.test.ts": "0f8b304d6f109ad209094ca4b97699e846ebc1c2f7f5a003ad1b8c3c2458cb24",
+          "frontend/lib/arcadePlan.test.ts": "b9892134e9898ee0a6b845c7625fc16917cd90275725bb66e270cf9c69796128"
+        }
+      }
+    },
+    {
+      "id": "UI-NAVIGATION-001",
+      "anchor": "ui-navigation-001",
+      "status": "implemented",
+      "aliases": [
+        "UI-only",
+        "navigation",
+        "selected week",
+        "page layout"
+      ],
+      "paths": [
+        "frontend/app/",
+        "frontend/components/",
+        "frontend/lib/weeks.ts"
+      ],
+      "requires": [
+        "WEEK-IDENTITY-001",
+        "PUBLICATION-R2-001"
+      ],
+      "sources": [
+        {
+          "path": "frontend/lib/weeks.ts"
+        },
+        {
+          "path": "CLAUDE.md"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/lib/weeks.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Source-inspected boundaries; referenced suites are evidence locations, not a claim of live verification.",
+        "files": {
+          "frontend/lib/weeks.ts": "76ec702e350db3bfee529ca16970d64586fff1b450580cb9465f472c714e7dfa",
+          "CLAUDE.md": "3e8ad3b87f0ac3840e2cac11dad10e8d7089719bcf455a88b3c653f522c9d06b",
+          "frontend/lib/weeks.test.ts": "0c5e98e78f94024e723773d85f54ab97910658535e273b90856cb32bf2e48f1e"
+        }
+      }
+    },
+    {
+      "id": "CONFERENCE-RELEASE-001",
+      "anchor": "conference-release-001",
+      "status": "implemented",
+      "aliases": [
+        "Conference availability",
+        "Conference status"
+      ],
+      "paths": [
+        "plans/conference-release.md",
+        "backend/app/sorare/european_models.py"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "plans/conference-release.md"
+        },
+        {
+          "path": "backend/app/sorare/european_models.py"
+        },
+        {
+          "path": "docs/european_validation/CONF-release-proof.json"
+        }
+      ],
+      "tests": [
+        {
+          "path": "backend/tests/test_conference_forecast.py"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Source-inspected boundaries; referenced suites are evidence locations, not a claim of live verification.",
+        "files": {
+          "plans/conference-release.md": "8ee6abcf5d494ff65be44b593bfd52969571852d4e661b0773618ec80f9ee12b",
+          "backend/app/sorare/european_models.py": "205d444347ee72fc16403373c720b77f89274d0e100be876d8604dcd069db0de",
+          "docs/european_validation/CONF-release-proof.json": "e7e7017af3f9d6de7cf41cc66091564ea7e4c347110c4af25275d1fb7e6bb089",
+          "backend/tests/test_conference_forecast.py": "47db7ec9da02310b22961b57e161004d7de3acc2e0487677a4007d4e22fb7ade"
+        }
+      }
     }
   ],
   "trials": [
@@ -821,36 +1418,6 @@ This block is the single machine-readable index for the sections above. Test ref
       "fallback": false
     },
     {
-      "prompt": "Explain Conference availability",
-      "expected": [],
-      "forbidden": [
-        "PLAY-SELECTION-001",
-        "FORECAST-SOURCES-001",
-        "FORECAST-RAW-001",
-        "PLAN-REWARDS-001",
-        "WEEK-IDENTITY-001",
-        "FORECAST-PRELOCK-001",
-        "REWARD-SETTLEMENT-001",
-        "PUBLICATION-R2-001"
-      ],
-      "fallback": true
-    },
-    {
-      "prompt": "Change a UI-only navigation colour",
-      "expected": [],
-      "forbidden": [
-        "PLAY-SELECTION-001",
-        "FORECAST-SOURCES-001",
-        "FORECAST-RAW-001",
-        "PLAN-REWARDS-001",
-        "WEEK-IDENTITY-001",
-        "FORECAST-PRELOCK-001",
-        "REWARD-SETTLEMENT-001",
-        "PUBLICATION-R2-001"
-      ],
-      "fallback": true
-    },
-    {
       "prompt": "Keep collecting a missing receipt with the browser closed",
       "expected": [
         "REWARD-SETTLEMENT-001",
@@ -861,6 +1428,106 @@ This block is the single machine-readable index for the sections above. Test ref
         "PLAY-SELECTION-001"
       ],
       "fallback": false
+    },
+    {
+      "prompt": "publication recovery",
+      "expected": [
+        "PUBLICATION-SYNC-001",
+        "PUBLICATION-R2-001",
+        "LOCAL-ISOLATION-001"
+      ],
+      "forbidden": [],
+      "fallback": false
+    },
+    {
+      "prompt": "Neon selection",
+      "expected": [
+        "DATABASE-SELECTION-001",
+        "PUBLICATION-R2-001",
+        "LOCAL-ISOLATION-001"
+      ],
+      "forbidden": [],
+      "fallback": false
+    },
+    {
+      "prompt": "local development",
+      "expected": [
+        "LOCAL-ISOLATION-001"
+      ],
+      "forbidden": [],
+      "fallback": false
+    },
+    {
+      "prompt": "refresh schedule",
+      "expected": [
+        "SCHEDULE-CLOCK-001"
+      ],
+      "forbidden": [],
+      "fallback": false
+    },
+    {
+      "prompt": "Audit comparison",
+      "expected": [
+        "AUDIT-EVIDENCE-001",
+        "FORECAST-PRELOCK-001"
+      ],
+      "forbidden": [],
+      "fallback": false
+    },
+    {
+      "prompt": "extension actions",
+      "expected": [
+        "EXTENSION-ACTIONS-001",
+        "WEEK-IDENTITY-001",
+        "PUBLICATION-R2-001"
+      ],
+      "forbidden": [],
+      "fallback": false
+    },
+    {
+      "prompt": "mission log",
+      "expected": [
+        "MISSIONS-RECORD-001",
+        "FORECAST-PRELOCK-001",
+        "PUBLICATION-R2-001"
+      ],
+      "forbidden": [],
+      "fallback": false
+    },
+    {
+      "prompt": "Arcade climb",
+      "expected": [
+        "ARCADE-CLIMB-001",
+        "EXTENSION-ACTIONS-001",
+        "WEEK-IDENTITY-001",
+        "PUBLICATION-R2-001"
+      ],
+      "forbidden": [],
+      "fallback": false
+    },
+    {
+      "prompt": "UI-only",
+      "expected": [
+        "UI-NAVIGATION-001",
+        "WEEK-IDENTITY-001",
+        "PUBLICATION-R2-001"
+      ],
+      "forbidden": [],
+      "fallback": false
+    },
+    {
+      "prompt": "Conference availability",
+      "expected": [
+        "CONFERENCE-RELEASE-001"
+      ],
+      "forbidden": [],
+      "fallback": false
+    },
+    {
+      "prompt": "An unmapped financial spreadsheet task",
+      "expected": [],
+      "forbidden": [],
+      "fallback": true
     }
   ]
 }

@@ -474,3 +474,15 @@ No application behavior or service configuration changed. Documentation tooling 
 ### Resume boundaries
 
 The audit findings outside this first slice remain open. Do not mark all ten upgrades complete, reduce owner rules to a word budget, or treat source hashes as proof of correctness. Shipping this tooling does not close prospective S4 validation, real-data source coverage or the raw/planning publisher regression gap. Keep the existing roadmap as the sole priority queue.
+
+## Continuation contract - 29 October 2026
+
+Resume the full documentation overhaul, not just the first shipped Play bundle. Preserve all owner requirements and the single operational reference. First complete publication/recovery, then Audit, extension, missions, Arcade and UI/navigation. Reconcile stale prose, add routing and source/test evidence, and verify each addition offline. No new manual product steps or production repair actions are authorized by a documentation recipe. The first bundle shipped as 7978519; its deployment and home HTTP 200 passed, while missing Neon status remained a pre-existing diagnostic failure. Current work: publication, local isolation, database selection and scheduling contracts.
+
+### Continuation implementation and verification
+
+Expanded the operational reference from eight to eighteen contracts: publication reconciliation, database selection, local isolation, clock scheduling, Audit evidence, extension actions, mission records, Arcade climb, UI navigation and Conference release authority. Existing guides remain mandatory outside the exact contract scopes; no owner rule was removed. Corrected the production diagrams/cache description, duplicate schedule lists, old Conference-unavailable claims, dictionary payload version and FF source policy, partial environment index and removed drawer.js references. Schedule rows now derive from the timetable, with a regression that failed before implementation.
+
+Verification: 17 documentation-tool tests passed; 20 publication/R2/Neon-selection tests passed; 20 Audit/Conference tests passed; 151 frontend tests across Apply, extension bridge/background, mission store/recovery/replay, Arcade climb/plan and shared weeks passed. Backend runs used SQLite and empty migration URL; two dependency deprecation warnings remain. New source inspections and static retrieval cases do not constitute real-account or prospective accuracy proof. The initial live check still reported missing Neon status; no production repair was performed.
+
+Still open: complete endpoint-method/auth/input/error contracts; comprehensive block/artifact ownership inventory; remaining historical/manual organization and evidence gaps; safe slimming of always-loaded rules; actual task-performance trials; the raw-before-planning publisher regression. The broad architecture and source corrections do not mark every original finding resolved. Next work follows these open items rather than restarting the audit.

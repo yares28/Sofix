@@ -127,7 +127,7 @@ run. The E2E fixture now holds only LaLiga clubs.
 
 - [x] Card ribbon (xScore, chance of playing, the game) by card/player slug; cards found by picture address, never by
   Sorare's class names (`extension/core.js`, `overlay.js`, `overlay.css`; app side `lib/overlay.ts`, `/api/ext/overlay`).
-- [x] Plan drawer (edge tab) opens Apply in Sofix and never writes (`extension/drawer.js`).
+- [x] Plan drawer (edge tab) opens Apply in Sofix and never writes (`extension/dock.js`).
 - [x] 15-minute session cache, change/six-hour check-in, popup switch that acts live, cards-recognised count.
 - [x] Fake-Sorare E2E (`frontend/e2e/overlay.e2e.ts`): every card size, every state, no doubles on re-render, the
   switch, Sorare's own buttons stay hittable, axe. Card-finding also checked on real public sorare.com pages.

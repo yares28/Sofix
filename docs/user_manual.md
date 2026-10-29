@@ -54,8 +54,7 @@ before the lock. Reviewing scores remain pending. A player with no source positi
 Position TBC, without an invented score. Numbers belong to the selected Sorare GW and expire with the
 existing forecast freshness rules. A week with only domestic games receives no invented European match.
 
-Conference FDR and xScore did not pass the held-out release gates and remain unavailable. Its factual
-results are retained in the validated pooled football history; they do not authorize Conference forecasts.
+Conference FDR and xScore are available provisionally under the owner-directed release. Independent validation gates remain unpassed; qualifiers remain excluded. See [release authority](context.md#conference-release-001).
 
 ## 1. First use
 

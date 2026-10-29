@@ -2,7 +2,7 @@
 
 import { useContext, useMemo, useState, type CSSProperties } from "react";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
-import { climbWindows, prizeAt, type Climb, type Move } from "../../lib/arcadeClimb";
+import { climbWindows, prizeAt, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrChip, FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
@@ -291,12 +291,15 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
   const k = prizeAt(v, current);
   const prize = `step ${k}${boardSteps.find((s) => s.number === k)?.rewards.length ? ` (${boardSteps.find((s) => s.number === k)!.rewards[0]})` : ""}`;
   const at = (r: number[]) => pct(r[k] ?? 0);
-  const why = v.kind === "play" ? (Math.abs((v.now[k] ?? 0) - (v.wait[k] ?? 0)) < 0.005
-      ? `${at(v.now)} to reach ${prize} by the set's end either way, so play: every window you skip is a try lost.`
-      : `${at(v.now)} to reach ${prize} by the set's end playing now; ${at(v.wait)} holding the next window. Every window you skip is a try lost.`)
-    : v.kind === "wait" && v.waitFor ? `${when(v.waitFor.at, now)}'s games give ${pct(v.waitFor.chance)} against ${v.chanceNow === null ? "nothing" : pct(v.chanceNow)} now. Worth the ${v.skipped} window${v.skipped === 1 ? "" : "s"} it costs: ${at(v.wait)} to reach ${prize} by the set's end, against ${at(v.now)} if you play now.`
-    : v.kind === "spend" && move ? `${pct(clear)} to clear step ${move.step}; if not, you are back on step 1 about ${when(move.settles, now)} and the steps below come back fast: ${at(v.now)} to reach ${prize} by the set's end, against ${at(v.wait)} if you hold your lives.`
+  // The reason in one line; the numbers are in the bar below it.
+  const why = v.kind === "play" ? "Every window you skip is a try lost."
+    : v.kind === "wait" && v.waitFor ? `${when(v.waitFor.at, now)}'s games give ${pct(v.waitFor.chance)} to clear step ${current}, against ${v.chanceNow === null ? "nothing" : pct(v.chanceNow)} now.`
+    : v.kind === "spend" && move ? `${pct(clear)} to clear step ${move.step}; if not, you are back on step 1 about ${when(move.settles, now)} and the steps below come back fast.`
     : "Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).";
+  // Whether the lineup's start % will all be known before it is entered: its games kick off together (within the 75-minute window).
+  const together = lineup ? Date.parse(lineup.last) - Date.parse(lineup.first) <= WINDOW_MS : true;
+  const holdWins = v.kind === "wait";
+  const share = (r: number[]) => Math.max(0.18, r[k] ?? 0); // each side keeps room for its label
   return (
     <section className={`arc-move is-${v.kind}`} aria-labelledby="arc-move-title">
       <div className="arc-move-main">
@@ -308,18 +311,21 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
         <h2 id="arc-move-title" className="arc-move-verdict">{title}</h2>
         <p className="arc-move-why">{why}</p>
         {waitingNote ? <p className="arc-warn">{waitingNote}</p> : null}
-        <div className="arc-move-compare" role="img" aria-label={`Chance to reach ${prize} by the set's end: ${at(v.now)} playing now, ${at(v.wait)} holding a window`}>
-          {[["Play now", v.now], ["Hold a window", v.wait]].map(([label, value]) => (
-            <span key={label as string} className={(v.kind === "wait") === (label === "Hold a window") ? "is-pick" : undefined}>
-              <small>{label}</small><span className="arc-move-bar"><span style={{ width: `${Math.min(100, ((value as number[])[k] ?? 0) * 100)}%` }} /></span><b>{at(value as number[])}</b>
-            </span>
-          ))}
-        </div>
+        {v.kind !== "none" ? (
+          <figure className="arc-split">
+            <figcaption>Chance to reach {prize} before the set ends</figcaption>
+            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"}: ${at(v.now)} if you play now, ${at(v.wait)} if you hold a window`}>
+              <span className={holdWins ? undefined : "is-pick"} style={{ flexGrow: share(v.now) }}><small>Play</small><b>{at(v.now)}</b></span>
+              <span className={holdWins ? "is-pick" : undefined} style={{ flexGrow: share(v.wait) }}><small>Hold</small><b>{at(v.wait)}</b></span>
+            </div>
+          </figure>
+        ) : null}
         {move ? (
           <div className="arc-move-entry">
             <div className="arc-move-entry-head">
               <span className="arc-move-chance"><b>{pct(lineup ? chanceOf(lineup.totals, target(move.step)) : move.clear)}</b><small>{playsNow ? "this lineup clears it" : `ready for ${when(move.at, now)}`}</small></span>
               <span className="arc-move-times">
+                {lineup ? <span>{together ? `All five play at ${madridTime(lineup.first)}: you see the official lineups before you enter.` : `Its games run ${madridTime(lineup.first)} to ${madridTime(lineup.last)}: the later cards' start % can still change after you enter.`}</span> : null}
                 <span>Enter before <b>{when(lineup ? Date.parse(lineup.first) : move.at, now)}</b></span>
                 <span>Settles about <b>{when(lineup ? Date.parse(lineup.last) + SETTLES_AFTER_MS : move.settles, now)}</b></span>
                 {move.play > 1 ? <span>{move.play} lineups together: <b>{pct(clear)}</b> one clears (Sorare cancels the others)</span> : null}

@@ -15,8 +15,8 @@
 /* Your move (29 Oct 2026): the verdict, why, and the lineup to enter, beside the board with each step's chance. */
 .arc-move { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; padding: 28px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); position: relative; overflow: hidden; }
 .arc-move::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 6px; background: var(--move, var(--win)); }
-.arc-move.is-wait { --move: var(--fdr3-bg); }
-.arc-move.is-spend { --move: var(--fdr4-bg); }
+.arc-move.is-wait { --move: var(--fdr3-bg); --move-ink: var(--fdr3-fg); }
+.arc-move.is-spend { --move: var(--fdr4-bg); --move-ink: var(--fdr4-fg); }
 .arc-move.is-none { --move: var(--line); }
 .arc-move-main { display: grid; gap: 14px; min-width: 0; align-content: start; }
 .arc-move-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0; font-size: var(--text-sm); color: var(--ink-2); font-weight: 600; }
@@ -26,14 +26,16 @@
 .arc-move-prize { color: #1d1d1f; padding: 1px 8px; border-radius: 6px; background: linear-gradient(110deg, #c9f3e4, #d9d2ff 40%, #ffd6ea 70%, #fff0c4); }
 .arc-main .arc-move-verdict { margin: 0; font-size: clamp(40px, 6vw, 72px); line-height: 0.95; letter-spacing: -0.045em; text-wrap: balance; }
 .arc-move-why { margin: 0; max-width: 62ch; font-size: 17px; line-height: 1.45; color: var(--ink-2); text-wrap: pretty; }
-.arc-move-compare { display: grid; gap: 6px; max-width: 460px; }
-.arc-move-compare > span { display: grid; grid-template-columns: 110px minmax(0, 1fr) 40px; align-items: center; gap: 10px; font-size: var(--text-sm); color: var(--ink-2); }
-.arc-move-compare > span.is-pick { color: var(--ink); font-weight: 600; }
-.arc-move-compare small { font-size: var(--text-sm); }
-.arc-move-compare b { font-variant-numeric: tabular-nums; text-align: right; }
-.arc-move-bar { height: 8px; border-radius: 999px; background: var(--hover); overflow: hidden; }
-.arc-move-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--ink-3); transform-origin: left; animation: arc-run 900ms cubic-bezier(.16, 1, .3, 1) both; }
-.arc-move-compare > span.is-pick .arc-move-bar > span { background: var(--move, var(--win)); }
+/* Play or hold at a glance (owner, 29 Oct): one pill split between the two, each side as wide as its chance, the advised side filled. */
+.arc-split { margin: 0; display: grid; gap: 6px; max-width: 520px; }
+.arc-split figcaption { font-size: var(--text-sm); color: var(--ink-2); }
+.arc-split > div { display: flex; gap: 4px; height: 52px; }
+.arc-split > div > span { flex-basis: 0; min-width: 96px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 16px; border-radius: 12px; background: var(--hover); color: var(--ink-2); transform-origin: left; animation: arc-run 700ms cubic-bezier(.16, 1, .3, 1) both; }
+.arc-split > div > span:first-child { border-radius: 999px 12px 12px 999px; }
+.arc-split > div > span:last-child { border-radius: 12px 999px 999px 12px; animation-delay: 80ms; }
+.arc-split > div > span.is-pick { background: var(--move, var(--win)); color: var(--move-ink, var(--on-ink)); }
+.arc-split small { font-size: var(--text-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.arc-split b { font-size: 22px; font-variant-numeric: tabular-nums; }
 .arc-move-entry { display: grid; gap: 14px; padding-top: 16px; border-top: 1px solid var(--line); }
 .arc-move-entry-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; }
 .arc-move-chance { display: grid; }
@@ -127,7 +129,8 @@
 @media (max-width: 600px) {
   .arc-move { padding: 18px 16px 18px 20px; gap: 18px; }
   .arc-move-why { font-size: 15px; }
-  .arc-move-compare > span { grid-template-columns: 96px minmax(0, 1fr) 34px; }
+  .arc-split > div { height: 46px; }
+  .arc-split b { font-size: 18px; }
   .arc-move-entry-head .arc-small { margin-left: 0; }
   .arc-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .arc-chain-rail { grid-auto-columns: 140px; }
@@ -136,7 +139,7 @@
   .arc-gems-table .arc-packs-list .arc-packbar, .arc-gems-table .arc-pack-per { grid-column: 1 / -1; justify-self: start; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .arc-move, .arc-ladder li, .arc-chain-rail li, .arc-club, .arc-move-bar > span { animation: none !important; }
+  .arc-move, .arc-ladder li, .arc-chain-rail li, .arc-club, .arc-split > div > span { animation: none !important; }
   .arc-chain-node { transition: none; }
 }
 

@@ -43,6 +43,7 @@ export function lookup(body, query) {
   const { contracts } = parseDocument(body);
   const byId = new Map(contracts.map(c => [c.id, c]));
   const text = query.toLowerCase().replaceAll("\\", "/");
+  const matchesPath = p => new RegExp(`(^|[^a-z0-9_./-])${escape(p.toLowerCase())}${p.endsWith("/") ? "" : "($|[^a-z0-9_./-])"}`).test(text);
   const selected = new Map();
   function add(id, reason, visiting = new Set()) {
     if (selected.has(id) || visiting.has(id)) return;
@@ -60,10 +61,14 @@ export function lookup(body, query) {
     const terms = [c.id, ...(c.aliases ?? []), ...symbols];
     const term = terms.find(t => new RegExp(`(^|[^a-z0-9_])${escape(t.toLowerCase())}($|[^a-z0-9_])`).test(text));
     const path = [...(c.paths ?? []), ...(c.sources ?? []).map(s => s.path), ...(c.tests ?? []).map(s => s.path)]
-      .find(p => text.includes(p.toLowerCase()));
+      .find(matchesPath);
     if (term || path) add(c.id, term ? `term ${term}` : `path ${path}`);
   }
-  return { fallback: selected.size === 0, contracts: [...selected.values()] };
+  // Explicit relative filenames expose partial coverage; prose still requires scope judgment.
+  const requestedPaths = [...text.matchAll(/(?:^|[\s`"'(])((?:[a-z0-9_.-]+\/)+[a-z0-9_.-]+\.[a-z0-9]+)(?=$|[\s`"'),:])/g)].map(m => m[1]);
+  const coveredPaths = [...selected.values()].flatMap(c => [...(c.paths ?? []), ...(c.sources ?? []).map(s => s.path), ...(c.tests ?? []).map(s => s.path)]);
+  const uncoveredPaths = [...new Set(requestedPaths)].filter(p => !coveredPaths.some(known => known.endsWith("/") ? p.startsWith(known.toLowerCase()) : p === known.toLowerCase()));
+  return { fallback: selected.size === 0 || uncoveredPaths.length > 0, uncoveredPaths, contracts: [...selected.values()] };
 }
 
 export function validate(root, body) {
@@ -195,7 +200,8 @@ function main() {
     if (!args.length) throw new Error('Usage: node scripts/docs.mjs lookup "task or path"');
     const result = lookup(body, args.join(" "));
     console.log("Always read AGENTS.md and CLAUDE.md. Requirements remain active if evidence is stale. For cross-domain work, add every affected path and use legacy reading for unmigrated parts.\n");
-    if (result.fallback) console.log("No migrated contract matched. Read PLAN.md, docs/user_manual.md, docs/research_report.md, docs/how_it_works.md, docs/next_features_plan.md and docs/sorare_plan.md, then search source/tests. Do not infer coverage from an empty lookup.");
+    if (result.uncoveredPaths.length) console.log(`Unmapped files: ${result.uncoveredPaths.join(", ")}. Matching contracts cover only part of this request.`);
+    if (result.fallback) console.log("Legacy reading required: PLAN.md, docs/user_manual.md, docs/research_report.md, docs/how_it_works.md, docs/next_features_plan.md and docs/sorare_plan.md, then search source/tests. Do not infer complete coverage from a partial or empty lookup.");
     for (const c of result.contracts) {
       console.log(`Matched ${c.id}: ${c.reason}; ${c.status}; source review ${c.review?.date}\n${c.text}\n`);
       console.log("Evidence: " + [...c.sources, ...c.tests].map(r => `${r.path}${r.symbol ? ` :: ${r.symbol}` : r.case ? ` :: ${r.case}` : ""}`).join("\n") + "\n");

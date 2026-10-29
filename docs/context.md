@@ -15,6 +15,8 @@ node scripts/docs.mjs lookup "frontend/lib/playerForecasts.ts backend/app/sorare
 node scripts/docs.mjs check
 ```
 
+Explicit repository-relative filenames that have no matching contract are reported as unmapped and keep legacy fallback active, even if another part of the query matched. File paths use boundaries so a similarly named backup file does not count as coverage. This check cannot infer every domain in prose or establish full coverage of a broad directory contract; scope judgment and owner rules remain required.
+
 The lookup returns complete contract sections, the reason for each match, transitive dependencies and source/test references. It does not execute commands in those sections. A stale source review makes lookup exit nonzero but still prints the requirements. Resolve stale evidence before editing on its assumptions.
 
 | Task | Entry contract | Additional context |

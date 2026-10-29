@@ -1,7 +1,31 @@
 # Documentation audit and AI optimization plan
 
+## Current state and exact resume point
+
+Updated 29 October 2026. This section supersedes historical progress/status statements below; dated receipts remain evidence of what was checked at that time. The original audit is complete and the ten upgrades are specified. Implementation of the entire upgrade plan is **in progress**, not complete.
+
+Requested outcome: one consolidated, source-grounded audit and ten upgrades optimized for reliable automated retrieval and execution. The audit and proposal stay in this file; executable lookup reads the single [operational reference](context.md). No new product actions, services or account permissions are required.
+
+| Upgrade | Current implementation | Remaining acceptance gap |
+|---|---|---|
+| 1. Bootstrap/router | Targeted lookup with dependencies; unmapped explicit files retain legacy fallback, even in a mixed request | Safely reduce mandatory guide/bootstrap reading without dropping owner rules |
+| 2. Stable contracts | 36 contracts spanning decision logic, operations and all 18 explicit Next route handlers | Coverage remains bounded; football tuning and nested endpoint schemas still require source/legacy guides |
+| 3. Authority/status | Required/observed distinction, supersession validation, corrected architecture/timers/release contradictions | Historical/manual organization and remaining stale prose need review |
+| 4. Impact index | Endpoint method coverage, Markdown/artifact discovery, authored primary block ownership | Exhaustive dynamic block and artifact writer/reader ownership is not established |
+| 5. Time/identity | Selected-week, pre-lock, receipt, source, mission and extension boundaries | No claim of whole-product live workflow acceptance |
+| 6. Executable evidence | Linked source/tests; raw-before-planning regression and existing domain suites executed | Real-account/prospective model evidence remains separate from documentation work |
+| 7. Recipes | Publication, local isolation, quota selection and scheduling recovery boundaries | Broader replay/configuration recovery needs source review |
+| 8. Resume record | This current status, bounded next action and dated verification receipts | Apply the pattern to feature plans when they are touched |
+| 9. Freshness | Source/test fingerprints and explicit source-review notes | Whole-file invalidation is conservative; no semantic correctness guarantee |
+| 10. Gate/evaluation | Offline drift gate, 21 tooling tests, 18 static retrieval cases | Independent task-performance comparison remains unmeasured |
+
+Published baseline: a59601f (API contracts and publisher regression), after 7978519 and 40a4d86. Deployment succeeded and home returned HTTP 200. The post-push live command failed because Neon status was absent from R2; the last refresh succeeded, frontend CI succeeded, and backend/end-to-end CI were still running when observed. No production repair was attempted. The main checkout has unrelated uncommitted work and must not be reset or fast-forwarded over it.
+
+Current continuation: harden partial retrieval and replace ambiguous chronological resume notes with this status. The two new routing regressions failed before the fix and all 21 tooling tests subsequently passed; contract drift passed. Next substantive work is complete block/artifact ownership coverage, followed by mandatory-context migration. Do not restart the initial audit, blindly renew fingerprints, claim static retrieval measures task performance, or remove owner constraints for a smaller word count.
+
 ## Contents
 
+- [Current state and exact resume point](#current-state-and-exact-resume-point)
 - [Audit contract](#audit-contract)
 - [Inventory and results](#results)
 - [Where to find everything](#where-to-find-everything)
@@ -22,7 +46,7 @@
 
 Requested outcome: identify where Sofix is documented, audit its correctness and depth, and propose ten upgrades optimized primarily for AI coding agents. This file consolidates the initial audit, deeper implementation traces and the revised upgrade plan.
 
-Coverage: tracked Markdown, README and contributor entry points; page and API routes; storage/schema and published blocks; refresh/workflow scheduling; extension setup; model/research evidence; operational recovery. Compare documentation with the checked-out implementation and record reproducible file/line evidence. Do not change application behavior, credentials, production state or existing documentation during this audit.
+Coverage: tracked Markdown, README and contributor entry points; page and API routes; storage/schema and published blocks; refresh/workflow scheduling; extension setup; model/research evidence; operational recovery. Compare documentation with the checked-out implementation and record reproducible file/line evidence. The initial audit changed no application behavior, credentials or production state. The subsequent authorized implementation updates documentation and its offline tooling; dated receipts below distinguish those phases.
 
 Primary reader: an AI coding agent retrieving constraints, tracing implementation, choosing checks and resuming work. Human manuals and screenshots remain supporting references. Optimize for correct execution and complete constraint retrieval with minimal irrelevant context. The owner can use the evidence and acceptance criteria to choose deliveries.
 

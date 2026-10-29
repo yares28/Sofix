@@ -179,3 +179,17 @@ test("endpoint coverage rejects new methods, deleted handlers and incomplete con
   entry.contract = 'LOCK-001';
   assert.match(validateEndpoints(f.root, [path], [entry], f.registry.contracts).join('\n'), /source reference/);
 });
+
+test("mixed requests retain fallback for explicitly unmapped files", t => {
+  const f = fixture(t);
+  const result = lookup(f.document(), "recommendation src/model.py src/unmapped.py");
+  assert.equal(result.fallback, true);
+  assert.deepEqual(result.uncoveredPaths, ["src/unmapped.py"]);
+  assert.equal(result.contracts.length, 2);
+});
+
+test("file prefixes cannot silently claim another file", t => {
+  const f = fixture(t);
+  assert.equal(lookup(f.document(), "src/model.py.bak").contracts.length, 0);
+  assert.equal(lookup(f.document(), "src/model.py:15").fallback, false);
+});

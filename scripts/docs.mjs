@@ -10,6 +10,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REFERENCE = "docs/context.md";
 const REGISTRY = /```json context-registry\r?\n([\s\S]*?)\r?\n```/g;
 const INDEX = /<!-- inventory:start -->[\s\S]*?<!-- inventory:end -->/;
+const ARTIFACT_INDEX = /<!-- artifacts:start -->[\s\S]*?<!-- artifacts:end -->/;
 const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const read = (root, path) => readFileSync(resolve(root, path), "utf8").replace(/\r\n/g, "\n");
 const inside = (root, path) => {
@@ -166,6 +167,34 @@ export function validateEndpoints(root, files, endpoints, contracts) {
   return errors;
 }
 
+export function artifactTable(entries) {
+  const refs = paths => paths.map(p => `\`${p}\``).join(", ");
+  return "<!-- artifacts:start -->\n| Artifact | Lifecycle | Producer evidence | Consumer evidence | Boundary |\n|---|---|---|---|---|\n" + entries.map(e =>
+    `| \`${e.path.replace("backend/artifacts/", "")}\` | ${e.lifecycle} | ${refs(e.producers) || "No generator found"} | ${refs(e.consumers)} | ${e.note} |`).join("\n") + "\n<!-- artifacts:end -->";
+}
+
+export function validateArtifacts(root, files, entries) {
+  const errors = [];
+  const artifacts = files.filter(p => p.startsWith("backend/artifacts/") && p.endsWith(".json"));
+  for (const path of artifacts) {
+    if (!entries.some(e => e.path === path)) errors.push(`unmapped artifact: ${path}`);
+  }
+  const seen = new Set();
+  for (const entry of entries) {
+    if (seen.has(entry.path)) errors.push(`duplicate artifact: ${entry.path}`);
+    seen.add(entry.path);
+    if (!artifacts.includes(entry.path)) errors.push(`missing artifact: ${entry.path}`);
+    if (!entry.lifecycle || !entry.note || !Array.isArray(entry.producers) || !Array.isArray(entry.consumers) || !entry.consumers.length) {
+      errors.push(`incomplete artifact ownership: ${entry.path}`);
+      continue;
+    }
+    for (const path of [...entry.producers, ...entry.consumers]) {
+      if (typeof path !== "string" || !inside(root, path) || !existsSync(resolve(root, path))) errors.push(`artifact ${entry.path}: missing reference ${path}`);
+    }
+  }
+  return errors;
+}
+
 export function checkLinks(root, body, path) {
   const errors = [];
   const unfenced = body.replace(/```[^\n]*\n[\s\S]*?```/g, "");
@@ -224,7 +253,9 @@ function main() {
     }
   } else if (command === "index") {
     if (!INDEX.test(body)) throw new Error("Missing inventory markers");
-    writeFileSync(resolve(ROOT, REFERENCE), body.replace(INDEX, inventory(ROOT, filesInRepo())));
+    body = body.replace(INDEX, inventory(ROOT, filesInRepo()));
+    if (!ARTIFACT_INDEX.test(body)) throw new Error("Missing artifact inventory markers");
+    writeFileSync(resolve(ROOT, REFERENCE), body.replace(ARTIFACT_INDEX, artifactTable(parseDocument(body).artifacts ?? [])));
     console.log("Updated static inventory; no source review or verification claim changed.");
   } else if (command === "review") {
     const [id, ...words] = args;
@@ -244,6 +275,8 @@ function main() {
     const errors = validate(ROOT, body);
     const registry = parseDocument(body);
     errors.push(...validateEndpoints(ROOT, filesInRepo(), registry.endpoints ?? [], registry.contracts));
+    errors.push(...validateArtifacts(ROOT, filesInRepo(), registry.artifacts ?? []));
+    if (body.match(ARTIFACT_INDEX)?.[0] !== artifactTable(registry.artifacts ?? [])) errors.push("Artifact provenance table drift: run node scripts/docs.mjs index.");
     const generated = inventory(ROOT, filesInRepo());
     if (body.match(INDEX)?.[0] !== generated) errors.push("Route/table inventory drift: run node scripts/docs.mjs index; review new surfaces and routing coverage.");
     for (const path of [REFERENCE, "docs/documentation_audit.md", "AGENTS.md", "CLAUDE.md"]) {

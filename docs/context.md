@@ -550,6 +550,30 @@ The frozen cases in the registry assert required and forbidden contract sets and
 
 Expected actions for the cases: historical forecast → inspect exact-slug restore, never borrow next week; pAny → extend shared-draw regression, never multiply lineup misses; start chance → preserve known zero and attribution; stale publication → identify which publication stage failed before any repair; Conference → legacy release plan, no assumed passed gates; UI-only → full design/navigation/browser rules, no exemption because contract lookup is empty.
 
+## Artifact provenance and consumers
+
+All current backend/artifacts JSON files have an ownership entry in the registry. Producer means the generator, candidate generator or serialization helper named below, not proof that a command writes the deployed path. An empty producer list explicitly records no generator found. The offline gate checks inventory coverage and reference existence; it does not prove call graphs, acceptance or current source semantics. No artifact was regenerated for this audit.
+
+<!-- artifacts:start -->
+| Artifact | Lifecycle | Producer evidence | Consumer evidence | Boundary |
+|---|---|---|---|---|
+| `dixon_coles.json` | generated | `backend/app/jobs/backtest.py` | `backend/app/services/rating_predictions.py`, `backend/app/jobs/predict.py`, `backend/app/sorare/gamedata.py` | Backtest writes tuned config and report; preserve training/holdout gates and production baseline. |
+| `clean_sheet_calibration.json` | generated | `backend/app/jobs/backtest.py`, `backend/app/services/calibration.py` | `backend/app/jobs/predict.py`, `backend/app/sorare/keeper.py` | Backtest saves calibrator alongside config; keeper also loads calibration. Rerunning is not release approval. |
+| `market_blend.json` | writer not established | `backend/app/services/market_blend.py` | `backend/app/jobs/predict.py`, `backend/app/services/market_blend.py` | save_market_blend exists, but repository search found no production caller; the backtest job does not write this file. Existing prose claiming automatic backtest output is unsupported. |
+| `opening_projection.json` | generated | `backend/app/jobs/opening_projection.py`, `backend/app/services/opening_projection.py` | `backend/app/services/fixture_grid.py` | Yearly rollover command fits before first kickoff and saves a fixed season projection; refresh must not recompute it. |
+| `team_decisives.json` | generated | `backend/app/sorare/team_decisives.py` | `backend/app/services/fixture_grid.py` | Module main writes rates from exported games. Config selects the consumed path. |
+| `keeper_score.json` | generated | `backend/app/jobs/keeper_fit.py`, `backend/app/sorare/keeper.py` | `backend/app/sorare/keeper.py` | keeper_fit only writes the runtime artifact with --write; fit and evaluation output alone do not replace it. |
+| `outfield_score.json` | generated | `backend/app/jobs/outfield_fit.py`, `backend/app/sorare/outfield.py` | `backend/app/sorare/outfield.py` | outfield_fit --write saves position models; preserve documented temporal evaluation boundaries. |
+| `sub_shape.json` | generated | `backend/app/jobs/outfield_fit.py`, `backend/app/sorare/outfield.py` | `backend/app/sorare/outfield.py` | The same --write path saves substitute shapes separately from starter models. |
+| `european_clubs.json` | reviewed reference | No generator found | `backend/app/services/european_sources.py` | No generator found in repository search. current_clubs requires matching season and 36 distinct club identities; perform source-verified yearly rollover. |
+| `league_xscore/PL.json` | candidate promotion | `backend/app/research/league_xscore_validation.py` | `backend/app/sorare/foreign_scores.py` | Validator writes candidate.json in its output folder, not this production path. Promotion is separate; loader checks protocol, evidence and release gates. |
+| `league_xscore/BL1.json` | candidate promotion | `backend/app/research/league_xscore_validation.py` | `backend/app/sorare/foreign_scores.py` | Validator writes candidate.json in its output folder, not this production path. Promotion is separate; loader checks protocol, evidence and release gates. |
+| `league_xscore/FL1.json` | candidate promotion | `backend/app/research/league_xscore_validation.py` | `backend/app/sorare/foreign_scores.py` | Validator writes candidate.json in its output folder, not this production path. Promotion is separate; loader checks protocol, evidence and release gates. |
+| `european_xscore/CL.json` | candidate promotion | `backend/app/research/european_validation.py` | `backend/app/sorare/european_models.py`, `backend/app/sorare/foreign_scores.py` | Validator writes competition candidate and validation files under --out. Production promotion remains separate; loader enforces competition-specific evidence. |
+| `european_xscore/EL.json` | candidate promotion | `backend/app/research/european_validation.py` | `backend/app/sorare/european_models.py`, `backend/app/sorare/foreign_scores.py` | Validator writes competition candidate and validation files under --out. Production promotion remains separate; loader enforces competition-specific evidence. |
+| `european_xscore/CONF.json` | fixed provisional promotion | `backend/app/research/conference_candidate.py`, `backend/app/research/conference_release.py` | `backend/app/sorare/european_models.py`, `backend/app/sorare/foreign_scores.py` | Candidate and diagnostic commands write separate outputs. Runtime wrapper must match fixed candidate hash and owner-directed provisional authority; it is not independent validation. |
+<!-- artifacts:end -->
+
 ## Authored block ownership map
 
 This maps inspected block families, not every dynamic key in the repository. Writers persist Neon unless explicitly R2-only; pages consume R2 through loaders. A file declaring a key is not necessarily its writer. Unknown ownership must be traced before editing, and archived/replay records must not be substituted for current state.
@@ -2615,6 +2639,184 @@ This block is the single machine-readable index for the sections above. Test ref
         "GET"
       ],
       "contract": "API-EXT-MISSIONS-POOL-001"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "backend/artifacts/dixon_coles.json",
+      "lifecycle": "generated",
+      "producers": [
+        "backend/app/jobs/backtest.py"
+      ],
+      "consumers": [
+        "backend/app/services/rating_predictions.py",
+        "backend/app/jobs/predict.py",
+        "backend/app/sorare/gamedata.py"
+      ],
+      "note": "Backtest writes tuned config and report; preserve training/holdout gates and production baseline."
+    },
+    {
+      "path": "backend/artifacts/clean_sheet_calibration.json",
+      "lifecycle": "generated",
+      "producers": [
+        "backend/app/jobs/backtest.py",
+        "backend/app/services/calibration.py"
+      ],
+      "consumers": [
+        "backend/app/jobs/predict.py",
+        "backend/app/sorare/keeper.py"
+      ],
+      "note": "Backtest saves calibrator alongside config; keeper also loads calibration. Rerunning is not release approval."
+    },
+    {
+      "path": "backend/artifacts/market_blend.json",
+      "lifecycle": "writer not established",
+      "producers": [
+        "backend/app/services/market_blend.py"
+      ],
+      "consumers": [
+        "backend/app/jobs/predict.py",
+        "backend/app/services/market_blend.py"
+      ],
+      "note": "save_market_blend exists, but repository search found no production caller; the backtest job does not write this file. Existing prose claiming automatic backtest output is unsupported."
+    },
+    {
+      "path": "backend/artifacts/opening_projection.json",
+      "lifecycle": "generated",
+      "producers": [
+        "backend/app/jobs/opening_projection.py",
+        "backend/app/services/opening_projection.py"
+      ],
+      "consumers": [
+        "backend/app/services/fixture_grid.py"
+      ],
+      "note": "Yearly rollover command fits before first kickoff and saves a fixed season projection; refresh must not recompute it."
+    },
+    {
+      "path": "backend/artifacts/team_decisives.json",
+      "lifecycle": "generated",
+      "producers": [
+        "backend/app/sorare/team_decisives.py"
+      ],
+      "consumers": [
+        "backend/app/services/fixture_grid.py"
+      ],
+      "note": "Module main writes rates from exported games. Config selects the consumed path."
+    },
+    {
+      "path": "backend/artifacts/keeper_score.json",
+      "lifecycle": "generated",
+      "producers": [
+        "backend/app/jobs/keeper_fit.py",
+        "backend/app/sorare/keeper.py"
+      ],
+      "consumers": [
+        "backend/app/sorare/keeper.py"
+      ],
+      "note": "keeper_fit only writes the runtime artifact with --write; fit and evaluation output alone do not replace it."
+    },
+    {
+      "path": "backend/artifacts/outfield_score.json",
+      "lifecycle": "generated",
+      "producers": [
+        "backend/app/jobs/outfield_fit.py",
+        "backend/app/sorare/outfield.py"
+      ],
+      "consumers": [
+        "backend/app/sorare/outfield.py"
+      ],
+      "note": "outfield_fit --write saves position models; preserve documented temporal evaluation boundaries."
+    },
+    {
+      "path": "backend/artifacts/sub_shape.json",
+      "lifecycle": "generated",
+      "producers": [
+        "backend/app/jobs/outfield_fit.py",
+        "backend/app/sorare/outfield.py"
+      ],
+      "consumers": [
+        "backend/app/sorare/outfield.py"
+      ],
+      "note": "The same --write path saves substitute shapes separately from starter models."
+    },
+    {
+      "path": "backend/artifacts/european_clubs.json",
+      "lifecycle": "reviewed reference",
+      "producers": [],
+      "consumers": [
+        "backend/app/services/european_sources.py"
+      ],
+      "note": "No generator found in repository search. current_clubs requires matching season and 36 distinct club identities; perform source-verified yearly rollover."
+    },
+    {
+      "path": "backend/artifacts/league_xscore/PL.json",
+      "lifecycle": "candidate promotion",
+      "producers": [
+        "backend/app/research/league_xscore_validation.py"
+      ],
+      "consumers": [
+        "backend/app/sorare/foreign_scores.py"
+      ],
+      "note": "Validator writes candidate.json in its output folder, not this production path. Promotion is separate; loader checks protocol, evidence and release gates."
+    },
+    {
+      "path": "backend/artifacts/league_xscore/BL1.json",
+      "lifecycle": "candidate promotion",
+      "producers": [
+        "backend/app/research/league_xscore_validation.py"
+      ],
+      "consumers": [
+        "backend/app/sorare/foreign_scores.py"
+      ],
+      "note": "Validator writes candidate.json in its output folder, not this production path. Promotion is separate; loader checks protocol, evidence and release gates."
+    },
+    {
+      "path": "backend/artifacts/league_xscore/FL1.json",
+      "lifecycle": "candidate promotion",
+      "producers": [
+        "backend/app/research/league_xscore_validation.py"
+      ],
+      "consumers": [
+        "backend/app/sorare/foreign_scores.py"
+      ],
+      "note": "Validator writes candidate.json in its output folder, not this production path. Promotion is separate; loader checks protocol, evidence and release gates."
+    },
+    {
+      "path": "backend/artifacts/european_xscore/CL.json",
+      "lifecycle": "candidate promotion",
+      "producers": [
+        "backend/app/research/european_validation.py"
+      ],
+      "consumers": [
+        "backend/app/sorare/european_models.py",
+        "backend/app/sorare/foreign_scores.py"
+      ],
+      "note": "Validator writes competition candidate and validation files under --out. Production promotion remains separate; loader enforces competition-specific evidence."
+    },
+    {
+      "path": "backend/artifacts/european_xscore/EL.json",
+      "lifecycle": "candidate promotion",
+      "producers": [
+        "backend/app/research/european_validation.py"
+      ],
+      "consumers": [
+        "backend/app/sorare/european_models.py",
+        "backend/app/sorare/foreign_scores.py"
+      ],
+      "note": "Validator writes competition candidate and validation files under --out. Production promotion remains separate; loader enforces competition-specific evidence."
+    },
+    {
+      "path": "backend/artifacts/european_xscore/CONF.json",
+      "lifecycle": "fixed provisional promotion",
+      "producers": [
+        "backend/app/research/conference_candidate.py",
+        "backend/app/research/conference_release.py"
+      ],
+      "consumers": [
+        "backend/app/sorare/european_models.py",
+        "backend/app/sorare/foreign_scores.py"
+      ],
+      "note": "Candidate and diagnostic commands write separate outputs. Runtime wrapper must match fixed candidate hash and owner-directed provisional authority; it is not independent validation."
     }
   ]
 }

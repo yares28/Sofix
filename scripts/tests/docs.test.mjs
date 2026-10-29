@@ -193,3 +193,14 @@ test("file prefixes cannot silently claim another file", t => {
   assert.equal(lookup(f.document(), "src/model.py.bak").contracts.length, 0);
   assert.equal(lookup(f.document(), "src/model.py:15").fallback, false);
 });
+
+test("artifact ownership rejects uncovered files and missing provenance references", async t => {
+  const { validateArtifacts } = await import('../docs.mjs');
+  const f = fixture(t);
+  const files = ['backend/artifacts/model.json'];
+  const entry = { path: files[0], lifecycle: 'candidate promotion', producers: ['src/model.py'], consumers: ['src/model.py'], note: 'Promotion requires separate acceptance.' };
+  assert.deepEqual(validateArtifacts(f.root, files, [entry]), []);
+  assert.match(validateArtifacts(f.root, files, []).join(' '), /unmapped artifact/);
+  assert.match(validateArtifacts(f.root, files, [{...entry, consumers: ['src/gone.py']}]).join(' '), /missing reference/);
+  assert.match(validateArtifacts(f.root, [], [entry]).join(' '), /missing artifact/);
+});

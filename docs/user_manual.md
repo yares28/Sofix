@@ -784,23 +784,26 @@ The editor shows card images, years and copy numbers where recorded. Your picks 
 ## 10b. Arcade — Sorare's free common-card board
 
 **Arcade** in the top bar (and the phone's bottom bar) climbs Sorare's free board with your current set's commons. Everything is
-read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; no page opens); nothing is entered or cancelled on Sorare.
+read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 0.4.18 for tiers, Sorare's starter word and collection missions; no page opens); nothing is entered or cancelled on Sorare.
 
-- **Your climb · Pick a day**: the big number is your chance to clear the highest step within reach before the set ends, with its
-  prize and your lives. **The tower** gives every step's chance, the days the plan plays it and the cards of its lineup (every step,
-  not only yours); **Departures** lists the chosen days' lineups in the order they settle (time, step, games, chance); **On deck** shows
-  one with its five cards. A lineup may take games from up to 3 days in a row, so a thin day (Thursday's European games, Friday's few
-  league games) joins the next instead of being skipped. The strip says, for every day or span left, how many lineups to play on which
-  step, or **Hold** to keep lives for a better day (losing a step's last life sends you back to step 1; rewards won stay won). It plans
-  past a step whose lives are all waiting, and past a cleared step you have not claimed. The strip draws the likely path; under a played
-  day, **If one clears** and **If all miss** open the other outcome (the next step's days and lineups, or the retry with the lives left,
-  or step 1 after the last one), and **Back to the likely plan** returns. A **Hold** day still shows its best lineup and chance, not played.
-- **Pick teams**: games as tickets with Sofix's difficulty for both clubs; **Easiest games** picks those where one of your clubs is
-  favourite on Sofix's board. The best five stand on a pitch, and **Where it lands** gives the chance at every step.
+- **How Sorare's board runs** (read 29 Oct 2026; Sorare now calls the mode Series): a lineup goes on the step you are on and settles
+  5 minutes after its last game; a clear opens the next step at once, so one day's kick-off windows (14:00, 16:15, 18:30, 21:00) can climb
+  several steps. Lineups entered together on one step are insurance only: when one clears, Sorare cancels the others (21 Oct: a 371.76 that
+  would have cleared step 3 was cancelled after a 313.93 cleared step 2). A miss costs a life; the last one sends you back to step 1.
+- **Your move**: **Play now**, **Wait for** a named window, or **Spend** a hard step's last lives so the climb restarts sooner, and why:
+  the steps you clear by the end on average playing now against holding one window (a near tie is played: speed first). Below, the
+  lineup to enter (more than one when insurance pays), its chance, when to enter and when it settles, and **Edit in Pick teams**.
+  Beside it, every step's chance to be cleared by the last game Sorare lists. A card with no start % counts as starting, is never
+  captain while another has one, and a card with under 3 played games gets the usual spread (a third of his score) instead of a sure number.
+- **The chain**: the next moves window by window, each settling before the next starts; a tap shows that move's lineup and opens
+  **If it clears** / **If it misses** (back to the likely plan with one tap).
+- **Teams to build around**: for the next four days, the clubs whose likely starters among your cards add most (Sofix's start % of 70% or
+  more, else Sorare's own word: starter or regular, no open injury; Sorare's news feed is empty in its API). **Add to Pick teams** puts
+  the game in the builder.
 - **Your lineups on Sorare**: each lineup you entered, as a race to the target: points so far, what its cards still to play add at
   their best, **Dead** when that cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next lineup more.
 - A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga or Ligue 1 game (else Sorare's projection, else his average when he
-  plays) × his start % (Sofix's in those three leagues) × Sorare's bonuses (edition + club + captain),
+  plays) × his start % (Sofix's in those leagues) × Sorare's bonuses (edition + club + captain),
   with the range he scored in 6 of his last 10 games he played. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or
   Ligue 1 game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
   and expected goals for the others. It is shown, not added to the card's number.
@@ -809,7 +812,7 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; 
   opened). The page opens on your last read board, dated, while Sorare is asked what changed; if Sorare cannot be read, it stays and says why.
 - **Your cards** shows 12 larger cards per page. FDR (0–100, lower is easier) and xScore sit at the upper right; the edition bonus sits at the lower right. Below: start %, fixture crests and xD (expected decisives). Click a fixture's crests to show its ratings. Search, league, position, edition, start % and FDR filters combine; filters and sorting refer to the next fixture and start a new first page. Unknown stays a dash; zero stays zero. xD is the fixture’s expected decisive contribution, including starter and substitute chances; it is a decimal, separate from conditional mission odds. It stays unknown until a fixture forecast is published.
 - The icon toolbar beneath your wallet refreshes the **board and cards**, **start percentages** and **scores**. Hover or focus identifies each action; the information icon opens start-percentage coverage and read details. A failed read keeps the last successful data and explains the failure. Older extensions retain the named start-read fallback that opens Sorare's page.
-- **Packs**: **Work out the best pack** reads Sorare's odds and opens on the pack you can afford that gives the most players you do not have yet. **Bronze / Silver / Gold / Special** filter the list and pick. **Today's missions** keeps your selection beside five alternatives, ranked by the shared L5/L10/L20/L40 history window. Decisive odds use the conditional fixture model where available, otherwise starter history; start % is shown separately and never discounts those odds. Saved pre-game forecasts remain frozen.
+- **Gems and packs**: choose **Icon**, **Star or better**, **New players** or one of your collection missions, then **Read the odds**: Sorare's published odds for every slot of every pack give each pack's chance of at least one (1 − Π(1 − slot chance)), the average, and the gems per hit; your gems go to the pack with the most chance per gem first, and a mission says how many packs finish it half the time and 9 times in 10 (extension 0.4.18). **Bronze / Silver / Gold / Special** filter the table. **Today's missions** keeps your selection beside five alternatives, ranked by the shared L5/L10/L20/L40 history window. Decisive odds use the conditional fixture model where available, otherwise starter history; start % is shown separately and never discounts those odds. Saved pre-game forecasts remain frozen.
 
 ## 10. Players
 

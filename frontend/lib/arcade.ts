@@ -2,6 +2,8 @@ import { z } from "zod";
 import { askExtension, extensionAtLeast, pingExtension } from "./extension";
 import { REFRESH_HEADER } from "./refresh";
 import type { Outlook, PackOdds, StartSource } from "./arcadePlan";
+import { parseTierOdds, type TierOdds } from "./arcadePacks";
+import type { PlayerStatus } from "./arcadeTeams";
 
 /**
  * Arcade, step 1 (plans/set.md): your set board, common cards, gems, essence and common missions, read from your signed-in
@@ -655,6 +657,8 @@ export type ArcadeExtras = {
   club: Record<string, number>;
   /** Each player's scores in his last games he played (minutes > 0), newest first. */
   past: Record<string, number[]>;
+  /** Sorare's word on each player: tier, usual role, open injury (extension 0.4.18; absent before). */
+  status?: Record<string, PlayerStatus>;
   /** Sorare's projection by game, then player. A game asked that Sorare has not projected is an empty record. */
   projections: Record<string, Record<string, number>>;
   unread: string[];
@@ -675,6 +679,16 @@ export function parseBonuses(answer: unknown, cards: string[]): Record<string, n
     if (list.success) out[card] = list.data.filter((b) => b.key === "collection").reduce((sum, b) => sum + b.bonusBasisPoints, 0) / 10_000;
   });
   return out;
+}
+const StatusAnswer = z.object({ players: z.array(z.object({ slug: s, gameplayTier: opt(s), playingStatus: opt(s), activeInjuries: opt(z.array(z.object({ active: opt(z.boolean()), expectedEndDate: opt(s) }))) })) });
+/** Sorare's tier, usual role and open injury of each player asked; a player Sorare said nothing of is left out. */
+export function parseStatus(answer: unknown): Record<string, PlayerStatus> {
+  const parsed = StatusAnswer.safeParse(answer);
+  if (!parsed.success) return {};
+  return Object.fromEntries(parsed.data.players.filter((p) => p.gameplayTier !== undefined || p.playingStatus !== undefined).map((p) => {
+    const open = (p.activeInjuries ?? []).filter((i) => i.active !== false);
+    return [p.slug, { tier: p.gameplayTier ?? null, playing: p.playingStatus ?? null, injured: open.length > 0, back: open.map((i) => i.expectedEndDate ?? null).find(Boolean) ?? null }];
+  }));
 }
 export function parsePast(answer: unknown): Record<string, number[]> {
   const parsed = PastAnswer.safeParse(answer);
@@ -719,10 +733,13 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
   if (Object.keys(club).length < perClub.size) unread.push(`club bonus for ${perClub.size - Object.keys(club).length} clubs`);
 
   const past: Record<string, number[]> = {};
+  const status: Record<string, PlayerStatus> = {};
   const players = [...new Set(arcade.cards.map((c) => c.player))];
   let pastMissing = 0;
   for (const batch of chunks(players, 50)) {
-    const read = parsePast(await ask("arcade-past", { players: batch }));
+    const answer = await ask("arcade-past", { players: batch });
+    Object.assign(status, parseStatus(answer));
+    const read = parsePast(answer);
     pastMissing += batch.filter((p) => !read[p]).length;
     Object.assign(past, read);
   }
@@ -738,7 +755,7 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
   }
   if (Object.keys(projections).length < near.length) unread.push(`projections of ${near.length - Object.keys(projections).length} games`);
   if (slowed) unread.unshift("Sorare asked Sofix to slow down, so read again in a few minutes");
-  const extras = { club, past, projections, unread };
+  const extras = { club, past, status, projections, unread };
   try { localStorage.setItem(key, JSON.stringify({ at: now.getTime(), extras })); } catch { /* full or blocked: fine */ }
   return extras;
 }
@@ -803,8 +820,11 @@ export function parsePackOdds(answers: unknown[]): PackOdds {
   return out;
 }
 
-/** "Work out the best pack": the current step's packs' odds, a few large answers (about 2 MB each), on a click only. */
-export async function readPackOdds(slots: number): Promise<PackOdds | "outdated" | null> {
+/** Pack odds with each slot's tiers and each player's club (Icon and Star chances, mission maths): extension 0.4.18. */
+export const ARCADE_TIERS_VERSION = "0.4.18";
+
+/** "Work out the packs": the current step's packs' odds, a few large answers (about 2 MB each), on a click only. */
+export async function readPackOdds(slots: number): Promise<{ odds: PackOdds; tiers: TierOdds } | "outdated" | null> {
   const extension = await pingExtension();
   if (!extension) return null;
   if (!extensionAtLeast(extension.version, ARCADE_PACKS_VERSION)) return "outdated";
@@ -814,7 +834,42 @@ export async function readPackOdds(slots: number): Promise<PackOdds | "outdated"
     if (!answer.success || answer.data.state !== "ok") break;
     answers.push(answer.data.data);
   }
-  return answers.length ? parsePackOdds(answers) : null;
+  return answers.length ? { odds: parsePackOdds(answers), tiers: parseTierOdds(answers) } : null;
+}
+
+/** A collection mission: what it counts (players, clubs or leagues; none named means any card of the set) and how far you are. */
+export type ArcadeCollection = { id: string; kind: string; title: string; description: string; progress: number; target: number; expired: boolean; done: boolean; rewards: string[]; players: string[]; teams: { slug: string; name: string }[]; leagues: string[] };
+const CollectTask = z.object({
+  __typename: s, id: s, title: opt(s), description: opt(s), progress: opt(n), target: opt(n), expired: opt(z.boolean()), aasmState: opt(s),
+  rewardConfigs: opt(z.array(Reward)), players: opt(z.array(z.object({ slug: s }))), specifiedTeams: opt(z.array(z.object({ slug: opt(s), name: opt(s) }))), competitions: opt(z.array(z.object({ slug: s }))),
+});
+const CollectionAnswer = z.object({ currentUser: z.object({ tracks: opt(z.array(z.unknown())), setBoard: opt(z.object({ myCollectionTasks: opt(z.array(z.unknown())) })) }).nullable() });
+
+/** Sorare's collection missions, each once, open ones first. */
+export function parseCollection(answer: unknown): ArcadeCollection[] {
+  const parsed = CollectionAnswer.safeParse(answer);
+  if (!parsed.success || !parsed.data.currentUser) return [];
+  const all = [...(parsed.data.currentUser.tracks ?? []), ...(parsed.data.currentUser.setBoard?.myCollectionTasks ?? [])];
+  const out = new Map<string, ArcadeCollection>();
+  for (const raw of all) {
+    const t = CollectTask.safeParse(raw);
+    if (!t.success || out.has(t.data.id) || t.data.target == null) continue;
+    out.set(t.data.id, {
+      id: t.data.id, kind: t.data.__typename, title: t.data.title ?? t.data.__typename, description: t.data.description ?? "", progress: t.data.progress ?? 0, target: t.data.target,
+      expired: Boolean(t.data.expired), done: (t.data.progress ?? 0) >= t.data.target || /claim|complete/i.test(t.data.aasmState ?? ""), rewards: (t.data.rewardConfigs ?? []).map(rewardLabel),
+      players: (t.data.players ?? []).map((p) => p.slug), teams: (t.data.specifiedTeams ?? []).flatMap((x) => (x.slug ? [{ slug: x.slug, name: x.name ?? x.slug }] : [])), leagues: (t.data.competitions ?? []).map((c) => c.slug),
+    });
+  }
+  return [...out.values()].sort((a, b) => Number(a.done || a.expired) - Number(b.done || b.expired));
+}
+
+/** Your collection missions, from your Sorare tab (one question). Null when the extension is older or Sorare did not answer. */
+export async function readArcadeCollection(): Promise<ArcadeCollection[] | "outdated" | null> {
+  const extension = await pingExtension();
+  if (!extension) return null;
+  if (!extensionAtLeast(extension.version, ARCADE_TIERS_VERSION)) return "outdated";
+  const answer = Answer.safeParse(await askExtension({ type: "sorare", step: "arcade-collection" }, 25_000));
+  return answer.success && answer.data.state === "ok" ? parseCollection(answer.data.data) : null;
 }
 
 /** Live: your lineups again, from your Sorare tab (one small question). Null when Sorare did not answer. */

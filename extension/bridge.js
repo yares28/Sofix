@@ -286,13 +286,21 @@
       return `query SofixArcadeBonuses { currentUser { setBoard(mode: CAREER, sport: FOOTBALL) { ... on CareerBoard {
         ${cards.map((c, i) => `b${i}: bonuses(cardSlug: ${JSON.stringify(c)}) { key bonusBasisPoints }`).join(" ")} } } } }`;
     },
-    // Up to 50 players' last 15 games: what each scored and the minutes he played (his likely range).
+    // Up to 50 players' last 15 games: what each scored and the minutes he played (his likely range), and Sorare's word on him: his
+    // tier (GOAT = Icon), his usual role (starter, regular, substitute) and any open injury (0.4.18; Sorare's `news` is empty, 29 Oct).
     SofixArcadePast: (variables) => {
       const players = variables?.players;
       if (!Array.isArray(players) || !players.length || players.length > 50 || players.some((p) => typeof p !== "string" || !/^[a-z0-9-]{1,120}$/.test(p))) return null;
-      return `query SofixArcadePast { players(slugs: ${JSON.stringify(players)}) { slug ... on Player {
+      return `query SofixArcadePast { players(slugs: ${JSON.stringify(players)}) { slug ... on Player { gameplayTier playingStatus activeInjuries { active expectedEndDate }
         playerGameScores(last: 15) { score anyGame { date } anyPlayerGameStats { ... on PlayerGameStats { minsPlayed } } } } } }`;
     },
+    // Arcade's collection missions (0.4.18): what each counts (players, clubs or a league), your progress and the target.
+    SofixArcadeCollection: `query SofixArcadeCollection { currentUser {
+      tracks: setCollectionsTaskTracks(sport: FOOTBALL) { ...SofixCollectTask }
+      setBoard(mode: CAREER, sport: FOOTBALL) { myCollectionTasks(rarity: common) { ...SofixCollectTask } } } }
+      fragment SofixCollectTask on TaskInterface { __typename id title description progress target expired aasmState rewardConfigs { ${REWARDS} }
+        ... on CardsCountTargetTask { players { slug } specifiedTeams { ... on TeamInterface { slug name } } competitions { slug } }
+        ... on CardsCountTask { specifiedTeams { ... on TeamInterface { slug name } } competitions { slug } } }`,
     // Sorare rejects both list nesting and repeated anyPlayer roots: one named player per history request.
     SofixArcadeDecisive: (variables) => {
       const players = variables?.players;
@@ -318,7 +326,7 @@
       const slots = variables?.slots;
       if (!Array.isArray(slots) || !slots.length || slots.length > 2 || slots.some((i) => !Number.isInteger(i) || i < 0 || i > 9)) return null;
       return `query SofixArcadePackOdds { currentUser { setBoard(mode: CAREER, sport: FOOTBALL) { myCurrentStep { ... on CareerStep { cardPacks { slug cardsCount
-        ${slots.map((i) => `s${i}: slotGameplayTierOdds(slotIndex: ${i}) { playerOdds { probabilityBasisPoint player { slug } } }`).join(" ")} } } } } } }`;
+        ${slots.map((i) => `s${i}: slotGameplayTierOdds(slotIndex: ${i}) { gameplayTier probabilityBasisPoint playerOdds { probabilityBasisPoint player { slug } team { slug } } }`).join(" ")} } } } } } }`;
     },
 
     // Sorare's own verdict on a lineup, before anything is written.

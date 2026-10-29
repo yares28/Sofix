@@ -1,76 +1,145 @@
-/* Arcade in the owner's design canvas (21 Oct 2026): the tower, departures, on deck, tickets, pitch, race and pack lab, in Sofix's
+/* Arcade (21 Oct 2026, reworked 29 Oct): your move, the chain, teams to build around, tickets, pitch, race and gems, in Sofix's
    white and Night tokens. Scoped to .arc-main. */
 .arc-plan-head h2 { font-size: 22px; letter-spacing: -0.01em; }
 .arc-climbview, .arc-teams { display: grid; gap: 16px; }
 @keyframes arc-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-@keyframes arc-flip { from { transform: rotateX(-90deg); opacity: 0.2; } to { transform: none; opacity: 1; } }
 @keyframes arc-breathe {
   0%, 100% { box-shadow: 0 0 0 2px var(--accent), 0 0 18px color-mix(in srgb, var(--accent) 25%, transparent); }
   50% { box-shadow: 0 0 0 2px var(--accent), 0 0 34px color-mix(in srgb, var(--accent) 40%, transparent); }
 }
-.arc-headline, .arc-floor, .arc-dep-rows li, .arc-deck, .arc-ticket, .arc-lineup li, .arc-pitch li, .arc-race, .arc-lab > *, .arc-ringlist li, .arc-picks li {
+.arc-move, .arc-ladder li, .arc-chain-rail li, .arc-club, .arc-ticket, .arc-lineup li, .arc-pitch li, .arc-race, .arc-lab > *, .arc-ringlist li, .arc-picks li {
   animation: arc-rise 600ms cubic-bezier(.16, 1, .3, 1) both;
   animation-delay: calc(var(--i, 0) * 50ms);
 }
 
-/* The headline: the chance to clear the highest step within reach */
-.arc-headline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding: 20px 24px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); }
-.arc-headline-num { font-size: clamp(56px, 9vw, 104px); line-height: 0.9; font-weight: 700; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
-.arc-headline p { margin: 0; font-size: 17px; color: var(--ink-2); max-width: 46ch; text-wrap: pretty; }
-.arc-headline b { color: var(--ink); }
-.arc-prize { color: #1d1d1f; font-weight: 700; padding: 1px 8px; border-radius: 6px; background: linear-gradient(110deg, #c9f3e4, #d9d2ff 40%, #ffd6ea 70%, #fff0c4); white-space: nowrap; }
-.arc-headline .arc-lives-line { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: var(--text-sm); }
-.arc-lives-line > span[aria-hidden] { width: 12px; height: 12px; border-radius: 50%; background: var(--line); }
-.arc-lives-line > span.is-on { background: var(--accent); }
-.arc-lives-line > span:last-child { margin-left: 4px; }
+/* Your move (29 Oct 2026): the verdict, why, and the lineup to enter, beside the board with each step's chance. */
+.arc-move { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; padding: 28px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); position: relative; overflow: hidden; }
+.arc-move::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 6px; background: var(--move, var(--win)); }
+.arc-move.is-wait { --move: var(--fdr3-bg); }
+.arc-move.is-spend { --move: var(--fdr4-bg); }
+.arc-move.is-none { --move: var(--line); }
+.arc-move-main { display: grid; gap: 14px; min-width: 0; align-content: start; }
+.arc-move-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0; font-size: var(--text-sm); color: var(--ink-2); font-weight: 600; }
+.arc-lives { display: inline-flex; gap: 5px; }
+.arc-lives i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); }
+.arc-lives i.is-on { background: var(--move, var(--win)); }
+.arc-move-prize { color: #1d1d1f; padding: 1px 8px; border-radius: 6px; background: linear-gradient(110deg, #c9f3e4, #d9d2ff 40%, #ffd6ea 70%, #fff0c4); }
+.arc-main .arc-move-verdict { margin: 0; font-size: clamp(40px, 6vw, 72px); line-height: 0.95; letter-spacing: -0.045em; text-wrap: balance; }
+.arc-move-why { margin: 0; max-width: 62ch; font-size: 17px; line-height: 1.45; color: var(--ink-2); text-wrap: pretty; }
+.arc-move-compare { display: grid; gap: 6px; max-width: 460px; }
+.arc-move-compare > span { display: grid; grid-template-columns: 110px minmax(0, 1fr) 40px; align-items: center; gap: 10px; font-size: var(--text-sm); color: var(--ink-2); }
+.arc-move-compare > span.is-pick { color: var(--ink); font-weight: 600; }
+.arc-move-compare small { font-size: var(--text-sm); }
+.arc-move-compare b { font-variant-numeric: tabular-nums; text-align: right; }
+.arc-move-bar { height: 8px; border-radius: 999px; background: var(--hover); overflow: hidden; }
+.arc-move-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--ink-3); transform-origin: left; animation: arc-run 900ms cubic-bezier(.16, 1, .3, 1) both; }
+.arc-move-compare > span.is-pick .arc-move-bar > span { background: var(--move, var(--win)); }
+.arc-move-entry { display: grid; gap: 14px; padding-top: 16px; border-top: 1px solid var(--line); }
+.arc-move-entry-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; }
+.arc-move-chance { display: grid; }
+.arc-move-chance b { font-size: 44px; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--win); }
+.arc-move-chance small { font-size: var(--text-xs); color: var(--ink-2); }
+.arc-move-times { display: grid; gap: 2px; font-size: var(--text-sm); color: var(--ink-2); }
+.arc-move-times b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.arc-move-entry-head .arc-small { margin-left: auto; }
 
-/* The tower and the departures board */
-.arc-climb-grid { display: grid; grid-template-columns: minmax(0, 11fr) minmax(0, 13fr); gap: 20px; align-items: start; }
-.arc-side { display: grid; gap: 16px; }
-.arc-tower, .arc-departures, .arc-deck, .arc-scale, .arc-detail, .arc-race, .arc-lab-card { background: var(--surface); box-shadow: var(--shadow-card); border-radius: var(--radius); padding: 18px; }
-.arc-tower h3, .arc-departures h3, .arc-deck h3, .arc-scale h3, .arc-lab-card h3 { margin: 0; font-size: var(--text-md); }
-.arc-tower ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
-.arc-floor { display: grid; grid-template-columns: 64px 56px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--hover); font-size: var(--text-sm); }
-.arc-floor.is-current { background: var(--surface); animation: arc-rise 600ms both, arc-breathe 2.6s ease-in-out 600ms infinite; }
-.arc-floor.is-done { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
-.arc-floor.is-done .arc-floor-target, .arc-floor.is-done .arc-floor-odds b { color: var(--ink-2); }
-.arc-floor-level { color: var(--ink-2); font-size: var(--text-xs); font-weight: 600; }
-.arc-floor-target { font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-.arc-floor-reward { color: var(--ink-2); font-size: var(--text-xs); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arc-ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; align-content: start; }
+.arc-ladder li { display: grid; grid-template-columns: 30px minmax(0, 1fr) 56px; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--hover); font-size: var(--text-sm); }
+.arc-ladder li.is-current { background: var(--ink); color: var(--on-ink); }
+.arc-ladder li.is-current small { color: color-mix(in srgb, var(--on-ink) 70%, transparent); }
+.arc-ladder li.is-done { background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); }
+.arc-ladder-n { font-weight: 700; text-align: center; }
+.arc-ladder-t { display: grid; min-width: 0; }
+.arc-ladder-t b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.arc-ladder-t small { font-size: 11px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arc-ladder-odds { --p: 0; justify-self: end; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: conic-gradient(var(--win) calc(var(--p) * 360deg), color-mix(in srgb, currentColor 14%, transparent) 0); }
+.arc-ladder-odds b { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--surface); color: var(--ink); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* The chain: moves window by window, a day label where the day changes. */
+.arc-chain, .arc-clubs, .arc-gems { display: grid; gap: 14px; }
+.arc-chain .arc-plan-head, .arc-clubs .arc-plan-head, .arc-gems .arc-plan-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.arc-chain-rail { list-style: none; margin: 0; padding: 4px 2px 10px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; }
+.arc-chain-rail li { display: grid; gap: 6px; scroll-snap-align: start; position: relative; }
+.arc-chain-rail li + li::before { content: ""; position: absolute; left: -12px; top: 52px; width: 12px; height: 2px; background: var(--line); }
+.arc-chain-day { min-height: 18px; font-size: var(--text-xs); font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.arc-chain-node { display: grid; gap: 4px; justify-items: start; padding: 12px; border: 0; border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: transform 200ms cubic-bezier(.16, 1, .3, 1), box-shadow 150ms; }
+.arc-chain-node:hover { transform: translateY(-2px); }
+.arc-chain-node[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
+.arc-chain-node.is-long { background: var(--hover); }
+.arc-chain-time { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.arc-chain-step { font-size: var(--text-sm); font-weight: 600; }
+.arc-chain-step small { color: var(--ink-2); font-weight: 400; }
+.arc-chain-node > b { font-size: 28px; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.arc-chain-node.is-likely > b { color: var(--win); }
+.arc-chain-node > small, .arc-chain-miss { font-size: 11px; color: var(--ink-2); }
+.arc-chain-detail { display: grid; gap: 12px; padding: 18px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); }
+
+/* Teams to build around */
+.arc-club-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.arc-club { display: grid; gap: 12px; padding: 16px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); align-content: start; }
+.arc-club.is-on { box-shadow: inset 0 0 0 2px var(--ink), var(--shadow-card); }
+.arc-club-head { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.arc-club-head .arc-crest { width: 40px; height: 40px; }
+.arc-club-name { display: grid; min-width: 0; }
+.arc-club-name b { font-size: var(--text-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arc-club-name small { font-size: var(--text-xs); color: var(--ink-2); }
+.arc-club-value { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.arc-club-value b { font-size: 36px; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.arc-club-value small { font-size: var(--text-xs); color: var(--ink-2); }
+.arc-club-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.arc-club-cards li { position: relative; display: grid; gap: 3px; justify-items: center; text-align: center; }
+.arc-club-cards img, .arc-club-cards .arc-card-blank { width: 100%; height: auto; aspect-ratio: 120 / 194; object-fit: cover; border-radius: 8px; }
+.arc-club-cards li.is-out img, .arc-club-cards li.is-doubt img { filter: grayscale(.85); opacity: .7; }
+.arc-club-pts { position: absolute; top: 4px; right: 4px; padding: 1px 6px; border-radius: 999px; background: var(--surface); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; box-shadow: var(--shadow-card); }
+.arc-club-cards small { font-size: 11px; color: var(--ink-2); line-height: 1.2; }
+.arc-club-cards li.is-sofix small, .arc-club-cards li.is-sorare small { color: var(--win); font-weight: 600; }
+.arc-club-cards li.is-out small { color: var(--loss); font-weight: 600; }
+.arc-club .arc-small[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+
+/* Gems and packs */
+.arc-gems-wallet { font-size: var(--text-sm); color: var(--ink-2); }
+.arc-gems-wallet b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.arc-gems-ask { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.arc-gems-ask p { margin: 0; color: var(--ink-2); font-size: var(--text-sm); max-width: 70ch; }
+.arc-gems-grid { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 16px; }
+.arc-gems-answer { display: grid; gap: 8px; align-content: start; background: radial-gradient(90% 90% at 90% 20%, color-mix(in srgb, #b9acff 16%, transparent), var(--surface) 70%), var(--surface); }
+.arc-gems-answer > small { font-size: var(--text-xs); color: var(--ink-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.arc-gems-buy { margin: 0; font-size: clamp(24px, 3vw, 34px); line-height: 1.05; font-weight: 700; letter-spacing: -0.03em; }
+.arc-gems-big { margin: 0; font-size: var(--text-md); color: var(--ink-2); }
+.arc-gems-big b { color: var(--ink); font-size: 22px; font-variant-numeric: tabular-nums; }
+.arc-gems-maths { display: grid; gap: 8px; align-content: start; }
+.arc-gems-maths i { font-family: Georgia, serif; }
+.arc-gems-table { grid-column: 1 / -1; display: grid; gap: 10px; }
+.arc-gems-table .arc-packs-list li { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.6fr) 56px 120px; }
+.arc-pack-per { justify-self: end; font-size: var(--text-xs); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1000px) {
+  .arc-move { grid-template-columns: 1fr; padding: 22px; }
+  .arc-ladder { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .arc-gems-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .arc-move { padding: 18px 16px 18px 20px; gap: 18px; }
+  .arc-move-why { font-size: 15px; }
+  .arc-move-compare > span { grid-template-columns: 96px minmax(0, 1fr) 34px; }
+  .arc-move-entry-head .arc-small { margin-left: 0; }
+  .arc-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .arc-chain-rail { grid-auto-columns: 140px; }
+  .arc-club-grid { grid-template-columns: 1fr; }
+  .arc-gems-table .arc-packs-list li { grid-template-columns: minmax(0, 1fr) 48px; }
+  .arc-gems-table .arc-packs-list .arc-packbar, .arc-gems-table .arc-pack-per { grid-column: 1 / -1; justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arc-move, .arc-ladder li, .arc-chain-rail li, .arc-club, .arc-move-bar > span { animation: none !important; }
+  .arc-chain-node { transition: none; }
+}
+
 .arc-fan { display: flex; }
 .arc-fan img { width: 26px; height: 42px; object-fit: cover; border-radius: 4px; margin-left: -8px; box-shadow: 0 4px 10px rgba(0, 0, 0, .18); transition: transform 250ms cubic-bezier(.16, 1, .3, 1); }
 .arc-fan img:first-child { margin-left: 0; }
-.arc-floor:hover .arc-fan img { transform: translateY(-3px); }
-.arc-floor-odds { display: grid; justify-items: end; min-width: 52px; }
-.arc-floor-odds b { font-size: 20px; font-variant-numeric: tabular-nums; }
-.arc-floor-odds small { color: var(--ink-2); font-size: 11px; }
-
-.arc-dep-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; }
-.arc-dep-head span { color: var(--ink-2); font-size: var(--text-xs); }
-.arc-dep-rows { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
-.arc-dep-rows button { width: 100%; display: grid; grid-template-columns: auto minmax(64px, auto) minmax(64px, auto) minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: border-color 150ms, transform 150ms; }
-.arc-dep-rows button:hover { border-color: var(--ink-2); }
-.arc-dep-rows button[aria-pressed="true"] { border-color: var(--ink); }
-.arc-dep-rows button:active { transform: scale(0.99); }
-.arc-flip { display: inline-flex; gap: 2px; font-variant-numeric: tabular-nums; }
-.arc-flip span { display: inline-grid; place-items: center; min-width: 17px; height: 26px; padding: 0 2px; border-radius: 4px; background: linear-gradient(180deg, var(--hover) 0 49%, var(--line) 51% 100%); font-weight: 700; font-size: 15px; animation: arc-flip 450ms cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--i, 0) * 40ms); }
-.arc-dep-flight { font-weight: 600; font-size: var(--text-sm); }
-.arc-dep-to { display: grid; font-size: var(--text-sm); font-weight: 600; }
-.arc-dep-to small { font-weight: 400; color: var(--ink-2); font-size: 11px; }
-.arc-dep-games { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
-.arc-dep-games > span { display: inline-flex; align-items: center; gap: 2px; }
-.arc-dep-games i { font-style: normal; font-size: 11px; color: var(--ink-2); }
-.arc-dep-games small { font-size: 11px; color: var(--ink-2); }
+.arc-chain-node:hover .arc-fan img { transform: translateY(-3px); }
 .arc-crest { width: 22px; height: 22px; object-fit: contain; flex: none; }
 .arc-crest.is-blank { display: inline-grid; place-items: center; border-radius: 6px 6px 50% 50%; background: var(--hover); color: var(--ink-2); font-size: 11px; font-weight: 700; text-transform: uppercase; }
-
-.arc-deck { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 16px; align-items: center; }
-.arc-deck .arc-lineup { grid-column: 1 / -1; }
-.arc-deck-body { display: grid; gap: 4px; }
-.arc-ring { --p: 0; width: 132px; height: 132px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--win) calc(var(--p) * 360deg), var(--line) 0); }
-.arc-ring > span { width: 108px; height: 108px; border-radius: 50%; background: var(--surface); display: grid; place-content: center; text-align: center; }
-.arc-ring b { font-size: 30px; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-.arc-ring small { font-size: 11px; color: var(--ink-2); }
 
 /* Pick teams: tickets, the pitch and where it lands */
 .arc-teams-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -203,17 +272,10 @@
 .arc-pick-chance { font-size: 32px; line-height: 1; letter-spacing: -0.03em; color: var(--win); font-variant-numeric: tabular-nums; }
 
 @media (max-width: 1000px) {
-  .arc-climb-grid, .arc-pitch-wrap, .arc-lab { grid-template-columns: 1fr; }
+  .arc-pitch-wrap, .arc-lab { grid-template-columns: 1fr; }
   .arc-race { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-  .arc-headline { padding: 16px; }
-  .arc-headline p { font-size: 15px; }
-  .arc-floor { grid-template-columns: 52px 44px minmax(0, 1fr) auto; }
-  .arc-floor .arc-fan { display: none; }
-  .arc-dep-rows button { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .arc-dep-rows .arc-dep-flight, .arc-dep-rows .arc-dep-games { display: none; }
-  .arc-deck { grid-template-columns: 1fr; justify-items: center; }
   .arc-tickets { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 420px; }
   .arc-pitch { min-height: 560px; }
   .arc-pitch ol { position: absolute; inset: 104px 0 0; } /* below the total on a phone */
@@ -227,9 +289,9 @@
   .arc-packs-list .arc-packbar { grid-column: 1 / -1; grid-row: 2; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .arc-headline, .arc-floor, .arc-floor.is-current, .arc-dep-rows li, .arc-deck, .arc-ticket, .arc-lineup li, .arc-pitch li, .arc-flip span, .arc-stamp,
+  .arc-ticket, .arc-lineup li, .arc-pitch li, .arc-stamp,
   .arc-race, .arc-track-run, .arc-lab > *, .arc-pack, .arc-packbar span, .arc-ringlist li, .arc-picks li { animation: none !important; }
-  .arc-ticket, .arc-fan img, .arc-dep-rows button { transition: none; }
+  .arc-ticket, .arc-fan img { transition: none; }
 }
 .arc-open .arc-small { margin-top: 12px; }
 .arc-main h2 { font-size: 20px; letter-spacing: -0.01em; }

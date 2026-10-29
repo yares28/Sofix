@@ -612,6 +612,7 @@ const STEPS = {
   arcade: () => ["SofixArcade", {}],
   "arcade-lineups": () => ["SofixArcadeLineups", {}],
   "arcade-missions": () => ["SofixArcadeMissions", {}],
+  "arcade-collection": () => ["SofixArcadeCollection", {}],
   "arcade-cards": (input) => ["SofixArcadeCards", { after: typeof input.after === "string" ? input.after.slice(0, 500) : null }],
   "arcade-games": (input) => ["SofixArcadeGames", {
     after: typeof input.after === "string" ? input.after.slice(0, 500) : null,

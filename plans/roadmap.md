@@ -14,6 +14,8 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
+**Fri 30 Oct 14:00 Madrid (Divination opens):** **check the Arcade rework on the live board** ([arcade-rework.md](arcade-rework.md) "Not confirmed"): tiers in pack odds, Sorare's starter word, collection missions, and that a reset pays nothing again. **You:** Reload the extension (0.4.18).
+
 **1 Nov, first thing (date-bound):** **all Neon projects into one** (TODO.md "All Neon projects into one"): quotas reset that
 day, so every project answers; list what each holds that the live one lacks (GW25's records are on Sofix C), copy on your yes, then
 rerun the strategy audit.
@@ -48,7 +50,7 @@ Next owner request, 21 Oct: build Premier League/Bundesliga xScore, waiting for 
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
-AR. **Arcade, as planned** (TODO.md "Arcade is not what was planned", [set.md](set.md) "Redo, 22 Oct"; the set ends 27 Oct 17:00):
+AR. **Arcade, as planned** (superseded 29 Oct by [arcade-rework.md](arcade-rework.md)) (TODO.md "Arcade is not what was planned", [set.md](set.md) "Redo, 22 Oct"; the set ends 27 Oct 17:00):
    all built (climb plan, start % without a tab, cards kept, mission picks, FDR link, canvas look). **You:** Reload the extension (0.4.15)
    so start % without a tab and kept cards can be seen on your account; then this line moves to Results.
 

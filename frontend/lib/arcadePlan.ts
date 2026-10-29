@@ -82,8 +82,6 @@ function random(seed: number) {
 }
 
 export const RUNS = 2000;
-const PLAN_RUNS = 400; // the climb's look-ahead compares days; 400 games are enough for that and keep the page responsive
-const PLAN_SHORTLIST = 15; // and the 15 likeliest lineups by expected points, not 60
 
 /**
  * How much two starters of the same side in one game score together: the correlation of each one's score against his own usual,
@@ -92,7 +90,7 @@ const PLAN_SHORTLIST = 15; // and the 15 likeliest lineups by expected points, n
 export const TEAMMATES = 0.09;
 
 /** The standard normal's cumulative chance (Abramowitz and Stegun 7.1.26, error under 1.5e-7). */
-function phi(x: number): number {
+export function phi(x: number): number {
   const t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2);
   const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-(x * x) / 2);
   return x >= 0 ? (1 + y) / 2 : (1 - y) / 2;
@@ -117,6 +115,8 @@ export function simulate(picks: { outlook: Outlook; captain: boolean }[], captai
       past: o.past.length >= 3 ? o.past.map((s) => s * scale).sort((a, b) => a - b) : null, score: o.score ?? 0,
     };
   });
+  // Under 3 played games: his score with a normal spread of THIN share (median of 884 commons, plans/arcade-rework.md), not a fixed number.
+  const THIN = 0.33;
   const day = new Array<number>(sides.size).fill(0);
   const shared = Math.sqrt(link);
   const own = Math.sqrt(1 - link);
@@ -126,8 +126,9 @@ export function simulate(picks: { outlook: Outlook; captain: boolean }[], captai
     let total = 0;
     for (const c of cards) {
       if (next() >= c.p) continue;
-      if (!c.past) { total += c.score * c.m; continue; }
-      const u = phi(shared * day[c.side]! + own * normal());
+      const z = shared * day[c.side]! + own * normal();
+      if (!c.past) { total += Math.max(0, c.score * (1 + THIN * z)) * c.m; continue; }
+      const u = phi(z);
       total += c.past[Math.min(c.past.length - 1, Math.floor(u * c.past.length))]! * c.m;
     }
     totals.push(total);
@@ -184,8 +185,9 @@ export function bestLineup(outlooks: Outlook[], target: number, captainBonus: nu
 
   let best: { picks: LineupPick[]; totals: number[]; expected: number; chance: number } | null = null;
   for (const combo of combos.slice(0, shortlist)) {
-    // The captain worth trying: the two who add the most.
-    const gains = combo.picks.map((o, i) => ({ i, gain: predicted(o, true, captainBonus)! - predicted(o)! })).sort((a, b) => b.gain - a.gain).slice(0, 2);
+    // The captain worth trying: the two who add the most, among cards with a known start % while any has one (owner, 29 Oct).
+    const known = combo.picks.some((o) => o.start !== null);
+    const gains = combo.picks.map((o, i) => ({ i, gain: predicted(o, true, captainBonus)! - predicted(o)! })).filter(({ i }) => !known || combo.picks[i]!.start !== null).sort((a, b) => b.gain - a.gain).slice(0, 2);
     for (const { i } of gains) {
       const picks = combo.picks.map((outlook, j) => ({ slot: SLOTS[j]!, outlook, captain: i === j }));
       const totals = simulate(picks, captainBonus, runs);
@@ -262,163 +264,6 @@ export function planDay(outlooks: Outlook[], steps: StepInfo[], current: number,
     plan.push({ lineup, step, chance: chanceOf(lineup.totals, stepOf(step).target), settles: settlesAt(lineup), lostIf, after });
   }
   return plan;
-}
-
-/** Where the climb starts: the step and its lives, from when (a waiting lineup must settle first), and cards held until a time. */
-export type ClimbStart = { step: number; lives: number; notBefore: number | null; held: { card: string; until: number }[]; /** The highest step already cleared (default: the one below `step`). */ best?: number };
-/**
- * One leg of the climb: from `day` to `to` (a lineup may take games from up to SPAN days), the step and lives it starts with on the likely
- * path, how many lineups to play, the chance one clears, and those lineups (each step on the path has its own, not only the current one).
- */
-export type ClimbDay = {
-  day: string; to: string; step: number; lives: number; /** The highest step cleared before it. */ best: number; play: number; clear: number;
-  /** Lineups the leg's free cards can make. */ can: number;
-  /** The leg's cards free to play (held ones left out): planDay builds the lineups shown. */ list: Outlook[];
-  /** The lineups played, strongest first, aimed at this step (fewer simulated games than a shown lineup). */ lineups: Lineup[];
-};
-export type Climb = {
-  days: ClimbDay[];
-  /** Chance to clear each step by the set's end, playing as planned: step number → 0 to 1. */ odds: Record<number, number>;
-  /** The likely path after a played leg if one of its lineups clears (true) or all miss (false): the outcome `days` does not show. */
-  after: (leg: ClimbDay, cleared: boolean) => ClimbDay[];
-};
-
-/** A lineup may take games from up to 3 days in a row (Sorare's set board takes any of its games): a thin day joins the next. */
-export const SPAN = 3;
-
-/**
- * The climb to the set's end (owner: climb as high as possible, as fast as possible, before the set ends). A leg runs from one day to up to
- * SPAN days later and offers up to 4 lineups at a step from those days' games, no card twice; the next leg starts the day after it ends,
- * once its lineups have settled. For every day, step and lives, Sofix chooses the leg and how many lineups to play by looking ahead to the
- * set's end: a clear moves up a step with fresh lives; a miss costs a life; the last life lost sends the climb back to step 1 (Sorare's
- * rule), but a reward already won stays won, so what counts is the highest step cleared. Cards in a lineup still running are held until it
- * settles.
- */
-export function climb(days: [string, Outlook[]][], steps: StepInfo[], start: ClimbStart, captainBonus: number): Climb {
-  const last = steps.at(-1)?.number ?? 1;
-  const fresh = (n: number) => Math.min(4, steps.find((s) => s.number === n)?.lives ?? 4) || 4;
-  const pools = days.map(([day, all]) => ({ day, list: start.notBefore === null ? all : all.filter((o) => Date.parse(o.game.kickoff) >= start.notBefore!) }));
-  // The cards free for a leg from day i to day j: held ones out while their lineup runs.
-  const legList = (i: number, j: number) => {
-    const list = pools.slice(i, j + 1).flatMap((p) => p.list);
-    const opens = list.length ? Math.min(...list.map((o) => Date.parse(o.game.kickoff))) : 0;
-    const busy = new Set(start.held.filter((h) => h.until > opens).map((h) => h.card));
-    return list.filter((o) => !busy.has(o.card.slug));
-  };
-
-  // A leg's 4 best lineups, no card twice, built once (aimed at the start's step) and read at step n's target: what one more life buys,
-  // strongest first. ponytail: aimed once per leg, not per step (6× the time, 3.6 s on his board); planDay re-aims the leg you open.
-  const target = (n: number) => steps.find((s) => s.number === n)?.target ?? 0;
-  const built = new Map<string, Lineup[]>();
-  const offer = (i: number, j: number, n: number): Lineup[] => {
-    const key = `${i}:${j}`;
-    if (!built.has(key)) {
-      const list = legList(i, j);
-      const used = new Set<string>();
-      const out: Lineup[] = [];
-      for (let k = 0; k < 4 && list.length; k++) {
-        const lineup = bestLineup(list.filter((o) => !used.has(o.card.slug)), target(start.step), captainBonus, PLAN_RUNS, PLAN_SHORTLIST);
-        if (!lineup) break;
-        out.push(lineup);
-        lineup.picks.forEach((p) => used.add(p.outlook.card.slug));
-      }
-      built.set(key, out);
-    }
-    return [...built.get(key)!].sort((a, b) => chanceOf(b.totals, target(n)) - chanceOf(a.totals, target(n)));
-  };
-
-  // Best expected highest step cleared from day i, on step n with `lives`, `best` already cleared; the leg's last day and how many to play.
-  type Choice = { value: number; to: number; play: number; clear: number };
-  const memo = new Map<string, Choice>();
-  const value = (i: number, n: number, lives: number, best: number): Choice => {
-    if (i >= pools.length || n > last) return { value: best, to: i, play: 0, clear: 0 };
-    const key = `${i}:${n}:${lives}:${best}`;
-    const known = memo.get(key);
-    if (known) return known;
-    let choice: Choice = { value: value(i + 1, n, lives, best).value, to: i, play: 0, clear: 0 };
-    for (let j = i; j < Math.min(pools.length, i + SPAN); j++) {
-      if (!pools[j]!.list.length) continue;
-      const chances = offer(i, j, n).map((l) => chanceOf(l.totals, target(n)));
-      let miss = 1;
-      for (let k = 1; k <= Math.min(lives, chances.length); k++) {
-        miss *= 1 - chances[k - 1]!;
-        const clear = 1 - miss;
-        const up = value(j + 1, n + 1, fresh(n + 1), Math.max(best, n)).value;
-        const down = lives - k > 0 ? value(j + 1, n, lives - k, best).value : value(j + 1, 1, 4, best).value;
-        const v = clear * up + (1 - clear) * down;
-        if (v > choice.value + 1e-9) choice = { value: v, to: j, play: k, clear };
-      }
-    }
-    memo.set(key, choice);
-    return choice;
-  };
-
-  // Chance to clear each step: every path of the plan, weighted. States wait at the day their next leg can start.
-  const odds: Record<number, number> = {};
-  type State = { n: number; lives: number; best: number; p: number };
-  const at = Array.from({ length: pools.length + 1 }, () => new Map<string, State>());
-  const add = (i: number, n: number, lives: number, best: number, p: number) => {
-    const key = `${n}:${lives}:${best}`;
-    at[i]!.set(key, { n, lives, best, p: (at[i]!.get(key)?.p ?? 0) + p });
-  };
-  add(0, start.step, start.lives, start.best ?? start.step - 1, 1);
-  for (let i = 0; i < pools.length; i++) {
-    for (const s of at[i]!.values()) {
-      const { play, clear, to } = s.n > last ? { play: 0, clear: 0, to: i } : value(i, s.n, s.lives, s.best);
-      if (!play) { add(i + 1, s.n, s.lives, s.best, s.p); continue; }
-      add(to + 1, s.n + 1, fresh(s.n + 1), Math.max(s.best, s.n), s.p * clear);
-      if (s.lives - play > 0) add(to + 1, s.n, s.lives - play, s.best, s.p * (1 - clear));
-      else add(to + 1, 1, 4, s.best, s.p * (1 - clear));
-    }
-  }
-  for (const s of at[pools.length]!.values()) for (let n = 1; n <= s.best; n++) odds[n] = (odds[n] ?? 0) + s.p;
-
-  // The likely path from day i, leg by leg: a leg whose lineups more likely than not clear moves it up.
-  const walk = (from: number, n: number, lives: number, best: number): ClimbDay[] => {
-    const out: ClimbDay[] = [];
-    for (let i = from; i < pools.length && n <= last;) {
-      if (!pools[i]!.list.length) { i += 1; continue; }
-      const { play, clear, to } = value(i, n, lives, best);
-      const lineups = play ? offer(i, to, n).slice(0, play) : [];
-      out.push({ day: pools[i]!.day, to: pools[to]!.day, step: n, lives, best, play, clear, can: offer(i, to, n).length, list: legList(i, to), lineups });
-      i = to + 1;
-      if (!play) continue;
-      ({ n, lives, best } = outcome({ step: n, lives, best, play }, clear >= 0.5));
-    }
-    return out;
-  };
-  // A played leg's result: a clear moves up a step with fresh lives; a miss costs its lives, and the last one lost restarts at step 1.
-  const outcome = (leg: Pick<ClimbDay, "step" | "lives" | "best" | "play">, cleared: boolean) =>
-    cleared ? { n: leg.step + 1, lives: fresh(leg.step + 1), best: Math.max(leg.best, leg.step) }
-      : leg.lives - leg.play > 0 ? { n: leg.step, lives: leg.lives - leg.play, best: leg.best } : { n: 1, lives: 4, best: leg.best };
-  const after = (leg: ClimbDay, cleared: boolean) => {
-    const next = outcome(leg, cleared);
-    return walk(pools.findIndex((p) => p.day === leg.to) + 1, next.n, next.lives, next.best);
-  };
-  return { days: walk(0, start.step, start.lives, start.best ?? start.step - 1), odds, after };
-}
-
-export type Advice = { play: boolean; why: string; better: { day: string; chance: number } | null };
-
-/**
- * When to spend a life (plans/set.md, Rules decided). Step 1: always play. From step 2: play unless a later day before the set ends gives a
- * better chance at that step; play anyway when the days left are fewer than the steps still to climb. A big reward's last life: hold
- * unless today is the best chance left. Later days whose lineup has no start % for most cards are not compared: Sorare has not said yet.
- */
-export function lifeAdvice(today: { chance: number; step: StepInfo; days: number; stepsLeft: number }, later: { day: string; lineup: Lineup | null }[]): Advice {
-  const compared = later.flatMap(({ day, lineup }) => {
-    if (!lineup) return [];
-    const known = lineup.picks.filter((p) => p.outlook.start !== null).length;
-    return known * 2 >= lineup.picks.length ? [{ day, chance: chanceOf(lineup.totals, today.step.target) }] : [];
-  });
-  const better = compared.filter((d) => d.chance > today.chance).sort((a, b) => b.chance - a.chance)[0] ?? null;
-  if (today.step.number === 1) return { play: true, why: "Step 1 has nothing to lose: play the best lineup.", better: null };
-  if (today.days < today.stepsLeft) return { play: true, why: "Fewer days left than steps to climb: play.", better };
-  const unknown = later.length - compared.length;
-  const note = unknown ? ` (${unknown} later day${unknown > 1 ? "s have" : " has"} no start % yet, so not compared)` : "";
-  if (!better) return { play: true, why: `No later day gives a better chance at this step${note}.`, better: null };
-  if (today.step.lives <= 1 && today.step.big) return { play: false, why: `Last life on a big reward: hold for a better day${note}.`, better };
-  return { play: false, why: `A later day gives a better chance at this step: hold the life${note}.`, better };
 }
 
 /** Each slot's draw odds as Sorare publishes them: player slug → chance (0 to 1). */

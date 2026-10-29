@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { outlookOf, parseBonuses, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { bestLineup, bigReward, chanceOf, climb, cutLosses, decisiveRate, rankDecisive, streakTarget, lifeAdvice, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, type Lineup, type Outlook } from "./arcadePlan";
+import { bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
   slug: `${player}-card`, player, name: player, team: "Home", teamSlug: "home", teamPicture: null, league: null, positions, picture: null, edition: null, bonus,
 });
-const outlook = (player: string, positions: string[], score: number | null, start: number | null, past: number[] = [], bonus = 0): Outlook => ({
-  card: card(player, positions), game: GAME, score, scoreSource: score === null ? null : "sorare", start, startSource: start === null ? null : "sorare", past, bonus, club: 0,
+/** A card; with no past given, a flat record of his score (a sure number), so a test checks start % rather than spread. */
+const outlook = (player: string, positions: string[], score: number | null, start: number | null, past?: number[], bonus = 0): Outlook => ({
+  card: card(player, positions), game: GAME, score, scoreSource: score === null ? null : "sorare", start, startSource: start === null ? null : "sorare", past: past ?? (score === null ? [] : [score, score, score]), bonus, club: 0,
 });
 
 describe("a card's predicted score", () => {
@@ -30,7 +31,7 @@ describe("a card's predicted score", () => {
 
 describe("the chance a lineup reaches a target", () => {
   it("is certain or impossible when every card always starts and always scores the same", () => {
-    const picks = [60, 60, 60, 60, 60].map((s, i) => ({ outlook: outlook(`p${i}`, ["Forward"], s, 1), captain: i === 0 }));
+    const picks = [60, 60, 60, 60, 60].map((s, i) => ({ outlook: outlook(`p${i}`, ["Forward"], s, 1, [s, s, s]), captain: i === 0 }));
     const totals = simulate(picks, 0.5);
     expect(chanceOf(totals, 330)).toBe(1);
     expect(chanceOf(totals, 331)).toBe(0);
@@ -148,80 +149,9 @@ describe("Pick a day", () => {
     expect(planDay(pool, steps, 2, 0.5, new Set(["a0-card"])).flatMap((p) => p.lineup.picks.map((x) => x.outlook.card.slug))).not.toContain("a0-card");
   });
 
-  it("plans past a step whose lives are all waiting, and climbs across days from where the day before leaves it", () => {
-    const days: [string, Outlook[]][] = [
-      ["2026-10-24", squad(at("G1", "2026-10-24T12:00:00Z"), "a", 80)],
-      ["2026-10-25", squad(at("G2", "2026-10-25T12:00:00Z"), "b", 80)],
-    ];
-    // Step 2's lives are all waiting; one settles Saturday evening, so Saturday's noon game is too early and Sunday plays step 3.
-    const after = climb(days, steps, { step: 3, lives: 4, notBefore: Date.parse("2026-10-24T20:00:00Z"), held: [] }, 0.5);
-    expect(after.days.map((d) => [d.day, d.step, d.play])).toEqual([["2026-10-25", 3, 1]]);
-    const fromOne = climb(days, steps, { step: 1, lives: 4, notBefore: null, held: [] }, 0.5);
-    expect(fromOne.days.map((d) => [d.step, d.play])).toEqual([[1, 1], [2, 1]]);
-    expect(fromOne.odds[2]).toBeGreaterThan(0.9);
-    expect(fromOne.odds[3] ?? 0).toBe(0);
-  });
-
-  it("shows the other outcome of a played leg: the next step if it clears, a retry with the lives left if it misses", () => {
-    const days: [string, Outlook[]][] = [
-      ["2026-10-24", squad(at("G1", "2026-10-24T12:00:00Z"), "a", 80)],
-      ["2026-10-25", squad(at("G2", "2026-10-25T12:00:00Z"), "b", 80)],
-    ];
-    const path = climb(days, steps, { step: 2, lives: 3, notBefore: null, held: [] }, 0.5);
-    const first = path.days[0]!;
-    expect(first.play).toBeGreaterThan(0);
-    expect(path.after(first, true).map((d) => [d.day, d.step, d.lives])).toEqual([["2026-10-25", 3, 4]]);
-    expect(path.after(first, false).map((d) => [d.day, d.step, d.lives])).toEqual([["2026-10-25", first.lives - first.play > 0 ? 2 : 1, first.lives - first.play > 0 ? first.lives - first.play : 4]]);
-  });
-
-  it("builds a lineup across days when no single day fills one, so Thursday's European games and Friday's league games are not skipped", () => {
-    const thu = at("UEL", "2026-10-22T19:00:00Z");
-    const fri = at("FRI", "2026-10-23T19:00:00Z");
-    const pick = (game: ArcadeGame, p: string, positions: string[], score: number): Outlook => ({ ...outlook(p, positions, score, 1), card: { ...card(p, positions), slug: `${p}-card` }, game });
-    const days: [string, Outlook[]][] = [
-      ["2026-10-22", [pick(thu, "k", ["Goalkeeper"], 80), pick(thu, "d", ["Defender"], 80)]],
-      ["2026-10-23", [pick(fri, "m", ["Midfielder"], 80), pick(fri, "f", ["Forward"], 80), pick(fri, "x", ["Midfielder"], 80)]],
-      ["2026-10-24", squad(at("SAT", "2026-10-24T14:00:00Z"), "s", 80)],
-      ["2026-10-25", squad(at("SUN", "2026-10-25T14:00:00Z"), "u", 80)],
-    ];
-    const path = climb(days, steps.map((s) => ({ ...s, lives: 1 })), { step: 1, lives: 1, notBefore: null, held: [] }, 0.5);
-    expect(path.days.map((d) => [d.day, d.to, d.step, d.play])).toEqual([["2026-10-22", "2026-10-23", 1, 1], ["2026-10-24", "2026-10-24", 2, 1], ["2026-10-25", "2026-10-25", 3, 1]]);
-    expect(path.odds[3]).toBeGreaterThan(0.9); // one step a day from Thursday: step 3 by Sunday
-    // Every step on the way has its own lineup, not only the step you are on.
-    expect(path.days.map((d) => d.lineups.length)).toEqual([1, 1, 1]);
-    expect(path.days[0]!.lineups[0]!.picks.map((p) => p.outlook.game.id).sort()).toEqual(["FRI", "FRI", "FRI", "UEL", "UEL"]);
-  });
-
-  it("holds lives on a weak day for a stronger one, and holds a running lineup's cards until it settles", () => {
-    const days: [string, Outlook[]][] = [["2026-10-24", squad(at("G1", "2026-10-24T12:00:00Z"), "a", 30)], ["2026-10-25", squad(at("G2", "2026-10-25T12:00:00Z"), "b", 80)]];
-    const path = climb(days, steps, { step: 3, lives: 1, notBefore: null, held: [] }, 0.5);
-    expect(path.days.map((d) => [d.step, d.play])).toEqual([[3, 0], [3, 1]]);
-    expect(path.odds[3]).toBeGreaterThan(0.9);
-    const held = [{ card: "a0-card", until: Date.parse("2026-10-24T13:00:00Z") }];
-    expect(climb(days.slice(0, 1), steps, { step: 1, lives: 4, notBefore: null, held }, 0.5).days[0]!.play).toBe(0); // no goalkeeper left
-  });
 });
 
-describe("when to spend a life", () => {
-  const lineupWith = (chance: number, known: boolean): Lineup => ({
-    picks: [0, 1, 2, 3, 4].map((i) => ({ slot: "GK", outlook: outlook(`x${i}`, ["Goalkeeper"], 50, known ? 1 : null), captain: false })),
-    expected: 0, totals: Array.from({ length: 100 }, (_, i) => (i < 100 - chance * 100 ? 0 : 500)), first: "", last: "",
-  });
-  const step = (number: number, lives = 4, big = false) => ({ number, target: 300, lives, big });
-  it("always plays step 1", () => {
-    expect(lifeAdvice({ chance: 0.2, step: step(1), days: 6, stepsLeft: 6 }, [{ day: "Sat", lineup: lineupWith(0.9, true) }]).play).toBe(true);
-  });
-  it("holds from step 2 when a later day is better, unless the days left are fewer than the steps to climb", () => {
-    const later = [{ day: "Sat", lineup: lineupWith(0.8, true) }];
-    expect(lifeAdvice({ chance: 0.5, step: step(2), days: 6, stepsLeft: 5 }, later)).toMatchObject({ play: false, better: { day: "Sat", chance: 0.8 } });
-    expect(lifeAdvice({ chance: 0.5, step: step(2), days: 3, stepsLeft: 5 }, later).play).toBe(true);
-    expect(lifeAdvice({ chance: 0.9, step: step(2), days: 6, stepsLeft: 5 }, later).play).toBe(true);
-  });
-  it("does not compare a later day whose lineup has no start % yet", () => {
-    const advice = lifeAdvice({ chance: 0.5, step: step(3), days: 6, stepsLeft: 4 }, [{ day: "Sat", lineup: lineupWith(0.9, false) }]);
-    expect(advice.play).toBe(true);
-    expect(advice.why).toContain("no start % yet");
-  });
+describe("big rewards", () => {
   it("knows a big reward: 30 gems or money", () => {
     expect(bigReward(["30 gems"])).toBe(true);
     expect(bigReward(["€100", "1,000 Limited essence"])).toBe(true);

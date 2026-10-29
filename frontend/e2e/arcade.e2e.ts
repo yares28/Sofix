@@ -15,7 +15,7 @@ const SQUAD = [
 /** Arcade reads everything from the extension; a stub answers as Sorare would (shapes from lib/arcade.test.ts). */
 const ANSWERS: Record<string, unknown> = {
   arcade: {
-    cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: null, endDate: "2026-10-27T16:00:00Z", availableCompetitions: [] } },
+    cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: null, endDate: new Date(Date.now() + 7 * 86_400_000).toISOString(), availableCompetitions: [] } }, // a week ahead: a set that ended hides the kept board
     currentUser: {
       slug: "owner",
       gems: [{ currency: "COMMON_GEM", amount: 40 }],
@@ -33,6 +33,7 @@ const ANSWERS: Record<string, unknown> = {
   },
   "arcade-lineups": { currentUser: { setBoard: { steps: [] } } },
   "arcade-missions": { currentUser: { setPlayTasks: [] } },
+  "arcade-collection": { currentUser: { tracks: [{ __typename: "CardsCountTargetTask", id: "collect-club", title: "Club collector", description: "Collect 2 Club cards", progress: 0, target: 2, expired: false, aasmState: "in_progress", rewardConfigs: [], players: [], specifiedTeams: [{ slug: "club", name: "Club" }], competitions: [] }], setBoard: { myCollectionTasks: [] } } },
   "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: [{ game: { id: GAME, date: KICKOFF, statusTyped: "scheduled",
     competition: { slug: "laliga-es", displayName: "LALIGA EA Sports" }, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: "rival", name: "Rival" } } }],
     pageInfo: { hasNextPage: false, endCursor: null } } } } },
@@ -40,10 +41,10 @@ const ANSWERS: Record<string, unknown> = {
     skinEdition: { bonus, skinName: bonus > 1 ? "Holo" : "Standard" }, anyPlayer: { slug: player, displayName: name }, anyTeam: { slug: "club", name: "Club" } })), pageInfo: { hasNextPage: false, endCursor: null } } } },
   // Step 3: one card per club is asked for its club bonus; past scores; the game's projections (Player One has none: his average stands in).
   "arcade-bonuses": { currentUser: { setBoard: { b0: [{ key: "collection", bonusBasisPoints: 400 }] } } },
-  "arcade-past": { players: SQUAD.map(([, player]) => ({ slug: player, playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })) },
+  "arcade-past": { players: SQUAD.map(([, player]) => ({ slug: player, gameplayTier: "IMPACT", playingStatus: "STARTER", activeInjuries: [], playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })) },
   "arcade-pack-odds": { currentUser: { setBoard: { myCurrentStep: { cardPacks: [
-    { slug: "bronze", cardsCount: 1, s0: [{ playerOdds: [{ probabilityBasisPoint: 5000, player: { slug: "p" } }, { probabilityBasisPoint: 5000, player: { slug: "new" } }] }] },
-    { slug: "silver", cardsCount: 1, s0: [{ playerOdds: [{ probabilityBasisPoint: 10000, player: { slug: "new" } }] }] },
+    { slug: "bronze", cardsCount: 1, s0: [{ gameplayTier: "IMPACT", probabilityBasisPoint: 10000, playerOdds: [{ probabilityBasisPoint: 5000, player: { slug: "p" }, team: { slug: "club" } }, { probabilityBasisPoint: 5000, player: { slug: "new" }, team: { slug: "club" } }] }] },
+    { slug: "silver", cardsCount: 1, s0: [{ gameplayTier: "GOAT", probabilityBasisPoint: 10000, playerOdds: [{ probabilityBasisPoint: 10000, player: { slug: "new" }, team: { slug: "club" } }] }] },
   ] } } } },
   "arcade-projections": { anyGame: { id: GAME, playerGameScores: SQUAD.slice(1).map(([, player]) => ({ projection: { score: 60 }, anyPlayer: { slug: player } })) } },
 };
@@ -66,10 +67,10 @@ test("Arcade shows the step you are on, its target, reward and lineups left, you
   await withExtension(page);
   await page.goto("/arcade");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Step 2 of 2 · 300 pts");
-  const step = page.locator(".arc-floor.is-current"); // the tower, once predictions are read
+  const step = page.locator(".arc-ladder li.is-current"); // the board beside Your move, once predictions are read
   await expect(step).toContainText("300");
   await expect(step).toContainText("10 gems");
-  await expect(page.locator(".arc-headline")).toContainText("3 lives on step 2");
+  await expect(page.locator(".arc-move .arc-lives")).toHaveAttribute("aria-label", "3 of 4 lives");
   await expect(page.locator(".arc-wallet")).toContainText("3,200");
   await expect(page.locator(".arc-grid .arc-card").first()).toHaveAttribute("aria-label", "Defender Three");
   expect(await smallText(page, 11)).toEqual([]);
@@ -214,7 +215,6 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   // Player One: no projection, so his played average (60) × 50% start × (1 + 10% Holo + 4% club) = 34.
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
   await expect(page.locator(".arc-grid .arc-card-score b")).toHaveText("34");
-  await page.getByRole("group", { name: "Plan by" }).getByRole("button", { name: "Pick teams" }).click();
   await expect(page.locator(".arc-pitch li")).toHaveCount(5); // the five on the pitch
   await expect(page.locator(".arc-scale-tick.is-aim")).toContainText("Step 2");
   await page.getByText("Each card's numbers").click();
@@ -235,22 +235,27 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   await expect(page.locator(".arc-plan")).toContainText("Pick at least one game.");
 });
 
-test("Pick a day plans the day's lineups at the step they land on, no card twice, and says whether to spend a life", async ({ page }) => {
+test("Your move says to play now, why, and the lineup to enter, beside the board's chance at every step; teams to build around feed Pick teams", async ({ page }) => {
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
-  await withExtension(page);
+  await withExtension(page, ANSWERS, "0.4.18");
   await page.goto("/arcade");
-  await expect(page.getByRole("group", { name: "Plan by" }).getByRole("button", { name: "Pick a day" })).toHaveAttribute("aria-pressed", "true");
-  const departures = page.locator(".arc-dep-rows li");
-  await expect(departures).toHaveCount(1); // six cards make one lineup
-  await expect(departures).toContainText("Lineup 1");
-  await expect(departures).toContainText("Step 2");
-  await expect(page.locator(".arc-departures .arc-advice")).toContainText("Play 1 lineup on step 2");
-  await expect(page.locator(".arc-headline")).toContainText("step 2");
-  await expect(page.locator(".arc-deck .arc-lineup li")).toHaveCount(5); // on deck: its five cards
-  // Both outcomes of the day are named: step 2 is the board's top, and with one game there is no day after it.
-  const outcomes = page.getByRole("group", { name: "What comes next" });
-  await expect(outcomes.getByRole("button", { name: /If it clears/ })).toContainText("step 2 cleared: the top of the board");
-  await expect(outcomes.getByRole("button", { name: /If it misses/ })).toContainText("2 lives left on step 2");
+  const move = page.locator(".arc-move");
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play now");
+  await expect(move.locator(".arc-move-why")).toContainText("steps by the end on average");
+  await expect(move.locator(".arc-lineup li")).toHaveCount(5); // the five to enter
+  await expect(move).toContainText("Enter before");
+  await expect(move).toContainText("Settles about");
+  await expect(page.locator(".arc-ladder li")).toHaveCount(2);
+  await expect(page.locator(".arc-chain")).toHaveCount(0); // one game: no chain to show
+  // Club plays tomorrow with six of your cards, every one a starter on Sorare's word: the team to build around, already in Pick teams.
+  const club = page.locator(".arc-club").first();
+  await expect(club).toContainText("Club");
+  await expect(club).toContainText("Sorare: starter");
+  await expect(club.getByRole("button")).toHaveText("In Pick teams");
+  await club.getByRole("button").click();
+  await expect(page.locator(".arc-plan")).toContainText("Pick at least one game.");
+  await club.getByRole("button").click();
+  await expect(page.locator(".arc-pitch li")).toHaveCount(5);
   expect(await smallText(page, 11)).toEqual([]);
   if (process.env.ARCADE_PLAN_SHOT) {
     await page.emulateMedia({ reducedMotion: "reduce" }); // still pictures, not mid-animation
@@ -266,21 +271,27 @@ test("Pick a day plans the day's lineups at the step they land on, no card twice
   }
 });
 
-test("Packs: on a click, the pack you can afford with the most players you do not have yet, on Sorare's odds", async ({ page }) => {
+test("Gems and packs: what your gems buy for an Icon, new players or a collection mission, from Sorare's odds, with the maths", async ({ page }) => {
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
-  await withExtension(page);
+  await withExtension(page, ANSWERS, "0.4.18");
   await page.goto("/arcade");
-  await page.getByRole("button", { name: "Work out the best pack" }).click();
-  // Silver always gives "new" (1.0); Bronze gives him half the time (0.5) and needs 1,000 essence, of 3,200.
-  await expect(page.locator(".arc-open")).toContainText("Open next");
-  await expect(page.locator(".arc-open")).toContainText("Silver");
-  await expect(page.locator(".arc-open")).toContainText("1.0 players you do not have yet, on Sorare's odds, for 10 gems");
-  await expect(page.locator(".arc-packs-list li")).toHaveCount(2);
-  // The Bronze filter keeps Bronze packs only, and Open next follows it.
-  await page.getByRole("group", { name: "Pack type" }).getByRole("button", { name: "Bronze (1)" }).click();
-  await expect(page.locator(".arc-packs-list li")).toHaveCount(1);
-  await expect(page.locator(".arc-open")).toContainText("0.5 players you do not have yet, on Sorare's odds, for 1,000 essence");
-  await expect(page.getByRole("group", { name: "Pack type" }).getByRole("button", { name: "Gold (0)" })).toBeDisabled();
+  const gems = page.locator(".arc-gems");
+  await gems.getByRole("button", { name: "Read the odds" }).click();
+  // Silver's one slot is always the Icon "new" (10 gems); 40 gems buy four.
+  await expect(gems.locator(".arc-gems-buy")).toHaveText("4 × Silver");
+  await expect(gems.locator(".arc-gems-big")).toContainText("100% at least one");
+  await expect(gems.locator(".arc-gems-maths")).toContainText("1 − Π(1 − h)");
+  await expect(gems.locator(".arc-packs-list li")).toHaveCount(2);
+  await gems.getByRole("group", { name: "Pack type" }).getByRole("button", { name: "Bronze (1)" }).click();
+  await expect(gems.locator(".arc-packs-list li")).toHaveCount(1);
+  // New players: Bronze draws "new" half the time; Silver always.
+  await gems.getByRole("group", { name: "What to buy for" }).getByRole("button", { name: "New players" }).click();
+  await gems.getByRole("group", { name: "Pack type" }).getByRole("button", { name: "All (2)" }).click();
+  await expect(gems.locator(".arc-packs-list li").first()).toContainText("Silver");
+  // The collection mission: two Club cards; every Silver gives one, so two packs finish it.
+  await gems.getByRole("group", { name: "What to buy for" }).getByRole("button", { name: /Club collector/ }).click();
+  await expect(gems.locator(".arc-gems-answer")).toContainText("half the time in 2 packs");
+  await expect(gems.locator(".arc-gems-answer")).toContainText("Counts every card of its clubs or league");
 });
 
 test("a lineup on Sorare that cannot reach its target says it is dead, and cut losses when its cards help the next lineup more", async ({ page }) => {
@@ -303,7 +314,7 @@ test("a lineup on Sorare that cannot reach its target says it is dead, and cut l
   await expect(live).toContainText("Even at their best its cards cannot reach 300");
   await expect(live).toContainText("10 scored");
   await expect(live).toContainText("Cut losses");
-  await expect(page.locator(".arc-plan")).toContainText("cannot fill a lineup from your free cards"); // his cards in that lineup are not planned again
+  await expect(page.locator(".arc-move")).toContainText("Your free cards cannot fill a lineup"); // his cards in that lineup are not planned again
 });
 
 test("with extension 0.4.15 Sorare's start % come from the open Sorare tab, every day, without opening a page", async ({ page }) => {

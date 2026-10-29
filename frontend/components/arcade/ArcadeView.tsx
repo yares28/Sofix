@@ -164,7 +164,7 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
           : extras.unread.length ? `Not read this time: ${extras.unread.join(", ")}.` : null}
       </p>
       {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} actions={actions} /> : null}
-      {ready && planOutlooks ? <ArcadePlanner arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
+      {ready && planOutlooks ? <ArcadePlanner arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} status={ready.status ?? {}} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
       <ArcadePacks arcade={arcade} />
       <ArcadeMissions arcade={arcade} outlooks={outlooks} />
       <ArcadeCards cards={arcade.cards} games={arcade.games} outlooks={outlooks} />

@@ -87,7 +87,6 @@
 .arc-outcomes button:hover:not(:disabled) { border-color: var(--ink); background: var(--hover); }
 .arc-outcomes button:disabled { cursor: default; opacity: .7; }
 .arc-outcomes b { color: var(--ink); }
-.arc-dep-rows.is-held { opacity: .6; }
 .arc-schedule { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
 .arc-schedule > li { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
 .arc-schedule > li:first-child { border-top: 0; padding-top: 0; }

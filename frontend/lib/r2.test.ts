@@ -11,6 +11,57 @@ afterEach(() => {
 });
 
 describe("published blocks", () => {
+  it("coalesces ten cold readers even while more than six other blocks are downloading", async () => {
+    vi.stubEnv("SOFIX_BLOCKS_DIR", "");
+    for (const [name, value] of Object.entries(R2)) vi.stubEnv(name, value);
+    let finish!: () => void;
+    const pending = new Promise<void>(resolve => { finish = resolve; });
+    const fetch = vi.fn(async () => {
+      await pending;
+      return new Response(JSON.stringify({ updatedAt: "2026-10-29", payload: { score: 0 } }));
+    });
+    vi.stubGlobal("fetch", fetch);
+    const first = blockAt("cold-main", "cold-v1");
+    const others = Array.from({ length: 9 }, (_, i) => blockAt(`cold-${i}`, "cold-v1"));
+    const readers = Array.from({ length: 10 }, () => blockAt("cold-main", "cold-v1"));
+    finish();
+    const results = await Promise.all([first, ...others, ...readers]);
+    expect(results.every(result => result?.payload && (result.payload as { score: number }).score === 0)).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(10); // one per distinct block, independent of concurrency
+  });
+
+  it("retries a block temporarily missing during publication rather than retaining a null forever", async () => {
+    vi.stubEnv("SOFIX_BLOCKS_DIR", "");
+    for (const [name, value] of Object.entries(R2)) vi.stubEnv(name, value);
+    const fetch = vi.fn().mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ updatedAt: "2026-10-29", payload: { score: 0 } })));
+    vi.stubGlobal("fetch", fetch);
+    expect(await blockAt("publish-race", "v1")).toBeNull();
+    expect(await blockAt("publish-race", "v1")).toEqual({ updatedAt: "2026-10-29", payload: { score: 0 } });
+  });
+
+  it("does not reuse a block from a different local source with the same key and version", async () => {
+    const dirs = Array.from({ length: 2 }, () => mkdtempSync(path.join(tmpdir(), "blocks-source-")));
+    for (const [i, dir] of dirs.entries()) {
+      writeFileSync(path.join(dir, "same.json"), JSON.stringify({ updatedAt: "2026-10-29", payload: { source: i } }));
+      vi.stubEnv("SOFIX_BLOCKS_DIR", dir);
+      expect((await blockAt("same", "v1"))?.payload).toEqual({ source: i });
+    }
+  });
+
+  it("retries failed downloads and reads a new version after publication", async () => {
+    vi.stubEnv("SOFIX_BLOCKS_DIR", "");
+    for (const [name, value] of Object.entries(R2)) vi.stubEnv(name, value);
+    const fetch = vi.fn().mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ updatedAt: "2026-10-29", payload: { score: 0 } })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ updatedAt: "2026-10-30", payload: { score: 10 } })));
+    vi.stubGlobal("fetch", fetch);
+    await expect(blockAt("retry-block", "v1")).rejects.toThrow("offline");
+    expect((await blockAt("retry-block", "v1"))?.payload).toEqual({ score: 0 });
+    expect((await blockAt("retry-block", "v2"))?.payload).toEqual({ score: 10 });
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
   it("has none without R2 or a local copy, so loaders ask the stand-in API", () => {
     for (const name of [...Object.keys(R2), "SOFIX_BLOCKS_DIR"]) vi.stubEnv(name, "");
     expect(blocksAvailable()).toBe(false);

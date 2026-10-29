@@ -9,6 +9,7 @@ import { loadGrid } from "../../lib/api";
 import { loadPlayerForecasts, loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
 import { weekContext } from "../../lib/weeks";
+import { nextWeek } from "../../lib/play";
 
 export const metadata: Metadata = { title: "Players · Sofix" };
 
@@ -38,7 +39,7 @@ export default async function Players({ searchParams }: { searchParams: SearchPa
       <main className="s5-main">
         <CompetitionPicker competition={competition} week={week.current?.id} />
         {ready ? (
-          <PlayersView data={{ ...data, market }} leagueLabel={COMPETITIONS[competition]} now={new Date().toISOString()} weekId={week.current?.id} forecastWeek={week.current?.gw ?? undefined} />
+          <PlayersView data={{ collection: data.collection, market }} nextId={data.nextId} projectionsAt={nextWeek(data)?.projectionsAt ?? null} leagueLabel={COMPETITIONS[competition]} now={new Date().toISOString()} weekId={week.current?.id} forecastWeek={week.current?.gw ?? undefined} />
         ) : (
           <section className="s5-empty" role="status">
             <h1>Player search</h1>

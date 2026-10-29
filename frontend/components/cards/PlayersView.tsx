@@ -16,7 +16,7 @@ import {
   type Position,
   scoreColour,
 } from "../../lib/cards";
-import { chanceLabel, nextWeek, startChance, type MarketPlayer, type Sorare } from "../../lib/play";
+import { chanceLabel, startChance, type MarketPlayer, type Sorare } from "../../lib/play";
 import { Foil } from "../play/bits";
 import SourceMark from "../SourceMark";
 import CardArt from "./CardArt";
@@ -25,7 +25,7 @@ import useCountUp from "./useCountUp";
 const LIMIT = 30;
 
 /** Player search within the selected league, led by who would improve the squad. */
-export default function PlayersView({ data, now, weekId, forecastWeek, leagueLabel = "LaLiga" }: { leagueLabel?: string; data: Sorare; now: string; weekId?: string; forecastWeek?: string }) {
+export default function PlayersView({ data, nextId, projectionsAt, now, weekId, forecastWeek, leagueLabel = "LaLiga" }: { leagueLabel?: string; data: Pick<Sorare, "collection" | "market">; nextId: string; projectionsAt: string | null; now: string; weekId?: string; forecastWeek?: string }) {
   const market = useMemo(() => data.market ?? [], [data.market]);
   const collection = useMemo(() => data.collection ?? [], [data.collection]);
   const [query, setQuery] = useState("");
@@ -42,7 +42,7 @@ export default function PlayersView({ data, now, weekId, forecastWeek, leagueLab
   );
   const shownImproving = results.filter((player) => verdict(player, bar, owned).kind === "up").length;
   const heroValue = useCountUp(upgrades);
-  const dash = forecastWeek && forecastWeek !== data.nextId ? "A dash: no Sorare projection saved for this GW." : projectionNote(nextWeek(data).projectionsAt, new Date(now));
+  const dash = forecastWeek && forecastWeek !== nextId ? "A dash: no Sorare projection saved for this GW." : projectionNote(projectionsAt, new Date(now));
   const shownDash = results.slice(0, LIMIT).some((player) => player.projection === null);
 
   return (
@@ -147,12 +147,12 @@ function ResultCard({
       className={`s5-res${isOwned ? " owned" : ""}`}
       style={{ animationDelay: `${Math.min(index * 18, 380)}ms` }}
     >
-      <Link className="art" href={`${playerHref(player.slug)}${weekId ? `?w=${encodeURIComponent(weekId)}` : ""}`} aria-label={`${player.name}: open his page`}>
+      <Link prefetch={false} className="art" href={`${playerHref(player.slug)}${weekId ? `?w=${encodeURIComponent(weekId)}` : ""}`} aria-label={`${player.name}: open his page`}>
         <CardArt src={player.pic} name={player.name} />
       </Link>
       <span className="who">
         <b>
-          <Link href={`/players/${player.slug}${weekId ? `?w=${encodeURIComponent(weekId)}` : ""}`} className="s5-who-link">
+          <Link prefetch={false} href={`/players/${player.slug}${weekId ? `?w=${encodeURIComponent(weekId)}` : ""}`} className="s5-who-link">
             {player.name}
           </Link>
         </b>

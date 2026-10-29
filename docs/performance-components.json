@@ -1,0 +1,186 @@
+{
+  "measuredAt": "2026-10-29T22:34:00.489Z",
+  "probes": [
+    {
+      "probe": "standings",
+      "mode": "actual",
+      "simulations": 5000,
+      "teams": 20,
+      "gameweeks": 38,
+      "ms": 62.6
+    },
+    {
+      "probe": "standings",
+      "mode": "expected",
+      "simulations": 5000,
+      "teams": 20,
+      "gameweeks": 38,
+      "ms": 69.4
+    },
+    {
+      "probe": "standings",
+      "mode": "predicted",
+      "simulations": 5000,
+      "teams": 20,
+      "gameweeks": 38,
+      "ms": 15.9
+    },
+    {
+      "probe": "season-chart",
+      "simulations": 400,
+      "ms": 36.5
+    },
+    {
+      "probe": "local-blocks",
+      "count": 8643,
+      "totalBytes": 77468346,
+      "largest": [
+        {
+          "name": "score_record%3Afootball-30-oct-3-nov-2026.json",
+          "bytes": 2625459
+        },
+        {
+          "name": "player_sheets.json",
+          "bytes": 2435421
+        },
+        {
+          "name": "missions_pool.json",
+          "bytes": 2337745
+        },
+        {
+          "name": "sorare.json",
+          "bytes": 2310576
+        },
+        {
+          "name": "league_squads%3APL.json",
+          "bytes": 1257449
+        },
+        {
+          "name": "league_squads%3AEL.json",
+          "bytes": 1211077
+        },
+        {
+          "name": "league_squads%3ACL.json",
+          "bytes": 1207452
+        },
+        {
+          "name": "league_squads%3ACONF.json",
+          "bytes": 1132576
+        },
+        {
+          "name": "sorare_league_history.json",
+          "bytes": 1126306
+        },
+        {
+          "name": "league_squads%3ABL1.json",
+          "bytes": 1104492
+        },
+        {
+          "name": "league_squads%3AFL1.json",
+          "bytes": 1044718
+        },
+        {
+          "name": "player_index.json",
+          "bytes": 937835
+        }
+      ]
+    },
+    {
+      "probe": "players-props",
+      "note": "Current publication with unchanged market; selected-GW overlays and RSC envelope not included",
+      "beforeBytes": 2286518,
+      "afterBytes": 701143,
+      "beforeGzipBytes": 324923,
+      "afterGzipBytes": 86618,
+      "weeks": 4,
+      "collection": 103,
+      "market": 632
+    },
+    {
+      "probe": "published-refresh",
+      "blockPublishedAt": "2026-10-29T21:45:08.294682+00:00",
+      "startedAt": "2026-10-29T15:07:50.393687+00:00",
+      "finishedAt": "2026-10-29T15:21:26.142824+00:00",
+      "sorareSeconds": 700.1,
+      "calls": 498,
+      "neonMB": 24.47,
+      "timings": {
+        "cached reads": 6.1,
+        "score checks": 0.5,
+        "sorare": 309.9,
+        "card art": 0.9,
+        "understat": 4.1,
+        "games saved": 8.4,
+        "futbol fantasy": 102.8,
+        "lineups page": 16.4,
+        "game scores": 0.7,
+        "early plans": 17.3,
+        "plans": 32.5,
+        "team news": 1,
+        "writes": 167,
+        "missions": 8.9,
+        "frozen, references, news": 2,
+        "audit": 21.4
+      },
+      "sync": {
+        "gameweeks": {
+          "calls": 18,
+          "seconds": 9.5
+        },
+        "cards": {
+          "calls": 12,
+          "seconds": 11.1
+        },
+        "competitions": {
+          "calls": 107,
+          "seconds": 51.3
+        },
+        "history": {
+          "calls": 93,
+          "seconds": 48.4
+        },
+        "references": {
+          "calls": 1,
+          "seconds": 0.8
+        },
+        "past references": {
+          "calls": 0,
+          "seconds": 0
+        },
+        "templates": {
+          "calls": 0,
+          "seconds": 0
+        },
+        "laliga index": {
+          "calls": 21,
+          "seconds": 13.7
+        },
+        "foreign indexes": {
+          "calls": 144,
+          "seconds": 92
+        },
+        "projections": {
+          "calls": 84,
+          "seconds": 49.5
+        },
+        "pro": {
+          "calls": 1,
+          "seconds": 0.8
+        },
+        "prices": {
+          "calls": 2,
+          "seconds": 1.2
+        }
+      },
+      "planning": {
+        "forecasts": 0.8,
+        "plan": 8.7,
+        "sorare plans": 8.6,
+        "strategy lab": 0.5,
+        "strategy plans": 5.8,
+        "replay": 0,
+        "weeks ahead": 8
+      }
+    }
+  ]
+}

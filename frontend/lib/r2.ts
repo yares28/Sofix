@@ -149,19 +149,33 @@ async function download(key: string): Promise<Block | null> {
 }
 
 // Pages read several pieces of one block at once (lib/playData.ts, lib/missionsPool.ts): one download serves them all.
-const recent = new Map<string, Promise<Block | null>>();
+const recent = new Map<string, Block>();
+const downloading = new Map<string, Promise<Block | null>>();
 
 /** The block `key` at `version`. A failed download is not remembered, so the next view tries again. */
 export function blockAt(key: string, version: string): Promise<Block | null> {
-  const id = `${key}@${version}`;
-  let found = recent.get(id);
-  if (!found) {
-    found = download(key);
-    recent.set(id, found);
-    found.catch(() => recent.delete(id));
-    if (recent.size > 6) recent.delete(recent.keys().next().value as string);
+  const remote = settings();
+  const source = localDir() ?? (remote ? `${remote.account}/${remote.bucket}` : "unconfigured");
+  const id = JSON.stringify([source, key, version]);
+  const kept = recent.get(id);
+  if (kept) {
+    recent.delete(id);
+    recent.set(id, kept);
+    return Promise.resolve(kept);
   }
-  return found;
+  const active = downloading.get(id);
+  if (active) return active;
+  const request = download(key).then(block => {
+    // Only completed, successful blocks compete for the small memory cache. Evicting an in-flight promise
+    // made concurrent page loads download the same large block again. Missing blocks may appear on retry.
+    if (block) {
+      recent.set(id, block);
+      if (recent.size > 6) recent.delete(recent.keys().next().value as string);
+    }
+    return block;
+  }).finally(() => downloading.delete(id));
+  downloading.set(id, request);
+  return request;
 }
 
 /**

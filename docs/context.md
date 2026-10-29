@@ -642,6 +642,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `docs/how_it_works.md` | [open](../docs/how_it_works.md) |
 | document (check authority) | `docs/ligue-1-validation.md` | [open](../docs/ligue-1-validation.md) |
 | document (check authority) | `docs/next_features_plan.md` | [open](../docs/next_features_plan.md) |
+| document (check authority) | `docs/performance-audit.md` | [open](../docs/performance-audit.md) |
 | document (check authority) | `docs/pl-bundesliga-fdr-validation.md` | [open](../docs/pl-bundesliga-fdr-validation.md) |
 | document (check authority) | `docs/pl-bundesliga-xscore-validation.md` | [open](../docs/pl-bundesliga-xscore-validation.md) |
 | document (check authority) | `docs/research_report.md` | [open](../docs/research_report.md) |
@@ -733,6 +734,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/neon-write-mostly.md` | [open](../plans/neon-write-mostly.md) |
 | document (check authority) | `plans/overlay-bridge.md` | [open](../plans/overlay-bridge.md) |
 | document (check authority) | `plans/overlay.md` | [open](../plans/overlay.md) |
+| document (check authority) | `plans/performance-ten-users.md` | [open](../plans/performance-ten-users.md) |
 | document (check authority) | `plans/pl-bundesliga-fdr.md` | [open](../plans/pl-bundesliga-fdr.md) |
 | document (check authority) | `plans/pl-bundesliga-xscore.md` | [open](../plans/pl-bundesliga-xscore.md) |
 | document (check authority) | `plans/plan-algorithm-v2.md` | [open](../plans/plan-algorithm-v2.md) |
@@ -1264,16 +1266,16 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-28",
-        "note": "Compared source and existing assertions; execution results are recorded separately in the audit. Live workflow not reverified.",
+        "date": "2026-10-29",
+        "note": "Inspected R2 block source/version keys and bounded completed cache. Pending downloads remain coalesced beyond six distinct reads; missing and failed downloads retry. New regressions passed locally. Version discovery and tag invalidation unchanged; cross-service publication is still not atomic.",
         "files": {
           "backend/app/services/publish.py": "895609ab701cad2e9fcf31cda71684fc96e98e0eba59546ff931fa0167dca4ce",
           "backend/app/services/r2.py": "b203c6f542dada96bc0388aee7205098101502206839a99ff15924989bd8a6fb",
-          "frontend/lib/r2.ts": "b88fe976b7cfff062f337b28df1c935e98f366dd291c2db1cfc70666a0638194",
+          "frontend/lib/r2.ts": "76b01a34a5961032f76df91b3f68dce1db2c2e21462001387a50d754ef94f147",
           "frontend/lib/playData.ts": "e3e017956f561c653718a73c77fbf90fa1dbfdf18a2d0bfb8bed8006b4dbea33",
           "frontend/lib/db.ts": "2b863d41de59b0f9f0db7ea19b6a9986f5fba0f05a44624093b1a263d9dc4836",
           "backend/tests/test_publish.py": "5f85c01621794988aa5262a31d69678e15b738a038b4ac3fbd1b0600c6942dad",
-          "frontend/lib/r2.test.ts": "9cd13cf1dd62a42da3a4635672d2801eca93f686841a3552bceab974f0a7d7e5"
+          "frontend/lib/r2.test.ts": "22c4e3ceec84a69c1df22c0014f1197d9281620da3df3d08f8fd861d32cf99f4"
         }
       }
     },
@@ -1412,13 +1414,13 @@ This block is the single machine-readable index for the sections above. Test ref
       "status": "implemented",
       "review": {
         "date": "2026-10-29",
-        "note": "Inspected implementation and available tests; execution receipt recorded separately.",
+        "note": "Inspected localDir and blockAt source identity, mock isolation and local read tests. Same key/version from separate local directories no longer shares memory entries. Existing local production guards unchanged; ten-account isolation is not implemented by this change.",
         "files": {
           "backend/app/db.py": "c873193fd1af1704c4a839ae0772594c9d37544458a7308bc9a73016cefc097a",
-          "frontend/lib/r2.ts": "b88fe976b7cfff062f337b28df1c935e98f366dd291c2db1cfc70666a0638194",
+          "frontend/lib/r2.ts": "76b01a34a5961032f76df91b3f68dce1db2c2e21462001387a50d754ef94f147",
           "frontend/package.json": "fd9cc0aae255d031077aabab94606e3ff1c59acbf6b2b044c825ac9291d8951e",
           "backend/tests/test_r2_sync.py": "9c6ff41457ff5feb0611be204dcda0cc2adaeb5e0b3c7de0ca8e871ebe419c22",
-          "frontend/lib/r2.test.ts": "9cd13cf1dd62a42da3a4635672d2801eca93f686841a3552bceab974f0a7d7e5"
+          "frontend/lib/r2.test.ts": "22c4e3ceec84a69c1df22c0014f1197d9281620da3df3d08f8fd861d32cf99f4"
         }
       }
     },

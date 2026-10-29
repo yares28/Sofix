@@ -14,6 +14,13 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
+29 Oct owner priority: **responsive Sofix for ten separate Sorare accounts**
+([audit](../docs/performance-audit.md), [workflow and gates](performance-ten-users.md)). Next: publish the Table's
+simulation/chart results and reduce per-page client data; cache shared football views; then add authenticated account
+boundaries, shared-source collection and account planning. Ten local viewers of one owner are not ten-account proof.
+The audit's bounded Players payload/prefetch and R2 coalescing fixes are implemented with regressions; account rollout
+remains disabled pending the isolation and capacity gates.
+
 **Fri 30 Oct 14:00 Madrid (Divination opens):** **check the Arcade rework on the live board** ([arcade-rework.md](arcade-rework.md) "Not confirmed"): tiers in pack odds, Sorare's starter word, collection missions, the cards read newest first and re-read after packs. **You:** Reload the extension (0.4.19).
 
 **Next Arcade work:** **trustworthy xScore that learns** ([arcade-player-choice.md](arcade-player-choice.md)): phase A elevens in Arcade, B pre-kick-off capture, C hindsight audit and strategy replay, D per-league blend and calibration, E re-plan triggers, F upgrades.
@@ -604,6 +611,12 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **29 Oct - Performance audit and first bounded fixes:** Players no longer serializes unrelated weekly plans or
+  prefetches its long result list; fixture navigation data fell 41.2%. R2 pending downloads coalesce beyond six blocks.
+  Regression/local checks and fourteen relevant browser cases passed. A ten-client mock sample completed 1,800
+  requests without errors. Ten separate accounts remain blocked by global identity/storage and repeated source/job
+  work; the [audit](../docs/performance-audit.md) records measurements, limitations and the staged solution.
 
 - **26 Oct — Card and read-control consistency:** larger Gallery cards with compact FDR/score and start/fixture/xD evidence, twelve-card pages, and historical/source/reward details on intent. Shared named icons replace scattered read/retry text across Home, Play, Missions, Lineups, Arcade and Control. Exact next-game evidence is prepared on the server; Gallery's local payload falls by 76%. [Contract and verification](card-and-refresh-consistency.md).
 

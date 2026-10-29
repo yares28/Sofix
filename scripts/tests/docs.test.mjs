@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { checkLinks, digest, inventory, lookup, parseDocument, validate } from "../docs.mjs";
+import { checkLinks, digest, inventory, lookup, parseDocument, validate, validateEndpoints } from "../docs.mjs";
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), "sofix-docs-"));
@@ -123,6 +123,14 @@ test("inventory derives schedules from the timetable so timer edits invalidate t
   assert.notEqual(inventory(f.root, ["clock/timetable.json"]), before);
 });
 
+test("inventory discovers artifacts without claiming a consumer or release approval", t => {
+  const f = fixture(t);
+  const output = inventory(f.root, ['backend/artifacts/example.json']);
+  assert.match(output, /artifact/);
+  assert.match(output, /backend\/artifacts\/example.json/);
+  assert.doesNotMatch(output, /validated|approved/);
+});
+
 test("a test title mentioned only in a comment is not executable evidence", t => {
   const f = fixture(t);
   writeFileSync(join(f.root, "src/check.test.ts"), '// rejects late input\nit("other case", () => {});\n');
@@ -152,4 +160,22 @@ test("link checks cover real headings and line references, ignoring fenced examp
   assert.deepEqual(checkLinks(f.root, good, 'index.md'), []);
   const bad = '[bad](guide.md#gone) [line](src/model.py#L200) [missing](absent.md)';
   assert.equal(checkLinks(f.root, bad, 'index.md').length, 3);
+});
+
+test("endpoint coverage rejects new methods, deleted handlers and incomplete contracts", t => {
+  const f = fixture(t);
+  const path = 'frontend/app/api/example/route.ts';
+  mkdirSync(join(f.root, 'frontend/app/api/example'), { recursive: true });
+  writeFileSync(join(f.root, path), 'export async function GET() {}\nexport async function POST() {}');
+  f.registry.contracts[0].sources.push({ path });
+  const entry = { path, methods: ['GET'], contract: 'PLAY-001' };
+  assert.match(validateEndpoints(f.root, [path], [entry], f.registry.contracts).join('\n'), /POST/);
+  entry.methods.push('POST');
+  assert.deepEqual(validateEndpoints(f.root, [path], [entry], f.registry.contracts), []);
+  entry.methods.push('DELETE');
+  assert.match(validateEndpoints(f.root, [path], [entry], f.registry.contracts).join('\n'), /DELETE/);
+  entry.contract = 'MISSING-001';
+  assert.match(validateEndpoints(f.root, [path], [entry], f.registry.contracts).join('\n'), /MISSING-001/);
+  entry.contract = 'LOCK-001';
+  assert.match(validateEndpoints(f.root, [path], [entry], f.registry.contracts).join('\n'), /source reference/);
 });

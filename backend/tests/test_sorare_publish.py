@@ -384,6 +384,31 @@ def payload() -> dict[str, Any]:
     return publish.build_payload(snapshot(), runs=4, draws=600)
 
 
+def test_planning_correction_changes_planner_inputs_but_preserves_raw_record(monkeypatch):
+    from app.sorare.score_fixes import ScoreFix
+
+    original = publish.gameweek_payload
+    captured = []
+
+    def observe(*args, **kwargs):
+        if args[1]["slug"] == PLAN_GW["slug"] and not kwargs["played"]:
+            captured.append(dict(args[4]))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(publish, "gameweek_payload", observe)
+    raw = publish.build_payload(snapshot(), runs=2, draws=200)
+    raw_inputs = captured[0]
+    captured.clear()
+    adjusted = publish.build_payload(snapshot(), runs=2, draws=200, score_fix=ScoreFix(a=5, b=1.1, on=True, spread=99))
+    planning = captured[0]
+    assert raw_inputs and planning.keys() == raw_inputs.keys()
+    assert adjusted["_record"] == raw["_record"], "planning must not rewrite its own evaluation evidence"
+    assert any(planning[key].mu != forecast.mu for key, forecast in raw_inputs.items())
+    for key, forecast in raw_inputs.items():
+        assert planning[key].mu == round(min(100, max(0, 5 + 1.1 * forecast.mu)), 2)
+        assert planning[key].sd == (forecast.sd if forecast.sd is not None else 99)
+
+
 def _past_game(date: str, score: float, role: str) -> dict[str, Any]:
     """One row of a player's history as Sorare answers it: a start, a substitute appearance, a miss, or still to come."""
     played = role in ("start", "sub")

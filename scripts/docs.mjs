@@ -121,6 +121,8 @@ export function validate(root, body) {
 export function inventory(root, files) {
   const rows = [];
   for (const file of [...new Set(files)].sort()) {
+    if (/^(?:docs\/|plans\/|reports\/|[^/]+$).*\.md$/.test(file)) rows.push(`| document (check authority) | \`${file}\` | [open](../${file}) |`);
+    if (/^backend\/artifacts\/.*\.json$/.test(file)) rows.push(`| artifact | \`${file.slice('backend/artifacts/'.length)}\` | \`${file}\` |`);
     if (/^frontend\/app\/.*(?:page\.tsx|route\.ts)$/.test(file)) {
       const route = "/" + file.slice("frontend/app/".length).replace(/(?:^|\/)(?:page\.tsx|route\.ts)$/, "").replace(/\([^/]+\)\//g, "");
       rows.push(`| ${file.endsWith("page.tsx") ? "page" : "API"} | \`${route}\` | \`${file}\` |`);
@@ -136,6 +138,27 @@ export function inventory(root, files) {
     for (const job of jobs) rows.push(`| UTC schedule | \`${job.workflow}: ${job.cron}\` | \`clock/timetable.json\` |`);
   }
   return "<!-- inventory:start -->\n| Kind | Identity | Source |\n|---|---|---|\n" + rows.join("\n") + "\n<!-- inventory:end -->";
+}
+
+export function validateEndpoints(root, files, endpoints, contracts) {
+  const errors = [];
+  const routes = files.filter(p => /^frontend\/app\/api\/.*\/route\.ts$/.test(p));
+  for (const path of routes) {
+    const entries = endpoints.filter(e => e.path === path);
+    if (entries.length !== 1) { errors.push(`API ${path}: expected one endpoint contract`); continue; }
+    const entry = entries[0];
+    if (!Array.isArray(entry.methods) || new Set(entry.methods).size !== entry.methods.length) {
+      errors.push(`API ${path}: methods must be a unique array`); continue;
+    }
+    const methods = [...read(root, path).matchAll(/^export\s+(?:async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/gm)].map(m => m[1]);
+    if (!methods.length) errors.push(`API ${path}: unsupported handler syntax; inspect coverage`);
+    for (const method of methods) if (!entry.methods?.includes(method)) errors.push(`API ${path}: undocumented ${method}`);
+    for (const method of entry.methods ?? []) if (!methods.includes(method)) errors.push(`API ${path}: missing handler ${method}`);
+    if (!contracts.some(c => c.id === entry.contract && c.status !== 'superseded')) errors.push(`API ${path}: unknown active contract ${entry.contract}`);
+    else if (!contracts.find(c => c.id === entry.contract).sources?.some(s => s.path === path)) errors.push(`API ${path}: contract needs its handler source reference`);
+  }
+  for (const entry of endpoints) if (!routes.includes(entry.path)) errors.push(`API contract without route: ${entry.path}`);
+  return errors;
 }
 
 export function checkLinks(root, body, path) {
@@ -213,6 +236,8 @@ function main() {
     console.log(`Recorded source review for ${id}; does not claim tests ran or behavior is correct. Run check and inspect the diff.`);
   } else if (command === "check") {
     const errors = validate(ROOT, body);
+    const registry = parseDocument(body);
+    errors.push(...validateEndpoints(ROOT, filesInRepo(), registry.endpoints ?? [], registry.contracts));
     const generated = inventory(ROOT, filesInRepo());
     if (body.match(INDEX)?.[0] !== generated) errors.push("Route/table inventory drift: run node scripts/docs.mjs index; review new surfaces and routing coverage.");
     for (const path of [REFERENCE, "docs/documentation_audit.md", "AGENTS.md", "CLAUDE.md"]) {

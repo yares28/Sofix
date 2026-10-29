@@ -30,6 +30,10 @@ The lookup returns complete contract sections, the reason for each match, transi
 | Audit / extension / missions / Arcade / UI / Conference | AUDIT-EVIDENCE-001 / EXTENSION-ACTIONS-001 / MISSIONS-RECORD-001 / ARCADE-CLIMB-001 / UI-NAVIGATION-001 / CONFERENCE-RELEASE-001 | Read the domain contract plus its feature plan; this does not waive existing legacy-guide requirements |
 | Publication repair / database quota / local setup / timers | PUBLICATION-SYNC-001 / DATABASE-SELECTION-001 / LOCAL-ISOLATION-001 / SCHEDULE-CLOCK-001 | Owner action boundaries remain mandatory |
 
+## API lookup and coverage
+
+All 18 current Next route files have contracts for their explicit handler methods below. Framework-provided HEAD/OPTIONS behavior is not inferred by this registry. Use `node scripts/docs.mjs lookup "/api/refresh"` or the handler path. The local gate rejects new undocumented methods, removed handlers and contracts that do not reference their handler. Generated FastAPI OpenAPI describes a different runtime and is not this API registry. Response shapes intentionally differ; do not normalize undocumented errors by assumption. Guard checks are not equivalent to signed-in owner identity. Existing route tests are attached where present; missing tests remain explicit empty references, not inferred passes.
+
 ## Contract format and evidence limits
 
 Each stable ID below states scope, rule, exceptions, reason, and boundary examples. `requires`, source symbols, test cases and reviewed file hashes are in the registry at the end. Lookup includes those references, so a retrieved section is usable alone. `implemented` means source-inspected behavior, not a blanket test pass or product acceptance. `required` is normative; `known-divergence` retains an unresolved mismatch; `superseded` must redirect to a current successor. A source review is not an execution receipt.
@@ -73,7 +77,7 @@ Correction needs at least 200 settled starting cases; each usable held-out week 
 
 **Exceptions/limits:** no correction or insufficient data leaves the mean unchanged. A player’s existing spread takes precedence. Small aggregate counts in dated plans are observations, not proof of calibration. The broader prospective S4 gate remains open under AGENTS.md.
 
-**Why/examples:** raw `mu=60`, enabled `a=5,b=1.1` gives planning `71`; saved raw stays `60`. With correction off, planning stays `60`. This numeric example states the contract; existing `ScoreFix` tests execute correction/clipping, but do not alone prove the publisher’s raw-before-planning ordering. That ordering was source-inspected; a focused publisher regression remains a disclosed test-coverage gap.
+**Why/examples:** raw `mu=60`, enabled `a=5,b=1.1` gives planning `71`; saved raw stays `60`. With correction off, planning stays `60`. This numeric example states the contract; existing `ScoreFix` tests execute correction/clipping, but do not alone prove the publisher’s raw-before-planning ordering. The focused publisher regression now runs the real builder twice, observes changed planning inputs and asserts identical raw records plus per-player spread precedence. It does not establish live model calibration.
 
 <a id="plan-rewards-001"></a>
 ## PLAN-REWARDS-001 — joint rewards and displayed outcomes
@@ -252,6 +256,240 @@ Scope: Conference release authority. The owner's 23 October release decision sup
 
 Coverage is all 36 main-stage clubs and their current players/calendar; qualifiers remain deferred. xScore requires an eligible selected-week game and actual playing-side identity. A release receipt is historical evidence, not proof that today's sources or deployment were rechecked. Read the release plan and archived artifact proofs for exact cohorts, hashes and exceptions. Counterexample: an old statement that Conference failed a validation gate does not imply the owner-directed provisional feature is unavailable.
 
+<a id="api-refresh-001"></a>
+## API-REFRESH-001 - GET POST /api/refresh
+
+**Guard:** SAME: x-fdr-refresh:1 plus Sec-Fetch-Site=same-origin, or Origin/Host comparison when that header is absent. This is a browser-origin guard, not independent user authentication.
+
+**Input:** POST has optional near=1; no JSON body. GET returns current status.
+
+**Response/cache:** GET 200; POST 202 accepted, 200 skipped near-lock, 409 running, 429 cooldown; 403 guard, 502 dispatch refusal, 503 configuration/reachability. ApiResponse<RefreshStatus>; no-store.
+
+**Effects and failure boundaries:** POST can dispatch refresh; GET can invalidate grid/system tags once per completed run. Status reads refresh_runs from R2 when idle, but queries Neon while GitHub says running. Near-lock has a separate three-hour/25-minute guard; ordinary acceptance reports 600-second retry.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-settings-001"></a>
+## API-SETTINGS-001 - POST /api/settings
+
+**Guard:** SAME: x-fdr-refresh:1 plus Sec-Fetch-Site=same-origin, or Origin/Host comparison when that header is absent. This is a browser-origin guard, not independent user authentication.
+
+**Input:** SettingsBody: essenceOrder has 1–8 unique lowercase alphanumeric/underscore names, each 1–24 characters.
+
+**Response/cache:** 200 success/data including refreshing; 400 invalid, 403 guard, 503 no database; success no-store.
+
+**Effects and failure boundaries:** Writes sorare_settings in Neon and R2, then attempts refresh dispatch. refreshing=false does not mean settings failed to save. Database/upload errors outside catches are framework errors, not the listed JSON envelope.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-revalidate-001"></a>
+## API-REVALIDATE-001 - POST /api/revalidate
+
+**Guard:** Dedicated bearer credential; see input below.
+
+**Input:** Bearer REVALIDATE_SECRET, configured length at least 32; no body fields.
+
+**Response/cache:** 200 {revalidated:true}, 401 wrong credential, 503 unconfigured; success no-store.
+
+**Effects and failure boundaries:** Invalidates football, system, Sorare, saved-week and mission tags; schedules recordQuietly after response. Vercel deployment protection is separate from this bearer check.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-players-001"></a>
+## API-PLAYERS-001 - GET /api/players
+
+**Guard:** No route-local authentication check. Deployment protection is an external boundary; do not describe the handler itself as authenticated.
+
+**Input:** No request parameters.
+
+**Response/cache:** 200 search index; public max-age=3600. No explicit local error envelope.
+
+**Effects and failure boundaries:** Parallel cached Sorare and foreign-directory reads; no explicit route write. Public cache headers do not mean the deployment is publicly accessible.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-arcade-chances-001"></a>
+## API-ARCADE-CHANCES-001 - POST /api/arcade/chances
+
+**Guard:** SAME: x-fdr-refresh:1 plus Sec-Fetch-Site=same-origin, or Origin/Host comparison when that header is absent. This is a browser-origin guard, not independent user authentication.
+
+**Input:** Body.games: at most 300 strings matching Game: plus a 36-character hex/hyphen identifier.
+
+**Response/cache:** 200 {chances}; 400 invalid games, 403 guard; success no-store.
+
+**Effects and failure boundaries:** Reads saved start chances through loadSavedChances; request is POST but does not itself capture a new source reading. Never poll this route.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-league-history-001"></a>
+## API-LEAGUE-HISTORY-001 - POST /api/league-history
+
+**Guard:** SAME: x-fdr-refresh:1 plus Sec-Fetch-Site=same-origin, or Origin/Host comparison when that header is absent. This is a browser-origin guard, not independent user authentication.
+
+**Input:** No body; GITHUB_TOKEN required.
+
+**Response/cache:** 202 accepted with success/data/error; 409 active, 403 guard, 502 refused dispatch, 503 unconfigured/unreachable; no-store.
+
+**Effects and failure boundaries:** Dispatches the league-history workflow. A successful dispatch is not completed collection or publication.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-lineups-actual-001"></a>
+## API-LINEUPS-ACTUAL-001 - GET /api/lineups/actual
+
+**Guard:** No route-local authentication check. Deployment protection is an external boundary; do not describe the handler itself as authenticated.
+
+**Input:** match is 1–10 decimal digits; optional day selects a retained day, scores=1 asks for scores. Match must exist in current or retained local match lists.
+
+**Response/cache:** 400/404 {state:unmatched}; otherwise loader result, private max-age=60.
+
+**Effects and failure boundaries:** May read actual lineup/source data through the loader; with scores, joins at most two matching GW score records. It does not accept a caller-supplied upstream URL or arbitrary source game ID.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-stat-charts-001"></a>
+## API-STAT-CHARTS-001 - GET /api/stat-charts
+
+**Guard:** No route-local authentication check. Deployment protection is an external boundary; do not describe the handler itself as authenticated.
+
+**Input:** w defaults to cur and must be a WINDOWS key from statCharts.
+
+**Response/cache:** 400 unknown window; otherwise chartWindow output. Public max-age=3600, s-maxage=3600, stale-while-revalidate=86400.
+
+**Effects and failure boundaries:** Reads chart model and owner collection in parallel. No route-level write or explicit catch envelope.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-sorare-image-001"></a>
+## API-SORARE-IMAGE-001 - GET /api/sorare-image
+
+**Guard:** No route-local authentication check. Deployment protection is an external boundary; do not describe the handler itself as authenticated.
+
+**Input:** u must begin with https://assets.sorare.com/ or https://frontend-assets.sorare.com/.
+
+**Response/cache:** 400 disallowed input; 502 fetch failure or non-image/non-OK upstream; 200 image stream with public max-age=86400, immutable and nosniff.
+
+**Effects and failure boundaries:** Fetches an allowed asset URL with force-cache. Initial URL allowlisting is not proof of redirect-destination validation: fetch uses its default redirect behavior. Never describe this inspection as an exhaustive SSRF security review.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-my-week-001"></a>
+## API-MY-WEEK-001 - GET POST /api/my-week
+
+**Guard:** GET relies on deployment protection; POST additionally checks SAME (x-fdr-refresh:1 and same-origin evidence).
+
+**Input:** GET has no local guard. POST uses SAME; text length at most 512,000, JSON validated by WeekBody, exact known GW, unique lineup/card IDs and complete entered cards.
+
+**Response/cache:** GET weeks/snapshots/pending or 503; POST 200 ok/archived/savedAt, 400 invalid, 403 guard, 413 size, 503 storage/save failure. Success no-store.
+
+**Effects and failure boundaries:** POST writes entered_week snapshots until settlement/final rewards permit archive. First complete my_week insert wins; later matching metadata enrichment uses compare-and-swap. It does not enter a lineup on Sorare. GET excludes snapshots already archived.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-pro-rebuild-001"></a>
+## API-PRO-REBUILD-001 - POST /api/pro-rebuild
+
+**Guard:** Either SAME (x-fdr-refresh:1 and same-origin evidence) or EXT bearer authentication is accepted.
+
+**Input:** Same-origin guard OR extension bearer. Body week string and plan coercible to integer >=1; known current/frozen week.
+
+**Response/cache:** 202 dispatched; 200 success=false when no elevens; 400 unknown week/plan, 403 guard, 502 refused dispatch, 503 configuration/reachability; no-store.
+
+**Effects and failure boundaries:** Reads announced elevens for owner games in the next three hours and dispatches pro-rebuild. Read/load errors before the dispatch try block are not normalized by its catch. No Sorare lineup entry.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-missions-history-001"></a>
+## API-MISSIONS-HISTORY-001 - POST /api/missions/history
+
+**Guard:** SAME: x-fdr-refresh:1 plus Sec-Fetch-Site=same-origin, or Origin/Host comparison when that header is absent. This is a browser-origin guard, not independent user authentication.
+
+**Input:** Body day pattern, MissionRarity, mission ID <=120, revision >=0, up to 10 MissionPickSchema picks, note <=500, restore boolean. Checks mission pick limit, uniqueness and rarity.
+
+**Response/cache:** 200 ok/data; 400 mismatch, 403 guard, 503 no database, 409 merge/edit failure; success no-store.
+
+**Effects and failure boundaries:** May create the authorized baseline day, then merges missions_edit:<day>:<rarity>. Clears supplied pick verdicts to null: owner corrections are reports, not Sorare-confirmed outcomes. Invalidates missions/audit. Early storage failures can escape the final catch.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-ext-checkin-001"></a>
+## API-EXT-CHECKIN-001 - POST /api/ext/checkin
+
+**Guard:** EXT: bearer EXTENSION_TOKEN, configured length >=32, timing-safe comparison. Deployment protection is additional.
+
+**Input:** CheckIn: semantic three-part numeric version; trimmed nullable sorare_user, 1–40 chars when present.
+
+**Response/cache:** 200 ok/seen_at; 400 invalid, 401 unauthorized, 503 no database; success no-store.
+
+**Effects and failure boundaries:** Reads extension block and skips unchanged check-ins under checkInIsNews. Changed news writes Neon and R2, invalidates system and schedules mission recording. Public nickname is not authentication of the owner.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-ext-chances-001"></a>
+## API-EXT-CHANCES-001 - POST /api/ext/chances
+
+**Guard:** EXT: bearer EXTENSION_TOKEN, configured length >=32, timing-safe comparison. Deployment protection is additional.
+
+**Input:** ChanceBatch from sorareChances; preserve game/player/source/time validation there.
+
+**Response/cache:** 200 ok/games/players/news/started; 400 schema, 401 auth, 503 database/save failure; success no-store.
+
+**Effects and failure boundaries:** Saves chance rows, invalidates CHANCES_TAG and checks plan_watch. Material news may dispatch refresh under mayRefresh. Dispatch failure retains saved readings and returns started=false.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-ext-near-lock-001"></a>
+## API-EXT-NEAR-LOCK-001 - POST /api/ext/near-lock
+
+**Guard:** EXT: bearer EXTENSION_TOKEN, configured length >=32, timing-safe comparison. Deployment protection is additional.
+
+**Input:** No body; GitHub token required.
+
+**Response/cache:** 200 ok/started, 401 auth, 503 configuration or reachability; success no-store.
+
+**Effects and failure boundaries:** Reads next lock and latest run in parallel; dispatches only if due and not active. False started is an allowed skipped action, not completed refresh.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-ext-overlay-001"></a>
+## API-EXT-OVERLAY-001 - POST /api/ext/overlay
+
+**Guard:** EXT: bearer EXTENSION_TOKEN, configured length >=32, timing-safe comparison. Deployment protection is additional.
+
+**Input:** OverlayRequest schema in overlay.ts: selected week/fixture and bounded requested cards/features.
+
+**Response/cache:** 200 ok plus requested numbers/plan/missions/worth/profile; 400 invalid, 401 auth, 503 Sorare unsynced; no-store.
+
+**Effects and failure boundaries:** Reads cached league/Sorare blocks and exact-week archives, optional missions and Pro rebuild. No explicit route write. Token gating does not prove signed-in account equals owner; profile/plan week resolution must retain its documented exceptions.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-ext-missions-001"></a>
+## API-EXT-MISSIONS-001 - POST /api/ext/missions
+
+**Guard:** EXT: bearer EXTENSION_TOKEN, configured length >=32, timing-safe comparison. Deployment protection is additional.
+
+**Input:** Batch v2: requestedAt, user, optional history, complete outcomes per rarity <=200 missions; ordinary import max12. Legacy rarity +1–12 missions. Batch age: no older than120s/no more than60s future.
+
+**Response/cache:** 200 ok/seen_at or ok/restored; 400 invalid/incomplete, 401 auth, 403 owner mismatch, 409 expired/save failure, 503 no database. Historical success has no explicit no-store header in this route.
+
+**Effects and failure boundaries:** Batch checks stored owner name when present; legacy path does not establish that identity. History restores records; current import merges missions, preserves newer requests, clears outdated eligibility fields and records evidence. Verified empty outcomes differ from missing outcomes.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-ext-missions-pool-001"></a>
+## API-EXT-MISSIONS-POOL-001 - GET /api/ext/missions/pool
+
+**Guard:** EXT: bearer EXTENSION_TOKEN, configured length >=32, timing-safe comparison. Deployment protection is additional.
+
+**Input:** No caller query.
+
+**Response/cache:** 200 ok/games or 401; success no-store.
+
+**Effects and failure boundaries:** Reads mission pool and returns unique game IDs for the current mission day, capped at24. No explicit write.
+
+**Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
 <!-- contracts:end -->
 
 ## Execution and recovery recipes
@@ -310,13 +548,69 @@ The frozen cases in the registry assert required and forbidden contract sets and
 
 Expected actions for the cases: historical forecast → inspect exact-slug restore, never borrow next week; pAny → extend shared-draw regression, never multiply lineup misses; start chance → preserve known zero and attribution; stale publication → identify which publication stage failed before any repair; Conference → legacy release plan, no assumed passed gates; UI-only → full design/navigation/browser rules, no exemption because contract lookup is empty.
 
+## Authored block ownership map
+
+This maps inspected block families, not every dynamic key in the repository. Writers persist Neon unless explicitly R2-only; pages consume R2 through loaders. A file declaring a key is not necessarily its writer. Unknown ownership must be traced before editing, and archived/replay records must not be substituted for current state.
+
+| Block/family | Writer | Reader / purpose | Mutation boundary |
+|---|---|---|---|
+| grid, system | backend/app/services/publish.py | frontend/lib/api.ts, system.ts | Replaced current page models; unchanged payload retains timestamp |
+| sorare, sorare_references | backend/app/jobs/sorare.py | frontend/lib/playData.ts; Python planning inputs | Current recommendations/reference inputs; not raw historical evidence |
+| sorare_week:, sorare_ahead:, sorare_alt:, sorare_lens:, strategy_plans: | backend/app/jobs/sorare.py via sorare/publish.py builders | frontend/lib/playData.ts and strategy comparisons | Family-specific archive/projection/alternative identity; never interchangeable |
+| score_record: | backend/app/sorare/player_games.py save_record | Play historical loaders and Audit/correction consumers | Strict pre-lock capture; raw forecast |
+| plan_watch | backend/app/jobs/sorare.py | frontend/app/api/ext/chances/route.ts | News-trigger comparison, not an entered lineup |
+| play_rewards:, play_reward_state:, play_reward_clock | backend/app/sorare/play_rewards.py | Play reward loader; receipt job state | Exact GW, retry and correction lifecycle |
+| sorare_settings | frontend/app/api/settings/route.ts | backend/app/jobs/sorare.py | Owner settings save then optional refresh dispatch |
+| extension | frontend/app/api/ext/checkin/route.ts | Control and check-in news comparison | Changed public account/version/seen state; no session credentials |
+| sorare_chances: | frontend/lib/sorareChances.ts saveChances | Same module loadSavedChances; Arcade | Per-game captured chance rows and expiry |
+| entered_week:, my_week: | frontend/app/api/my-week/route.ts | frontend/lib/myWeeksData.ts | Current snapshots versus first complete archive, guarded enrichment |
+| missions | frontend/app/api/ext/missions/route.ts via mergeMissionRecord | frontend/lib/missionsData.ts | Complete verified imports and legacy compatibility have different meaning |
+| missions_day:, missions_log:, missions_edit: | frontend/lib/missionLog.ts and missions/history route via mergeMissionRecord | Mission history/Audit | Captured record, legacy month and user correction remain separate |
+| player_games:, refresh_runs | backend/app/services/player_blocks.py | Player history and idle refresh-status reads | Derived R2-only families protected from ordinary sync deletion |
+| neon_live, neon_status | backend/app/jobs/neon_switch.py | Database selection / usage diagnostics | Reserved switch state; never delete/reuse manually |
+
+Artifact discovery below lists current files without claiming release approval. European player artifacts are loaded through backend/app/sorare/european_models.py: CL/EL evidence gates and fixed provisional Conference authority differ. Football model changes still obey AGENTS.md training/holdout gates, and artifact, refresh, report and baseline text change together. A JSON filename or successful parse is not validation evidence.
+
 ## Generated repository discovery inventory
 
-Generated from tracked plus unignored local file paths and SQLAlchemy table declarations. These are page/API file identities, not a promise that route groups, rewrites, redirects or methods have a complete API contract. Every surface outside the migrated registry explicitly uses legacy reading; new inventory rows require review before further migration. The authored writer → block → loader relationships are in WEEK-IDENTITY-001 and PUBLICATION-R2-001. Dynamic block families are not guessed from string searches.
+Generated from tracked plus unignored local file paths, SQLAlchemy table declarations and the clock timetable. Document links are discovery entries, not an endorsement of old claims; artifact filenames do not certify a release. These are page/API file identities, not a promise that route groups, rewrites, redirects or methods have a complete API contract. Every surface outside the migrated registry explicitly uses legacy reading; new inventory rows require review before further migration. The authored writer → block → loader relationships are in WEEK-IDENTITY-001 and PUBLICATION-R2-001. Dynamic block families are not guessed from string searches.
 
 <!-- inventory:start -->
 | Kind | Identity | Source |
 |---|---|---|
+| artifact | `clean_sheet_calibration.json` | `backend/artifacts/clean_sheet_calibration.json` |
+| artifact | `dixon_coles.json` | `backend/artifacts/dixon_coles.json` |
+| artifact | `european_clubs.json` | `backend/artifacts/european_clubs.json` |
+| artifact | `european_xscore/CL.json` | `backend/artifacts/european_xscore/CL.json` |
+| artifact | `european_xscore/CONF.json` | `backend/artifacts/european_xscore/CONF.json` |
+| artifact | `european_xscore/EL.json` | `backend/artifacts/european_xscore/EL.json` |
+| artifact | `keeper_score.json` | `backend/artifacts/keeper_score.json` |
+| artifact | `league_xscore/BL1.json` | `backend/artifacts/league_xscore/BL1.json` |
+| artifact | `league_xscore/FL1.json` | `backend/artifacts/league_xscore/FL1.json` |
+| artifact | `league_xscore/PL.json` | `backend/artifacts/league_xscore/PL.json` |
+| artifact | `market_blend.json` | `backend/artifacts/market_blend.json` |
+| artifact | `opening_projection.json` | `backend/artifacts/opening_projection.json` |
+| artifact | `outfield_score.json` | `backend/artifacts/outfield_score.json` |
+| artifact | `sub_shape.json` | `backend/artifacts/sub_shape.json` |
+| artifact | `team_decisives.json` | `backend/artifacts/team_decisives.json` |
+| document (check authority) | `docs/architecture.md` | [open](../docs/architecture.md) |
+| document (check authority) | `docs/backtesting.md` | [open](../docs/backtesting.md) |
+| document (check authority) | `docs/context.md` | [open](../docs/context.md) |
+| document (check authority) | `docs/data_dictionary.md` | [open](../docs/data_dictionary.md) |
+| document (check authority) | `docs/documentation_audit.md` | [open](../docs/documentation_audit.md) |
+| document (check authority) | `docs/fixture_difficulty.md` | [open](../docs/fixture_difficulty.md) |
+| document (check authority) | `docs/how_it_works.md` | [open](../docs/how_it_works.md) |
+| document (check authority) | `docs/ligue-1-validation.md` | [open](../docs/ligue-1-validation.md) |
+| document (check authority) | `docs/next_features_plan.md` | [open](../docs/next_features_plan.md) |
+| document (check authority) | `docs/pl-bundesliga-fdr-validation.md` | [open](../docs/pl-bundesliga-fdr-validation.md) |
+| document (check authority) | `docs/pl-bundesliga-xscore-validation.md` | [open](../docs/pl-bundesliga-xscore-validation.md) |
+| document (check authority) | `docs/research_report.md` | [open](../docs/research_report.md) |
+| document (check authority) | `docs/sorare/actual-lineups-evidence.md` | [open](../docs/sorare/actual-lineups-evidence.md) |
+| document (check authority) | `docs/sorare/design/DESIGN.md` | [open](../docs/sorare/design/DESIGN.md) |
+| document (check authority) | `docs/sorare_plan.md` | [open](../docs/sorare_plan.md) |
+| document (check authority) | `docs/upgrade_audit.md` | [open](../docs/upgrade_audit.md) |
+| document (check authority) | `docs/user_manual.md` | [open](../docs/user_manual.md) |
+| document (check authority) | `docs/xscore_success_rate.md` | [open](../docs/xscore_success_rate.md) |
 | page | `/difficulty` | `frontend/app/(board)/difficulty/page.tsx` |
 | page | `/fixtures` | `frontend/app/(board)/fixtures/page.tsx` |
 | page | `/season` | `frontend/app/(board)/season/page.tsx` |
@@ -362,6 +656,62 @@ Generated from tracked plus unignored local file paths and SQLAlchemy table decl
 | page | `/stats` | `frontend/app/stats/page.tsx` |
 | page | `/targets` | `frontend/app/targets/page.tsx` |
 | page | `/team/[code]` | `frontend/app/team/[code]/page.tsx` |
+| document (check authority) | `plans/arcade-audit.md` | [open](../plans/arcade-audit.md) |
+| document (check authority) | `plans/arcade-cards-phase2.md` | [open](../plans/arcade-cards-phase2.md) |
+| document (check authority) | `plans/arcade-player-choice.md` | [open](../plans/arcade-player-choice.md) |
+| document (check authority) | `plans/arcade-rework.md` | [open](../plans/arcade-rework.md) |
+| document (check authority) | `plans/audit-followups.md` | [open](../plans/audit-followups.md) |
+| document (check authority) | `plans/audit-player-comparisons.md` | [open](../plans/audit-player-comparisons.md) |
+| document (check authority) | `plans/audit-player-scores.md` | [open](../plans/audit-player-scores.md) |
+| document (check authority) | `plans/audit-result-cards.md` | [open](../plans/audit-result-cards.md) |
+| document (check authority) | `plans/audit-settlement-phase3.md` | [open](../plans/audit-settlement-phase3.md) |
+| document (check authority) | `plans/audit-starts-per-game.md` | [open](../plans/audit-starts-per-game.md) |
+| document (check authority) | `plans/audit-starts-redesign.md` | [open](../plans/audit-starts-redesign.md) |
+| document (check authority) | `plans/audit-strategies-weekly.md` | [open](../plans/audit-strategies-weekly.md) |
+| document (check authority) | `plans/cacheable-pages.md` | [open](../plans/cacheable-pages.md) |
+| document (check authority) | `plans/card-and-refresh-consistency.md` | [open](../plans/card-and-refresh-consistency.md) |
+| document (check authority) | `plans/conference-prospective.md` | [open](../plans/conference-prospective.md) |
+| document (check authority) | `plans/conference-recovery.md` | [open](../plans/conference-recovery.md) |
+| document (check authority) | `plans/conference-release.md` | [open](../plans/conference-release.md) |
+| document (check authority) | `plans/data-keeping.md` | [open](../plans/data-keeping.md) |
+| document (check authority) | `plans/difficulty-all.md` | [open](../plans/difficulty-all.md) |
+| document (check authority) | `plans/european-fdr-xscore.md` | [open](../plans/european-fdr-xscore.md) |
+| document (check authority) | `plans/european-model-validation.md` | [open](../plans/european-model-validation.md) |
+| document (check authority) | `plans/fdr-tuning.md` | [open](../plans/fdr-tuning.md) |
+| document (check authority) | `plans/futbolfantasy.md` | [open](../plans/futbolfantasy.md) |
+| document (check authority) | `plans/home-week-rewards.md` | [open](../plans/home-week-rewards.md) |
+| document (check authority) | `plans/ligue-1-fdr-xscore.md` | [open](../plans/ligue-1-fdr-xscore.md) |
+| document (check authority) | `plans/lineups-and-xscore.md` | [open](../plans/lineups-and-xscore.md) |
+| document (check authority) | `plans/load-from-sorare.md` | [open](../plans/load-from-sorare.md) |
+| document (check authority) | `plans/mission-comparison-repair.md` | [open](../plans/mission-comparison-repair.md) |
+| document (check authority) | `plans/mission-outcomes-and-play-comparison.md` | [open](../plans/mission-outcomes-and-play-comparison.md) |
+| document (check authority) | `plans/mission-picker-phase1.md` | [open](../plans/mission-picker-phase1.md) |
+| document (check authority) | `plans/missions-audit-overview.md` | [open](../plans/missions-audit-overview.md) |
+| document (check authority) | `plans/missions-repair.md` | [open](../plans/missions-repair.md) |
+| document (check authority) | `plans/neon-egress.md` | [open](../plans/neon-egress.md) |
+| document (check authority) | `plans/neon-quota-recurrence.md` | [open](../plans/neon-quota-recurrence.md) |
+| document (check authority) | `plans/neon-write-mostly.md` | [open](../plans/neon-write-mostly.md) |
+| document (check authority) | `plans/overlay-bridge.md` | [open](../plans/overlay-bridge.md) |
+| document (check authority) | `plans/overlay.md` | [open](../plans/overlay.md) |
+| document (check authority) | `plans/pl-bundesliga-fdr.md` | [open](../plans/pl-bundesliga-fdr.md) |
+| document (check authority) | `plans/pl-bundesliga-xscore.md` | [open](../plans/pl-bundesliga-xscore.md) |
+| document (check authority) | `plans/plan-algorithm-v2.md` | [open](../plans/plan-algorithm-v2.md) |
+| document (check authority) | `plans/play-prizes-and-mission-tooltips.md` | [open](../plans/play-prizes-and-mission-tooltips.md) |
+| document (check authority) | `plans/play-rewards-and-mission-chart.md` | [open](../plans/play-rewards-and-mission-chart.md) |
+| document (check authority) | `plans/pro.md` | [open](../plans/pro.md) |
+| document (check authority) | `plans/recap-lineup-scores.md` | [open](../plans/recap-lineup-scores.md) |
+| document (check authority) | `plans/restructure.md` | [open](../plans/restructure.md) |
+| document (check authority) | `plans/review-fixes.md` | [open](../plans/review-fixes.md) |
+| document (check authority) | `plans/roadmap.md` | [open](../plans/roadmap.md) |
+| document (check authority) | `plans/score-engine.md` | [open](../plans/score-engine.md) |
+| document (check authority) | `plans/set.md` | [open](../plans/set.md) |
+| document (check authority) | `plans/single-play-plan.md` | [open](../plans/single-play-plan.md) |
+| document (check authority) | `plans/sorare-data-repair.md` | [open](../plans/sorare-data-repair.md) |
+| document (check authority) | `plans/sorare-repair-2026-10-09.md` | [open](../plans/sorare-repair-2026-10-09.md) |
+| document (check authority) | `plans/sorare-start-chances.md` | [open](../plans/sorare-start-chances.md) |
+| document (check authority) | `plans/strategies-decision-board.md` | [open](../plans/strategies-decision-board.md) |
+| document (check authority) | `plans/strategies-podium-charts.md` | [open](../plans/strategies-podium-charts.md) |
+| document (check authority) | `plans/xscore.md` | [open](../plans/xscore.md) |
 | table | `competitions` | `backend/app/models.py` |
 | table | `stadiums` | `backend/app/models.py` |
 | table | `teams` | `backend/app/models.py` |
@@ -466,7 +816,7 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-29",
-        "note": "Reviewed 29 October rebase: optional reward_bars publication added after saved plans; recommendation and raw/planning ordering unchanged. Targets remains on legacy reading.",
+        "note": "Reviewed formatter-only change in the referenced publisher tests.",
         "files": {
           "backend/app/sorare/publish.py": "81c89563f1c6011e1fea41a076a095d773e59925a4eea706bad7d0f9634c1be5",
           "backend/app/sorare/planner.py": "3054ad20bbb294ec039c9b1524b073af20bd4b925be1f5e233be12db2d0e4b8f",
@@ -474,7 +824,7 @@ This block is the single machine-readable index for the sections above. Test ref
           "backend/app/sorare/pro.py": "b3eb1a47f833708478ce9bfe93aac2ebf36a660a93124e032f111692975b7e08",
           "backend/app/jobs/sorare.py": "d0ef04a379309b0a72804b84bf100a413030ca76259de733e7a16ccb19b387c2",
           "backend/tests/test_sorare_planner.py": "9325965014b78a25aecff95b398567648ff34a378e08bc7e3bcc30bac95f7d33",
-          "backend/tests/test_sorare_publish.py": "6f7c9a958a914c670282a17db3c8bd972816c49603e368de00a63f864949f29c"
+          "backend/tests/test_sorare_publish.py": "87d508ff04619fad551329672be902ae93445556c4bd845ee3e5e5bd59024827"
         }
       }
     },
@@ -580,15 +930,20 @@ This block is the single machine-readable index for the sections above. Test ref
         {
           "path": "backend/tests/test_score_fixes.py",
           "symbol": "test_a_stretched_number_stays_a_sorare_score"
+        },
+        {
+          "path": "backend/tests/test_sorare_publish.py",
+          "symbol": "test_planning_correction_changes_planner_inputs_but_preserves_raw_record"
         }
       ],
       "review": {
-        "date": "2026-10-28",
-        "note": "Compared source and existing assertions; execution results are recorded separately in the audit. Live workflow not reverified.",
+        "date": "2026-10-29",
+        "note": "Reviewed formatter-only change to the executed publisher boundary regression.",
         "files": {
           "backend/app/sorare/publish.py": "81c89563f1c6011e1fea41a076a095d773e59925a4eea706bad7d0f9634c1be5",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
-          "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac"
+          "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
+          "backend/tests/test_sorare_publish.py": "87d508ff04619fad551329672be902ae93445556c4bd845ee3e5e5bd59024827"
         }
       }
     },
@@ -1280,9 +1635,34 @@ This block is the single machine-readable index for the sections above. Test ref
         "page layout"
       ],
       "paths": [
-        "frontend/app/",
         "frontend/components/",
-        "frontend/lib/weeks.ts"
+        "frontend/lib/weeks.ts",
+        "frontend/app/(board)/difficulty/page.tsx",
+        "frontend/app/(board)/fixtures/page.tsx",
+        "frontend/app/(board)/season/page.tsx",
+        "frontend/app/(board)/table/page.tsx",
+        "frontend/app/arcade/page.tsx",
+        "frontend/app/audit/lineups/page.tsx",
+        "frontend/app/audit/missions/page.tsx",
+        "frontend/app/audit/page.tsx",
+        "frontend/app/audit/record/page.tsx",
+        "frontend/app/audit/rewards/page.tsx",
+        "frontend/app/audit/starts/page.tsx",
+        "frontend/app/audit/strategies/page.tsx",
+        "frontend/app/audit/versus/page.tsx",
+        "frontend/app/cards/page.tsx",
+        "frontend/app/control/page.tsx",
+        "frontend/app/lineups/page.tsx",
+        "frontend/app/missions/page.tsx",
+        "frontend/app/page.tsx",
+        "frontend/app/play/page.tsx",
+        "frontend/app/players/[slug]/page.tsx",
+        "frontend/app/players/page.tsx",
+        "frontend/app/prices/page.tsx",
+        "frontend/app/scores/page.tsx",
+        "frontend/app/stats/page.tsx",
+        "frontend/app/targets/page.tsx",
+        "frontend/app/team/[code]/page.tsx"
       ],
       "requires": [
         "WEEK-IDENTITY-001",
@@ -1348,6 +1728,571 @@ This block is the single machine-readable index for the sections above. Test ref
           "backend/app/sorare/european_models.py": "205d444347ee72fc16403373c720b77f89274d0e100be876d8604dcd069db0de",
           "docs/european_validation/CONF-release-proof.json": "e7e7017af3f9d6de7cf41cc66091564ea7e4c347110c4af25275d1fb7e6bb089",
           "backend/tests/test_conference_forecast.py": "47db7ec9da02310b22961b57e161004d7de3acc2e0487677a4007d4e22fb7ade"
+        }
+      }
+    },
+    {
+      "id": "API-REFRESH-001",
+      "anchor": "api-refresh-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/refresh"
+      ],
+      "paths": [
+        "frontend/app/api/refresh/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/refresh/route.ts"
+        },
+        {
+          "path": "frontend/lib/refresh.ts",
+          "symbol": "isSameOriginRequest"
+        }
+      ],
+      "tests": [],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/refresh/route.ts": "4082ab185bd28035c18e6d1c2438c362c2b3903f40e28e4a50bea6006ec5053d",
+          "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d"
+        }
+      }
+    },
+    {
+      "id": "API-SETTINGS-001",
+      "anchor": "api-settings-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/settings"
+      ],
+      "paths": [
+        "frontend/app/api/settings/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/settings/route.ts"
+        },
+        {
+          "path": "frontend/lib/refresh.ts",
+          "symbol": "isSameOriginRequest"
+        }
+      ],
+      "tests": [],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/settings/route.ts": "07eeb40112f38675d759d3356ae67395a1441fb246de370194b995a5649f6b65",
+          "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d"
+        }
+      }
+    },
+    {
+      "id": "API-REVALIDATE-001",
+      "anchor": "api-revalidate-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/revalidate"
+      ],
+      "paths": [
+        "frontend/app/api/revalidate/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/revalidate/route.ts"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/revalidate/route.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/revalidate/route.ts": "47f7307d316a24cc415e92873801a9bb7c087c4cf95abb0a934210608e61e4d9",
+          "frontend/app/api/revalidate/route.test.ts": "745936006cd060b3ef1d696594808d199223d06cd4fee12775f0c1eccec0e954"
+        }
+      }
+    },
+    {
+      "id": "API-PLAYERS-001",
+      "anchor": "api-players-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/players"
+      ],
+      "paths": [
+        "frontend/app/api/players/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/players/route.ts"
+        }
+      ],
+      "tests": [],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/players/route.ts": "f39f85e3fdbeefacecbb0806c108351d60b87b066ac07c9cbff829c339c1970f"
+        }
+      }
+    },
+    {
+      "id": "API-ARCADE-CHANCES-001",
+      "anchor": "api-arcade-chances-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/arcade/chances"
+      ],
+      "paths": [
+        "frontend/app/api/arcade/chances/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/arcade/chances/route.ts"
+        },
+        {
+          "path": "frontend/lib/refresh.ts",
+          "symbol": "isSameOriginRequest"
+        }
+      ],
+      "tests": [],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/arcade/chances/route.ts": "fa9700512641b197fb124d73cabacccabae7eb1242e0c1b79df1d3e1b1bde44c",
+          "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d"
+        }
+      }
+    },
+    {
+      "id": "API-LEAGUE-HISTORY-001",
+      "anchor": "api-league-history-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/league-history"
+      ],
+      "paths": [
+        "frontend/app/api/league-history/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/league-history/route.ts"
+        },
+        {
+          "path": "frontend/lib/refresh.ts",
+          "symbol": "isSameOriginRequest"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/league-history/route.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/league-history/route.ts": "776b43938402e25075a10560262db5b50681e9d0058d7a84a581b6c231bd1953",
+          "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d",
+          "frontend/app/api/league-history/route.test.ts": "f2e153e9e1d5669996ef3a4090c259bfba11991df2cf845ee2c2330c3d66ee8f"
+        }
+      }
+    },
+    {
+      "id": "API-LINEUPS-ACTUAL-001",
+      "anchor": "api-lineups-actual-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/lineups/actual"
+      ],
+      "paths": [
+        "frontend/app/api/lineups/actual/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/lineups/actual/route.ts"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/lineups/actual/route.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/lineups/actual/route.ts": "5947c34286b6d5a61dc17cc6874f127950ea908080ce3370fbb50a1ac0ea05da",
+          "frontend/app/api/lineups/actual/route.test.ts": "333db24b795674c71d8a8f201739eea3c65df85234058f0c862ba6584a12273c"
+        }
+      }
+    },
+    {
+      "id": "API-STAT-CHARTS-001",
+      "anchor": "api-stat-charts-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/stat-charts"
+      ],
+      "paths": [
+        "frontend/app/api/stat-charts/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/stat-charts/route.ts"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/stat-charts/route.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/stat-charts/route.ts": "39d27d6351e79507cae2d13f7c7793e0cba19220dec13ff4e3c26fa105c6c021",
+          "frontend/app/api/stat-charts/route.test.ts": "2ab8cab100ee5d8dca69d4440eb19863df6d9b1e091826660050ac22e8e46167"
+        }
+      }
+    },
+    {
+      "id": "API-SORARE-IMAGE-001",
+      "anchor": "api-sorare-image-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/sorare-image"
+      ],
+      "paths": [
+        "frontend/app/api/sorare-image/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/sorare-image/route.ts"
+        }
+      ],
+      "tests": [],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/sorare-image/route.ts": "490100890779d19c63b40ed3483da7fc92ef198273022e8092734c361b3eb09b"
+        }
+      }
+    },
+    {
+      "id": "API-MY-WEEK-001",
+      "anchor": "api-my-week-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/my-week"
+      ],
+      "paths": [
+        "frontend/app/api/my-week/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/my-week/route.ts"
+        },
+        {
+          "path": "frontend/lib/refresh.ts",
+          "symbol": "isSameOriginRequest"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/my-week/route.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/my-week/route.ts": "9e0a5d4c6e9f5dbee95ac6f6556ac8221dc8dbf16bd583b5345257bda0bcc282",
+          "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d",
+          "frontend/app/api/my-week/route.test.ts": "0f519e8267cfa545fc6a2a51db06e768d773282f35b77f93bd3b812f221147ab"
+        }
+      }
+    },
+    {
+      "id": "API-PRO-REBUILD-001",
+      "anchor": "api-pro-rebuild-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/pro-rebuild"
+      ],
+      "paths": [
+        "frontend/app/api/pro-rebuild/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/pro-rebuild/route.ts"
+        },
+        {
+          "path": "frontend/lib/refresh.ts",
+          "symbol": "isSameOriginRequest"
+        },
+        {
+          "path": "frontend/lib/extAuth.ts",
+          "symbol": "authorised"
+        }
+      ],
+      "tests": [],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/pro-rebuild/route.ts": "1046d6ec4ad436c8d10d8c7d0c515d80b29d3cea674d5c72d419dcdd702a820b",
+          "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d",
+          "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c"
+        }
+      }
+    },
+    {
+      "id": "API-MISSIONS-HISTORY-001",
+      "anchor": "api-missions-history-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/missions/history"
+      ],
+      "paths": [
+        "frontend/app/api/missions/history/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/missions/history/route.ts"
+        },
+        {
+          "path": "frontend/lib/refresh.ts",
+          "symbol": "isSameOriginRequest"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/missions/history/route.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/missions/history/route.ts": "8423c7037add859f6d9715ca819475943a507c5109781de80bacd093b9586237",
+          "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d",
+          "frontend/app/api/missions/history/route.test.ts": "a1ad82644f19b37fe989ae2c9002503cba510c87e615984eba12e4cd4c0b879a"
+        }
+      }
+    },
+    {
+      "id": "API-EXT-CHECKIN-001",
+      "anchor": "api-ext-checkin-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/ext/checkin"
+      ],
+      "paths": [
+        "frontend/app/api/ext/checkin/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/ext/checkin/route.ts"
+        },
+        {
+          "path": "frontend/lib/extAuth.ts",
+          "symbol": "authorised"
+        }
+      ],
+      "tests": [],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/ext/checkin/route.ts": "66f7cf1e1e48d3ef6b665d0af5804776059edcad78f5c3d74cd29ec5fd92a233",
+          "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c"
+        }
+      }
+    },
+    {
+      "id": "API-EXT-CHANCES-001",
+      "anchor": "api-ext-chances-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/ext/chances"
+      ],
+      "paths": [
+        "frontend/app/api/ext/chances/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/ext/chances/route.ts"
+        },
+        {
+          "path": "frontend/lib/extAuth.ts",
+          "symbol": "authorised"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/ext/chances/route.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/ext/chances/route.ts": "53d1e9e9fafd8e5a8ef3c901e926692e079a7de11c3b4c3585cb11a19af19ae0",
+          "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c",
+          "frontend/app/api/ext/chances/route.test.ts": "7d1bb12245435f32bafdd794abe68a12ede0d8ae592d330f3d32fa0cfb3159ea"
+        }
+      }
+    },
+    {
+      "id": "API-EXT-NEAR-LOCK-001",
+      "anchor": "api-ext-near-lock-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/ext/near-lock"
+      ],
+      "paths": [
+        "frontend/app/api/ext/near-lock/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/ext/near-lock/route.ts"
+        },
+        {
+          "path": "frontend/lib/extAuth.ts",
+          "symbol": "authorised"
+        }
+      ],
+      "tests": [],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/ext/near-lock/route.ts": "380e24e1ceff73fe9b4b2472e300322e8a7ec36c86364284a8ea5675a4e46827",
+          "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c"
+        }
+      }
+    },
+    {
+      "id": "API-EXT-OVERLAY-001",
+      "anchor": "api-ext-overlay-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/ext/overlay"
+      ],
+      "paths": [
+        "frontend/app/api/ext/overlay/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/ext/overlay/route.ts"
+        },
+        {
+          "path": "frontend/lib/extAuth.ts",
+          "symbol": "authorised"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/ext/overlay/route.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/ext/overlay/route.ts": "959652a28186f2cb4a731936bf4b30332549c0a4481b88c8d17af0e9ca53a513",
+          "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c",
+          "frontend/app/api/ext/overlay/route.test.ts": "f9e172e280b60a33f62aa4e3a7380fe13bad0e9826c3da82c75255ec7c560509"
+        }
+      }
+    },
+    {
+      "id": "API-EXT-MISSIONS-001",
+      "anchor": "api-ext-missions-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/ext/missions"
+      ],
+      "paths": [
+        "frontend/app/api/ext/missions/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/ext/missions/route.ts"
+        },
+        {
+          "path": "frontend/lib/extAuth.ts",
+          "symbol": "authorised"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/ext/missions/route.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/ext/missions/route.ts": "2409c2b2faca3d56e7c56a9f526fbbb48cf571fd93402e84f17fb0d9b0a9a28a",
+          "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c",
+          "frontend/app/api/ext/missions/route.test.ts": "386da8ab5ec675d16fbe3ac4417c9c04e5c695c3ac1af8948ae0ba660720d151"
+        }
+      }
+    },
+    {
+      "id": "API-EXT-MISSIONS-POOL-001",
+      "anchor": "api-ext-missions-pool-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/ext/missions/pool"
+      ],
+      "paths": [
+        "frontend/app/api/ext/missions/pool/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/ext/missions/pool/route.ts"
+        },
+        {
+          "path": "frontend/lib/extAuth.ts",
+          "symbol": "authorised"
+        }
+      ],
+      "tests": [],
+      "review": {
+        "date": "2026-10-29",
+        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "files": {
+          "frontend/app/api/ext/missions/pool/route.ts": "23a2a863226d2ef4bbe7a6269012d78b6b11265b49062657e5338882ff79f648",
+          "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c"
         }
       }
     }
@@ -1528,6 +2473,146 @@ This block is the single machine-readable index for the sections above. Test ref
       "expected": [],
       "forbidden": [],
       "fallback": true
+    },
+    {
+      "prompt": "/api/refresh",
+      "expected": [
+        "API-REFRESH-001"
+      ],
+      "forbidden": [
+        "UI-NAVIGATION-001"
+      ],
+      "fallback": false
+    }
+  ],
+  "endpoints": [
+    {
+      "path": "frontend/app/api/refresh/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "contract": "API-REFRESH-001"
+    },
+    {
+      "path": "frontend/app/api/settings/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-SETTINGS-001"
+    },
+    {
+      "path": "frontend/app/api/revalidate/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-REVALIDATE-001"
+    },
+    {
+      "path": "frontend/app/api/players/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "contract": "API-PLAYERS-001"
+    },
+    {
+      "path": "frontend/app/api/arcade/chances/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-ARCADE-CHANCES-001"
+    },
+    {
+      "path": "frontend/app/api/league-history/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-LEAGUE-HISTORY-001"
+    },
+    {
+      "path": "frontend/app/api/lineups/actual/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "contract": "API-LINEUPS-ACTUAL-001"
+    },
+    {
+      "path": "frontend/app/api/stat-charts/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "contract": "API-STAT-CHARTS-001"
+    },
+    {
+      "path": "frontend/app/api/sorare-image/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "contract": "API-SORARE-IMAGE-001"
+    },
+    {
+      "path": "frontend/app/api/my-week/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "contract": "API-MY-WEEK-001"
+    },
+    {
+      "path": "frontend/app/api/pro-rebuild/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-PRO-REBUILD-001"
+    },
+    {
+      "path": "frontend/app/api/missions/history/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-MISSIONS-HISTORY-001"
+    },
+    {
+      "path": "frontend/app/api/ext/checkin/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-EXT-CHECKIN-001"
+    },
+    {
+      "path": "frontend/app/api/ext/chances/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-EXT-CHANCES-001"
+    },
+    {
+      "path": "frontend/app/api/ext/near-lock/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-EXT-NEAR-LOCK-001"
+    },
+    {
+      "path": "frontend/app/api/ext/overlay/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-EXT-OVERLAY-001"
+    },
+    {
+      "path": "frontend/app/api/ext/missions/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-EXT-MISSIONS-001"
+    },
+    {
+      "path": "frontend/app/api/ext/missions/pool/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "contract": "API-EXT-MISSIONS-POOL-001"
     }
   ]
 }

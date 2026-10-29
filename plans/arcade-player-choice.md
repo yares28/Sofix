@@ -165,10 +165,9 @@ entered on Sorare by Sofix (Check → Draft → Enter stays).
 ## 8 · Blockers and decisions
 
 - **No blocker without a solution found.** Elevens, your commons and every real score are public on Sorare; nothing paid is needed.
-- **Decision: HyperGlitch's pre-kick-off numbers do not exist.** Phase C can replay the hindsight part on HyperGlitch now, but the
-  strategy replay needs numbers frozen before kick-off, which start with phase B. Either the strategy replay waits for Divination's
-  first weeks (honest), or it uses Sorare's `projection` stored on old game scores as a stand-in, labelled as not proven pre-lock
-  (the PL/BL1 protocol refused it as a model input for that reason). Recommended: wait, show the hindsight now.
+- **Decided (owner, 29 Oct): wait for Divination.** HyperGlitch has no numbers frozen before kick-off, so phase C shows only the
+  hindsight on HyperGlitch; the strategy replay runs on numbers frozen by phase B from Divination on. Sorare's stored `projection` is
+  not used as a stand-in.
 - **Neon:** four of five projects are out of quota until 1 Nov; Sofix D has sent 1.1 GB of 5. Phase B adds a few thousand small rows a
   week; the audit job reads them from the GitHub cache mirror (`games_mirror.py`), not Neon, as the score jobs do.
 - **Unverified Sorare rules** (settled on the live board, no decision needed): whether a cancelled insurance lineup costs a life, and

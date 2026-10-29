@@ -16,7 +16,7 @@ and a check, so a session can work through it alone and stop only where you have
 
 **Fri 30 Oct 14:00 Madrid (Divination opens):** **check the Arcade rework on the live board** ([arcade-rework.md](arcade-rework.md) "Not confirmed"): tiers in pack odds, Sorare's starter word, collection missions, the cards read newest first and re-read after packs. **You:** Reload the extension (0.4.19).
 
-**Next Arcade work:** **can the chosen five be trusted outside LaLiga?** Backtest each score and start % source per league on HyperGlitch's games and pick per league what wins blind ([arcade-player-choice.md](arcade-player-choice.md)).
+**Next Arcade work:** **trustworthy xScore that learns** ([arcade-player-choice.md](arcade-player-choice.md)): phase A elevens in Arcade, B pre-kick-off capture, C hindsight audit and strategy replay, D per-league blend and calibration, E re-plan triggers, F upgrades.
 
 **1 Nov, first thing (date-bound):** **all Neon projects into one** (TODO.md "All Neon projects into one"): quotas reset that
 day, so every project answers; list what each holds that the live one lacks (GW25's records are on Sofix C), copy on your yes, then

@@ -578,11 +578,12 @@ All current backend/artifacts JSON files have an ownership entry in the registry
 
 This maps inspected block families, not every dynamic key in the repository. Writers persist Neon unless explicitly R2-only; pages consume R2 through loaders. A file declaring a key is not necessarily its writer. Unknown ownership must be traced before editing, and archived/replay records must not be substituted for current state.
 
+<!-- blocks:start -->
 | Block/family | Writer | Reader / purpose | Mutation boundary |
 |---|---|---|---|
 | grid, system | backend/app/services/publish.py | frontend/lib/api.ts, system.ts | Replaced current page models; unchanged payload retains timestamp |
 | sorare, sorare_references | backend/app/jobs/sorare.py | frontend/lib/playData.ts; Python planning inputs | Current recommendations/reference inputs; not raw historical evidence |
-| sorare_week:, sorare_ahead:, sorare_alt:, sorare_lens:, strategy_plans: | backend/app/jobs/sorare.py via sorare/publish.py builders | frontend/lib/playData.ts and strategy comparisons | Family-specific archive/projection/alternative identity; never interchangeable |
+| sorare_week:, sorare_ahead:, sorare_alt:, sorare_lens:, strategy_plans: | backend/app/jobs/sorare.py via backend/app/sorare/publish.py builders | frontend/lib/playData.ts and strategy comparisons | Family-specific archive/projection/alternative identity; never interchangeable |
 | score_record: | backend/app/sorare/player_games.py save_record | Play historical loaders and Audit/correction consumers | Strict pre-lock capture; raw forecast |
 | plan_watch | backend/app/jobs/sorare.py | frontend/app/api/ext/chances/route.ts | News-trigger comparison, not an entered lineup |
 | play_rewards:, play_reward_state:, play_reward_clock | backend/app/sorare/play_rewards.py | Play reward loader; receipt job state | Exact GW, retry and correction lifecycle |
@@ -594,6 +595,19 @@ This maps inspected block families, not every dynamic key in the repository. Wri
 | missions_day:, missions_log:, missions_edit: | frontend/lib/missionLog.ts and missions/history route via mergeMissionRecord | Mission history/Audit | Captured record, legacy month and user correction remain separate |
 | player_games:, refresh_runs | backend/app/services/player_blocks.py | Player history and idle refresh-status reads | Derived R2-only families protected from ordinary sync deletion |
 | neon_live, neon_status | backend/app/jobs/neon_switch.py | Database selection / usage diagnostics | Reserved switch state; never delete/reuse manually |
+| reward_bars | backend/app/jobs/sorare.py via backend/app/sorare/reward_bars.py | frontend/lib/rewardBarsData.ts | Targets cut-offs from finished references; browser pins/hidden state are separate |
+| grid:PL, grid:BL1, grid:FL1; grid:CL, grid:EL, grid:CONF | backend/app/jobs/league_fdr.py; backend/app/jobs/european_fdr.py | frontend/lib/api.ts | Each competition retains its own model/version and release gates |
+| grid:ALL and its team_blocks | backend/app/services/all_competitions.py | frontend/lib/api.ts | Combined grid points to separately published team chunks; load all declared parts |
+| players:<competition>, players:<competition>:<hex>, player_index | backend/app/jobs/sorare.py via backend/app/sorare/foreign_coverage.py | frontend/lib/playData.ts; frontend/lib/foreignPlayersData.ts | Sixteen deterministic player shards; index retains leagues not replaced by this run; block budget below 1.6 MB |
+| sorare_plan:<GW> | backend/app/sorare/frozen.py | frontend/lib/playData.ts | Freeze prior page's plan at lock before it is replaced; distinct from current recommendation |
+| missions_pool | backend/app/jobs/sorare.py via backend/app/sorare/mission_pool.py | frontend/lib/missionsPool.ts | Derived inventory; a missing optional build does not justify clearing the prior block |
+| player_sheets | backend/app/jobs/league_history.py; backend/app/jobs/seed_player_games.py via backend/app/sorare/sheets.py | frontend/lib/playerGames.ts | Daily aggregate from kept games; not a fresh per-request source call |
+| stat_charts, stat_chart_people | backend/app/sorare/stat_charts.py | frontend/lib/statChartsData.ts; same backend module | Chart aggregate and retained person inputs are distinct blocks |
+| data_health | backend/app/services/data_health.py | frontend/lib/dataHealthData.ts | Source health evidence; not permission for automatic production probes |
+| pro_rebuild | backend/app/jobs/pro_rebuild.py | frontend/lib/playData.ts | Saved rebuild output; dispatch acknowledgement does not prove output publication |
+| league_history_status, sorare_league_history | backend/app/jobs/league_history.py | frontend/lib/system.ts; backend/app/jobs/sorare.py | Status is not completeness of all historical data |
+| audit | backend/app/sorare/audit.py; backend/app/services/publish.py adds match evidence | frontend/lib/auditData.ts | Aggregate and match evidence must survive the shared publication path |
+<!-- blocks:end -->
 
 Artifact discovery below lists current files without claiming release approval. European player artifacts are loaded through backend/app/sorare/european_models.py: CL/EL evidence gates and fixed provisional Conference authority differ. Football model changes still obey AGENTS.md training/holdout gates, and artifact, refresh, report and baseline text change together. A JSON filename or successful parse is not validation evidence.
 

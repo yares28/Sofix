@@ -195,6 +195,13 @@ export function validateArtifacts(root, files, entries) {
   return errors;
 }
 
+export function validateBlockMap(root, body) {
+  const map = body.match(/<!-- blocks:start -->([\s\S]*?)<!-- blocks:end -->/);
+  if (!map) return ["missing block map"];
+  const paths = [...map[1].matchAll(/\b(?:[a-zA-Z0-9_-]+\/)+[a-zA-Z0-9_.-]+\.(?:py|ts)\b/g)].map(m => m[0]);
+  return [...new Set(paths)].filter(p => !inside(root, p) || !existsSync(resolve(root, p))).map(p => `missing block reference: ${p}`);
+}
+
 export function checkLinks(root, body, path) {
   const errors = [];
   const unfenced = body.replace(/```[^\n]*\n[\s\S]*?```/g, "");
@@ -276,6 +283,7 @@ function main() {
     const registry = parseDocument(body);
     errors.push(...validateEndpoints(ROOT, filesInRepo(), registry.endpoints ?? [], registry.contracts));
     errors.push(...validateArtifacts(ROOT, filesInRepo(), registry.artifacts ?? []));
+    errors.push(...validateBlockMap(ROOT, body));
     if (body.match(ARTIFACT_INDEX)?.[0] !== artifactTable(registry.artifacts ?? [])) errors.push("Artifact provenance table drift: run node scripts/docs.mjs index.");
     const generated = inventory(ROOT, filesInRepo());
     if (body.match(INDEX)?.[0] !== generated) errors.push("Route/table inventory drift: run node scripts/docs.mjs index; review new surfaces and routing coverage.");

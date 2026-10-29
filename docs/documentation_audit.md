@@ -17,7 +17,7 @@ Requested outcome: one consolidated, source-grounded audit and ten upgrades opti
 | 7. Recipes | Publication, local isolation, quota selection and scheduling recovery boundaries | Broader replay/configuration recovery needs source review |
 | 8. Resume record | This current status, bounded next action and dated verification receipts | Apply the pattern to feature plans when they are touched |
 | 9. Freshness | Source/test fingerprints and explicit source-review notes | Whole-file invalidation is conservative; no semantic correctness guarantee |
-| 10. Gate/evaluation | Offline drift gate, 22 tooling tests, 18 static retrieval cases | Independent task-performance comparison remains unmeasured |
+| 10. Gate/evaluation | Offline drift gate, 23 tooling tests, 18 static retrieval cases | Independent task-performance comparison remains unmeasured |
 
 Published baseline: a59601f (API contracts and publisher regression), after 7978519 and 40a4d86. Deployment succeeded and home returned HTTP 200. The post-push live command failed because Neon status was absent from R2; the last refresh succeeded, frontend CI succeeded, and backend/end-to-end CI were still running when observed. No production repair was attempted. The main checkout has unrelated uncommitted work and must not be reset or fast-forwarded over it.
 
@@ -526,3 +526,7 @@ Shipping verification for this slice: node scripts/check.mjs passed documentatio
 Inspected all 15 tracked backend/artifacts JSON paths against generator and loader code. The registry distinguishes generated outputs, candidate promotion, reviewed reference data and an unresolved writer. Added an offline coverage check: a new artifact without provenance, a deleted artifact or a missing producer/consumer reference fails. This validates inventory/reference coverage, not semantic call graphs or release acceptance. All 22 tooling tests pass, including a regression that failed before implementation. No training or artifact regeneration ran.
 
 New confirmed documentation issue: services/market_blend.py says the backtest fits/writes market_blend.json, but jobs/backtest.py writes only its report, Dixon-Coles config and clean-sheet calibration; repository search found save_market_blend called only by its test. The ownership record marks the production writer unestablished instead of inventing a regeneration command. European/league validators write candidate outputs separately; generation is not production promotion. The European club identity file has no generator found and requires source-verified rollover.
+
+### Block ownership continuation
+
+Added writer/reader and mutation boundaries for Targets, competition/combined grids, foreign-player shards/index, frozen plans, mission inventory, player sheets, statistics, source health, Pro rebuild, history status and Audit publication. The offline gate now rejects missing source-file references in this authored map; its regression failed before implementation. This is bounded inspected coverage, not an inferred complete call graph: FF internal caches, ledgers and research-only rows still need individual lifecycle review. No product behavior changed. Latest observed deployed revision 06aa4fe returned home 200; backend/frontend CI and refresh succeeded; missing Neon status remained the live diagnostic failure.

@@ -204,3 +204,11 @@ test("artifact ownership rejects uncovered files and missing provenance referenc
   assert.match(validateArtifacts(f.root, files, [{...entry, consumers: ['src/gone.py']}]).join(' '), /missing reference/);
   assert.match(validateArtifacts(f.root, [], [entry]).join(' '), /missing artifact/);
 });
+
+test("block map references cannot silently disappear", async t => {
+  const { validateBlockMap } = await import('../docs.mjs');
+  const f = fixture(t);
+  assert.deepEqual(validateBlockMap(f.root, '<!-- blocks:start --> src/model.py <!-- blocks:end -->'), []);
+  assert.match(validateBlockMap(f.root, '<!-- blocks:start --> src/missing.py <!-- blocks:end -->').join(' '), /missing block reference/);
+  assert.match(validateBlockMap(f.root, '').join(' '), /missing block map/);
+});

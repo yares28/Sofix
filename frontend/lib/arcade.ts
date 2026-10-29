@@ -536,14 +536,17 @@ export async function readArcade(timeoutMs = 25_000): Promise<ArcadeRead> {
 const LAST_KEY = "sofix-arcade-last";
 /** The last full read, kept in this browser so the next visit shows it at once while Sorare is asked again. */
 export type KeptArcade = { at: number; arcade: Arcade; unread: string[] };
-/** The kept read, unless its set has ended (a new set is a new board). */
-export function usableArcade(kept: KeptArcade | null, now = Date.now()): KeptArcade | null {
-  if (!kept?.arcade?.set || !Number.isFinite(kept.at)) return null;
-  const end = Date.parse(kept.arcade.set.end ?? "");
-  return Number.isFinite(end) && end < now ? null : kept;
+/**
+ * The kept read, also after its set has ended: between two sets the page still shows your last board, marked ended, instead of an
+ * empty page (owner, 29 Oct 2026: "counter productive to block me from looking at the page"). A new set's read replaces it.
+ */
+export function usableArcade(kept: KeptArcade | null): KeptArcade | null {
+  return kept?.arcade?.set && Number.isFinite(kept.at) ? kept : null;
 }
-export function lastArcade(now = Date.now()): KeptArcade | null {
-  try { return usableArcade(JSON.parse(localStorage.getItem(LAST_KEY) ?? "null") as KeptArcade | null, now); } catch { return null; }
+/** Whether a board's set has ended. */
+export const setEnded = (arcade: Arcade, now = Date.now()) => Date.parse(arcade.set.end ?? "") < now;
+export function lastArcade(): KeptArcade | null {
+  try { return usableArcade(JSON.parse(localStorage.getItem(LAST_KEY) ?? "null") as KeptArcade | null); } catch { return null; }
 }
 export function keepArcade(arcade: Arcade, unread: string[], now = Date.now()) {
   try { localStorage.setItem(LAST_KEY, JSON.stringify({ at: now, arcade, unread } satisfies KeptArcade)); } catch { /* full or blocked: read next time */ }

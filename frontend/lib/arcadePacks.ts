@@ -58,6 +58,23 @@ export type Goal = { label: string; need: number; distinct: boolean; tiers?: Set
 const hits = (goal: Goal, slug: string, info: SlotOdds["players"][string]) =>
   (!goal.tiers || goal.tiers.has(info.tier)) && (!goal.players || goal.players.has(slug)) && (!goal.teams || (info.team !== null && goal.teams.has(info.team)));
 
+/**
+ * A collection mission as a goal. It counts a player once and never one you already have: a duplicate, or a special edition of a
+ * player whose card you own, counts for nothing (owner, 29 Oct 2026). A club's league is read from your own cards of that club
+ * (`leagueOf`); a pack of the mission's league counts any player you do not have.
+ */
+export function missionGoal(
+  mission: { title: string; target: number; progress: number; players: string[]; teams: { slug: string }[]; leagues: string[] },
+  packLeague: string | null, owned: Set<string>, leagueOf: Map<string, string>,
+): Goal {
+  const need = Math.max(0, mission.target - mission.progress);
+  if (mission.players.length) return { label: mission.title, need, distinct: true, players: new Set(mission.players), owned };
+  if (packLeague && mission.leagues.includes(packLeague)) return { label: mission.title, need, distinct: true, owned };
+  const teams = new Set(mission.teams.map((t) => t.slug));
+  for (const [team, league] of leagueOf) if (mission.leagues.includes(league)) teams.add(team);
+  return { label: mission.title, need, distinct: true, teams, owned };
+}
+
 export type PackRow = { slug: string; title: string; league: string | null; price: number; currency: string; slots: number[]; atLeastOne: number; expected: number; perHit: number | null };
 
 /** One pack against a goal: each slot's hit chance, the chance of at least one, the average and the price per hit. */

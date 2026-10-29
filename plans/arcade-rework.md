@@ -33,9 +33,15 @@ the real flow; keep the game selection and its ticket styling as is. Audit befor
 - **Pick teams**: tickets unchanged; busy cards left out; settle time shown; games and aim shared with Your move and the teams.
 - **Extension 0.4.18**: tiers and clubs in pack odds, Sorare status in the past-scores read, the collection missions read.
 
+## Owner's answers (29 Oct, evening)
+
+- Rewards repeat: "each time you get to the last step you get 1000eur". The planner now counts money won (each clear pays again, the top
+  restarts the climb from step 1) instead of the highest step reached; essence and gems break ties only. Tested in `arcadeClimb.test.ts`.
+- "Duplicated cards don't count in missions, even special cards (if you have the base card)": a mission goal counts each player you do not
+  have once (`missionGoal`, `arcadePacks.test.ts`).
+- Between sets the page shows the last board, marked ended, instead of an empty page.
+
 ## Not confirmed (check when Divination opens, Fri 30 Oct 14:00 Madrid)
 
-- That re-cleared steps after a reset pay nothing again (the planner assumes rewards won once stay once).
 - The new reads on a live board: tiers in pack odds, Sorare status, collection missions (only validated against the schema; the board
   and missions are empty between sets).
-- Whether a collection mission counts duplicates; the page states which way it counts.

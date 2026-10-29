@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ARCADE_PACKS_VERSION, ARCADE_TIERS_VERSION, readArcadeCollection, readPackOdds, type Arcade, type ArcadeCollection, type ArcadePack } from "../../lib/arcade";
-import { ICON, packRow, packsToFinish, spendGems, STAR_OR_BETTER, type Goal, type PackRow, type TierOdds } from "../../lib/arcadePacks";
+import { ICON, missionGoal, packRow, packsToFinish, spendGems, STAR_OR_BETTER, type Goal, type PackRow, type TierOdds } from "../../lib/arcadePacks";
 
 const TIERS = ["All", "Bronze", "Silver", "Gold", "Special"] as const;
 /** A league pack is titled just "Bronze", "Silver" or "Gold"; anything else (Live Today, Goalkeeper Pack) is special. */
@@ -33,20 +33,12 @@ export default function ArcadePacks({ arcade }: { arcade: Arcade }) {
   const open = Array.isArray(missions) ? missions.filter((m) => !m.done && !m.expired) : [];
   const mission = goal.startsWith("mission:") ? open.find((m) => m.id === goal.slice(8)) ?? null : null;
 
-  // The goal as Sorare's odds can count it. A mission naming players counts each new one once; one naming clubs or leagues counts
-  // cards of them (a club's league read from your own cards of that club, or the pack's own league).
+  // The goal as Sorare's odds can count it.
   const goalFor = (pack: ArcadePack): Goal => {
     if (goal === "new") return { label: "players you do not have", need: 1, distinct: true, owned };
     if (goal === "star") return { label: "Star or better", need: 1, distinct: false, tiers: STAR_OR_BETTER, owned };
     if (!mission) return { label: "Icon", need: 1, distinct: false, tiers: ICON, owned };
-    const need = Math.max(0, mission.target - mission.progress);
-    if (mission.players.length) return { label: mission.title, need, distinct: true, players: new Set(mission.players), owned };
-    const teams = new Set(mission.teams.map((t) => t.slug));
-    if (mission.leagues.length) {
-      if (pack.league && mission.leagues.includes(pack.league)) return { label: mission.title, need, distinct: false, owned };
-      for (const [team, league] of leagueOf) if (mission.leagues.includes(league)) teams.add(team);
-    }
-    return { label: mission.title, need, distinct: false, teams, owned };
+    return missionGoal(mission, pack.league, owned, leagueOf);
   };
 
   const tierOdds = odds && typeof odds === "object" ? odds : null;
@@ -97,7 +89,7 @@ export default function ArcadePacks({ arcade }: { arcade: Arcade }) {
                 <p className="arc-gems-buy">{plan.buys.map((b) => `${b.count} × ${name(b)}`).join(" + ")}</p>
                 <p className="arc-gems-big"><b>{pct(plan.atLeastOne)}</b> at least one{mission ? " card for it" : ""} · <b>{num(plan.expected)}</b> on average · {plan.spent.toLocaleString("en-GB")} gems</p>
                 {finish ? <p className="arc-sub">The mission needs {Math.max(0, mission!.target - mission!.progress)} more: with {name(best!)}, half the time in {finish.half ?? "200+"} packs, 9 times in 10 in {finish.nine ?? "200+"}; your gems buy {Math.floor(gems / best!.price)}, which finish it {pct(finish.withinBudget)} of the time.</p> : null}
-                {mission ? <p className="arc-sub">{mission.players.length ? "Counts each listed player you do not have once." : "Counts every card of its clubs or league, as Sorare's card count does; only cards from packs or crafting count (Sorare's rule)."}</p> : null}
+                {mission ? <p className="arc-sub">{mission.players.length ? "Counts each listed player you do not have, once." : "Counts each player of its clubs or league you do not have, once: duplicates and special editions of a player you own count for nothing."}</p> : null}
               </>
             ) : <p>No gem pack here can give {label}.</p>}
           </div>

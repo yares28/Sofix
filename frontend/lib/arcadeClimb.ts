@@ -6,6 +6,8 @@ import { fits, madridDate, multiplier, phi, predicted, SETTLES_AFTER_MS, SLOTS, 
  * day: a lineup on the 14:00 games settles about 16:00 and the next step can take the 18:30 games the same day. Several lineups on one
  * step at once are insurance only: when one clears, Sorare cancels the others (21 Oct: 313.93 cleared step 2, and a 371.76 that would
  * have cleared step 3 was cancelled with two more). A miss costs a life; the last life lost sends you back to step 1.
+ * Every clear pays its step's reward again, and clearing the last step (€1,000) starts the climb again from step 1 (owner, 29 Oct
+ * 2026: "each time you get to the last step you get 1000eur"). So the plan counts money won, every time, not the highest step reached.
  *
  * Plain arithmetic, fast enough to run on every change: each card's score is a start chance times a spread around his score if he
  * plays, and a lineup's total is treated as normal (sum of the cards' means and variances). The lineups shown are then built exactly
@@ -24,8 +26,13 @@ const LIVES = 4;
 /** The longest a planned lineup may wait for its last game: a lineup over more days settles later and holds the climb. */
 const LONGEST_LEG_MS = 26 * 3_600_000;
 const COMBINE_MS = 3 * 3_600_000;
-/** How much of a step a move may give up against holding and still be played now: ties go to speed. */
-const PLAY_TIE = 0.005;
+/** How much expected money (€) a move may give up against holding and still be played now: ties go to speed. */
+const PLAY_TIE = 0.5;
+/**
+ * What a clear with no cash in its reward counts (essence, gems): a cent, so it only breaks ties between plans that win the same money.
+ * Cash and essence never convert (AGENTS.md "Sorare safety").
+ */
+const CLEAR_TIE = 0.01;
 
 export type Window = { at: number; list: Outlook[] };
 
@@ -106,7 +113,7 @@ export type Move = { from: number; to: number; at: number; step: number; lives: 
 
 export type Verdict = {
   kind: "play" | "wait" | "spend" | "none";
-  /** Expected highest step cleared by the last known game: playing the best move now, and holding until the next window. */
+  /** Expected money (€) won by the last known game: playing the best move now, and holding until the next window. */
   now: number;
   wait: number;
   /** Best single lineup's chance now, and in the window the plan would wait for. */
@@ -120,9 +127,11 @@ export type Climb = {
   windows: Window[];
   /** The likely path: each played move, a clear when it is more likely than not. */
   path: Move[];
-  /** Chance to clear each step by the last known game, playing the plan. */
+  /** Chance to clear each step at least once by the last known game, playing the plan. */
   odds: Record<number, number>;
+  /** Expected money (€) won by the last known game, and how many times the top is reached on average. */
   expected: number;
+  tops: number;
   verdict: Verdict;
   /** The likely path after a played move's other outcome. */
   after: (move: Move, cleared: boolean) => Move[];
@@ -131,7 +140,7 @@ export type Climb = {
 /**
  * The plan from now to the last game Sorare lists. At every window, on every step, with every number of lives, it chooses between
  * playing 1 to `lives` lineups (from this window, or this window plus the next 3 hours, the rest of the day, or up to 26 hours) and
- * holding. It values what you most likely end with: the highest step cleared. A hold costs the window it skips, so the plan waits only
+ * holding. It values the money every clear pays, the top's each time it is reached. A hold costs the window it skips, so the plan waits only
  * when a coming window is better by more than that; a step with few lives and poor chances is spent quickly, because the climb from
  * step 1 starts again sooner.
  */
@@ -139,6 +148,10 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
   const top = steps.at(-1)?.number ?? 1;
   const target = (n: number) => steps.find((s) => s.number === n)?.target ?? Infinity;
   const fresh = (n: number) => Math.min(LIVES, steps.find((s) => s.number === n)?.lives ?? LIVES) || LIVES;
+  /** What clearing step n pays, and the step it leads to: the top starts the climb again from step 1 with fresh lives. */
+  const pay = (n: number) => (steps.find((s) => s.number === n)?.cash ?? 0) + CLEAR_TIE;
+  const up = (n: number) => (n >= top ? 1 : n + 1);
+  const upLives = (n: number) => (n >= top ? LIVES : fresh(n + 1));
   const windows = windowsOf(outlooks, Math.max(now, start.notBefore ?? 0));
   const W = windows.length;
   const firstAfter = (time: number, from: number) => { let i = from; while (i < W && windows[i]!.at < time) i++; return i; };
@@ -176,13 +189,14 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
 
   type Choice = { value: number; to: number; play: number; clear: number; next: number; settles: number; lineups: Quick[]; list: Outlook[] };
   const memo = new Map<string, Choice>();
-  const value = (i: number, n: number, lives: number, best: number): Choice => {
-    const hold: Choice = { value: best, to: i, play: 0, clear: 0, next: i + 1, settles: 0, lineups: [], list: [] };
-    if (i >= W || n > top) return hold;
-    const key = `${i}:${n}:${lives}:${best}`;
+  // The money still to win from window i, on step n with `lives` left.
+  const value = (i: number, n: number, lives: number): Choice => {
+    const hold: Choice = { value: 0, to: i, play: 0, clear: 0, next: i + 1, settles: 0, lineups: [], list: [] };
+    if (i >= W) return hold;
+    const key = `${i}:${n}:${lives}`;
     const known = memo.get(key);
     if (known) return known;
-    let choice: Choice = { ...hold, value: value(i + 1, n, lives, best).value };
+    let choice: Choice = { ...hold, value: value(i + 1, n, lives).value };
     for (const leg of legsFrom(i)) {
       const ranked = [...leg.lineups].sort((a, b) => quickChance(b, target(n)) - quickChance(a, target(n)));
       let miss = 1;
@@ -192,9 +206,9 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
         settles = Math.max(settles, ranked[k - 1]!.last + SETTLES_AFTER_MS);
         const clear = 1 - miss;
         const next = firstAfter(settles, i + 1);
-        const up = value(next, n + 1, fresh(n + 1), Math.max(best, n)).value;
-        const down = lives - k > 0 ? value(next, n, lives - k, best).value : value(next, 1, LIVES, best).value;
-        const v = clear * up + (1 - clear) * down;
+        const won = pay(n) + value(next, up(n), upLives(n)).value;
+        const lost = lives - k > 0 ? value(next, n, lives - k).value : value(next, 1, LIVES).value;
+        const v = clear * won + (1 - clear) * lost;
         // Speed first (owner, 29 Oct): a move as good as holding, within PLAY_TIE, is played, never put off.
         if (v > choice.value - (choice.play ? -1e-9 : PLAY_TIE)) choice ={ value: v, to: leg.to, play: k, clear, next, settles, lineups: ranked.slice(0, k), list: leg.list };
       }
@@ -206,6 +220,7 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
   const startBest = start.best ?? start.step - 1;
   // Chance to clear each step by the last known game: every path of the plan, weighted.
   const odds: Record<number, number> = {};
+  let tops = 0;
   const at = Array.from({ length: W + 1 }, () => new Map<string, { n: number; lives: number; best: number; p: number }>());
   const add = (i: number, n: number, lives: number, best: number, p: number) => {
     const slot = at[Math.min(i, W)]!;
@@ -215,9 +230,10 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
   add(0, start.step, start.lives, startBest, 1);
   for (let i = 0; i < W; i++) {
     for (const s of at[i]!.values()) {
-      const c = s.n > top ? null : value(i, s.n, s.lives, s.best);
-      if (!c || !c.play) { add(i + 1, s.n, s.lives, s.best, s.p); continue; }
-      add(c.next, s.n + 1, fresh(s.n + 1), Math.max(s.best, s.n), s.p * c.clear);
+      const c = value(i, s.n, s.lives);
+      if (!c.play) { add(i + 1, s.n, s.lives, s.best, s.p); continue; }
+      if (s.n >= top) tops += s.p * c.clear;
+      add(c.next, up(s.n), upLives(s.n), Math.max(s.best, s.n), s.p * c.clear);
       if (s.lives - c.play > 0) add(c.next, s.n, s.lives - c.play, s.best, s.p * (1 - c.clear));
       else add(c.next, 1, LIVES, s.best, s.p * (1 - c.clear));
     }
@@ -225,12 +241,12 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
   for (const s of at[W]!.values()) for (let n = 1; n <= s.best; n++) odds[n] = (odds[n] ?? 0) + s.p;
 
   const outcome = (m: Pick<Move, "step" | "lives" | "best" | "play">, cleared: boolean) =>
-    cleared ? { n: m.step + 1, lives: fresh(m.step + 1), best: Math.max(m.best, m.step) }
+    cleared ? { n: up(m.step), lives: upLives(m.step), best: Math.max(m.best, m.step) }
       : m.lives - m.play > 0 ? { n: m.step, lives: m.lives - m.play, best: m.best } : { n: 1, lives: LIVES, best: m.best };
   const walk = (from: number, n: number, lives: number, best: number): Move[] => {
     const out: Move[] = [];
-    for (let i = from; i < W && n <= top && out.length < 24;) {
-      const c = value(i, n, lives, best);
+    for (let i = from; i < W && out.length < 24;) {
+      const c = value(i, n, lives);
       if (!c.play) { i += 1; continue; }
       out.push({ from: i, to: c.to, at: windows[i]!.at, step: n, lives, best, play: c.play, clear: c.clear, settles: c.settles, lineups: c.lineups, list: c.list });
       ({ n, lives, best } = outcome({ step: n, lives, best, play: c.play }, c.clear >= 0.5));
@@ -240,8 +256,8 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
   };
 
   // Now against holding one window: what each is worth, and what the hold waits for.
-  const first = W ? value(0, start.step, start.lives, startBest) : null;
-  const held = W ? value(1, start.step, start.lives, startBest) : null;
+  const first = W ? value(0, start.step, start.lives) : null;
+  const held = W ? value(1, start.step, start.lives) : null;
   // "Now" is the next window's own games: a lineup reaching into later windows is not playing now.
   const own = W ? legsFrom(0).find((l) => l.to === 0) ?? null : null;
   const chanceNow = own ? Math.max(0, ...own.lineups.map((q) => quickChance(q, target(start.step)))) : null;
@@ -249,9 +265,9 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
   let skipped = 0;
   if (first && !first.play) {
     let i = 1;
-    while (i < W && !value(i, start.step, start.lives, startBest).play) i++;
+    while (i < W && !value(i, start.step, start.lives).play) i++;
     if (i < W) {
-      const c = value(i, start.step, start.lives, startBest);
+      const c = value(i, start.step, start.lives);
       waitFor = { at: windows[i]!.at, chance: Math.max(...c.lineups.map((q) => quickChance(q, target(start.step)))) };
       skipped = i;
     }
@@ -261,10 +277,10 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     const q = [...own.lineups].sort((a, b) => quickChance(b, target(start.step)) - quickChance(a, target(start.step)))[0]!;
     const clear = quickChance(q, target(start.step));
     const next = firstAfter(q.last + SETTLES_AFTER_MS, 1);
-    const up = value(next, start.step + 1, fresh(start.step + 1), Math.max(startBest, start.step)).value;
-    const down = start.lives > 1 ? value(next, start.step, start.lives - 1, startBest).value : value(next, 1, LIVES, startBest).value;
-    return Math.max(clear * up + (1 - clear) * down, first?.play && first.to === 0 ? first.value : 0);
-  })() : startBest;
+    const won = pay(start.step) + value(next, up(start.step), upLives(start.step)).value;
+    const lost = start.lives > 1 ? value(next, start.step, start.lives - 1).value : value(next, 1, LIVES).value;
+    return Math.max(clear * won + (1 - clear) * lost, first?.play && first.to === 0 ? first.value : 0);
+  })() : 0;
   const kind: Verdict["kind"] = !first ? "none" : !first.play ? (waitFor ? "wait" : "none")
     : first.play >= start.lives && first.clear < 0.5 && start.step > 1 ? "spend" : "play";
 
@@ -272,8 +288,9 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     windows,
     path: W ? walk(0, start.step, start.lives, startBest) : [],
     odds,
-    expected: first?.value ?? startBest,
-    verdict: { kind, now: nowValue, wait: held?.value ?? startBest, chanceNow, waitFor, skipped },
+    expected: first?.value ?? 0,
+    tops,
+    verdict: { kind, now: nowValue, wait: held?.value ?? 0, chanceNow, waitFor, skipped },
     after: (move, cleared) => { const next = outcome(move, cleared); return walk(firstAfter(move.settles, move.from + 1), next.n, next.lives, next.best); },
   };
 }

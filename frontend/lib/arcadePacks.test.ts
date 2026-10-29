@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArcadeGame } from "./arcade";
-import { ICON, packRow, packsToFinish, parseTierOdds, spendGems, STAR_OR_BETTER, type Goal, type SlotOdds } from "./arcadePacks";
+import { ICON, missionGoal, packRow, packsToFinish, parseTierOdds, spendGems, STAR_OR_BETTER, type Goal, type SlotOdds } from "./arcadePacks";
 import type { Outlook } from "./arcadePlan";
 import { clubsToBuildAround, signalOf } from "./arcadeTeams";
 
@@ -42,6 +42,16 @@ describe("pack maths", () => {
     const lille: Goal = { label: "Lille", need: 1, distinct: true, teams: new Set(["lille"]), owned: new Set() };
     expect(packRow(gold, [slot, slot], lille).expected).toBeCloseTo(1 - 0.55 ** 2);
     expect(packRow(gold, [slot, slot], { ...lille, owned: new Set(["y"]) }).expected).toBe(0);
+  });
+
+  it("a club or league mission never counts a duplicate, or a special edition of a player you own", () => {
+    const m = { title: "Ligue 1 collector", target: 3, progress: 1, players: [], teams: [], leagues: ["ligue-1-fr"] };
+    const owned = new Set(["x", "y"]); // his Lens and Lille cards (any edition)
+    const byPack = missionGoal(m, "ligue-1-fr", owned, new Map());
+    expect(byPack).toMatchObject({ need: 2, distinct: true });
+    expect(packRow(gold, [slot], byPack).expected).toBeCloseTo(0.1); // only the Icon and the Star are new
+    const byClub = missionGoal({ ...m, leagues: [], teams: [{ slug: "lens" }] }, null, owned, new Map());
+    expect(packRow(gold, [slot], byClub).expected).toBe(0);
   });
 
   it("works out how many packs a mission needs, the same every time", () => {

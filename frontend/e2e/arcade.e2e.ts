@@ -15,7 +15,7 @@ const SQUAD = [
 /** Arcade reads everything from the extension; a stub answers as Sorare would (shapes from lib/arcade.test.ts). */
 const ANSWERS: Record<string, unknown> = {
   arcade: {
-    cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: null, endDate: new Date(Date.now() + 7 * 86_400_000).toISOString(), availableCompetitions: [] } }, // a week ahead: a set that ended hides the kept board
+    cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: null, endDate: new Date(Date.now() + 7 * 86_400_000).toISOString(), availableCompetitions: [] } }, // a week ahead: the set is running
     currentUser: {
       slug: "owner",
       gems: [{ currency: "COMMON_GEM", amount: 40 }],
@@ -241,7 +241,7 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
   await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play now");
-  await expect(move.locator(".arc-move-why")).toContainText("steps by the end on average");
+  await expect(move.locator(".arc-move-why")).toContainText("won by the end on average");
   await expect(move.locator(".arc-lineup li")).toHaveCount(5); // the five to enter
   await expect(move).toContainText("Enter before");
   await expect(move).toContainText("Settles about");
@@ -288,10 +288,11 @@ test("Gems and packs: what your gems buy for an Icon, new players or a collectio
   await gems.getByRole("group", { name: "What to buy for" }).getByRole("button", { name: "New players" }).click();
   await gems.getByRole("group", { name: "Pack type" }).getByRole("button", { name: "All (2)" }).click();
   await expect(gems.locator(".arc-packs-list li").first()).toContainText("Silver");
-  // The collection mission: two Club cards; every Silver gives one, so two packs finish it.
+  // The collection mission: two Club cards. The packs hold one Club player you do not have ("new"); a second "new" is a duplicate and
+  // counts for nothing, so no number of packs finishes it.
   await gems.getByRole("group", { name: "What to buy for" }).getByRole("button", { name: /Club collector/ }).click();
-  await expect(gems.locator(".arc-gems-answer")).toContainText("half the time in 2 packs");
-  await expect(gems.locator(".arc-gems-answer")).toContainText("Counts every card of its clubs or league");
+  await expect(gems.locator(".arc-gems-answer")).toContainText("half the time in 200+ packs");
+  await expect(gems.locator(".arc-gems-answer")).toContainText("duplicates and special editions of a player you own count for nothing");
 });
 
 test("a lineup on Sorare that cannot reach its target says it is dead, and cut losses when its cards help the next lineup more", async ({ page }) => {

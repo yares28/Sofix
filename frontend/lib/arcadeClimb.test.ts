@@ -10,7 +10,9 @@ const squad = (g: ArcadeGame, prefix: string, score: number, start: number | nul
   card: { slug: `${prefix}${i}-card`, player: `${prefix}${i}`, name: `${prefix}${i}`, team: "H", teamSlug: `${g.id}-h`, teamPicture: null, league: null, positions, picture: null, edition: null, bonus: 1 },
   game: g, score, scoreSource: "sorare", start, startSource: start === null ? null : "sorare", past: [0.8, 0.9, 1, 1.1, 1.2].map((x) => x * score), bonus: 0, club: 0,
 }));
-const steps = [1, 2, 3, 4, 5].map((number) => ({ number, target: 250 + number * 40, lives: 4, big: false }));
+/** Like his board: the last two steps pay cash (€100, then €1,000), the others essence or gems. */
+const CASH = [0, 0, 0, 100, 1000];
+const steps = [1, 2, 3, 4, 5].map((number) => ({ number, target: 250 + number * 40, lives: 4, big: false, cash: CASH[number - 1] }));
 const NOW = Date.parse("2026-10-31T08:00:00Z");
 const from = (step: number, lives = 4, best?: number) => ({ step, lives, notBefore: null, held: [], best });
 
@@ -33,7 +35,7 @@ describe("the window planner", () => {
 
   it("waits for a clearly better window soon, and says which", () => {
     const list = [...squad(game("A", "2026-10-31T11:00:00Z"), "a", 55), ...squad(game("B", "2026-11-01T17:30:00Z"), "b", 85)];
-    const plan = climbWindows(list, steps, from(3, 1, 2), 0.5, NOW);
+    const plan = climbWindows(list, steps, from(4, 1, 3), 0.5, NOW); // step 4 pays €100
     expect(plan.verdict.kind).toBe("wait");
     expect(plan.verdict.waitFor?.at).toBe(Date.parse("2026-11-01T17:30:00Z"));
     expect(plan.verdict.waitFor!.chance).toBeGreaterThan(plan.verdict.chanceNow!);
@@ -51,7 +53,7 @@ describe("the window planner", () => {
   });
 
   it("spends a hard step's last life at once when the steps below are quick: back with 4 fresh lives sooner beats one held try", () => {
-    const easyBelow = [200, 220, 240, 260, 425].map((target, i) => ({ number: i + 1, target, lives: 4, big: false }));
+    const easyBelow = [200, 220, 240, 260, 425].map((target, i) => ({ number: i + 1, target, lives: 4, big: false, cash: CASH[i] }));
     const days = ["2026-10-31", "2026-11-01", "2026-11-02", "2026-11-03"].flatMap((d, i) => [
       ...squad(game(`M${i}`, `${d}T11:00:00Z`), `m${i}`, 75), ...squad(game(`A${i}`, `${d}T14:30:00Z`), `a${i}`, 75), ...squad(game(`E${i}`, `${d}T18:00:00Z`), `e${i}`, 75),
     ]);
@@ -90,5 +92,15 @@ describe("the window planner", () => {
     const g = game("A", "2026-10-31T11:00:00Z");
     const plan = climbWindows(squad(g, "a", 70), steps, { ...from(1), held: [{ card: "a0-card", until: Date.parse("2026-10-31T13:00:00Z") }] }, 0.5, NOW);
     expect(plan.path).toEqual([]); // the only goalkeeper is busy
+  });
+
+  it("pays every clear again: reaching the top (€1,000) starts the climb from step 1, and the plan keeps climbing", () => {
+    const easy = [1, 2, 3, 4, 5].map((number) => ({ number, target: 200, lives: 4, big: false, cash: CASH[number - 1] }));
+    const hours = ["08", "11", "14", "17", "20"];
+    const list = ["2026-10-31", "2026-11-01"].flatMap((d, i) => hours.map((h) => squad(game(`G${i}${h}`, `${d}T${h}:00:00Z`), `g${i}${h}`, 80)).flat());
+    const plan = climbWindows(list, easy, from(1), 0.5, NOW);
+    expect(plan.path.map((m) => m.step)).toEqual([1, 2, 3, 4, 5, 1, 2, 3, 4, 5]);
+    expect(plan.tops).toBeGreaterThan(1.5);
+    expect(plan.expected).toBeGreaterThan(2000); // two climbs: €1,100 each
   });
 });

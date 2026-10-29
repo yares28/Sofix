@@ -790,10 +790,12 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   5 minutes after its last game; a clear opens the next step at once, so one day's kick-off windows (14:00, 16:15, 18:30, 21:00) can climb
   several steps. Lineups entered together on one step are insurance only: when one clears, Sorare cancels the others (21 Oct: a 371.76 that
   would have cleared step 3 was cancelled after a 313.93 cleared step 2). A miss costs a life; the last one sends you back to step 1.
+  Every clear pays its reward again, and the last step pays €1,000 each time it is reached, then the climb starts again from step 1.
 - **Your move**: **Play now**, **Wait for** a named window, or **Spend** a hard step's last lives so the climb restarts sooner, and why:
-  the steps you clear by the end on average playing now against holding one window (a near tie is played: speed first). Below, the
+  the money you win by the end on average playing now against holding one window (a near tie is played: speed first; essence and
+  gems only break ties, never converted to euros). Below, the
   lineup to enter (more than one when insurance pays), its chance, when to enter and when it settles, and **Edit in Pick teams**.
-  Beside it, every step's chance to be cleared by the last game Sorare lists. A card with no start % counts as starting, is never
+  Beside it, every step's chance to be cleared at least once by the last game Sorare lists, and how often the top is reached. A card with no start % counts as starting, is never
   captain while another has one, and a card with under 3 played games gets the usual spread (a third of his score) instead of a sure number.
 - **The chain**: the next moves window by window, each settling before the next starts; a tap shows that move's lineup and opens
   **If it clears** / **If it misses** (back to the likely plan with one tap).
@@ -810,9 +812,10 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
 - **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (the **Refresh start percentages** icon) and saved, so the
   newest saved reading shows on any visit. Your cards are kept in this browser and read again only when Sorare's count changes (a pack
   opened). The page opens on your last read board, dated, while Sorare is asked what changed; if Sorare cannot be read, it stays and says why.
+  Between two sets it still shows that board, marked ended, until Sorare opens the next one.
 - **Your cards** shows 12 larger cards per page. FDR (0–100, lower is easier) and xScore sit at the upper right; the edition bonus sits at the lower right. Below: start %, fixture crests and xD (expected decisives). Click a fixture's crests to show its ratings. Search, league, position, edition, start % and FDR filters combine; filters and sorting refer to the next fixture and start a new first page. Unknown stays a dash; zero stays zero. xD is the fixture’s expected decisive contribution, including starter and substitute chances; it is a decimal, separate from conditional mission odds. It stays unknown until a fixture forecast is published.
 - The icon toolbar beneath your wallet refreshes the **board and cards**, **start percentages** and **scores**. Hover or focus identifies each action; the information icon opens start-percentage coverage and read details. A failed read keeps the last successful data and explains the failure. Older extensions retain the named start-read fallback that opens Sorare's page.
-- **Gems and packs**: choose **Icon**, **Star or better**, **New players** or one of your collection missions, then **Read the odds**: Sorare's published odds for every slot of every pack give each pack's chance of at least one (1 − Π(1 − slot chance)), the average, and the gems per hit; your gems go to the pack with the most chance per gem first, and a mission says how many packs finish it half the time and 9 times in 10 (extension 0.4.18). **Bronze / Silver / Gold / Special** filter the table. **Today's missions** keeps your selection beside five alternatives, ranked by the shared L5/L10/L20/L40 history window. Decisive odds use the conditional fixture model where available, otherwise starter history; start % is shown separately and never discounts those odds. Saved pre-game forecasts remain frozen.
+- **Gems and packs**: choose **Icon**, **Star or better**, **New players** or one of your collection missions, then **Read the odds**: Sorare's published odds for every slot of every pack give each pack's chance of at least one (1 − Π(1 − slot chance)), the average, and the gems per hit; your gems go to the pack with the most chance per gem first, and a mission says how many packs finish it half the time and 9 times in 10 (extension 0.4.18). **Bronze / Silver / Gold / Special** filter the table. **Today's missions** keeps your selection beside five alternatives, ranked by the shared L5/L10/L20/L40 history window. Decisive odds use the conditional fixture model where available, otherwise starter history; start % is shown separately and never discounts those odds. Saved pre-game forecasts remain frozen. A collection mission counts each player you do not have once: a duplicate, or a special edition of a player you own, counts for nothing.
 
 ## 10. Players
 

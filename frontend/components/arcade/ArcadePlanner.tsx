@@ -6,7 +6,7 @@ import { climbWindows, type Climb, type Move } from "../../lib/arcadeClimb";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrChip, FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
-import { bestLineup, bigReward, chanceOf, likelyRange, madridDate, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
+import { bestLineup, bigReward, cashOf, chanceOf, likelyRange, madridDate, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
@@ -18,7 +18,8 @@ const iso = (ms: number) => new Date(ms).toISOString();
 const weekday = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { timeZone: "Europe/Madrid", weekday: "short" });
 /** "Sat 16:15", or "16:15" when it is today. */
 const when = (ms: number, now: number) => (madridDate(iso(ms)) === madridDate(iso(now)) ? madridTime(iso(ms)) : `${weekday(ms)} ${madridTime(iso(ms))}`);
-const steps1 = (x: number) => x.toFixed(2);
+/** Expected money won by the set's end, to the euro. */
+const eur = (x: number) => `€${Math.round(x).toLocaleString("en-GB")}`;
 /** A settle time beside a kick-off: the time, with the day when it is another day. */
 const settleLabel = (settles: number, at: number) => (madridDate(iso(settles)) === madridDate(iso(at)) ? madridTime(iso(settles)) : `${weekday(settles)} ${madridTime(iso(settles))}`);
 
@@ -226,7 +227,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
 
 /** Each step's target, lives left (Sorare's count for a started step, else the full 4) and whether its reward is big. */
 function stepInfos(arcade: Arcade): StepInfo[] {
-  return (arcade.board?.steps ?? []).map((s) => ({ number: s.number, target: s.target, lives: s.lineups?.remaining ?? s.lineups?.max ?? 4, big: bigReward(s.rewards) }));
+  return (arcade.board?.steps ?? []).map((s) => ({ number: s.number, target: s.target, lives: s.lineups?.remaining ?? s.lineups?.max ?? 4, big: bigReward(s.rewards), cash: cashOf(s.rewards) }));
 }
 
 /** A lineup on Sorare still waiting or playing: not cancelled, not a draft, a card not locked yet or a game live. */
@@ -289,12 +290,11 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
   const clear = lineups.length ? 1 - lineups.reduce((m, l) => m * (1 - chanceOf(l.totals, target(move!.step))), 1) : move?.clear ?? 0;
   const title = v.kind === "wait" && v.waitFor ? `Wait for ${when(v.waitFor.at, now)}` : v.kind === "spend" && move ? (move.play === 1 ? "Spend your last life now" : `Spend all ${move.play} lives now`) : VERB[v.kind];
   const why = v.kind === "play" ? (v.now - v.wait < 0.01
-      ? `Holding gains nothing (${steps1(v.now)} steps cleared by the end on average either way), and every window you skip is a try lost.`
-      : `Playing now you clear ${steps1(v.now)} steps by the end on average; holding the next window, ${steps1(v.wait)}. Every window you skip is a try lost.`)
-    : v.kind === "wait" && v.waitFor ? `${when(v.waitFor.at, now)}'s games give ${pct(v.waitFor.chance)} against ${v.chanceNow === null ? "nothing" : pct(v.chanceNow)} now. Worth the ${v.skipped} window${v.skipped === 1 ? "" : "s"} it costs: ${steps1(v.wait)} steps cleared by the end on average, against ${steps1(v.now)} if you play now.`
-    : v.kind === "spend" && move ? `${pct(clear)} to clear step ${move.step}; if not, you are back on step 1 about ${when(move.settles, now)} and the steps below come back fast: ${steps1(v.now)} steps cleared by the end on average, against ${steps1(v.wait)} if you hold your lives.`
+      ? `Holding gains nothing (${eur(v.now)} won by the end on average either way), and every window you skip is a try lost.`
+      : `Playing now wins ${eur(v.now)} by the end on average; holding the next window, ${eur(v.wait)}. Every window you skip is a try lost.`)
+    : v.kind === "wait" && v.waitFor ? `${when(v.waitFor.at, now)}'s games give ${pct(v.waitFor.chance)} against ${v.chanceNow === null ? "nothing" : pct(v.chanceNow)} now. Worth the ${v.skipped} window${v.skipped === 1 ? "" : "s"} it costs: ${eur(v.wait)} won by the end on average, against ${eur(v.now)} if you play now.`
+    : v.kind === "spend" && move ? `${pct(clear)} to clear step ${move.step}; if not, you are back on step 1 about ${when(move.settles, now)} and the steps below come back fast: ${eur(v.now)} won by the end on average, against ${eur(v.wait)} if you hold your lives.`
     : "Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).";
-  const top = boardSteps.at(-1)?.number ?? 6;
   return (
     <section className={`arc-move is-${v.kind}`} aria-labelledby="arc-move-title">
       <div className="arc-move-main">
@@ -306,10 +306,10 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
         <h2 id="arc-move-title" className="arc-move-verdict">{title}</h2>
         <p className="arc-move-why">{why}</p>
         {waitingNote ? <p className="arc-warn">{waitingNote}</p> : null}
-        <div className="arc-move-compare" role="img" aria-label={`Steps cleared by the end on average: ${steps1(v.now)} playing now, ${steps1(v.wait)} holding a window`}>
+        <div className="arc-move-compare" role="img" aria-label={`Won by the end on average: ${eur(v.now)} playing now, ${eur(v.wait)} holding a window`}>
           {[["Play now", v.now], ["Hold a window", v.wait]].map(([label, value]) => (
             <span key={label as string} className={(v.kind === "wait") === (label === "Hold a window") ? "is-pick" : undefined}>
-              <small>{label}</small><span className="arc-move-bar"><span style={{ width: `${Math.min(100, ((value as number) / top) * 100)}%` }} /></span><b>{steps1(value as number)}</b>
+              <small>{label}</small><span className="arc-move-bar"><span style={{ width: `${Math.min(100, ((value as number) / Math.max(v.now, v.wait, 1)) * 100)}%` }} /></span><b>{eur(value as number)}</b>
             </span>
           ))}
         </div>
@@ -334,14 +334,14 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
           </div>
         ) : null}
       </div>
-      <ol className="arc-ladder" aria-label="Your board: chance to clear each step by the last game Sorare lists">
+      <ol className="arc-ladder" aria-label="Your board: chance to clear each step at least once by the last game Sorare lists; every clear pays again">
         {[...boardSteps].reverse().map((s) => {
           const done = s.number < current || s.state === "CLAIMED" || s.state === "CLAIMABLE";
           const odds = plan.odds[s.number] ?? 0;
           return (
             <li key={s.id} className={`${s.number === current ? "is-current" : ""}${done ? " is-done" : ""}`} aria-current={s.number === current ? "step" : undefined}>
               <span className="arc-ladder-n">{done ? "✓" : s.number}</span>
-              <span className="arc-ladder-t"><b>{s.target}</b><small>{s.rewards.join(" + ") || "no reward"}</small></span>
+              <span className="arc-ladder-t"><b>{s.target}</b><small>{s.rewards.join(" + ") || "no reward"}{s.number === boardSteps.at(-1)?.number && plan.tops > 0.05 ? ` · ${plan.tops.toFixed(1)}× by the end` : ""}</small></span>
               <span className="arc-ladder-odds" style={{ "--p": done ? 1 : odds } as CSSProperties}><b>{done ? "✓" : pct(odds)}</b></span>
             </li>
           );

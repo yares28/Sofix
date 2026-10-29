@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bonusLabel, chanceOf, gamesOf, keptCards, newerChances, parseArcade, parseGames, rewardLabel, usableArcade, type Arcade } from "./arcade";
+import { bonusLabel, chanceOf, gamesOf, keptCards, newerChances, parseArcade, parseGames, rewardLabel, setEnded, usableArcade, type Arcade } from "./arcade";
 
 const main = {
   cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: "2026-09-08T08:30:00Z", endDate: "2026-10-27T16:00:00Z", availableCompetitions: [{ slug: "laliga-es", displayName: "LALIGA EA Sports" }] } },
@@ -128,11 +128,12 @@ describe("cards kept between visits", () => {
     expect(keptCards(null, "yares", page(3, ["a", "b", "c"]))).toBeNull();
   });
 
-  it("shows the last read board on the next visit until its set ends", () => {
+  it("shows the last read board on the next visit, also after its set ended (marked ended), so the page is never empty between sets", () => {
     const arcade = { set: { end: "2026-10-27T16:00:00Z" } } as unknown as Arcade;
     const kept = { at: Date.parse("2026-10-21T20:00:00Z"), arcade, unread: [] };
-    expect(usableArcade(kept, Date.parse("2026-10-22T09:00:00Z"))).toBe(kept);
-    expect(usableArcade(kept, Date.parse("2026-10-28T09:00:00Z"))).toBeNull();
+    expect(usableArcade(kept)).toBe(kept);
+    expect(setEnded(arcade, Date.parse("2026-10-22T09:00:00Z"))).toBe(false);
+    expect(setEnded(arcade, Date.parse("2026-10-28T09:00:00Z"))).toBe(true);
     expect(usableArcade(null)).toBeNull();
   });
 

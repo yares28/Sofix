@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, loadArcadeChances, newerChances, outlookOf, readArcade, readArcadeBench, readArcadeExtras, walkArcade,
+  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, loadArcadeChances, newerChances, outlookOf, readArcade, setEnded, readArcadeBench, readArcadeExtras, walkArcade,
   type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
 } from "../../lib/arcade";
 import type { Outlook } from "../../lib/arcadePlan";
@@ -113,7 +113,7 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
   return (
     <FdrContext.Provider value={boards}>
       <header className="arc-hero">
-        <p className="arc-kicker">{arcade.set.name} · ends {madrid(arcade.set.end)}</p>
+        <p className="arc-kicker">{arcade.set.name} · {setEnded(arcade) ? "ended" : "ends"} {madrid(arcade.set.end)}</p>
         <div className="arc-hero-top">
           <h1>{current === null ? "No step started" : `Step ${current}`}{arcade.board ? ` of ${arcade.board.steps.length}` : ""}{step && current !== null ? <span> · {step.target.toLocaleString("en-GB")} pts</span> : null}</h1>
           <dl className="arc-wallet">
@@ -199,17 +199,22 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
     void load();
   }, [load]); // once per visit; never on focus or on a timer
   const at = board?.at != null ? madrid(new Date(board.at).toISOString()) : null;
+  const ended = board ? setEnded(board.arcade) : false;
 
   return (
     <main className="arc-main" aria-busy={busy}>
       {board ? (
         <>
-          {at ? (
+          {ended ? (
+            <p className="arc-note" role="status">
+              {board.arcade.set.name} has ended: your last board{at ? `, as read ${at}` : ""}. {read === null ? "Asking Sorare for the next set…" : read.state === "no-set" ? "The next set shows here as soon as Sorare opens it." : read.state === "ok" ? null : whyNot(read)}
+            </p>
+          ) : at ? (
             <p className="arc-note" role="status">
               {read === null || read.state === "ok" ? `Your board as read ${at}; asking Sorare for what changed…` : `Your board as read ${at}. ${whyNot(read)}`}
             </p>
           ) : null}
-          {!at && read && read.state !== "ok" ? <p className="arc-note" role="status">{whyNot(read)} Showing the last successful read.</p> : null}
+          {!ended && !at && read && read.state !== "ok" ? <p className="arc-note" role="status">{whyNot(read)} Showing the last successful read.</p> : null}
           <Loaded arcade={board.arcade} unread={board.unread} laliga={laliga} fdr={fdr} onReload={() => void load()} busy={busy} />
         </>
       ) : (

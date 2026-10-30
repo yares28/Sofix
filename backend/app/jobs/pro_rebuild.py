@@ -169,6 +169,8 @@ def read(db: Session, slug: str, rank: int) -> tuple[list[Any], list[Any], list[
 
 def main(argv: list[str]) -> int:
     configure_logging()
+    if not settings.sorare_user.strip():
+        raise ValueError("Set the SORARE_USER repository variable before rebuilding this installation's Pro lineups.")
     slug, rank = argv[0], int(argv[1])
     starters = {x for x in argv[2].split(",") if x}
     bench = {x for x in argv[3].split(",") if x} - starters

@@ -20,6 +20,6 @@
     { "matches": ["https://sorare.com/*"], "js": ["core.js", "content.js", "overlay.js", "dock.js"], "run_at": "document_idle" }
   ],
   "externally_connectable": {
-    "matches": ["__APP_ORIGIN__/*", "https://sofix-livid.vercel.app/*", "http://localhost/*", "http://127.0.0.1/*"]
+    "matches": ["__APP_ORIGIN__/*", "http://localhost/*", "http://127.0.0.1/*"]
   }
 }

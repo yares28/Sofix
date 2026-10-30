@@ -1,5 +1,9 @@
 # Performance audit and ten-account capacity
 
+**Superseded 30 October:** the owner now wants two independent single-user installations, each with its own
+Vercel/Neon/R2 and a configured Sorare username. Follow [the current plan](independent-installs-performance.md).
+The original measurements below remain evidence; shared ten-account authentication/storage work is no longer scope.
+
 Requested 29 October 2026. The target is **ten separate Sorare accounts**, confirmed by the owner, with stable,
 responsive use. Ten people viewing the existing owner's board is not acceptance of this requirement.
 

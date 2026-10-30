@@ -387,6 +387,9 @@ def run(
     if not settings.sorare_api_key:
         logger.info("sorare: no API key, step skipped")
         return {"skipped": "no SORARE_API_KEY"}
+    user = (user or settings.sorare_user).strip()
+    if not user:
+        raise ValueError("Set the SORARE_USER repository variable to this installation's Sorare username.")
     started = datetime.now(UTC)
     laps = Laps()  # where the step's time goes, part by part, kept in the run's summary
     references = cached_references(db)
@@ -477,7 +480,7 @@ def run(
         )
         snapshot = sorare_sync.snapshot(
             client,
-            user or settings.sorare_user,
+            user,
             started,
             cached_references=references,
             replayed=replayed,

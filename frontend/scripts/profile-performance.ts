@@ -5,6 +5,7 @@ import { gzipSync } from "node:zlib";
 import { standings } from "../lib/standings";
 import type { FixtureGrid } from "../lib/types";
 import { seasonProgression } from "../lib/progression";
+import { tableRows } from "../lib/tableRows";
 
 const probes: unknown[] = [];
 const record = (value: unknown) => { probes.push(value); console.log(JSON.stringify(value)); };
@@ -15,6 +16,9 @@ for (const mode of ["actual", "expected", "predicted"] as const) {
   standings(grid, { mode });
   record({ probe: "standings", mode, simulations: 5000, teams: grid.teams.length, gameweeks: grid.matchdays.length, ms: +(performance.now() - start).toFixed(1) });
 }
+const actualStart = performance.now();
+tableRows(grid, { mode: "actual" });
+record({ probe: "actual-table-display", simulations: 0, ms: +(performance.now() - actualStart).toFixed(1) });
 const chartStart = performance.now();
 seasonProgression(grid);
 record({ probe: "season-chart", simulations: 400, ms: +(performance.now() - chartStart).toFixed(1) });

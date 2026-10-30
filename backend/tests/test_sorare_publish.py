@@ -765,9 +765,16 @@ class _FakeClient:
 
 
 def test_a_dry_run_writes_nothing(db, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(sorare_job.settings, "sorare_user", "second-manager")
     monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
     monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _FakeClient())
-    monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snapshot())
+    managers = []
+
+    def read_manager(_client, manager, *args, **kwargs):
+        managers.append(manager)
+        return {**snapshot(), "user": manager}
+
+    monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", read_manager)
     monkeypatch.setattr(
         sorare_job.sorare_publish,
         "build_payload",
@@ -779,6 +786,7 @@ def test_a_dry_run_writes_nothing(db, monkeypatch):  # noqa: F811
     summary = sorare_job.run(db, dry_run=True)
 
     assert summary["dryRun"] is True
+    assert managers == ["second-manager"]
     assert db.get(ReadModel, sorare_job.SORARE_KEY) is None
 
 

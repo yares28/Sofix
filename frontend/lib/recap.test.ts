@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as table from "./table";
 import recorded from "../e2e/fixtures/grid-response.json";
 import { bestCards, daysSince, lockText, planRows, roundBoard, tableAfter, weekNews } from "./recap";
 import type { Lineup, Plan, PlayerGame, PlayingPlayer } from "./play";
@@ -22,6 +23,14 @@ describe("bestCards", () => {
 });
 
 describe("roundBoard and tableAfter", () => {
+  it("prepares the points-only round table without simulating unused finish probabilities", () => {
+    const expected = table.predictedTable(grid, { through: col(8) }).map(row => [row.team.code, row.position, row.points, row.projectedPoints, row.currentPosition - row.position]);
+    const predict = vi.spyOn(table, "predictedTable");
+    const shown = tableAfter(grid, col(8));
+    expect(predict.mock.calls[0]?.[1]).toMatchObject({ through: col(8), simulations: 0 });
+    expect(shown.map(row => [row.team.code, row.position, row.now, row.after, row.moved])).toEqual(expected);
+    predict.mockRestore();
+  });
   it("keeps each selected-round fixture's backend FDR, including doubles and missing predictions", () => {
     const changed = structuredClone(grid), column = col(8), team = changed.teams[0]!;
     const game = team.cells[column]![0]!;

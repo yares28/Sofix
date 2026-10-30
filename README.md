@@ -8,6 +8,8 @@ white, installable web app.
 
 Start here:
 
+- [Install your own copy](docs/independent-install.md) — your services, one Sorare username and your own cards.
+
 - [Illustrated user manual](docs/user_manual.md) — every page, control and extension action.
 - [Whole-app research and audit](docs/research_report.md) — current implementation, evidence and every material
   inconsistency found during the 2026-09-27 review.

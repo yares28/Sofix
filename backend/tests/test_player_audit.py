@@ -104,6 +104,8 @@ def test_idle_score_job_publishes_full_gw_scores_at_the_boundary_without_a_sourc
 
     from app.jobs import score_checks as job
 
+    monkeypatch.setattr(job.settings, "sorare_user", "fixture-manager")
+
     keep(db)
     before = END + timedelta(hours=23)
     audit.publish(db, before)
@@ -342,6 +344,8 @@ def test_release_republishes_already_saved_starts_on_an_idle_job_before_gw_end(d
     from contextlib import nullcontext
 
     from app.jobs import score_checks as job
+
+    monkeypatch.setattr(job.settings, "sorare_user", "fixture-manager")
 
     keep(db)
     early = LOCK + timedelta(days=1, hours=4)

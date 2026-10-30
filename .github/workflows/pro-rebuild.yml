@@ -40,7 +40,7 @@ jobs:
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
-      SORARE_USER: ${{ vars.SORARE_USER || 'yares' }}
+      SORARE_USER: ${{ vars.SORARE_USER }}
       APP_URL: ${{ secrets.APP_URL }}
       REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
       VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}

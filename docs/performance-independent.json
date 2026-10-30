@@ -1,0 +1,39 @@
+{
+  "measuredAt": "2026-10-30T00:25:36.650Z",
+  "probes": [
+    {
+      "probe": "standings",
+      "mode": "actual",
+      "simulations": 5000,
+      "teams": 20,
+      "gameweeks": 38,
+      "ms": 61.4
+    },
+    {
+      "probe": "standings",
+      "mode": "expected",
+      "simulations": 5000,
+      "teams": 20,
+      "gameweeks": 38,
+      "ms": 68.6
+    },
+    {
+      "probe": "standings",
+      "mode": "predicted",
+      "simulations": 5000,
+      "teams": 20,
+      "gameweeks": 38,
+      "ms": 15.6
+    },
+    {
+      "probe": "actual-table-display",
+      "simulations": 0,
+      "ms": 0.6
+    },
+    {
+      "probe": "season-chart",
+      "simulations": 400,
+      "ms": 35.9
+    }
+  ]
+}

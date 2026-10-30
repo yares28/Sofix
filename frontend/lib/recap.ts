@@ -94,7 +94,7 @@ export type AfterRow = { team: GridTeam; position: number; now: number; after: n
 
 /** The table once this round is played as expected: points now, points after, places gained (+) or lost (-). */
 export function tableAfter(grid: FixtureGrid, column: number): AfterRow[] {
-  return predictedTable(grid, { through: column }).map((row) => ({
+  return predictedTable(grid, { through: column, simulations: 0 }).map((row) => ({
     team: row.team,
     position: row.position,
     now: row.points,

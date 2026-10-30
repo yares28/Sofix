@@ -640,6 +640,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `docs/documentation_audit.md` | [open](../docs/documentation_audit.md) |
 | document (check authority) | `docs/fixture_difficulty.md` | [open](../docs/fixture_difficulty.md) |
 | document (check authority) | `docs/how_it_works.md` | [open](../docs/how_it_works.md) |
+| document (check authority) | `docs/independent-install.md` | [open](../docs/independent-install.md) |
 | document (check authority) | `docs/ligue-1-validation.md` | [open](../docs/ligue-1-validation.md) |
 | document (check authority) | `docs/next_features_plan.md` | [open](../docs/next_features_plan.md) |
 | document (check authority) | `docs/performance-audit.md` | [open](../docs/performance-audit.md) |
@@ -721,6 +722,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/fdr-tuning.md` | [open](../plans/fdr-tuning.md) |
 | document (check authority) | `plans/futbolfantasy.md` | [open](../plans/futbolfantasy.md) |
 | document (check authority) | `plans/home-week-rewards.md` | [open](../plans/home-week-rewards.md) |
+| document (check authority) | `plans/independent-installs-performance.md` | [open](../plans/independent-installs-performance.md) |
 | document (check authority) | `plans/ligue-1-fdr-xscore.md` | [open](../plans/ligue-1-fdr-xscore.md) |
 | document (check authority) | `plans/lineups-and-xscore.md` | [open](../plans/lineups-and-xscore.md) |
 | document (check authority) | `plans/load-from-sorare.md` | [open](../plans/load-from-sorare.md) |
@@ -857,16 +859,16 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-29",
-        "note": "Checked 29 Oct 2026: in-season benches take in-season cards only; Pro teamsheet windows (pro.windows) simulate each Pro lineup on start chances and do not change plan selection, raw forecasts or joint plan rewards; the timeline keeps a live week playing count; currentWeek skips a live Sorare-only week with none of your cards.",
+        "date": "2026-10-30",
+        "note": "Reviewed manager configuration guard and explicit second-manager dry-run regression; lineup selection behavior is unchanged.",
         "files": {
           "backend/app/sorare/publish.py": "6dc754874b994c37298002221197d7b4d437cb85a3ccda1e0466817e6415a96e",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "5369e238cbd25e3713c329f53226f01e4694420266931de4cf87f7b11b239f46",
+          "backend/app/jobs/sorare.py": "4bb26beb538901229489d3ff4b337939a5f898b661683a4faa98edeb5685e3fa",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
-          "backend/tests/test_sorare_publish.py": "87d508ff04619fad551329672be902ae93445556c4bd845ee3e5e5bd59024827"
+          "backend/tests/test_sorare_publish.py": "379c852e39c43e7d694fd8c1635ea837161f1ca09ea15b1b1300134f8c38d7fe"
         }
       }
     },
@@ -979,13 +981,13 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-29",
-        "note": "Checked 29 Oct 2026: in-season benches take in-season cards only; Pro teamsheet windows (pro.windows) simulate each Pro lineup on start chances and do not change plan selection, raw forecasts or joint plan rewards; the timeline keeps a live week playing count; currentWeek skips a live Sorare-only week with none of your cards.",
+        "date": "2026-10-30",
+        "note": "Reviewed publication dry-run regression with an explicit second manager; raw forecasts and published outputs are unchanged.",
         "files": {
           "backend/app/sorare/publish.py": "6dc754874b994c37298002221197d7b4d437cb85a3ccda1e0466817e6415a96e",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
-          "backend/tests/test_sorare_publish.py": "87d508ff04619fad551329672be902ae93445556c4bd845ee3e5e5bd59024827"
+          "backend/tests/test_sorare_publish.py": "379c852e39c43e7d694fd8c1635ea837161f1ca09ea15b1b1300134f8c38d7fe"
         }
       }
     },
@@ -1196,11 +1198,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-28",
-        "note": "Compared source and existing assertions; execution results are recorded separately in the audit. Live workflow not reverified.",
+        "date": "2026-10-30",
+        "note": "Reviewed explicit configured-manager guard before reward reads, score-check workflow variable, and test fixtures with declared managers. Receipt clocks, GW identity, source ordering, retry budgets and settlement rules unchanged. Targeted reward tests and missing-manager no-read regression passed; real second-manager receipts unverified.",
         "files": {
-          "backend/app/sorare/play_rewards.py": "1025196bbb4d025ac8fe3f96b65ebbb6c0e1733df6619372cedad3206f88e7b1",
-          "backend/tests/test_play_rewards.py": "e2e47bf38b317bdadce294c6722f8f6d485132cd33f3604083079c3af4404d58"
+          "backend/app/sorare/play_rewards.py": "ed057ee79b6ffaf85f53d34bc61e468c9a07712a5d4b313dd0b01e409416f47b",
+          "backend/tests/test_play_rewards.py": "987676c1bf7ccb12c33a1dcbacd98d0a9c75280600fc683b5ce06b68c15876ea"
         }
       }
     },
@@ -1462,12 +1464,12 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "schedule-clock-001",
       "status": "implemented",
       "review": {
-        "date": "2026-10-29",
-        "note": "Inspected implementation and available tests; execution receipt recorded separately.",
+        "date": "2026-10-30",
+        "note": "Reviewed only username wiring in refresh.yml; timetable, dispatch timing, duplicate suppression and publication scheduling unchanged. Installation regression checks all four manager-dependent workflows.",
         "files": {
           "clock/src/clock.js": "d1c9ca65b5e06c59a38d9dbacbdce72d3e3bbd2e5faafeb0db581727d297ebca",
           "clock/timetable.json": "86241a108823e509f86904ba9005f21cb0307f369871b6ee1cfccd5960a54eca",
-          ".github/workflows/refresh.yml": "b22a326c2746b078e4520930ceec6d50f87896cd7154deb1fab6bbcdef7cb6fe",
+          ".github/workflows/refresh.yml": "a9f1a744b67cfca0862616b45fa5301c670591a92d4dbbb7e5d4e321a138fb9d",
           "clock/test/clock.test.js": "642c93350966e1b89b1080e6602804e44e3b92a23d3d1070823eda6c36e3184c"
         }
       }
@@ -1502,12 +1504,12 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-29",
-        "note": "Source-inspected boundaries; referenced suites are evidence locations, not a claim of live verification.",
+        "date": "2026-10-30",
+        "note": "Reviewed only explicit fixture-manager setup for idle score-job tests after removing the production username default. Audit computation and boundaries unchanged; focused idle publication regressions passed. No new calibration or live-account claim.",
         "files": {
           "backend/app/sorare/player_audit.py": "3436b64cf197d937aefbd51a213af0e28c396ebab23ff8b883e52091bea89427",
           "backend/app/sorare/audit.py": "d41db332566ac8bfac5d589399fd0c4f106fe09e3f1e5f24081eef4ced9a49b1",
-          "backend/tests/test_player_audit.py": "af8a452ab14847a26158b6aba04a3dcb9f6f88f356bc254ad67ba3129ef5c175"
+          "backend/tests/test_player_audit.py": "2712237e9be35154a26790e59acceaeeb6c921ca0fd1b5990f0f47f7e42f2a63"
         }
       }
     },
@@ -1555,16 +1557,16 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-29",
-        "note": "29 Oct, 0.4.19: SofixArcadeCards asks Sorare for RECENTLY_OWNED_FIRST (schema enum CardSort, checked in the published SDL) so a new set's cards come before older sets under the 40-page cap; no operation added, allowlists unchanged; not yet run on a signed-in session.",
+        "date": "2026-10-30",
+        "note": "Inspected configured app/alias allowlist in worker, manifest and generator; original production alias is no longer implicit in new copies. Explicit aliases retain compatibility. No operation or write-retry change. Worker/configuration tests passed; authenticated second-manager flow remains unverified.",
         "files": {
-          "extension/background.js": "042f4f6de642633a9dea3760b265753a2ae0a21b665345ed0f79370842b3bfc3",
+          "extension/background.js": "941f2c60f04d76a45343af47c0c7ed848f0e1c28e810527fedbfad81a8e99178",
           "extension/bridge.js": "155dc44418686780f07f3e87afc4efdefc19751b23093ad9ce3e1ce2704d3c81",
-          "extension/manifest.template.json": "5206e3270cd2bac42fa9ba7c128088a54e43e5066aabf8b1e27cfaad0879198e",
+          "extension/manifest.template.json": "08088ab1eed285fa57a10b92552ed5cd450f5c236222f81730cb401d267750f3",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "186d7ae03119f8294abf259ac869b22ce36fc446f089373457353e0087a15473",
-          "frontend/lib/extensionBackground.test.ts": "0ef9b2440b0dd0e654543769b30b2095c7031b4cd80a73d70bcbca58376cb9ed"
+          "frontend/lib/extensionBackground.test.ts": "7bbde662efa947e4fdd1c912bec19a0379ba8405defedf3ad36e5601629cf07b"
         }
       }
     },

@@ -423,6 +423,8 @@ def check_week(
 
 
 def run(db: Session, client: SorareClient, now: datetime) -> int:
+    if not settings.sorare_user.strip():
+        raise ValueError("Set the SORARE_USER repository variable before checking this installation's rewards.")
     index = _body(db, CLOCK)
     stamp = _inputs(db)
     if index.get("version") == VERSION and index.get("inputs") == stamp:

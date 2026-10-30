@@ -812,7 +812,7 @@ function fromApp(url) {
   } catch {
     return false;
   }
-  if (page.origin === CONFIG.appUrl || page.origin === "https://sofix-livid.vercel.app") return true;
+  if (page.origin === CONFIG.appUrl || (CONFIG.allowedOrigins ?? []).includes(page.origin)) return true;
   return page.protocol === "http:" && (page.hostname === "localhost" || page.hostname === "127.0.0.1");
 }
 

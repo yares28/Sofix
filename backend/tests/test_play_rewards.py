@@ -1,6 +1,9 @@
 # ruff: noqa: F811
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
+from app.config import settings
 from app.models import ReadModel
 from app.services.publish import put
 from app.sorare import play_rewards
@@ -9,6 +12,12 @@ from tests.test_frozen_scores import keep
 from tests.test_pipeline import db  # noqa: F401
 
 NOW = datetime(2026, 10, 25, 18, tzinfo=UTC)
+
+
+@pytest.fixture(autouse=True)
+def configured_manager(monkeypatch):
+    # Reward fixtures below belong to this explicit test installation; unset setup is tested in test_installation.
+    monkeypatch.setattr(settings, "sorare_user", "yares")
 
 
 def test_reward_receipts_keep_every_type_and_separate_units():

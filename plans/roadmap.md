@@ -14,12 +14,11 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
-29 Oct owner priority: **responsive Sofix for ten separate Sorare accounts**
-([audit](../docs/performance-audit.md), [workflow and gates](performance-ten-users.md)). Next: publish the Table's
-simulation/chart results and reduce per-page client data; cache shared football views; then add authenticated account
-boundaries, shared-source collection and account planning. Ten local viewers of one owner are not ten-account proof.
-The audit's bounded Players payload/prefetch and R2 coalescing fixes are implemented with regressions; account rollout
-remains disabled pending the isolation and capacity gates.
+30 Oct owner priority: **two independent copies, each fast and responsive**
+([current plan](independent-installs-performance.md), [setup](../docs/independent-install.md)). Each person has their own
+Vercel/Neon/R2 and enters one Sorare username. The shared ten-account proposal is superseded. Explicit installation
+identity and the first Table/round-table computation reductions are built; next publish the remaining forecast/hero/chart
+results, reduce per-page data and cache football views. Keep all current controls and GW coverage.
 
 **Fri 30 Oct 14:00 Madrid (Divination opens):** **check the Arcade rework on the live board** ([arcade-rework.md](arcade-rework.md) "Not confirmed"): tiers in pack odds, Sorare's starter word, collection missions, the cards read newest first and re-read after packs. **You:** Reload the extension (0.4.19).
 
@@ -611,6 +610,11 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **30 Oct - Independent installations and unused simulation work:** one explicit Sorare username reaches refresh,
+  replans, Pro and automatic reward checks; new copies have no original-owner fallback. Repository actions, usage checks
+  and extension origins belong to their own installation. Actual table rows and Home/Fixtures' points-only tables skip
+  unused simulations; Expected/Predicted retain their seeded calculations. [Contract and evidence](independent-installs-performance.md).
 
 - **29 Oct - Performance audit and first bounded fixes:** Players no longer serializes unrelated weekly plans or
   prefetches its long result list; fixture navigation data fell 41.2%. R2 pending downloads coalesce beyond six blocks.

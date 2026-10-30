@@ -6,7 +6,7 @@ import type { Sorare } from "../lib/play";
 import type { ApiResponse } from "../lib/types";
 import { currentWeek, seasonWeeks } from "../lib/weeks";
 import { E2E_PORT, E2E_REVALIDATE_SECRET } from "./constants";
-import { APP, grid, MOCK, offline, openingMatchday, resetBackend, servedGrid, sorare, teamRows } from "./helpers";
+import { APP, grid, MOCK, offline, openingMatchday, resetBackend, servedGrid, teamRows } from "./helpers";
 
 test.beforeEach(async ({ page, request }) => {
   await resetBackend(request);
@@ -708,15 +708,16 @@ test("the board has no automatically detectable accessibility violations", async
   }
 });
 
-test("a week with no LaLiga round shows the games your own players play", async ({ page }) => {
+test("a week with no LaLiga round shows the games your own players play", async ({ page, request }) => {
   // The week Sorare is planning holds no LaLiga round at all. Play opens on it, so the week comes from there
   // and travels to the board in the address, the way the top bar's links carry it.
-  const planned = sorare.weeks.find((week) => week.gameweek.id === sorare.nextId)!.gameweek.number;
-  await page.goto("/play");
-  await page.locator(".wk-strip").getByRole("radio", { name: new RegExp(String.raw`GW${planned}\b`) }).click();
-  await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
+  const { weeks, planned } = await servedWeeks(request);
+  // Start on a different week: the planned week can already be today's default as the calendar advances.
+  await page.goto(`/play?w=${weeks.find(week => week.kept && week.gw !== planned.gw)!.id}`);
+  await page.locator(".wk-strip").getByRole("radio", { name: new RegExp(String.raw`GW${planned.number}\b`) }).click();
+  await expect(page).toHaveURL(new RegExp(`/play\\?w=${planned.id}$`));
   await page.locator(".lens").getByRole("link", { name: "LaLiga" }).click();
-  await expect(page).toHaveURL(/\/fixtures\?w=\d{4}-\d{2}-\d{2}$/);
+  await expect(page).toHaveURL(new RegExp(`/fixtures\\?w=${planned.id}$`));
 
   const own = page.locator(".ow");
   await expect(own).toBeVisible();

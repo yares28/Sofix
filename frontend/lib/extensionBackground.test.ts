@@ -13,7 +13,7 @@ const TOKEN = "t".repeat(48);
 // The worker imports core.js for its side effect (the page reader the overlay shares); the harness runs it first in the same context.
 const CORE = readFileSync(new URL("../../extension/core.js", import.meta.url), "utf8");
 const SOURCE = readFileSync(new URL("../../extension/background.js", import.meta.url), "utf8")
-  .replace(/import \{ CONFIG \} from "\.\/config\.js";/, `const CONFIG = { appUrl: "${APP}", token: "${TOKEN}", bypass: "bypass-secret" };`)
+  .replace(/import \{ CONFIG \} from "\.\/config\.js";/, `const CONFIG = { appUrl: "${APP}", allowedOrigins: ["${APP}", "https://alias.sofix.example"], token: "${TOKEN}", bypass: "bypass-secret" };`)
   .replace('import "./core.js";', "");
 
 type Message = Record<string, unknown>;
@@ -155,11 +155,12 @@ describe("mission import completeness", () => {
     // Sorare refuses a query over 30,000 complexity; 24 pairs cost ~41,000 (20 Oct 2026).
     expect(Math.max(...w.asked.filter((a) => a.operation === "SofixMissionCards").map((a) => (a.variables.pairs as unknown[]).length))).toBeLessThanOrEqual(12);
   });
-  it("answers the production alias allowed by the manifest without allowing lookalike hosts", async () => {
+  it("answers only configured aliases and rejects the original app from a separate installation", async () => {
     const w = load({ sorareTab: true });
-    expect(await w.sendFrom("https://sofix-livid.vercel.app/play", { type: "sorare", step: "week-entered", slug: "football-9-13-oct-2026" })).toMatchObject({ state: "ok" });
+    expect(await w.sendFrom("https://alias.sofix.example/play", { type: "sorare", step: "week-entered", slug: "football-9-13-oct-2026" })).toMatchObject({ state: "ok" });
     expect(w.asked).toContainEqual({ operation: "SofixFixtureLineups", variables: { slug: "football-9-13-oct-2026" } });
     expect(await w.sendFrom("https://sofix-livid.vercel.app.evil.example/play", { type: "sorare", step: "draft" })).toBeNull();
+    expect(await w.sendFrom("https://sofix-livid.vercel.app/play", { type: "ping" })).toBeNull();
   });
   it("does not replace selections with an empty list when an appearance is malformed", async () => {
     const task = { __typename: "DecisivePlayerPickerTask", id: "task-1", title: "Decisive Picker", mode: "DECISIVE", maxAppearancesCount: 3, taskAppearances: [{}] };

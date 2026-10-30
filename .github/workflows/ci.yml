@@ -76,7 +76,7 @@ jobs:
       - name: Documentation contracts and drift
         working-directory: .
         run: |
-          node --test scripts/tests/docs.test.mjs
+          node --test "scripts/tests/*.test.mjs"
           node scripts/docs.mjs check
 
       - name: Generated API types are up to date

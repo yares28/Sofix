@@ -39,7 +39,7 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
     searchParams.then(p => loadGrid(competitionOf(p.league))),
     searchParams,
     loadSystem(),
-    searchParams.then(p => competitionOf(p.league) === "PD" ? loadSorare() : null),
+    searchParams.then(p => competitionOf(p.league) === "PD" ? loadSorare({ market: false }) : null),
   ]);
 
   // View state from the URL is applied on the server, so a shared link renders the right view with no flash.

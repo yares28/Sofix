@@ -5,7 +5,8 @@ import Link from "./FootballLink";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { formatDay, formatShortKickoff, openingColumn, type TableMode } from "../lib/grid";
 import { scoreColour } from "../lib/cards";
-import { hasPredicted, nextGame, standings, type Split, type StandingMode, type StandingRow } from "../lib/standings";
+import { hasPredicted, nextGame, type Split, type StandingMode } from "../lib/standings";
+import { tableRows, type TableRow } from "../lib/tableRows";
 import { zone, type Outcome } from "../lib/table";
 import type { FixtureGrid, GridTeam } from "../lib/types";
 import { competitionOf, isEuropean, leaguePhaseGrid, leagueName, type Competition } from "../lib/competitions";
@@ -39,9 +40,9 @@ const SUBTITLES: Record<StandingMode, string> = {
 };
 const SPLIT_WORD: Record<Split, string> = { total: "", home: " · home games", away: " · away games" };
 
-export default function LeagueTable({ grid, through, mode, onMode, standing, onStanding, split, onSplit }: Props) {
+export default function LeagueTable({ grid: source, through, mode, onMode, standing, onStanding, split, onSplit }: Props) {
+  const grid = useMemo(() => leaguePhaseGrid(source), [source]);
   const european = isEuropean(grid.competition);
-  grid = leaguePhaseGrid(grid);
   const last = grid.matchdays.length - 1;
   const round = through ?? openingColumn(grid);
   const predictedReady = useMemo(() => hasPredicted(grid), [grid]);
@@ -51,10 +52,10 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
   // Only the pre-season prediction stops at a gameweek: the expected table is already today's form, after the last round.
   const afterRound = shown === "predicted" && mode === "after" && round < last;
   const stop = afterRound ? round : null;
-  const rows = useMemo(() => standings(grid, { mode: shown, split, through, stop }), [grid, shown, split, through, stop]);
+  const rows = useMemo(() => tableRows(grid, { mode: shown, split, through, stop }), [grid, shown, split, through, stop]);
   const teams = useMemo(() => new Map(grid.teams.map((team) => [team.code, team])), [grid]);
   const size = rows.length;
-  const maxPoints = Math.max(...rows.map((row) => Math.max(row.xPts, row.points)), 1);
+  const maxPoints = Math.max(...rows.map((row) => Math.max("xPts" in row ? row.xPts : row.points, row.points)), 1);
   const gameweek = through === null ? undefined : grid.matchdays[through];
   const roundNumber = grid.matchdays[round]?.number;
   const by = afterRound ? `after GW${roundNumber}` : "at the end of the season";
@@ -187,7 +188,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
 function Row({
   row, size, index, moves, maxPoints, chances, teams, competition,
 }: {
-  row: StandingRow;
+  row: TableRow;
   size: number;
   index: number;
   moves: boolean;
@@ -221,7 +222,7 @@ function Row({
           </span>
         </span>
       </td>
-      {chances && (
+      {chances && "xPts" in row && (
         <>
           <td className="num xpts lt-start">
             <span className="lt-xpts">

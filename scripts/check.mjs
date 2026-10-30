@@ -22,16 +22,17 @@ import { existsSync, openSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { repositoryFromRemote, vercelProject } from "./installation.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const REPO = "yares28/Sofix";
-const PROD = "https://sofix-livid.vercel.app"; // the address the owner browses (same app as APP_URL)
 const LOCAL = "http://localhost:3000";
 const PAGES = ["/", "/play", "/missions", "/lineups", "/scores", "/fixtures", "/difficulty", "/table", "/audit", "/audit/missions", "/cards", "/players", "/stats", "/control", "/team/ATL"];
 const args = process.argv.slice(2);
 const failed = [];
 
 const git = (cmd) => execSync(`git ${cmd}`, { cwd: ROOT, encoding: "utf8" }).trim();
+const REPO = repositoryFromRemote(git("config --get remote.origin.url"));
+if (!REPO) throw new Error("The origin remote must name this installation's GitHub repository.");
 const read = (path) => (existsSync(join(ROOT, path)) ? readFileSync(join(ROOT, path), "utf8") : "");
 // A session in a worktree has no venv or .env of its own: it uses the main folder's.
 const mainFolder = () => git("worktree list --porcelain").split("\n")[0].slice("worktree ".length);
@@ -66,7 +67,7 @@ function local() {
   let frontend = touches("frontend/") || touches("extension/"); // the extension's logic is unit-tested in frontend/lib
   const clock = touches("clock/") || touches(".github/workflows/"); // its tests also read the workflows' timers
   // Offline and cheap, including Markdown-only changes: referenced code can stale a contract too.
-  run("documentation tests", "node --test scripts/tests/docs.test.mjs", ROOT);
+  run("repository script tests", 'node --test "scripts/tests/*.test.mjs"', ROOT);
   if (!backend && !frontend && !clock) {
     run("documentation drift", "node scripts/docs.mjs check", ROOT);
     return console.log("No application checks needed: no backend, frontend, extension or clock change.");
@@ -222,7 +223,7 @@ async function live() {
   if (changed.length) {
     await devServer();
     console.log("\nTest it:");
-    for (const page of changed) console.log(`  ${LOCAL}${page}\n  ${PROD}${page}`);
+    for (const page of changed) console.log(`  ${LOCAL}${page}\n  ${new URL(page, APP_URL)}`);
   }
 }
 
@@ -256,8 +257,6 @@ async function neonProjects() {
   if (status.note) failed.push("Neon usage");
 }
 
-const VERCEL_TEAM = "team_69ziwTfpgZV2NLM6sgmlIyrm";
-const VERCEL_PROJECT = "prj_fRnZQCA6B3JAMCZ10XxBPenCBKn7"; // sofix
 // The account's 4 h a month is 8 min a day for four apps; one hour of Sofix over a minute of function time means a poll, a
 // sweep or a page rendering far more than it should (27 Oct 2026: 120 s an hour, mostly polls and extension check-ins).
 const SOFIX_HOUR_BUDGET_S = 60;
@@ -268,6 +267,12 @@ const SOFIX_HOUR_BUDGET_S = 60;
  * Observability Plus, so it is not read: function time is its ceiling (CPU never exceeds the time a function runs).
  */
 async function vercelUsage() {
+  const link = fromMainFolder("frontend/.vercel/project.json") ?? fromMainFolder(".vercel/project.json");
+  let linked = {};
+  try { if (link) linked = JSON.parse(readFileSync(link, "utf8")); } catch { /* a missing link never selects another project */ }
+  const project = vercelProject(process.env, linked);
+  if (!project) return console.log("      Vercel usage unavailable: link this project with the Vercel CLI or set VERCEL_ORG_ID and VERCEL_PROJECT_ID.");
+  const { team: VERCEL_TEAM, project: VERCEL_PROJECT } = project;
   let token;
   try {
     token = JSON.parse(readFileSync(join(process.env.APPDATA ?? "", "com.vercel.cli", "Data", "auth.json"), "utf8")).token;
@@ -316,7 +321,7 @@ async function vercelUsage() {
   const top = [...seconds].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([route, s]) => `${route} ${Math.round(s)} s`).join(", ");
   const over = total > SOFIX_HOUR_BUDGET_S;
   console.log(`${over ? "FAIL" : "ok  "}  Sofix last hour: ${rows.length} calls, ${Math.round(total)} s of function time (budget ${SOFIX_HOUR_BUDGET_S} s)${top ? `; most: ${top}` : ""}`);
-  console.log("      Fluid Active CPU (4 h a month) is shown only on vercel.com/yares/~/usage: Vercel's API keeps it for paid plans");
+  console.log("      Fluid Active CPU (4 h a month) is shown in your Vercel dashboard's Usage; Vercel's API keeps it for paid plans");
   if (over) failed.push("Sofix CPU");
 }
 

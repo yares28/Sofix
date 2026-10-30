@@ -305,6 +305,8 @@ def test_job_publishes_success_and_failure_state_but_skips_an_idle_run(db, monke
     from app.jobs import score_checks as job
     from app.sorare import score_checks
 
+    monkeypatch.setattr(job.settings, "sorare_user", "fixture-manager")
+
     seed(db)
     called = []
     monkeypatch.setattr(job, "SessionLocal", lambda: nullcontext(db))

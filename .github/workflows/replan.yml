@@ -38,7 +38,7 @@ jobs:
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
-      SORARE_USER: ${{ vars.SORARE_USER || 'yares' }}
+      SORARE_USER: ${{ vars.SORARE_USER }}
       SLUG: ${{ inputs.slug || 'football-13-16-oct-2026' }}
       LOCK: ${{ inputs.lock || '2026-10-13T14:00:00Z' }}
       # Only a manual run with `keep` writes (GW22 was kept this way on 15 Oct 2026, with the owner's yes).

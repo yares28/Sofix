@@ -102,8 +102,17 @@ export function toRefreshStatus(workflow: WorkflowRun | null, db: DbRun | null, 
   };
 }
 
+function configuredRepo(): string | null {
+  const explicit = process.env.GITHUB_REPO?.trim();
+  const { VERCEL_GIT_REPO_OWNER: owner, VERCEL_GIT_REPO_SLUG: name } = process.env;
+  const value = explicit || (owner && name ? `${owner}/${name}` : "");
+  return /^[\w.-]+\/[\w.-]+$/.test(value) ? value : null;
+}
+
 function repo(): string {
-  return process.env.GITHUB_REPO ?? "yares28/Sofix";
+  const value = configuredRepo();
+  if (!value) throw new Error("Set GITHUB_REPO to this installation's owner/repository.");
+  return value;
 }
 
 /**
@@ -114,15 +123,16 @@ export function githubTokenUrl(): string {
   const params = new URLSearchParams({
     name: "Sofix refresh",
     description: "Lets the Sofix app start its refresh workflow.",
-    target_name: repo().split("/")[0] ?? "",
     expires_in: "none",
     actions: "write",
   });
+  const repository = configuredRepo();
+  if (repository) params.set("target_name", repository.split("/")[0]!);
   return `https://github.com/settings/personal-access-tokens/new?${params.toString()}`;
 }
 
 /** Where the key goes: the Vercel project's environment variables (then Redeploy). */
-export const VERCEL_ENV_URL = "https://vercel.com/yares/sofix/settings/environment-variables";
+export const VERCEL_ENV_URL = "https://vercel.com/dashboard";
 
 /** GitHub's REST API; end-to-end tests point it at their mock server (never set it in production). */
 function apiBase(): string {

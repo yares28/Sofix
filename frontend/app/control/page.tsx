@@ -29,7 +29,7 @@ export default async function ControlPage() {
   const [{ grid, meta }, system, sorare, address, health] = await Promise.all([
     loadGrid(),
     loadSystem(),
-    loadSorare(),
+    loadSorare({ market: false }),
     appAddress(),
     loadDataHealth(),
   ]);

@@ -1,0 +1,566 @@
+{
+  "measuredAt": "2026-10-30T00:44:14.897Z",
+  "base": "http://127.0.0.1:3184",
+  "note": "Local HTTP with uncompressed response bodies. No browser hydration, network latency, account isolation or upstream capacity is measured. Load is back-to-back with no think time; earlier routes are warm. Run against a production build with mocks only for repeated load.",
+  "summary": {
+    "clients": 2,
+    "rounds": 5,
+    "requests": 60,
+    "errors": 0,
+    "elapsedSeconds": 1.45,
+    "requestsPerSecond": 41.4,
+    "p50Ms": 40,
+    "p95Ms": 80.4,
+    "p99Ms": 88
+  },
+  "loadByRoute": [
+    {
+      "route": "/",
+      "requests": 10,
+      "errors": 0,
+      "p50Ms": 63,
+      "p95Ms": 85.7
+    },
+    {
+      "route": "/players",
+      "requests": 10,
+      "errors": 0,
+      "p50Ms": 34.2,
+      "p95Ms": 48.1
+    },
+    {
+      "route": "/difficulty",
+      "requests": 10,
+      "errors": 0,
+      "p50Ms": 36.1,
+      "p95Ms": 48
+    },
+    {
+      "route": "/play",
+      "requests": 10,
+      "errors": 0,
+      "p50Ms": 75.7,
+      "p95Ms": 88
+    },
+    {
+      "route": "/cards",
+      "requests": 10,
+      "errors": 0,
+      "p50Ms": 34.6,
+      "p95Ms": 49.3
+    },
+    {
+      "route": "/table",
+      "requests": 10,
+      "errors": 0,
+      "p50Ms": 35.7,
+      "p95Ms": 45
+    }
+  ],
+  "samples": [
+    {
+      "route": "/",
+      "kind": "html",
+      "status": 200,
+      "bytes": 192208,
+      "ms": 362.8,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 115333,
+      "ms": 50.1,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/play",
+      "kind": "html",
+      "status": 200,
+      "bytes": 317501,
+      "ms": 124.5,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/play",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 176547,
+      "ms": 35.5,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/fixtures",
+      "kind": "html",
+      "status": 200,
+      "bytes": 665584,
+      "ms": 119.6,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/fixtures",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 524767,
+      "ms": 47,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/difficulty",
+      "kind": "html",
+      "status": 200,
+      "bytes": 722349,
+      "ms": 128.1,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/difficulty",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 482252,
+      "ms": 45.4,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/table",
+      "kind": "html",
+      "status": 200,
+      "bytes": 616079,
+      "ms": 154.5,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/table",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 482711,
+      "ms": 38,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/season",
+      "kind": "html",
+      "status": 200,
+      "bytes": 61541,
+      "ms": 33.3,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/season",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 32619,
+      "ms": 14,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/cards",
+      "kind": "html",
+      "status": 200,
+      "bytes": 128128,
+      "ms": 36.5,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/cards",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 71324,
+      "ms": 17.7,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/players",
+      "kind": "html",
+      "status": 200,
+      "bytes": 174735,
+      "ms": 43.9,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/players",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 103250,
+      "ms": 15.4,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/lineups",
+      "kind": "html",
+      "status": 200,
+      "bytes": 198313,
+      "ms": 66.4,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/lineups",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 99712,
+      "ms": 19.5,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/scores",
+      "kind": "html",
+      "status": 200,
+      "bytes": 155101,
+      "ms": 39,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/scores",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 99699,
+      "ms": 18.4,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/missions",
+      "kind": "html",
+      "status": 200,
+      "bytes": 226434,
+      "ms": 70.8,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/missions",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 150255,
+      "ms": 32.2,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/arcade",
+      "kind": "html",
+      "status": 200,
+      "bytes": 78582,
+      "ms": 129.7,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/arcade",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 60232,
+      "ms": 30.5,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/targets",
+      "kind": "html",
+      "status": 200,
+      "bytes": 116989,
+      "ms": 53.6,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/targets",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 58361,
+      "ms": 12.9,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/stats",
+      "kind": "html",
+      "status": 200,
+      "bytes": 160893,
+      "ms": 67.2,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/stats",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 92701,
+      "ms": 34.6,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/prices",
+      "kind": "html",
+      "status": 200,
+      "bytes": 171756,
+      "ms": 44.6,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/prices",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 66234,
+      "ms": 14,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/control",
+      "kind": "html",
+      "status": 200,
+      "bytes": 236787,
+      "ms": 59.1,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/control",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 177811,
+      "ms": 21.1,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/audit",
+      "kind": "html",
+      "status": 200,
+      "bytes": 81573,
+      "ms": 43.5,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/audit",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 43832,
+      "ms": 20.5,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/audit/starts",
+      "kind": "html",
+      "status": 200,
+      "bytes": 43675,
+      "ms": 28.6,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/audit/starts",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 17856,
+      "ms": 16.4,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/audit/record",
+      "kind": "html",
+      "status": 307,
+      "bytes": 9185,
+      "ms": 36,
+      "ok": true,
+      "location": "/audit/starts#written",
+      "cache": "HIT",
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/audit/record",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 6391,
+      "ms": 5,
+      "ok": true,
+      "location": "/audit/starts#written",
+      "cache": "HIT",
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/audit/lineups",
+      "kind": "html",
+      "status": 200,
+      "bytes": 50791,
+      "ms": 31.4,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/audit/lineups",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 27465,
+      "ms": 17.2,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/audit/versus",
+      "kind": "html",
+      "status": 307,
+      "bytes": 10198,
+      "ms": 12.2,
+      "ok": true,
+      "location": "/audit",
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/audit/versus",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 5956,
+      "ms": 4,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/audit/strategies",
+      "kind": "html",
+      "status": 200,
+      "bytes": 50703,
+      "ms": 31,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/audit/strategies",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 29074,
+      "ms": 16.4,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/audit/missions",
+      "kind": "html",
+      "status": 200,
+      "bytes": 165356,
+      "ms": 48.4,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/audit/missions",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 94487,
+      "ms": 20.7,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/audit/rewards",
+      "kind": "html",
+      "status": 200,
+      "bytes": 22709,
+      "ms": 21.3,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/audit/rewards",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 11107,
+      "ms": 13.1,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    },
+    {
+      "route": "/team/ATL",
+      "kind": "html",
+      "status": 200,
+      "bytes": 117526,
+      "ms": 39.5,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "route": "/team/ATL",
+      "kind": "rsc",
+      "status": 200,
+      "bytes": 69678,
+      "ms": 15.3,
+      "ok": true,
+      "cache": null,
+      "contentType": "text/x-component"
+    }
+  ],
+  "failures": []
+}

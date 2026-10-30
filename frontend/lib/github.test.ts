@@ -1,5 +1,29 @@
-import { describe, expect, it } from "vitest";
-import { githubTokenUrl, toRefreshStatus, type DbRun, type WorkflowRun } from "./github";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { dispatchRefresh, githubTokenUrl, latestWorkflowRun, toRefreshStatus, type DbRun, type WorkflowRun } from "./github";
+
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+
+describe("independent installation", () => {
+  it("derives the action repository from this deployment rather than the original owner", async () => {
+    vi.stubEnv("GITHUB_REPO", "");
+    vi.stubEnv("VERCEL_GIT_REPO_OWNER", "second-owner");
+    vi.stubEnv("VERCEL_GIT_REPO_SLUG", "their-sofix");
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetch);
+    expect(await dispatchRefresh("fixture-token")).toBe(true);
+    expect(fetch.mock.calls[0]?.[0]).toContain("/repos/second-owner/their-sofix/actions/");
+    expect(new URL(githubTokenUrl()).searchParams.get("target_name")).toBe("second-owner");
+  });
+
+  it("does not contact the original repository when no installation repository is configured", async () => {
+    for (const key of ["GITHUB_REPO", "VERCEL_GIT_REPO_OWNER", "VERCEL_GIT_REPO_SLUG"]) vi.stubEnv(key, "");
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await expect(latestWorkflowRun("fixture-token")).rejects.toThrow("GITHUB_REPO");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(new URL(githubTokenUrl()).searchParams.has("target_name")).toBe(false);
+  });
+});
 
 const NOW = Date.parse("2026-09-21T12:00:00Z");
 
@@ -58,6 +82,7 @@ describe("toRefreshStatus", () => {
 
 describe("githubTokenUrl", () => {
   it("pre-fills GitHub's key form with the smallest permission the button needs", () => {
+    vi.stubEnv("GITHUB_REPO", "yares28/Sofix");
     const url = new URL(githubTokenUrl());
     expect(url.origin + url.pathname).toBe("https://github.com/settings/personal-access-tokens/new");
     expect(Object.fromEntries(url.searchParams)).toMatchObject({ target_name: "yares28", actions: "write", expires_in: "none" });

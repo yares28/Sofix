@@ -1,5 +1,11 @@
 # Performance audit: responsive Sofix and ten separate accounts
 
+**Current decision, 30 October:** two independent single-user installations, each with its own Vercel, Neon and R2,
+replace the shared ten-account proposal. See [setup](independent-install.md) and
+[current work](../plans/independent-installs-performance.md). Authentication for a shared platform is no longer planned.
+The measurements below retain their original scope. The follow-up removes unused simulations from Actual table rows
+and Home/Fixtures' points-only round tables; forecast views, the season hero and chart still require further work.
+
 29 October 2026. Baseline `75a0e36`. Requested workflow and acceptance gates:
 [performance and ten-account plan](../plans/performance-ten-users.md).
 

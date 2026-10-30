@@ -368,7 +368,7 @@ test("step one spends four resettable lives and keeps every insurance team ident
   await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play 4 lineups now");
 });
 
-test("team rows include a single Barcelona card, move two at a time, and remember games while forecasts rebuild the five", async ({ page }) => {
+test("the club row flanks all teams with arrows while the bigger pitch, compact chances and game matrix remember selections", async ({ page }) => {
   const games = Array.from({ length: 14 }, (_, i) => ({ id: i === 0 ? GAME : `Game:picker-${i}`, date: KICKOFF, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: i === 0 ? "club" : i === 1 ? "barcelona" : `club-${i}`, name: i === 0 ? "Club" : i === 1 ? "Barcelona" : `Club ${i}` }, awayTeam: { slug: `rival-${i}`, name: `Rival ${i}` } }));
   const singleCards = games.slice(1).map((g, i) => ({ slug: `single-${i}`, pictureUrl: null, anyPositions: ["Forward"], cardSet: { slug: "glitch" }, skinEdition: { bonus: 1 }, anyPlayer: { slug: `single-${i}`, displayName: i === 0 ? "Raphinha" : `Forward ${i}` }, anyTeam: g.homeTeam }));
   const base = ANSWERS["arcade-cards"] as { currentUser: { cards: { nodes: unknown[] } } };
@@ -388,33 +388,51 @@ test("team rows include a single Barcelona card, move two at a time, and remembe
   await picker.getByRole("button", { name: /Club v Rival 0/ }).click();
   await picker.getByRole("button", { name: /Barcelona v Rival 1/ }).click();
   const tickets = picker.getByRole("group", { name: "Games to pick from", exact: true });
-  const first = tickets.locator(".arc-rail-item").first();
+  const rail = clubs.getByRole("group", { name: "Teams to build around", exact: true });
+  await expect(clubs.locator(".arc-club")).toHaveCount(14);
+  await expect(clubs.getByRole("navigation")).toHaveCount(0);
+  const first = rail.locator(".arc-rail-item").first();
   const stride = await first.evaluate((el) => el.getBoundingClientRect().width + parseFloat(getComputedStyle(el.parentElement!).columnGap));
-  await picker.getByRole("button", { name: "Next two teams" }).click();
-  await expect.poll(() => tickets.evaluate((el) => el.scrollLeft)).toBeCloseTo(stride * 2, 0);
-  await picker.getByRole("button", { name: "Previous two teams" }).click();
-  await expect.poll(() => tickets.evaluate((el) => el.scrollLeft)).toBe(0);
-  const before = await tickets.getByRole("button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-pressed")));
+  await clubs.getByRole("button", { name: "Next two teams" }).click();
+  await expect.poll(() => rail.evaluate((el) => el.scrollLeft)).toBeCloseTo(stride * 2, 0);
+  await clubs.getByRole("button", { name: "Previous two teams" }).click();
+  await expect.poll(() => rail.evaluate((el) => el.scrollLeft)).toBe(0);
+  const before = await clubs.locator(".arc-club button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-pressed")));
   const box = await first.boundingBox();
-  await page.mouse.move(box!.x + 170, box!.y + 70);
+  await page.mouse.move(box!.x + box!.width - 30, box!.y + 70);
   await page.mouse.down();
   await page.mouse.move(box!.x + 30, box!.y + 70, { steps: 10 });
   await page.mouse.up();
-  await expect.poll(() => tickets.evaluate((el) => el.scrollLeft)).toBeGreaterThan(50);
-  expect(await tickets.getByRole("button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-pressed")))).toEqual(before);
-  await clubs.getByRole("button", { name: "Next page" }).click();
-  await expect(clubs.locator(".arc-club")).toHaveCount(2);
-  await clubs.getByRole("button", { name: "Previous page" }).click();
+  await expect.poll(() => rail.evaluate((el) => el.scrollLeft)).toBeGreaterThan(50);
+  expect(await clubs.locator(".arc-club button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-pressed")))).toEqual(before);
+  await picker.getByRole("button", { name: "Next page" }).click();
+  await expect(tickets.getByRole("button")).toHaveCount(2);
+  await picker.getByRole("button", { name: "Previous page" }).click();
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const rail of [clubs.locator(".arc-rail-track"), tickets]) {
-      const tops = await rail.locator(":scope > li").evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
-      expect(new Set(tops).size).toBe(1);
-    }
+    const tops = await rail.locator(":scope > li").evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+    expect(new Set(tops).size).toBe(1);
+    const gameTops = await tickets.getByRole("button").evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+    expect(new Set(gameTops).size).toBeGreaterThan(1);
+    const players = await picker.locator(".arc-pitch li").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }; }));
+    expect(players.every((a, i) => players.every((b, j) => i === j || a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)), JSON.stringify({ width, players })).toBe(true);
+    const track = await rail.boundingBox();
+    expect(await rail.locator(".arc-rail-item").first().evaluate((el) => el.getBoundingClientRect().width)).toBeLessThanOrEqual(track!.width - 8);
+    const left = await clubs.getByRole("button", { name: "Previous two teams" }).boundingBox();
+    const right = await clubs.getByRole("button", { name: "Next two teams" }).boundingBox();
+    expect(left!.x + left!.width).toBeLessThanOrEqual(track!.x);
+    expect(right!.x).toBeGreaterThanOrEqual(track!.x + track!.width);
+    expect(left!.y + left!.height / 2).toBeCloseTo(right!.y + right!.height / 2, 0);
     if (width === 1440) {
       const pitch = await picker.locator(".arc-pitch").boundingBox();
       const list = await tickets.boundingBox();
       expect(pitch!.x + pitch!.width).toBeLessThanOrEqual(list!.x);
+      expect(pitch!.width).toBeGreaterThan(750);
+      expect(await picker.locator(".arc-pitch .arc-card-blank").first().evaluate((el) => el.getBoundingClientRect().width)).toBeGreaterThan(120);
+      const scale = await picker.locator(".arc-scale").boundingBox();
+      expect(scale!.y).toBeGreaterThanOrEqual(pitch!.y + pitch!.height);
+      expect(scale!.x).toBe(pitch!.x);
+      expect(scale!.height).toBeLessThan(200);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
@@ -440,6 +458,36 @@ test("team rows include a single Barcelona card, move two at a time, and remembe
   await picker.getByRole("button", { name: "Clear", exact: true }).click();
   await page.reload();
   await expect(picker).toContainText("Pick at least one game.");
+});
+
+test("Today filters the game matrix by Madrid midnight without losing selected later games", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-10-31T10:00:00Z"));
+  const games = ["2026-10-31T14:00:00Z", "2026-10-31T23:30:00Z", "2026-10-31T22:30:00Z"].map((date, i) => ({ id: i === 0 ? GAME : `Game:date-${i}`, date, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: `rival-${i}`, name: `Rival ${i}` } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page, { ...ANSWERS, "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: games.map((game) => ({ game })), pageInfo: { hasNextPage: false } } } } } }, "0.4.18");
+  await page.goto("/arcade");
+  const picker = page.locator(".arc-plan");
+  const tickets = picker.getByRole("group", { name: "Games to pick from", exact: true });
+  await expect(tickets.getByRole("button")).toHaveCount(3);
+  await picker.getByRole("button", { name: "Clear", exact: true }).click();
+  await tickets.getByRole("button", { name: /Club v Rival 0/ }).click();
+  await tickets.getByRole("button", { name: /Club v Rival 1/ }).click();
+  const team = await picker.locator(".arc-pitch").textContent();
+  await picker.getByRole("button", { name: "Today", exact: true }).click();
+  await expect(tickets.getByRole("button")).toHaveCount(2);
+  await expect(tickets.getByRole("button", { name: /Club v Rival 1/ })).toHaveCount(0);
+  await expect(tickets.getByRole("button", { name: /Club v Rival 2/ })).toBeVisible();
+  await expect(picker).toContainText("1 selected later");
+  expect(await picker.locator(".arc-pitch").textContent()).toBe(team);
+  await picker.getByRole("button", { name: "All games", exact: true }).click();
+  await expect(tickets.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(2);
+  await page.evaluate((game) => { (window as unknown as { __answers: Record<string, unknown> }).__answers = { "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: [{ game }], pageInfo: { hasNextPage: false } } } } } }; }, games[1]);
+  await page.getByRole("button", { name: "Refresh board and cards", exact: true }).click();
+  await picker.getByRole("button", { name: "Today", exact: true }).click();
+  await expect(picker).toContainText("No games left today.");
+  await picker.getByRole("button", { name: "All games", exact: true }).click();
+  await expect(tickets.getByRole("button")).toHaveCount(1);
+  await expect(tickets.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(1);
 });
 
 test("saved team choices discard expired games and cleared targets, and another board starts independently", async ({ page }) => {

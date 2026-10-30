@@ -2,14 +2,9 @@
 
 import { Children, useEffect, useRef, useState, type ReactNode } from "react";
 
-const PAGE = 12;
-
 /** One row of teams, with two-item steps and native touch scrolling. */
 export default function TeamRail({ label, className = "", children }: { label: string; className?: string; children: ReactNode }) {
   const items = Children.toArray(children);
-  const [page, setPage] = useState(0);
-  const pages = Math.max(1, Math.ceil(items.length / PAGE));
-  const at = Math.min(page, pages - 1);
   const track = useRef<HTMLUListElement>(null);
   const drag = useRef<{ x: number; scroll: number; moved: boolean } | null>(null);
   const [edges, setEdges] = useState({ left: true, right: true });
@@ -23,7 +18,7 @@ export default function TeamRail({ label, className = "", children }: { label: s
     observer.observe(el);
     el.addEventListener("scroll", measure, { passive: true });
     return () => { observer.disconnect(); el.removeEventListener("scroll", measure); };
-  }, [at, items.length]);
+  }, [items.length]);
   const step = (direction: number) => {
     const el = track.current;
     const first = el?.firstElementChild;
@@ -33,10 +28,7 @@ export default function TeamRail({ label, className = "", children }: { label: s
   };
   return (
     <div className={`arc-rail ${className}`}>
-      <div className="arc-rail-controls">
-        <button type="button" className="arc-small" aria-label="Previous two teams" disabled={edges.left} onClick={() => step(-1)}><span aria-hidden="true">←</span></button>
-        <button type="button" className="arc-small" aria-label="Next two teams" disabled={edges.right} onClick={() => step(1)}><span aria-hidden="true">→</span></button>
-      </div>
+      <button type="button" className="arc-small arc-rail-prev" aria-label="Previous two teams" disabled={edges.left} onClick={() => step(-1)}><span aria-hidden="true">←</span></button>
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- The overflow region needs keyboard focus and arrows for scrolling, independently of its team buttons. */}
       <ul ref={track} className="arc-rail-track" role="group" aria-label={label} tabIndex={0}
         onKeyDown={(e) => { if (e.target === e.currentTarget && ["ArrowLeft", "ArrowRight"].includes(e.key)) { e.preventDefault(); step(e.key === "ArrowLeft" ? -1 : 1); } }}
@@ -51,13 +43,9 @@ export default function TeamRail({ label, className = "", children }: { label: s
         onPointerUp={(e) => { delete e.currentTarget.dataset.dragging; if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId); }}
         onPointerCancel={(e) => { drag.current = null; delete e.currentTarget.dataset.dragging; }}
         onClickCapture={(e) => { if (drag.current?.moved) { e.preventDefault(); e.stopPropagation(); drag.current = null; } }}>
-        {items.slice(at * PAGE, (at + 1) * PAGE).map((child, i) => <li className="arc-rail-item" key={i}>{child}</li>)}
+        {items.map((child, i) => <li className="arc-rail-item" key={i}>{child}</li>)}
       </ul>
-      {pages > 1 ? <nav className="arc-pager" aria-label={`${label} pages`}>
-        <button type="button" aria-label="Previous page" disabled={!at} onClick={() => setPage(at - 1)}>Previous</button>
-        <span>Page {at + 1} of {pages}</span>
-        <button type="button" aria-label="Next page" disabled={at === pages - 1} onClick={() => setPage(at + 1)}>Next</button>
-      </nav> : null}
+      <button type="button" className="arc-small arc-rail-next" aria-label="Next two teams" disabled={edges.right} onClick={() => step(1)}><span aria-hidden="true">→</span></button>
     </div>
   );
 }

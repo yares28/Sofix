@@ -1,5 +1,19 @@
 # Arcade team selection — 30 October 2026
 
+## 31 October correction — current requested layout
+
+The owner's follow-up supersedes the earlier shared-row layout: Teams to build around keeps every qualifying club in one draggable row, with the previous/next-two arrows at its left/right ends and no Previous/Page/Next footer. This explicit request overrides the general twelve-item pagination rule for this row. Pick teams is a paginated game matrix on the right, with an All games/Today filter using Madrid dates; a bigger five-player pitch occupies the left. A compact visual score/range and per-step chance summary sits directly below that pitch. Filtering changes which games are shown, never the saved selected games or the available lineup pool; make hidden selected games visible as a count. Preserve live replanning, exact handoffs, empty choices and set/board scope.
+
+Acceptance before implementation: all fourteen clubs remain reachable without page controls; row arrows flank the cards and still move two; game tickets wrap into a matrix with twelve-item pages; Today distinguishes Madrid midnight, empty days and selected games hidden by the filter; desktop pitch/cards grow and the compact summary sits below it; all step targets/chances remain available; 390 px reflow has no page overflow.
+
+### Correction verification
+
+- The new regression first failed with twelve clubs instead of fourteen. All clubs now render in the row; its side arrows and drag keep two-team movement with no club page controls. The game matrix retains twelve-item pagination. The Today regression covers Madrid midnight, an empty day, selections hidden for later and an unchanged lineup when only the filter changes.
+- The full Arcade/mobile suite passed all 41 cases. Final focused regressions passed again after fitting each club card inside the phone track, bounding the phone game matrix to 520 px and keeping all five pitch cards/labels apart. A new overlap assertion reproduced the entrance animation overwriting field centering; independent CSS translation now preserves centering with normal or reduced motion.
+- Final local gate: repository scripts, generated API types, eslint, typecheck, full Vitest suite and documentation drift passed. Production build passed; the existing unrelated alignment/autoprefixer warning remains.
+- Real-data local production build, owner's Chrome: Home → Arcade; fifteen qualifying clubs on today's row, no club pager; pitch 807 × 760 px at 1440 px, compared with the previous 679 × 660 px, with 132 px cards instead of 96 px. The horizontal visual range and all six step chances occupy 134 px directly below the pitch. Games are a two-column matrix to the right. Today reduced five game pages to two and showed Saturday kickoffs while preserving the ten chosen games and their 224-point lineup.
+- Desktop and 390 px screenshots inspected; source links, actual crests/card art, readable text and page bounds checked. Club arrows have 44 px targets and keyboard alternatives; game/filter controls remain native buttons. No server work, polling, source query or Sorare write was added. Native touchscreen gestures were not physically exercised.
+
 ## Requested outcome and actions
 
 Show every eligible club with at least one owned likely starter, including Barcelona with Raphinha alone. Keep the existing source, injury, score and four-day horizon rules. Both team lists use one horizontal row with mouse dragging, native touch scrolling and left/right arrows advancing two teams. Lists over twelve entries remain paginated. Pick teams places the five-player pitch on the left and game tickets on the right on desktop, stacking on phones.

@@ -8,7 +8,6 @@ import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
-import TeamRail from "./TeamRail";
 import { bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
@@ -89,26 +88,29 @@ function Scale({ lineup, steps, aim }: { lineup: Lineup; steps: ArcadeStep[]; ai
   const at = (v: number) => `${Math.max(0, Math.min(100, ((v - floor) / (top - floor)) * 100))}%`;
   return (
     <aside className="arc-scale" aria-label={`Where ${pts(lineup.expected)} lands`}>
-      <h3>Where {pts(lineup.expected)} lands</h3>
-      <div className="arc-scale-track">
-        <span className="arc-scale-band" style={{ bottom: at(lo), height: `calc(${at(hi)} - ${at(lo)})` }} aria-hidden="true" />
-        <span className="arc-scale-mark" style={{ bottom: at(lineup.expected) }} aria-hidden="true" />
+      <div className="arc-scale-head"><h3>Where {pts(lineup.expected)} lands</h3><span>{pts(lo)}–{pts(hi)} in 6 of 10</span></div>
+      <div className="arc-scale-track" aria-hidden="true">
+        <span className="arc-scale-band" style={{ left: at(lo), width: `calc(${at(hi)} - ${at(lo)})` }} />
+        <span className="arc-scale-mark" style={{ left: at(lineup.expected) }} />
+        {steps.map((s) => <i key={s.id} className="arc-scale-target" style={{ left: at(s.target) }} title={`Step ${s.number}: ${s.target}`} />)}
+      </div>
+      <ol className="arc-scale-chances">
         {steps.map((s) => {
           const chance = chanceOf(lineup.totals, s.target);
           return (
-            <span key={s.id} className={`arc-scale-tick${s.number === aim ? " is-aim" : ""}`} style={{ bottom: at(s.target) }}>
-              <small>Step {s.number}</small><span>{s.target}</span><b className={chance >= 0.6 ? "is-good" : chance >= 0.4 ? "is-mid" : "is-low"}>{pct(chance)}</b>
-            </span>
+            <li key={s.id} className={`arc-scale-tick${s.number === aim ? " is-aim" : ""}`}>
+              <small>Step {s.number} · {s.target}</small><b className={chance >= 0.6 ? "is-good" : chance >= 0.4 ? "is-mid" : "is-low"}>{pct(chance)}</b>
+              <span className="arc-bar" aria-hidden="true"><span style={{ width: pct(chance) }} /></span>
+            </li>
           );
         })}
-      </div>
-      <p className="arc-sub">{pts(lo)}–{pts(hi)} in 6 of 10 simulated games.</p>
+      </ol>
     </aside>
   );
 }
 
 /** Pitch spots for the five slots (left %, top %), as a lineup stands. */
-const SPOT: Record<string, [number, number]> = { FWD: [40, 22], EXTRA: [72, 27], MID: [55, 50], DEF: [27, 58], GK: [50, 79] };
+const SPOT: Record<string, [number, number]> = { FWD: [32, 17], EXTRA: [72, 22], MID: [54, 43], DEF: [25, 57], GK: [55, 82] };
 
 /** The lineup on a pitch: the card art where each slot stands, its points and start %. */
 function Pitch({ lineup, captainBonus, title }: { lineup: Lineup; captainBonus: number; title: string }) {
@@ -126,7 +128,7 @@ function Pitch({ lineup, captainBonus, title }: { lineup: Lineup; captainBonus: 
         {lineup.picks.map(({ slot, outlook, captain }, i) => {
           const [left, top] = SPOT[slot] ?? [50, 50];
           return (
-            <li key={outlook.card.slug} className={captain && captainBonus > 0 ? "is-captain" : undefined} style={{ left: `${left}%`, top: `${top}%`, "--i": i } as CSSProperties}>
+            <li key={outlook.card.slug} data-slot={slot} className={captain && captainBonus > 0 ? "is-captain" : undefined} style={{ left: `var(--pitch-x, ${left}%)`, top: `${top}%`, "--i": i } as CSSProperties}>
               {outlook.card.picture
                 // eslint-disable-next-line @next/next/no-img-element -- Sorare's card art, as on the other pages
                 ? <img src={outlook.card.picture} alt={outlook.card.name} width={96} height={155} loading="lazy" />
@@ -152,11 +154,18 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
   const boards = useContext(FdrContext);
   const crests = useMemo(() => crestsOf(arcade), [arcade]);
   const games = useMemo(() => (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now && (outlooks.get(g.id) ?? []).length), [arcade.games, outlooks, now]);
+  const [todayOnly, setTodayOnly] = useState(false);
+  const [page, setPage] = useState(0);
+  const today = madridDate(iso(now));
+  const filteredGames = todayOnly ? games.filter((g) => madridDate(g.kickoff) === today) : games;
+  const pages = Math.max(1, Math.ceil(filteredGames.length / 12));
+  const atPage = Math.min(page, pages - 1);
+  const hiddenSelected = todayOnly ? games.filter((g) => chosen.has(g.id) && madridDate(g.kickoff) !== today).length : 0;
   const target = steps.find((s) => s.number === aim)?.target ?? steps[0]?.target ?? 0;
   const lineup = useMemo(() => preset ?? bestLineup([...chosen].flatMap((id) => outlooks.get(id) ?? []).filter((o) => !busy.has(o.card.slug)), target, captainBonus), [chosen, outlooks, target, captainBonus, busy, preset]);
   const toggle = (id: string) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); };
   // The games where one of your clubs is favourite on Sofix's board (difficulty 1 or 2).
-  const easy = games.filter((g) => {
+  const easy = filteredGames.filter((g) => {
     const f = boards.get(g.id);
     if (!f) return false;
     const mine = new Set((outlooks.get(g.id) ?? []).map((o) => o.card.teamSlug));
@@ -178,8 +187,16 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
         </button>
         <button type="button" className="arc-small" onClick={() => setChosen(new Set())} disabled={!chosen.size}>Clear</button>
       </div>
-      <TeamRail label="Games to pick from" className="arc-tickets">
-        {games.map((g, i) => {
+      <div className="arc-game-picker">
+        <div className="arc-game-filter">
+          <div className="arc-modes" role="group" aria-label="Game day">
+            <button type="button" aria-pressed={!todayOnly} onClick={() => { setTodayOnly(false); setPage(0); }}>All games</button>
+            <button type="button" aria-pressed={todayOnly} onClick={() => { setTodayOnly(true); setPage(0); }}>Today</button>
+          </div>
+          {hiddenSelected ? <span>{hiddenSelected} selected later</span> : null}
+        </div>
+        <div className="arc-tickets" role="group" aria-label="Games to pick from">
+        {filteredGames.slice(atPage * 12, (atPage + 1) * 12).map((g, i) => {
           const f = boards.get(g.id);
           const on = chosen.has(g.id);
           return (
@@ -196,10 +213,18 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
             </button>
           );
         })}
-      </TeamRail>
+        </div>
+        {!filteredGames.length ? <p className="arc-sub" role="status">No games left today.</p> : null}
+        {pages > 1 ? <nav className="arc-pager" aria-label="Game pages">
+          <button type="button" aria-label="Previous page" disabled={!atPage} onClick={() => setPage(atPage - 1)}>Previous</button>
+          <span>Page {atPage + 1} of {pages}</span>
+          <button type="button" aria-label="Next page" disabled={atPage === pages - 1} onClick={() => setPage(atPage + 1)}>Next</button>
+        </nav> : null}
+      </div>
       {lineup ? (
         <div className="arc-pitch-wrap">
           <Pitch lineup={lineup} captainBonus={captainBonus} title={`Best five from your ${chosen.size} game${chosen.size === 1 ? "" : "s"} · settles about ${when(settles!, now)}`} />
+          <Scale lineup={lineup} steps={steps} aim={aim} />
           <details className="arc-detail">
             <summary>Each card&apos;s numbers</summary>
             <LineupCards lineup={lineup} captainBonus={captainBonus} />
@@ -207,7 +232,6 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
           </details>
         </div>
       ) : <p className="arc-note arc-pick-empty">{chosen.size ? "These games cannot fill a goalkeeper, defender, midfielder, forward and one more outfield card from your free cards." : "Pick at least one game."}</p>}
-      {lineup ? <Scale lineup={lineup} steps={steps} aim={aim} /> : null}
     </div>
   );
 }

@@ -78,10 +78,9 @@
 .arc-chain-detail { display: grid; gap: 12px; padding: 18px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); }
 
 /* Teams to build around */
-.arc-rail { min-width: 0; display: grid; align-content: start; gap: 10px; }
-.arc-rail-controls { display: flex; justify-content: flex-end; gap: 6px; }
-.arc-rail-controls .arc-small { min-width: 44px; min-height: 40px; font-size: 20px; }
-.arc-rail-track { position: relative; list-style: none; margin: 0; padding: 6px 4px 16px; display: grid; grid-auto-flow: column; grid-auto-columns: var(--team-width, 312px); gap: 14px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-left: 4px; cursor: grab; }
+.arc-rail { min-width: 0; display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 10px; }
+.arc-rail > .arc-small { width: 44px; min-height: 44px; padding: 0; font-size: 20px; }
+.arc-rail-track { min-width: 0; position: relative; list-style: none; margin: 0; padding: 6px 4px 16px; display: grid; grid-auto-flow: column; grid-auto-columns: min(312px, 100%); gap: 14px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-left: 4px; scrollbar-width: none; cursor: grab; }
 .arc-rail-track[data-dragging] { scroll-snap-type: none; cursor: grabbing; user-select: none; }
 .arc-rail-track:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 8px; }
 .arc-rail-item { min-width: 0; scroll-snap-align: start; }
@@ -142,7 +141,6 @@
   .arc-move-entry-head .arc-small { margin-left: 0; }
   .arc-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .arc-chain-rail { grid-auto-columns: 140px; }
-  .arc-club-rail { --team-width: min(312px, calc(100vw - 64px)); }
   .arc-gems-table .arc-packs-list li { grid-template-columns: minmax(0, 1fr) 48px; }
   .arc-gems-table .arc-packs-list .arc-packbar, .arc-gems-table .arc-pack-per { grid-column: 1 / -1; justify-self: start; }
 }
@@ -161,9 +159,12 @@
 /* Pick teams: tickets, the pitch and where it lands */
 .arc-teams-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 #arc-teams-title { scroll-margin-top: 80px; }
-.arc-teams { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+.arc-teams { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); align-items: start; }
 .arc-teams-bar { grid-column: 2; grid-row: 1; }
-.arc-tickets { --team-width: 220px; grid-column: 2; grid-row: 2; }
+.arc-game-picker { grid-column: 2; grid-row: 2; min-width: 0; display: grid; gap: 14px; align-content: start; }
+.arc-game-filter { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.arc-game-filter > span { font-size: var(--text-xs); color: var(--ink-2); }
+.arc-tickets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 4px; max-height: 900px; overflow-y: auto; }
 .arc-pick-empty { grid-column: 1; grid-row: 1 / 3; }
 .arc-ticket {
   position: relative; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 10px; border: 0; border-radius: 14px;
@@ -195,9 +196,8 @@
 @keyframes arc-stamp { from { transform: rotate(-10deg) scale(2); opacity: 0; } to { transform: rotate(-10deg) scale(1); opacity: 1; } }
 .arc-stamp { position: absolute; right: 12px; bottom: 36px; padding: 2px 8px; border: 2px solid var(--fdr2-bg); border-radius: 6px; color: var(--fdr2-bg); font-weight: 800; font-size: 12px; transform: rotate(-10deg); animation: arc-stamp 450ms cubic-bezier(.3, 1.6, .5, 1) both; }
 
-.arc-pitch-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; grid-column: 1; grid-row: 1 / 4; }
-.arc-teams > .arc-scale { grid-column: 2; grid-row: 3; }
-.arc-pitch { position: relative; min-height: 660px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card);
+.arc-pitch-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; grid-column: 1; grid-row: 1 / 3; }
+.arc-pitch { position: relative; min-height: 760px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card);
   background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--win) 8%, var(--surface)) 0 56px, color-mix(in srgb, var(--win) 4%, var(--surface)) 56px 112px); }
 .arc-pitch-lines { position: absolute; inset: 6% 8%; border: 2px solid color-mix(in srgb, var(--win) 30%, transparent); border-radius: 6px; }
 .arc-pitch-lines::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px solid color-mix(in srgb, var(--win) 30%, transparent); }
@@ -206,20 +206,25 @@
 .arc-pitch-head span { color: var(--ink-2); font-size: var(--text-sm); }
 .arc-pitch-head b { font-size: 64px; line-height: 0.95; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
 .arc-pitch ol { position: absolute; inset: 104px 0 0; list-style: none; margin: 0; padding: 0; }
-.arc-pitch li { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 4px; }
-.arc-pitch li img, .arc-pitch li .arc-card-blank { width: 96px; height: auto; aspect-ratio: 120 / 194; border-radius: 9px; box-shadow: 0 16px 30px rgba(0, 0, 0, .22); }
+.arc-pitch li { position: absolute; translate: -50% -50%; display: grid; justify-items: center; gap: 4px; }
+.arc-pitch li img, .arc-pitch li .arc-card-blank { width: 132px; height: auto; aspect-ratio: 120 / 194; border-radius: 9px; box-shadow: 0 16px 30px rgba(0, 0, 0, .22); }
 .arc-pitch li.is-captain img { box-shadow: 0 0 0 2px var(--accent), 0 16px 30px rgba(0, 0, 0, .22); }
 .arc-pitch li > span { display: flex; gap: 6px; align-items: baseline; padding: 2px 8px; border-radius: 999px; background: var(--surface); font-size: 12px; font-variant-numeric: tabular-nums; box-shadow: var(--shadow-card); white-space: nowrap; }
 .arc-pitch li small { color: var(--ink-2); font-size: 11px; }
-.arc-scale { display: grid; gap: 12px; align-content: start; }
-.arc-scale-track { position: relative; height: 380px; margin: 0 0 0 6px; border-left: 8px solid var(--hover); }
-.arc-scale-band { position: absolute; left: -12px; width: 16px; border-radius: 8px; background: color-mix(in srgb, var(--win) 35%, transparent); }
-.arc-scale-mark { position: absolute; left: -14px; width: 22px; height: 4px; border-radius: 2px; background: var(--win); transform: translateY(50%); }
-.arc-scale-tick { position: absolute; left: 8px; right: 0; display: grid; grid-template-columns: 52px 40px 1fr; align-items: center; gap: 8px; transform: translateY(50%); font-size: var(--text-sm); }
+.arc-scale { display: grid; gap: 10px; align-content: start; }
+.arc-scale-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px; }
+.arc-scale-head h3 { margin: 0; font-size: var(--text-base); }
+.arc-scale-head > span { font-size: var(--text-xs); color: var(--ink-2); }
+.arc-scale-track { position: relative; height: 20px; background: linear-gradient(var(--hover), var(--hover)) center / 100% 6px no-repeat; }
+.arc-scale-band { position: absolute; top: 4px; height: 12px; border-radius: 8px; background: color-mix(in srgb, var(--win) 35%, transparent); }
+.arc-scale-mark { position: absolute; top: 0; width: 4px; height: 20px; border-radius: 2px; background: var(--win); transform: translateX(-50%); }
+.arc-scale-target { position: absolute; top: 7px; height: 6px; width: 1px; background: var(--ink-3); }
+.arc-scale-chances { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.arc-scale-tick { min-width: 0; display: grid; gap: 5px; padding: 8px; border-radius: 10px; font-size: var(--text-sm); }
 .arc-scale-tick small { color: var(--ink-2); font-size: var(--text-xs); }
-.arc-scale-tick span { font-variant-numeric: tabular-nums; font-weight: 600; }
-.arc-scale-tick b { justify-self: end; font-size: 20px; font-variant-numeric: tabular-nums; }
-.arc-scale-tick.is-aim small, .arc-scale-tick.is-aim span { color: var(--ink); font-weight: 700; }
+.arc-scale-tick b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.arc-scale-tick.is-aim { background: var(--hover); box-shadow: inset 0 0 0 1px var(--line); }
+.arc-scale-tick.is-aim small { color: var(--ink); font-weight: 700; }
 .arc-main .is-good { color: var(--win); }
 .arc-main .is-mid { color: var(--amber-ink, #8a5a00); }
 .arc-main .is-low { color: var(--loss); }
@@ -293,19 +298,25 @@
 .arc-picks img, .arc-picks .arc-card-blank { width: 72px; height: auto; aspect-ratio: 120 / 194; border-radius: 8px; justify-self: end; margin-bottom: -40px; transform: rotate(6deg); }
 .arc-pick-chance { font-size: 32px; line-height: 1; letter-spacing: -0.03em; color: var(--win); font-variant-numeric: tabular-nums; }
 
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
   .arc-teams { grid-template-columns: minmax(0, 1fr); }
-  .arc-teams-bar, .arc-tickets, .arc-pitch-wrap, .arc-pick-empty, .arc-teams > .arc-scale { grid-column: 1; grid-row: auto; }
+  .arc-teams-bar, .arc-game-picker, .arc-pitch-wrap, .arc-pick-empty { grid-column: 1; grid-row: auto; }
   .arc-pitch-wrap, .arc-lab { grid-template-columns: 1fr; }
   .arc-race { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
+  .arc-tickets { max-height: 520px; }
   .arc-pitch { min-height: 560px; }
   .arc-pitch ol { position: absolute; inset: 104px 0 0; } /* below the total on a phone */
-  .arc-pitch li img, .arc-pitch li .arc-card-blank { width: 64px; }
+  .arc-pitch li img, .arc-pitch li .arc-card-blank { width: 72px; }
+  .arc-pitch li[data-slot="FWD"] { --pitch-x: 20%; }
+  .arc-pitch li[data-slot="EXTRA"] { --pitch-x: 80%; }
+  .arc-pitch li[data-slot="MID"] { --pitch-x: 53%; }
+  .arc-pitch li[data-slot="DEF"] { --pitch-x: 22%; }
+  .arc-pitch li[data-slot="GK"] { --pitch-x: 58%; }
   .arc-pitch li > span { font-size: 11px; }
   .arc-pitch-head b { font-size: 44px; }
-  .arc-scale-track { height: 300px; }
+  .arc-scale-chances { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .arc-race-hero b { font-size: 48px; }
   .arc-open { grid-template-columns: 1fr; }
   .arc-packs-list li { grid-template-columns: minmax(0, 1fr) 48px; }

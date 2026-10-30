@@ -810,8 +810,7 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   would have cleared step 3 was cancelled after a 313.93 cleared step 2). A miss costs a life; the last one sends you back to step 1.
   Every clear pays its reward again, and the last step pays €1,000 each time it is reached, then the climb starts again from step 1.
 - **Your move**: **Play now**, **Wait for** a named window, or **Spend** a hard step's last lives so the climb restarts sooner, and why:
-  a **Play | Hold** bar for the step you are on: the lineup you would enter now against the best lineup from the games you would wait
-  for, each with its chance to clear the step, the advised side filled. The advice itself weighs every prize to the set's end (the top's
+  a **Play | Hold** bar for the step you are on: the recommended batch now against the batch after holding, each with its lineup count and joint chance that at least one clears, the advised side filled. On step one, using every life is preferred when all misses reset to the same step with four fresh lives before the same next opportunity; a wider batch can still lose an earlier chance to advance. The advice itself weighs every prize to the set's end (the top's
   €1,000 first), never an average, so it can say play even when the next games are a little better: a miss still leaves lives for them (a near tie is played: speed first). Lineups come from the window's own kick-offs first, so
   every card's start % is known before you enter; a wider span of games is used only when it is clearly better. A card under 50%
   to start (a benched one reads 0%) is left out while a likely starter can take his slot. Below, the
@@ -819,7 +818,7 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   Beside it, every step's chance to be cleared at least once by the last game Sorare lists,. A card with no start % counts as starting, is never
   captain while another has one, and a card with under 3 played games gets the usual spread (a third of his score) instead of a sure number.
 - **The chain**: the next moves window by window, each settling before the next starts; a tap shows that move's lineup and opens
-  **If it clears** / **If it misses** (back to the likely plan with one tap).
+  **If it clears** / **If it misses** (back to the likely plan with one tap). Its cards, captain and chance are the same as Your move; insurance teams can each be opened in Pick teams without rebuilding them.
 - **Teams to build around**: for the next four days, the clubs whose likely starters among your cards add most (Sofix's start % of 70% or
   more, else Sorare's own word: starter or regular, no open injury; Sorare's news feed is empty in its API). **Add to Pick teams** puts
   the game in the builder.
@@ -827,7 +826,7 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   their best, **Dead** when that cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next lineup more.
 - A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga or Ligue 1 game (else Sorare's projection, else his average when he
   plays) × his start % (Sofix's in those leagues) × Sorare's bonuses (edition + club + captain),
-  with the range he scored in 6 of his last 10 games he played. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or
+  shown below FDR (0–100, lower is easier) at the upper right of the card art. The lineup cards keep start chance and kickoff below, with forecast/source details in their accessible labels and titles. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or
   Ligue 1 game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
   and expected goals for the others. It is shown, not added to the card's number.
 - **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (the **Refresh start percentages** icon) and saved, so the

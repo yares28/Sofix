@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ArcadeGame } from "./arcade";
 import { climbWindows, comparePrizes, moments, quickChance, quickLineup, windowsOf } from "./arcadeClimb";
-import type { Outlook } from "./arcadePlan";
+import { bestLineup, chanceOf, type Outlook } from "./arcadePlan";
 
 const game = (id: string, kickoff: string): ArcadeGame => ({ id, kickoff, status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: `${id}-h`, name: "H", crest: null }, away: { slug: `${id}-a`, name: "A", crest: null } });
 const POS = [["Goalkeeper"], ["Defender"], ["Midfielder"], ["Forward"], ["Midfielder"], ["Defender"]];
@@ -17,6 +17,34 @@ const NOW = Date.parse("2026-10-31T08:00:00Z");
 const from = (step: number, lives = 4, best?: number) => ({ step, lives, notBefore: null, held: [], best });
 
 describe("the window planner", () => {
+  it("uses all four step-one lives when misses reset for free before the next opportunity, even for a tiny extra chance", () => {
+    const list = [0, 1, 2, 3].flatMap((i) => squad(game(`A${i}`, "2026-10-31T11:00:00Z"), `a${i}`, 46));
+    const plan = climbWindows(list, [{ number: 1, target: 300, lives: 4, big: false }], from(1), 0.5, NOW);
+    expect(plan.path[0]?.play).toBe(4);
+    expect(plan.verdict.chanceNow).toBe(plan.path[0]?.clear);
+  });
+
+  it("does not spend four lives across later kickoffs when one lineup can advance before those games", () => {
+    const list = [...squad(game("A", "2026-10-31T11:00:00Z"), "a", 80),
+      ...[0, 1, 2].flatMap((i) => squad(game(`B${i}`, "2026-10-31T14:30:00Z"), `b${i}`, 80))];
+    const plan = climbWindows(list, steps, from(1), 0.5, NOW);
+    expect(plan.path[0]).toMatchObject({ play: 1, from: 0, to: 0 });
+    expect(plan.path[1]?.step).toBe(2);
+  });
+
+  it("uses the builder's exact cards, captain and simulated probability throughout the climb", () => {
+    const g = game("A", "2026-10-31T11:00:00Z");
+    const list = squad(g, "a", 60, 0.83);
+    list[1] = { ...list[1]!, score: 70, past: [5, 20, 50, 90, 110] };
+    list[5] = { ...list[5]!, score: 68, past: [60, 65, 68, 70, 75] };
+    const plan = climbWindows(list, steps, from(1), 0.5, NOW);
+    const move = plan.path[0]!;
+    const expected = bestLineup(move.list, steps[0]!.target, 0.5)!;
+    expect(move.lineups[0]!.picks).toEqual(expected.picks);
+    expect(move.clear).toBe(chanceOf(expected.totals, steps[0]!.target));
+    expect(bestLineup([...move.list].reverse(), steps[0]!.target, 0.5)?.picks).toEqual(expected.picks);
+  });
+
   it("groups games kicking off within 75 minutes into one window", () => {
     const list = [...squad(game("A", "2026-10-31T13:00:00Z"), "a", 60), ...squad(game("B", "2026-10-31T14:00:00Z"), "b", 60), ...squad(game("C", "2026-10-31T17:30:00Z"), "c", 60)];
     expect(windowsOf(list, NOW).map((w) => w.list.length)).toEqual([12, 6]);

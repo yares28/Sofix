@@ -234,7 +234,7 @@ Read only the day the page shows, not the entire history. Preserve the automatic
 
 Scope: window-based Arcade recommendations. The current source treats a lineup as entered on the current step; settlement is five minutes after its last game, a clear opens the next step, and other simultaneous entries on that step are insurance rather than queued future steps. A miss costs a life; losing the last life resets to step one. Each clear pays again; clearing the top also restarts at step one. The objective compares each prize's chance of being cleared at least once by the last listed game, the top step first (comparePrizes); within half a point the next prize down decides. It never uses a probability-weighted average of rewards, and cash and non-cash rewards are never converted into each other. A lineup comes from its window's own kickoffs unless a wider span is better by two points at some prize, and a card below 50% to start is left out while a likely starter fills its slot. Preserve held cards, settlement time and actual source state. Read the dated source evidence in the linked plan before changing external-game semantics.
 
-windowsOf groups kickoffs within 75 minutes of the first game in each window. quickLineup selects unique players across positional slots. Unknown start chance is currently treated as one in moments, while a known zero remains zero; this is an explicit modeling assumption, not observed certainty. With fewer than three played games, spread is 0.33 times score rather than zero. The approximate normal ranking and exact simulated lineup construction are different calculations.
+windowsOf groups kickoffs within 75 minutes of the first game in each window. The climb, chain and builder use bestLineup's same simulated selection and captain; insurance batches share player outcomes and teammates' day. Unknown start chance counts as one, while a known zero remains zero; this is an explicit modeling assumption, not observed certainty. With fewer than three played games, spread is 0.33 times score rather than zero. On step one, spending every remaining life is preferred over fewer entries settling before the same next window when it does not lower prize chances: all misses reset to step one with four lives. Wider spans still have to justify their delay. The Play/Hold comparison shows the actual recommended batches, their lineup counts and joint chance; changing the displayed insurance team does not change that batch probability. Editing a move in Pick teams retains that team until its games or target are changed. See [the acceptance/evidence record](../plans/arcade-consistency.md).
 
 Counterexample: several lineups on step two cannot be presented as one automatically reserved lineup for each later step. No recommendation spends lives or gems automatically. Pack odds and inventory assumptions require their own source evidence; these climb contracts do not certify pack values or authorize purchases.
 
@@ -700,6 +700,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | page | `/team/[code]` | `frontend/app/team/[code]/page.tsx` |
 | document (check authority) | `plans/arcade-audit.md` | [open](../plans/arcade-audit.md) |
 | document (check authority) | `plans/arcade-cards-phase2.md` | [open](../plans/arcade-cards-phase2.md) |
+| document (check authority) | `plans/arcade-consistency.md` | [open](../plans/arcade-consistency.md) |
 | document (check authority) | `plans/arcade-player-choice.md` | [open](../plans/arcade-player-choice.md) |
 | document (check authority) | `plans/arcade-rework.md` | [open](../plans/arcade-rework.md) |
 | document (check authority) | `plans/audit-followups.md` | [open](../plans/audit-followups.md) |
@@ -1559,11 +1560,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-30",
-        "note": "Inspected configured app/alias allowlist in worker, manifest and generator; original production alias is no longer implicit in new copies. Explicit aliases retain compatibility. No operation or write-retry change. Worker/configuration tests passed; authenticated second-manager flow remains unverified.",
+        "note": "Reviewed concurrent main's bridge diff: only L5/L10/L40 fields in the existing bounded read-only SofixArcadePast query and manifest version 0.4.20; background/bridge operation and origin allowlists, hosts and explicit Check/Draft/Enter boundaries are unchanged. Full extension unit tests passed in local gate; no live write exercised.",
         "files": {
           "extension/background.js": "941f2c60f04d76a45343af47c0c7ed848f0e1c28e810527fedbfad81a8e99178",
-          "extension/bridge.js": "155dc44418686780f07f3e87afc4efdefc19751b23093ad9ce3e1ce2704d3c81",
-          "extension/manifest.template.json": "08088ab1eed285fa57a10b92552ed5cd450f5c236222f81730cb401d267750f3",
+          "extension/bridge.js": "a2284684f130cdc1b9ebfe63264119cc24a4590e8c604ff3d2f80445adde458a",
+          "extension/manifest.template.json": "d4985c69883145e0d4918c7dc5f72a0ac51ae8fdc9c0a444759bd7d0531e405f",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "186d7ae03119f8294abf259ac869b22ce36fc446f089373457353e0087a15473",
@@ -1658,14 +1659,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-29",
-        "note": "Re-read arcadeClimb.ts after removing the unused prizeAt helper (29 Oct); objective unchanged; real-board behaviour not yet observed.",
+        "date": "2026-10-30",
+        "note": "Inspected shared selection, stable samples, joint insurance odds, exact shortlist pruning and per-target cache, step-one resets and held-card/timing regressions; retained concurrent player filters and form parser tests during rebase. Real-data/UI proof is in plans/arcade-consistency.md.",
         "files": {
-          "frontend/lib/arcadeClimb.ts": "f5df4e7433bbd495d2afeccea7f20aca0b9d21c4c34cc2aee2ffd648c5dfd7c7",
-          "frontend/lib/arcadePlan.ts": "9d77ca0d6571b63a11e8a98cc35787d216ed88dd96d05411351bc4ce7d1ec7d1",
-          "plans/arcade-rework.md": "ae45e982616f72addba27474a1dcfc7286b9f1a112b78c47aa05c593076ccdcd",
-          "frontend/lib/arcadeClimb.test.ts": "bc51f48042d4cce8a43b1fac1f0bfac73b25027757cfe561e08a89e345d4389f",
-          "frontend/lib/arcadePlan.test.ts": "b9892134e9898ee0a6b845c7625fc16917cd90275725bb66e270cf9c69796128"
+          "frontend/lib/arcadeClimb.ts": "d8331f3b69b2d4b6715ed090fdcef81503e19d77735e64cd6de3a6738cee1e23",
+          "frontend/lib/arcadePlan.ts": "94a5dc7412a72f40daf3463ad1dd948d188316c367a26270418498880de138b4",
+          "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
+          "frontend/lib/arcadeClimb.test.ts": "0ce27f5cbee513381da05f1eea34ee2258987eaa7a9d47b3ec15843648d799d8",
+          "frontend/lib/arcadePlan.test.ts": "a6bd6dd4fca0b698e95cf883e262e9acb366ab829bd8bb04d887b4036a487dc2"
         }
       }
     },

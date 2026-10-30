@@ -1,4 +1,4 @@
-import { fits, likely, madridDate, multiplier, phi, predicted, SETTLES_AFTER_MS, SLOTS, type Outlook, type Slot, type StepInfo } from "./arcadePlan";
+import { batchChances, bestLineup, fits, likely, madridDate, multiplier, phi, predicted, simulation, RUNS, SETTLES_AFTER_MS, SLOTS, type Lineup, type LineupSearchCache, type Outlook, type Slot, type StepInfo } from "./arcadePlan";
 
 /**
  * The climb, as Sorare's board really runs (plans/arcade-rework.md, read 29 Oct 2026): a lineup is entered on the step you are on,
@@ -9,9 +9,8 @@ import { fits, likely, madridDate, multiplier, phi, predicted, SETTLES_AFTER_MS,
  * Every clear pays its step's reward again, and clearing the last step (€1,000) starts the climb again from step 1 (owner, 29 Oct
  * 2026: "each time you get to the last step you get 1000eur").
  *
- * Plain arithmetic, fast enough to run on every change: each card's score is a start chance times a spread around his score if he
- * plays, and a lineup's total is treated as normal (sum of the cards' means and variances). The lineups shown are then built exactly
- * (`bestLineup`, simulated).
+ * Every window/step uses the builder's simulated selection (`bestLineup`), cached across lives and paths. Player draws and teammates'
+ * day are shared across candidates and insurance teams. The UI renders those selections directly, including their captains.
  */
 
 /** Games kicking off within 75 minutes of a window's first game share it (Sorare's slots: 13:00/14:00, 16:15, 18:30/18:45, 21:00). */
@@ -106,7 +105,7 @@ export const quickChance = (q: Pick<Quick, "mean" | "sd">, target: number) => (q
 export type ClimbStart = { step: number; lives: number; notBefore: number | null; held: { card: string; until: number }[]; /** Highest step already cleared. */ best?: number };
 
 /** One played move: from window `from` to `to`, `play` lineups on `step`, the chance one clears, and when they have all settled. */
-export type Move = { from: number; to: number; at: number; step: number; lives: number; best: number; play: number; clear: number; settles: number; lineups: Quick[]; list: Outlook[] };
+export type Move = { from: number; to: number; at: number; step: number; lives: number; best: number; play: number; clear: number; settles: number; lineups: Lineup[]; list: Outlook[] };
 
 /** The chance to clear each step at least once by the last known game (index = step number; index 0 unused). */
 export type Reach = number[];
@@ -116,9 +115,12 @@ export type Verdict = {
   /** Each step's chance to be cleared by the last known game: playing the best move now, and holding until the next window. */
   now: Reach;
   wait: Reach;
-  /** Best single lineup's chance now, and in the window the plan would wait for. */
+  /** Chance at least one recommended lineup clears now, and the best later window. */
   chanceNow: number | null;
   waitFor: { at: number; chance: number } | null;
+  /** The actual batch compared with holding, including held-card filtering and settlement. */
+  playNow: Move | null;
+  hold: Move | null;
   /** Windows skipped before the waited-for one. */
   skipped: number;
 };
@@ -156,6 +158,9 @@ export function comparePrizes(a: Reach, b: Reach, tie: number): number {
  * the top starts the climb again from step 1.
  */
 export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: ClimbStart, captainBonus: number, now: number): Climb {
+  const draw = simulation(captainBonus);
+  const searches: LineupSearchCache = new Map();
+  const targets = steps.map((s) => s.target);
   const top = steps.at(-1)?.number ?? 1;
   const target = (n: number) => steps.find((s) => s.number === n)?.target ?? Infinity;
   const fresh = (n: number) => Math.min(LIVES, steps.find((s) => s.number === n)?.lives ?? LIVES) || LIVES;
@@ -168,7 +173,25 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
   const mix = (p: number, a: Reach, b: Reach): Reach => a.map((x, k) => p * x + (1 - p) * b[k]!);
 
   // The legs from each window: its own games, then wider spans; each up to 4 lineups, no card twice, cards in a running lineup held.
-  const legs = new Map<number, { to: number; list: Outlook[]; lineups: Quick[] }[]>();
+  const legs = new Map<number, { to: number; list: Outlook[] }[]>();
+  const teams = new Map<string, Lineup[]>();
+  const clears = new WeakMap<Lineup[], number[]>();
+  const teamsFor = (i: number, leg: { to: number; list: Outlook[] }, n: number) => {
+    const key = `${i}:${leg.to}:${n}`;
+    const known = teams.get(key);
+    if (known) return known;
+    const used = new Set<string>();
+    const lineups: Lineup[] = [];
+    for (let k = 0; k < LIVES; k++) {
+      const lineup = bestLineup(leg.list.filter((o) => !used.has(o.card.player)), target(n), captainBonus, RUNS, 60, draw, searches, targets);
+      if (!lineup) break;
+      lineups.push(lineup);
+      lineup.picks.forEach((p) => used.add(p.outlook.card.player));
+    }
+    teams.set(key, lineups);
+    clears.set(lineups, batchChances(lineups, target(n), draw));
+    return lineups;
+  };
   const legsFrom = (i: number) => {
     const known = legs.get(i);
     if (known) return known;
@@ -184,21 +207,13 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     const busy = new Set(start.held.filter((h) => h.until > at).map((h) => h.card));
     const out = chosen.map((to) => {
       const list = windows.slice(i, to + 1).flatMap((w) => w.list).filter((o) => !busy.has(o.card.slug));
-      const used = new Set<string>();
-      const lineups: Quick[] = [];
-      for (let k = 0; k < LIVES; k++) {
-        const q = quickLineup(list.filter((o) => !used.has(o.card.player)), captainBonus);
-        if (!q) break;
-        lineups.push(q);
-        q.picks.forEach((p) => used.add(p.outlook.card.player));
-      }
-      return { to, list, lineups };
-    }).filter((l) => l.lineups.length);
+      return { to, list };
+    });
     legs.set(i, out);
     return out;
   };
 
-  type Choice = { reach: Reach; to: number; play: number; clear: number; next: number; settles: number; lineups: Quick[]; list: Outlook[] };
+  type Choice = { reach: Reach; to: number; play: number; clear: number; next: number; settles: number; lineups: Lineup[]; list: Outlook[] };
   const memo = new Map<string, Choice>();
   const value = (i: number, n: number, lives: number, best: number): Choice => {
     const hold: Choice = { reach: done(best), to: i, play: 0, clear: 0, next: i + 1, settles: 0, lineups: [], list: [] };
@@ -210,19 +225,19 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     if (known) return known;
     let choice: Choice = { ...hold, reach: value(i + 1, n, lives, best).reach };
     for (const leg of legsFrom(i)) {
-      const ranked = [...leg.lineups].sort((a, b) => quickChance(b, target(n)) - quickChance(a, target(n)));
-      let miss = 1;
+      const ranked = teamsFor(i, leg, n);
       let settles = 0;
       for (let k = 1; k <= Math.min(lives, ranked.length); k++) {
-        miss *= 1 - quickChance(ranked[k - 1]!, target(n));
-        settles = Math.max(settles, ranked[k - 1]!.last + SETTLES_AFTER_MS);
-        const clear = 1 - miss;
+        settles = Math.max(settles, Date.parse(ranked[k - 1]!.last) + SETTLES_AFTER_MS);
+        const clear = clears.get(ranked)![k - 1]!;
         const next = firstAfter(settles, i + 1);
         const won = value(next, up(n), upLives(n), Math.max(best, n)).reach;
         const lost = lives - k > 0 ? value(next, n, lives - k, best).reach : value(next, 1, LIVES, best).reach;
         const reach = mix(clear, won, lost);
         // Speed first: a move as good as holding (within PLAY_TIE) is played. A wider leg or more lives must be clearly better.
-        const better = choice.play ? comparePrizes(reach, choice.reach, leg.to > choice.to ? LEG_TIE : PLAY_TIE) > 0 : comparePrizes(reach, choice.reach, PLAY_TIE) >= 0;
+        const freeReset = n === 1 && k === lives && choice.play > 0 && next === choice.next;
+        const comparison = comparePrizes(reach, choice.reach, freeReset ? 0 : leg.to > choice.to ? LEG_TIE : PLAY_TIE);
+        const better = comparison > 0 || (comparison === 0 && (!choice.play || (freeReset && leg.to === choice.to)));
         if (better) choice = { reach, to: leg.to, play: k, clear, next, settles, lineups: ranked.slice(0, k), list: leg.list };
       }
     }
@@ -250,38 +265,36 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
   const first = W ? value(0, start.step, start.lives, startBest) : null;
   const held = W ? value(1, start.step, start.lives, startBest) : null;
   const odds: Record<number, number> = Object.fromEntries((first?.reach ?? done(startBest)).flatMap((p, k) => (k ? [[k, p]] : [])));
-  // "Now" is the next window's own games: a lineup reaching into later windows is not playing now.
-  const own = W ? legsFrom(0).find((l) => l.to === 0) ?? null : null;
-  const chanceNow = own ? Math.max(0, ...own.lineups.map((q) => quickChance(q, target(start.step)))) : null;
-  let waitFor: Verdict["waitFor"] = null;
-  let skipped = 0;
-  if (first && !first.play) {
-    let i = 1;
-    while (i < W && !value(i, start.step, start.lives, startBest).play) i++;
-    if (i < W) {
-      const c = value(i, start.step, start.lives, startBest);
-      waitFor = { at: windows[i]!.at, chance: Math.max(...c.lineups.map((q) => quickChance(q, target(start.step)))) };
-      skipped = i;
+  const moveOf = (i: number, c: Choice): Move => ({ from: i, to: c.to, at: windows[i]!.at, step: start.step, lives: start.lives, best: startBest, play: c.play, clear: c.clear, settles: c.settles, lineups: c.lineups, list: c.list });
+  // Compare actual batches, not a separately rebuilt single lineup. Holding follows the same policy from the next window.
+  const path = W ? walk(0, start.step, start.lives, startBest) : [];
+  const holdPath = W > 1 ? walk(1, start.step, start.lives, startBest) : [];
+  const holdMove = holdPath[0] ?? null;
+  let playNow: Move | null = first?.play ? moveOf(0, first) : null;
+  if (!playNow && W) {
+    const leg = legsFrom(0).find((l) => l.to === 0);
+    if (leg) {
+      const lineups = teamsFor(0, leg, start.step).slice(0, start.step === 1 ? start.lives : 1);
+      if (lineups.length) playNow = { from: 0, to: 0, at: windows[0]!.at, step: start.step, lives: start.lives, best: startBest, play: lineups.length, clear: batchChances(lineups, target(start.step), draw).at(-1)!, settles: Math.max(...lineups.map((l) => Date.parse(l.last))) + SETTLES_AFTER_MS, lineups, list: leg.list };
     }
   }
-  // Playing now = the best lineup of the next window's own games, one life.
-  const nowReach = own ? (() => {
-    const q = [...own.lineups].sort((a, b) => quickChance(b, target(start.step)) - quickChance(a, target(start.step)))[0]!;
-    const clear = quickChance(q, target(start.step));
-    const next = firstAfter(q.last + SETTLES_AFTER_MS, 1);
-    const won = value(next, up(start.step), upLives(start.step), Math.max(startBest, start.step)).reach;
-    const lost = start.lives > 1 ? value(next, start.step, start.lives - 1, startBest).reach : value(next, 1, LIVES, startBest).reach;
-    const reach = mix(clear, won, lost);
-    return first?.play && first.to === 0 && comparePrizes(first.reach, reach, 0) > 0 ? first.reach : reach;
-  })() : done(startBest);
+  const chanceNow = playNow?.clear ?? null;
+  const waitFor = !first?.play && holdMove ? { at: holdMove.at, chance: holdMove.clear } : null;
+  const skipped = waitFor ? holdMove!.from : 0;
+  const nowReach = first?.play ? first.reach : (() => {
+    if (!playNow) return done(startBest);
+    const next = firstAfter(playNow.settles, 1);
+    const won = outcome(playNow, true), lost = outcome(playNow, false);
+    return mix(playNow.clear, value(next, won.n, won.lives, won.best).reach, value(next, lost.n, lost.lives, lost.best).reach);
+  })();
   const kind: Verdict["kind"] = !first ? "none" : !first.play ? (waitFor ? "wait" : "none")
     : first.play >= start.lives && first.clear < 0.5 && start.step > 1 ? "spend" : "play";
 
   return {
     windows,
-    path: W ? walk(0, start.step, start.lives, startBest) : [],
+    path,
     odds,
-    verdict: { kind, now: nowReach, wait: held?.reach ?? done(startBest), chanceNow, waitFor, skipped },
+    verdict: { kind, now: nowReach, wait: held?.reach ?? done(startBest), chanceNow, waitFor, skipped, playNow, hold: holdMove },
     after: (move, cleared) => { const next = outcome(move, cleared); return walk(firstAfter(move.settles, move.from + 1), next.n, next.lives, next.best); },
   };
 }

@@ -4,9 +4,10 @@ import { useContext, useMemo, useState, type CSSProperties } from "react";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
 import { climbWindows, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
-import { FdrChip, FdrContext } from "./Fdr";
+import { FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
-import { bestLineup, bigReward, cashOf, chanceOf, likelyRange, madridDate, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
+import CardRatings from "./CardRatings";
+import { bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
@@ -25,35 +26,26 @@ const settleLabel = (settles: number, at: number) => (madridDate(iso(settles)) =
 export function StartLabel({ outlook }: { outlook: Outlook }) {
   return outlook.start === null
     ? <i className="arc-nostart">no start % yet</i>
-    : <span title={`${SOURCE[outlook.startSource!]}'s start %`}>{pct(outlook.start)} start</span>;
-}
-
-/** One card's prediction: points, his likely range, and where the numbers come from. */
-export function Prediction({ outlook, captain = false, captainBonus = 0 }: { outlook: Outlook; captain?: boolean; captainBonus?: number }) {
-  const value = predicted(outlook, captain, captainBonus);
-  const range = likelyRange(outlook, captain, captainBonus);
-  if (value === null) return <span className="arc-pred is-none">no projection yet</span>;
-  return (
-    <span className="arc-pred" title={`${outlook.scoreSource === "sofix" ? "Sofix's xScore" : outlook.scoreSource === "sorare" ? "Sorare's projection" : "his average when he plays (Sorare has no projection yet)"} × start % × Sorare's bonus${range ? `; he scored ${pts(range[0])}–${pts(range[1])} in 6 of 10 recent games he played` : ""}`}>
-      <b>{pts(value)}</b> pts{range ? <small> · {pts(range[0])}–{pts(range[1])} if he plays</small> : null}
-    </span>
-  );
+    : outlook.startUrl
+      ? <a href={outlook.startUrl} target="_blank" rel="noreferrer" title={`${SOURCE[outlook.startSource!]}’s start %`}>{pct(outlook.start)} start</a>
+      : <span title={`${SOURCE[outlook.startSource!]}’s start %`}>{pct(outlook.start)} start</span>;
 }
 
 export function LineupCards({ lineup, captainBonus }: { lineup: Lineup; captainBonus: number }) {
   return (
     <ol className="arc-lineup">
       {lineup.picks.map(({ slot, outlook, captain }, i) => (
-        <li key={outlook.card.slug} style={{ "--i": i } as CSSProperties}>
+        <li key={outlook.card.slug} aria-label={outlook.card.name} style={{ "--i": i } as CSSProperties}>
           <span className="arc-slot">{SLOT[slot]}{captain && captainBonus > 0 ? <b className="arc-captain" title="Captain">C</b> : null}</span>
-          {outlook.card.picture
-            // eslint-disable-next-line @next/next/no-img-element -- Sorare's card art, as on the other pages
-            ? <img src={outlook.card.picture} alt={outlook.card.name} width={120} height={194} loading="lazy" />
-            : <div className="arc-card-blank">{outlook.card.name}</div>}
-          <span className="arc-card-name">{outlook.card.name}</span>
-          <Prediction outlook={outlook} captain={captain} captainBonus={captainBonus} />
+          <div className="arc-art">
+            {outlook.card.picture
+              // eslint-disable-next-line @next/next/no-img-element -- Sorare card art
+              ? <img src={outlook.card.picture} alt={outlook.card.name} width={120} height={194} loading="lazy" />
+              : <div className="arc-card-blank">{outlook.card.name}</div>}
+            <CardRatings outlook={outlook} game={outlook.game.id} home={outlook.game.home?.slug === outlook.card.teamSlug} captain={captain} captainBonus={captainBonus} detail={`${outlook.card.name} · ${outlook.game.home?.name ?? "?"} v ${outlook.game.away?.name ?? "?"} · ${madridDay(outlook.game.kickoff)} ${madridTime(outlook.game.kickoff)}`} />
+          </div>
           {/postpon|cancel|suspend/i.test(outlook.game.status) ? <span className="arc-warn">Game {outlook.game.status.toLowerCase()}</span> : null}
-          <span className="arc-meta"><StartLabel outlook={outlook} /> · {madridTime(outlook.game.kickoff)} <FdrChip game={outlook.game.id} home={outlook.game.home?.slug === outlook.card.teamSlug} position={SLOT[slot] === "Extra" ? outlook.card.positions[0] : SLOT[slot]} /></span>
+          <span className="arc-meta"><StartLabel outlook={outlook} /> · {madridTime(outlook.game.kickoff)}</span>
         </li>
       ))}
     </ol>
@@ -156,15 +148,15 @@ function Pitch({ lineup, captainBonus, title }: { lineup: Lineup; captainBonus: 
  * The tickets are the owner's (29 Oct: "leave it as is"); the games picked and the aim live in ArcadePlanner, so Your move and the teams
  * to build around can hand games over. Cards already in a lineup of yours on Sorare are left out until it settles.
  */
-function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, setAim, busy, now }: {
-  arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; chosen: Set<string>; setChosen: (next: Set<string>) => void; aim: number; setAim: (n: number) => void; busy: Set<string>; now: number;
+function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, setAim, busy, now, preset }: {
+  arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; chosen: Set<string>; setChosen: (next: Set<string>) => void; aim: number; setAim: (n: number) => void; busy: Set<string>; now: number; preset: Lineup | null;
 }) {
   const steps = arcade.board?.steps ?? [];
   const boards = useContext(FdrContext);
   const crests = useMemo(() => crestsOf(arcade), [arcade]);
   const games = useMemo(() => (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now && (outlooks.get(g.id) ?? []).length), [arcade.games, outlooks, now]);
   const target = steps.find((s) => s.number === aim)?.target ?? steps[0]?.target ?? 0;
-  const lineup = useMemo(() => bestLineup([...chosen].flatMap((id) => outlooks.get(id) ?? []).filter((o) => !busy.has(o.card.slug)), target, captainBonus), [chosen, outlooks, target, captainBonus, busy]);
+  const lineup = useMemo(() => preset ?? bestLineup([...chosen].flatMap((id) => outlooks.get(id) ?? []).filter((o) => !busy.has(o.card.slug)), target, captainBonus), [chosen, outlooks, target, captainBonus, busy, preset]);
   const toggle = (id: string) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); };
   // The games where one of your clubs is favourite on Sofix's board (difficulty 1 or 2).
   const easy = games.filter((g) => {
@@ -258,53 +250,42 @@ export function climbStep(arcade: Arcade): number {
   return cleared && steps.some((s) => s.number === current + 1) ? current + 1 : current;
 }
 
-/** A move's lineups built exactly (simulated), each aimed at its step, no player twice. */
-function exactLineups(move: Move, target: number, captainBonus: number): Lineup[] {
-  const used = new Set<string>();
-  const out: Lineup[] = [];
-  for (let k = 0; k < move.play; k++) {
-    const lineup = bestLineup(move.list.filter((o) => !used.has(o.card.player)), target, captainBonus);
-    if (!lineup) break;
-    out.push(lineup);
-    lineup.picks.forEach((p) => used.add(p.outlook.card.player));
-  }
-  return out;
-}
-
 const VERB: Record<Climb["verdict"]["kind"], string> = { play: "Play now", wait: "Wait", spend: "Spend them now", none: "Nothing to play yet" };
 
 /** Your move: play, wait or spend your lives, why, and the lineup to enter. */
-function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote, busy }: {
-  plan: Climb; steps: StepInfo[]; boardSteps: ArcadeStep[]; current: number; lives: number; captainBonus: number; now: number; onBuild: (games: string[], step: number) => void; waitingNote: string | null; busy: Set<string>;
+function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote }: {
+  plan: Climb; steps: StepInfo[]; boardSteps: ArcadeStep[]; current: number; lives: number; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void; waitingNote: string | null;
 }) {
   const move = plan.path[0] ?? null;
   const target = (n: number) => steps.find((s) => s.number === n)?.target ?? 0;
-  const lineups = useMemo(() => (move ? exactLineups(move, target(move.step), captainBonus) : []), [move, captainBonus]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lineups = move?.lineups ?? [];
   const [shown, setShown] = useState(0);
   const lineup = lineups[Math.min(shown, lineups.length - 1)] ?? null;
   const v = plan.verdict;
   const step = boardSteps.find((s) => s.number === current);
   const playsNow = move && move.from === 0 && v.kind !== "wait";
-  const clear = lineups.length ? 1 - lineups.reduce((m, l) => m * (1 - chanceOf(l.totals, target(move!.step))), 1) : move?.clear ?? 0;
-  const title = v.kind === "wait" && v.waitFor ? `Wait for ${when(v.waitFor.at, now)}` : v.kind === "spend" && move ? (move.play === 1 ? "Spend your last life now" : `Spend all ${move.play} lives now`) : VERB[v.kind];
+  const clear = move?.clear ?? 0;
+  const title = v.kind === "play" && move && move.play > 1 ? `Play ${move.play} lineups now` : v.kind === "wait" && v.waitFor ? `Wait for ${when(v.waitFor.at, now)}` : v.kind === "spend" && move ? (move.play === 1 ? "Spend your last life now" : `Spend all ${move.play} lives now`) : VERB[v.kind];
   // The bar (owner, 29 Oct): the step you are on, the lineup you would enter now against the best one from the games you would wait for.
-  const holdAt = v.kind === "wait" && v.waitFor ? plan.windows.findIndex((w) => w.at === v.waitFor!.at) : 1;
-  const holdWindow = plan.windows[holdAt] ?? null;
-  const playLineup = useMemo(() => (lineup && move?.from === 0 ? lineup : plan.windows[0] ? bestLineup(plan.windows[0].list.filter((o) => !busy.has(o.card.slug)), target(current), captainBonus) : null), [lineup, move, plan.windows, busy, current, captainBonus]); // eslint-disable-line react-hooks/exhaustive-deps
-  const holdLineup = useMemo(() => (holdWindow ? bestLineup(holdWindow.list.filter((o) => !busy.has(o.card.slug)), target(current), captainBonus) : null), [holdWindow, busy, current, captainBonus]); // eslint-disable-line react-hooks/exhaustive-deps
-  const playChance = playLineup ? chanceOf(playLineup.totals, target(current)) : 0;
-  const holdChance = holdLineup ? chanceOf(holdLineup.totals, target(current)) : null;
+  const playMove = v.playNow;
+  const holdMove = v.hold;
+  const playChance = playMove?.clear ?? 0;
+  const holdChance = holdMove?.clear ?? null;
   const holdWins = v.kind === "wait";
   // The reason in one line; the numbers are in the bar below it.
-  const why = v.kind === "play" ? (holdChance !== null && holdChance > playChance + 0.005 && lives > 1
-      ? `${when(holdWindow!.at, now)} is a little better, but playing now keeps that try: miss and you still have ${lives - 1} ${lives - 1 === 1 ? "life" : "lives"} for it.`
+  const why = v.kind === "play" && move?.step === 1 && move.play === lives
+    ? `Use all ${lives} lives: if every lineup misses, you restart step 1 with four fresh lives. ${holdMove && holdMove.at < move.settles ? "Waiting could enter the next games sooner; this batch gives the better climb." : "Holding saves no progress."}`
+    : v.kind === "play" ? (holdMove && holdMove.at < (move?.settles ?? 0)
+      ? "The next games start before this settles. This batch gives the better chance through the remaining climb."
+      : holdChance !== null && holdChance > playChance + 0.005 && lives > (move?.play ?? 1)
+      ? `The later games are stronger, but a miss now still leaves ${lives - (move?.play ?? 1)} lives for them.`
       : holdChance === null ? "No later game before the set ends." : "Every window you skip is a try lost.")
-    : v.kind === "wait" && v.waitFor ? `Worth the ${v.skipped} window${v.skipped === 1 ? "" : "s"} it costs: those games are clearly better for this step.`
-    : v.kind === "spend" && move ? `If it misses you are back on step 1 about ${when(move.settles, now)}, and the steps below come back fast.`
+    : v.kind === "wait" && v.waitFor ? `Worth the ${v.skipped} window${v.skipped === 1 ? "" : "s"} it costs: those games give the better climb.`
+    : v.kind === "spend" && move ? `If all miss you restart step 1 about ${when(move.settles, now)}, and the steps below come back fast.`
     : "Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).";
   // Whether the lineup's start % will all be known before it is entered: its games kick off together (within the 75-minute window).
   const together = lineup ? Date.parse(lineup.last) - Date.parse(lineup.first) <= WINDOW_MS : true;
-  const share = (p: number | null) => Math.max(0.18, p ?? 0); // each side keeps room for its label
+  const share = (p: number | null) => Math.max(0.25, p ?? 0);
   return (
     <section className={`arc-move is-${v.kind}`} aria-labelledby="arc-move-title">
       <div className="arc-move-main">
@@ -319,9 +300,9 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
         {v.kind !== "none" ? (
           <figure className="arc-split">
             <figcaption>Chance to clear step {current} ({target(current)} pts)</figcaption>
-            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"}: ${pct(playChance)} with the lineup now, ${holdChance === null ? "no later game" : `${pct(holdChance)} with ${when(holdWindow!.at, now)}'s games`}`}>
-              <span className={holdWins ? undefined : "is-pick"} style={{ flexGrow: share(playChance) }}><small>Play{plan.windows[0] ? ` · ${madridTime(iso(plan.windows[0].at))}` : ""}</small><b>{pct(playChance)}</b></span>
-              <span className={holdWins ? "is-pick" : undefined} style={{ flexGrow: share(holdChance) }}><small>Hold{holdWindow ? ` · ${madridTime(iso(holdWindow.at))}` : ""}</small><b>{holdChance === null ? "—" : pct(holdChance)}</b></span>
+            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"}: ${pct(playChance)} with ${playMove?.play ?? 0} lineups now, ${holdChance === null ? "no later lineup" : `${pct(holdChance)} with ${holdMove!.play} lineups from ${when(holdMove!.at, now)}`}`}>
+              <span className={holdWins ? undefined : "is-pick"} style={{ flexGrow: share(playChance) }}><small>Play <time>{playMove ? when(playMove.at, now) : "—"}</time><em>{playMove?.play ?? 0} lineup{playMove?.play === 1 ? "" : "s"}</em></small><b>{pct(playChance)}</b></span>
+              <span className={holdWins ? "is-pick" : undefined} style={{ flexGrow: share(holdChance) }}><small>Hold <time>{holdMove ? when(holdMove.at, now) : "—"}</time><em>{holdMove ? `${holdMove.play} lineup${holdMove.play === 1 ? "" : "s"}` : "No later lineup"}</em></small><b>{holdChance === null ? "—" : pct(holdChance)}</b></span>
             </div>
           </figure>
         ) : null}
@@ -335,7 +316,7 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
                 <span>Settles about <b>{when(lineup ? Date.parse(lineup.last) + SETTLES_AFTER_MS : move.settles, now)}</b></span>
                 {move.play > 1 ? <span>{move.play} lineups together: <b>{pct(clear)}</b> one clears (Sorare cancels the others)</span> : null}
               </span>
-              <button type="button" className="arc-small" onClick={() => onBuild([...new Set((lineup?.picks ?? []).map((p) => p.outlook.game.id))], move.step)} disabled={!lineup}>Edit in Pick teams</button>
+              <button type="button" className="arc-small" onClick={() => onBuild(move, lineup)} disabled={!lineup}>Edit in Pick teams</button>
             </div>
             {lineups.length > 1 ? (
               <div className="arc-modes" role="group" aria-label="Lineup">
@@ -365,13 +346,13 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
 }
 
 /** The chain: the next moves, window by window, each settling before the next starts; the other outcome of each a tap away. */
-function Chain({ plan, steps, captainBonus, now }: { plan: Climb; steps: StepInfo[]; captainBonus: number; now: number }) {
+function Chain({ plan, captainBonus, now, onBuild }: { plan: Climb; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void }) {
   const [branch, setBranch] = useState<{ of: Climb; moves: Move[]; label: string } | null>(null);
   const moves = branch?.of === plan ? branch.moves : plan.path;
   const [focus, setFocus] = useState<number | null>(null);
+  const [shown, setShown] = useState(0);
   const picked = focus !== null ? moves[focus] ?? null : null;
-  const target = (n: number) => steps.find((s) => s.number === n)?.target ?? 0;
-  const lineups = useMemo(() => (picked ? exactLineups(picked, target(picked.step), captainBonus) : []), [picked, captainBonus]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lineups = picked?.lineups ?? [];
   if (moves.length < 2 && !branch) return null;
   const follow = (m: Move, i: number, cleared: boolean) => {
     setBranch({ of: plan, moves: [...moves.slice(0, i + 1), ...plan.after(m, cleared)], label: `if ${m.play > 1 ? (cleared ? "one clears" : "all miss") : cleared ? "it clears" : "it misses"} at ${when(m.at, now)}` });
@@ -394,7 +375,7 @@ function Chain({ plan, steps, captainBonus, now }: { plan: Climb; steps: StepInf
           return (
             <li key={`${m.from}-${m.step}-${i}`} style={{ "--i": i } as CSSProperties} className={newDay ? "is-day" : undefined}>
               {newDay ? <span className="arc-chain-day">{madridDay(iso(m.at))}</span> : <span className="arc-chain-day" aria-hidden="true" />}
-              <button type="button" className={`arc-chain-node${m.clear >= 0.5 ? " is-likely" : " is-long"}`} aria-pressed={focus === i} onClick={() => setFocus(focus === i ? null : i)}>
+              <button type="button" className={`arc-chain-node${m.clear >= 0.5 ? " is-likely" : " is-long"}`} aria-pressed={focus === i} onClick={() => { setFocus(focus === i ? null : i); setShown(0); }}>
                 <span className="arc-chain-time">{madridTime(iso(m.at))}</span>
                 <span className="arc-chain-step">Step {m.step}{m.play > 1 ? <small> × {m.play}</small> : null}</span>
                 <b>{pct(m.clear)}</b>
@@ -414,7 +395,9 @@ function Chain({ plan, steps, captainBonus, now }: { plan: Climb; steps: StepInf
       {picked ? (
         <div className="arc-chain-detail">
           <p className="arc-sub">Step {picked.step} at {when(picked.at, now)}: {picked.play} lineup{picked.play > 1 ? "s" : ""}, {pct(picked.clear)} that one clears, settles about {when(picked.settles, now)}.</p>
-          {lineups[0] ? <LineupCards lineup={lineups[0]} captainBonus={captainBonus} /> : null}
+          {lineups.length > 1 ? <div className="arc-modes" role="group" aria-label="Chain lineup">{lineups.map((_, i) => <button key={i} type="button" aria-pressed={shown === i} onClick={() => setShown(i)}>Lineup {i + 1}</button>)}</div> : null}
+          {lineups[shown] ? <LineupCards lineup={lineups[shown]} captainBonus={captainBonus} /> : null}
+          <button type="button" className="arc-small" onClick={() => onBuild(picked, lineups[shown] ?? null)}>Edit in Pick teams</button>
           <div className="arc-outcomes" role="group" aria-label="What comes next">
             {([true, false] as const).map((cleared) => {
               const next = plan.after(picked, cleared)[0] ?? null;
@@ -442,26 +425,29 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
   const plan = useMemo(() => climbWindows(all, steps, start, captainBonus, now), [all, steps, start, captainBonus, now]);
   const busy = useMemo(() => new Set(start.held.filter((h) => h.until > now).map((h) => h.card)), [start.held, now]);
   const games = useMemo(() => (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now && (outlooks.get(g.id) ?? []).length), [arcade.games, outlooks, now]);
-  const [chosen, setChosen] = useState<Set<string>>(() => new Set((plan.path[0]?.list ?? []).map((o) => o.game.id)));
-  const [aim, setAim] = useState(current);
+  const [selection, setSelection] = useState<{ plan: Climb; chosen: Set<string>; aim: number; preset: Lineup | null } | null>(null);
+  const chosen = selection?.plan === plan ? selection.chosen : new Set((plan.path[0]?.list ?? []).map((o) => o.game.id));
+  const aim = selection?.plan === plan ? selection.aim : plan.path[0]?.step ?? current;
+  const preset = selection?.plan === plan ? selection.preset : plan.path[0]?.lineups[0] ?? null;
+  const setChosen = (next: Set<string>) => setSelection({ plan, chosen: next, aim, preset: null });
+  const setAim = (next: number) => setSelection({ plan, chosen, aim: next, preset: null });
   const lives = start.step === current ? start.lives : 0;
   const waitingNote = after
     ? `Your ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} on step ${current} settle${waiting.length > 1 ? "" : "s"} first (about ${when(after.at, now)}); the plan goes on as if one clears it.`
     : waiting.length ? `You have ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} waiting on step ${current}: if one clears it, Sorare cancels any other you entered on the step.` : null;
-  const build = (ids: string[], step: number) => {
-    setChosen(new Set(ids));
-    setAim(step);
-    document.getElementById("arc-teams-title")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const build = (move: Move, lineup: Lineup | null) => {
+    setSelection({ plan, chosen: new Set(move.list.map((o) => o.game.id)), aim: move.step, preset: lineup });
+    document.getElementById("arc-teams-title")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
   };
   if (!games.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;
   return (
     <>
-      <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} busy={busy} />
-      <Chain plan={plan} steps={steps} captainBonus={captainBonus} now={now} />
+      <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} />
+      <Chain plan={plan} captainBonus={captainBonus} now={now} onBuild={build} />
       <ArcadeTeams arcade={arcade} outlooks={outlooks} status={status} chosen={chosen} onToggle={(id) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); }} now={now} />
       <section className="arc-plan" aria-labelledby="arc-teams-title">
         <div className="arc-plan-head"><h2 id="arc-teams-title">Pick teams</h2></div>
-        <PickTeams arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} chosen={chosen} setChosen={setChosen} aim={aim} setAim={setAim} busy={busy} now={now} />
+        <PickTeams arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} chosen={chosen} setChosen={setChosen} aim={aim} setAim={setAim} busy={busy} now={now} preset={preset} />
       </section>
     </>
   );

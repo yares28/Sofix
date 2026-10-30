@@ -5,7 +5,7 @@ import { bonusLabel, gamesOf, type ArcadeCard, type ArcadeGame, type PlayerForm 
 import { dayLabel, matchesPick, SCORE_CUTS, TIER_OPTIONS, tierChoice } from "../../lib/arcadeCards";
 import { madridDate, predicted, type Outlook } from "../../lib/arcadePlan";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
-import { scoreColour } from "../../lib/cards";
+import CardRatings from "./CardRatings";
 import { FdrContext, sideOf } from "./Fdr";
 
 const PAGE_SIZE = 12;
@@ -15,14 +15,10 @@ const SOURCES = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sof
 const fixtureName = (game: ArcadeGame) => `${game.home?.name ?? "?"} v ${game.away?.name ?? "?"} · ${new Date(game.kickoff).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${game.competition.name}`;
 
 function Card({ card, games, outlooks, crests }: { card: ArcadeCard; games: ArcadeGame[] | null; outlooks: Map<string, Map<string, Outlook>>; crests: Map<string, string> }) {
-  const boards = useContext(FdrContext);
   const [chosen, setChosen] = useState<string | null>(null);
   const mine = gamesOf(card, games ?? []);
   const game = mine.find((g) => g.id === chosen) ?? mine[0];
   const outlook = game ? outlooks.get(game.id)?.get(card.slug) : undefined;
-  const side = game ? sideOf(boards.get(game.id), game.home?.slug === card.teamSlug)?.mine : null;
-  const score = outlook ? predicted(outlook) : null;
-  const scoreLook = scoreColour(score);
   const bonus = bonusLabel(card.bonus);
   const detail = game ? fixtureName(game) : games === null ? "Games unavailable" : "No game before the set ends";
   const startProps = { className: "arc-card-start", "aria-label": `Start chance ${percent(outlook?.start)}`, title: `${detail} · ${outlook?.startSource ? SOURCES[outlook.startSource] : "Unknown"} start chance` };
@@ -33,14 +29,7 @@ function Card({ card, games, outlooks, crests }: { card: ArcadeCard; games: Arca
           // eslint-disable-next-line @next/next/no-img-element -- Original Sorare card art
           ? <img src={card.picture} alt={card.name} loading="lazy" width={240} height={388} />
           : <div className="arc-card-blank" role="img" aria-label={card.name}>{card.name}</div>}
-        <div className="arc-card-ratings">
-          <span className={`arc-card-fdr${side ? ` f${side.bucket}` : ""}`} title={side ? `${detail} · ${side.label} · difficulty ${side.difficulty ?? "unknown"} of 100 (lower is easier)` : `${detail} · FDR unavailable`}>
-            <small>FDR</small><b>{side?.difficulty == null ? "—" : Math.round(side.difficulty)}</b>
-          </span>
-          <span className="arc-card-score" aria-label={score === null ? "xScore unavailable" : `xScore ${Math.round(score)}`} style={{ background: scoreLook.fill, color: scoreLook.ink }} title={`${detail} · xScore · ${outlook?.scoreSource ? SOURCES[outlook.scoreSource] : "No"} projection × start chance × card bonus${outlook?.start === null ? "; start chance unknown, assumed starting" : ""}`}>
-            <b>{score === null ? "—" : Math.round(score)}</b>
-          </span>
-        </div>
+        <CardRatings outlook={outlook} game={game?.id} home={game?.home?.slug === card.teamSlug} detail={detail} />
         {bonus ? <span className="arc-card-bonus" title={`${card.edition ?? "Edition"} bonus; club bonus is included separately in xScore`}>{bonus}</span> : null}
       </div>
       <figcaption>

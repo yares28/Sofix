@@ -281,6 +281,23 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await expect(move.locator(".arc-split")).toContainText("Chance to clear step 2 (300 pts)");
   await expect(move.locator(".arc-split .is-pick")).toContainText("Play");
   await expect(move.locator(".arc-lineup li")).toHaveCount(5); // the five to enter
+  await expect(move.locator(".arc-art .arc-card-ratings .arc-card-fdr")).toHaveCount(5);
+  await expect(move.locator(".arc-art .arc-card-ratings .arc-card-score")).toHaveCount(5);
+  await expect(move.locator(".arc-lineup")).not.toContainText("if he plays");
+  await expect(move.locator(".arc-lineup .arc-card-name")).toHaveCount(0);
+  const team = await move.locator(".arc-lineup li").evaluateAll((items) => items.map((li) => ({ name: li.getAttribute("aria-label"), captain: !!li.querySelector(".arc-captain") })));
+  await move.getByRole("button", { name: "Edit in Pick teams" }).click();
+  await page.getByText("Each card's numbers").click();
+  expect(await page.locator(".arc-detail .arc-lineup li").evaluateAll((items) => items.map((li) => ({ name: li.getAttribute("aria-label"), captain: !!li.querySelector(".arc-captain") })))).toEqual(team);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const bar = await move.locator(".arc-split > div").evaluate((el) => ({ width: el.getBoundingClientRect().width, parent: el.parentElement!.getBoundingClientRect().width, labels: [...el.querySelectorAll("small")].map((s) => ({ width: s.clientWidth, scroll: s.scrollWidth, nowrap: getComputedStyle(s).whiteSpace })) }));
+    expect(bar.width).toBeGreaterThanOrEqual(bar.parent - 1);
+    expect(bar.width).toBeGreaterThan(width === 390 ? 260 : 500);
+    expect(bar.labels.every((l) => l.scroll <= l.width && l.nowrap === "nowrap")).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
   await expect(move).toContainText("Enter before");
   await expect(move).toContainText("Settles about");
   await expect(page.locator(".arc-ladder li")).toHaveCount(2);
@@ -307,6 +324,42 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
     }
   }
+});
+
+test("step one spends four resettable lives and keeps every insurance team identical across move, chain and builder", async ({ page }) => {
+  const games = Array.from({ length: 5 }, (_, i) => ({ id: `Game:batch-${i}`, date: new Date(Date.parse(KICKOFF) + (i === 4 ? 4 * 3600000 : 0)).toISOString(), statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: `club-${i}`, name: `Club ${i}` }, awayTeam: { slug: `rival-${i}`, name: `Rival ${i}` } }));
+  const cards = games.flatMap((_, i) => SQUAD.map(([slug, player, name, position]) => ({ slug: `${slug}-${i}`, pictureUrl: null, anyPositions: [position], cardSet: { slug: "glitch" }, skinEdition: { bonus: 1 }, anyPlayer: { slug: `${player}-${i}`, displayName: `${name} ${i}` }, anyTeam: { slug: `club-${i}`, name: `Club ${i}` } })));
+  const board = structuredClone(ANSWERS.arcade) as { currentUser: { setBoard: { myCurrentStep: { id: string; level: number }; steps: Record<string, unknown>[] } } };
+  board.currentUser.setBoard.myCurrentStep = { id: "s1", level: 1 };
+  board.currentUser.setBoard.steps[0] = { ...board.currentUser.setBoard.steps[0], state: "PLAYABLE", engineConfiguration: { captain: 0.5 }, remainingLineupsCount: 4, maxLineupsCount: 4 };
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page, { ...ANSWERS, arcade: board,
+    "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: games.map((game) => ({ game })), pageInfo: { hasNextPage: false } } } } },
+    "arcade-cards": { currentUser: { cards: { nodes: cards, pageInfo: { hasNextPage: false } } } },
+    "arcade-past": { players: cards.map((c) => ({ slug: c.anyPlayer.slug, playerGameScores: [40, 50, 60].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })) },
+    ...Object.fromEntries(games.map((game, i) => [`arcade-projections:${game.id}`, { anyGame: { id: game.id, playerGameScores: cards.filter((c) => c.anyTeam.slug === `club-${i}`).map((c) => ({ projection: { score: 50 }, anyPlayer: c.anyPlayer })) } }])),
+  }, "0.4.18");
+  await page.goto("/arcade");
+  const move = page.locator(".arc-move");
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play 4 lineups now");
+  await expect(move.locator(".arc-move-why")).toContainText("four fresh lives");
+  await expect(move.locator(".arc-split .is-pick")).toContainText("4 lineups");
+  const signature = (selector: string) => page.locator(`${selector} .arc-lineup li`).evaluateAll((items) => items.map((li) => ({ name: li.getAttribute("aria-label"), captain: !!li.querySelector(".arc-captain"), score: li.querySelector(".arc-card-score")?.textContent })));
+  const first = await signature(".arc-move");
+  await page.locator(".arc-chain-node").first().click();
+  expect(await signature(".arc-chain-detail")).toEqual(first);
+  await expect(page.locator(".arc-chain-node").first().locator("b")).toHaveText((await move.locator(".arc-split .is-pick > b").textContent())!);
+  await move.getByRole("group", { name: "Lineup", exact: true }).getByRole("button").nth(1).click();
+  const second = await signature(".arc-move");
+  expect(second).not.toEqual(first);
+  await page.getByRole("group", { name: "Chain lineup" }).getByRole("button", { name: "Lineup 2", exact: true }).click();
+  expect(await signature(".arc-chain-detail")).toEqual(second);
+  await move.getByRole("button", { name: "Edit in Pick teams" }).click();
+  await page.getByText("Each card's numbers").click();
+  expect(await signature(".arc-detail")).toEqual(second);
+  await show(page, "Players");
+  await show(page, "Play now");
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play 4 lineups now");
 });
 
 test("Gems and packs: what your gems buy for an Icon, new players or a collection mission, from Sorare's odds, with the maths", async ({ page }) => {

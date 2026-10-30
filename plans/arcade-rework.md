@@ -49,3 +49,5 @@ the real flow; keep the game selection and its ticket styling as is. Audit befor
 
 - The new reads on a live board: tiers in pack odds, Sorare status, collection missions (only validated against the schema; the board
   and missions are empty between sets).
+
+30 Oct: the climb now selects the same simulated teams/captains as the builder, and the chain renders those selections directly. The Play/Hold bar compares actual insurance batches. Step-one resets have no progress penalty when every entry settles before the same next opportunity; four lives are used when feasible without worsening the climb. Card art carries compact FDR/xScore badges. Acceptance and evidence: [consistency fix](arcade-consistency.md).

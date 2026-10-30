@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, type Outlook } from "./arcadePlan";
+import { batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
@@ -30,6 +30,15 @@ describe("a card's predicted score", () => {
 });
 
 describe("the chance a lineup reaches a target", () => {
+  it("shares the same game across insurance lineups instead of treating duplicate outcomes as extra chances", () => {
+    const pool = ["Goalkeeper", "Defender", "Midfielder", "Forward", "Midfielder"].map((p, i) => outlook(`p${i}`, [p], 60, 0.7));
+    const draw = simulation(0.5);
+    const lineup = bestLineup(pool, 260, 0.5)!;
+    const chances = batchChances([lineup, lineup], 260, draw);
+    expect(chances[0]).toBe(chanceOf(lineup.totals, 260));
+    expect(chances[1]).toBe(chances[0]);
+    expect(simulate([...lineup.picks].reverse(), 0.5)).toEqual(lineup.totals);
+  });
   it("is certain or impossible when every card always starts and always scores the same", () => {
     const picks = [60, 60, 60, 60, 60].map((s, i) => ({ outlook: outlook(`p${i}`, ["Forward"], s, 1, [s, s, s]), captain: i === 0 }));
     const totals = simulate(picks, 0.5);
@@ -57,6 +66,32 @@ describe("the chance a lineup reaches a target", () => {
 });
 
 describe("the best lineup", () => {
+  it("retains the exhaustive top shortlist when pruning a larger, tied and multi-position pool", () => {
+    const cards = ["Goalkeeper", "Defender", "Midfielder", "Forward"].flatMap((p, i) => [0, 1, 2].map((k) => outlook(`${i}-${k}`, k === 2 && i === 1 ? [p, "Midfielder"] : [p], 70 - 5 * k, k === 1 ? null : 0.9, undefined, k === 2 ? 0.2 : 0)));
+    const sorted = [...cards].sort((a, b) => predicted(b)! - predicted(a)! || a.card.slug.localeCompare(b.card.slug));
+    const combos: { cards: Outlook[]; expected: number }[] = [];
+    const visit = (chosen: Outlook[]) => {
+      if (chosen.length === 5) {
+        combos.push({ cards: chosen, expected: chosen.reduce((sum, o) => sum + predicted(o)!, 0) + Math.max(...chosen.map((o) => predicted(o, true, 0.5)! - predicted(o)!)) });
+        return;
+      }
+      for (const o of sorted.filter((o) => fits(o.card, SLOTS[chosen.length]!))) if (!chosen.some((p) => p.card.player === o.card.player)) visit([...chosen, o]);
+    };
+    visit([]);
+    const expected = combos.sort((a, b) => b.expected - a.expected).slice(0, 7).map((c) => c.cards.map((o) => o.card.slug).join(","));
+    const seen = new Set<string>();
+    bestLineup(cards, 260, 0.5, 1, 7, (picks) => { seen.add(picks.map((p) => p.outlook.card.slug).join(",")); return [0]; });
+    expect([...seen]).toEqual(expected);
+  });
+
+  it("prices every target in one cached search without borrowing another step's team or odds", () => {
+    const cards = ["Goalkeeper", "Defender", "Midfielder", "Forward", "Midfielder", "Forward"].map((p, i) => outlook(`p${i}`, [p], 50 + i * 3, 0.83, i % 2 ? [10, 40, 65, 90] : [45, 50, 55]));
+    const targets = [200, 260, 360, 450];
+    const cache = new Map();
+    const draw = simulation(0.5);
+    for (const target of targets) expect(bestLineup(cards, target, 0.5, 2000, 60, draw, cache, targets)).toEqual(bestLineup(cards, target, 0.5));
+    expect(cache.size).toBe(1);
+  });
   const pool = [
     outlook("gk", ["Goalkeeper"], 50, 1),
     outlook("d1", ["Defender"], 45, 1), outlook("d2", ["Defender"], 40, 1),

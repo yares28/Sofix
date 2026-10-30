@@ -96,44 +96,62 @@ export function phi(x: number): number {
   return x >= 0 ? (1 + y) / 2 : (1 - y) / 2;
 }
 
-/**
- * The lineup's total over RUNS simulated games, low to high. Each card starts with his chance (none: he starts), and then scores one of
- * his own past games, scaled so they average his score if he plays; with under 3 past games he scores that number. 0 when he does not start.
- * Teammates in one game share how their side's day goes (TEAMMATES): a good day lifts each of them up his own range together.
- */
-export function simulate(picks: { outlook: Outlook; captain: boolean }[], captainBonus: number, runs = RUNS, seed = 7, link = TEAMMATES): number[] {
-  const next = random(seed);
-  const normal = () => Math.sqrt(-2 * Math.log(1 - next())) * Math.cos(2 * Math.PI * next());
-  const sides = new Map<string, number>();
-  const cards = picks.map(({ outlook: o, captain }) => {
+/** Stable streams keep the same player's game and the same team's day identical in every candidate lineup. */
+function seedOf(text: string, seed: number): number {
+  for (let i = 0; i < text.length; i++) seed = Math.imul(seed ^ text.charCodeAt(i), 16777619);
+  return seed >>> 0;
+}
+
+/** One simulation context per plan/build: sample each card once, then price every candidate and insurance batch on those same games. */
+export function simulation(captainBonus: number, runs = RUNS, seed = 7, link = TEAMMATES) {
+  const sides = new Map<string, number[]>();
+  const cards = new Map<Outlook, number[]>();
+  const normal = (next: () => number) => Math.sqrt(-2 * Math.log(1 - next())) * Math.cos(2 * Math.PI * next());
+  const samples = (o: Outlook) => {
+    const known = cards.get(o);
+    if (known) return known;
+    const side = `${o.game.id}|${o.card.teamSlug ?? o.card.player}`;
+    let day = sides.get(side);
+    if (!day) {
+      const next = random(seedOf(side, seed));
+      day = Array.from({ length: runs }, () => normal(next));
+      sides.set(side, day);
+    }
+    const next = random(seedOf(`${o.game.id}|${o.card.player}|player`, seed));
     const mean = o.past.length ? o.past.reduce((a, b) => a + b, 0) / o.past.length : 0;
     const scale = o.score !== null && mean > 0 ? o.score / mean : 1;
-    const side = `${o.game.id}|${o.card.teamSlug ?? o.card.player}`;
-    if (!sides.has(side)) sides.set(side, sides.size);
-    return {
-      p: o.start ?? 1, m: multiplier(o, captain, captainBonus), side: sides.get(side)!,
-      past: o.past.length >= 3 ? o.past.map((s) => s * scale).sort((a, b) => a - b) : null, score: o.score ?? 0,
-    };
-  });
-  // Under 3 played games: his score with a normal spread of THIN share (median of 884 commons, plans/arcade-rework.md), not a fixed number.
-  const THIN = 0.33;
-  const day = new Array<number>(sides.size).fill(0);
-  const shared = Math.sqrt(link);
-  const own = Math.sqrt(1 - link);
-  const totals: number[] = [];
-  for (let r = 0; r < runs; r++) {
-    for (let i = 0; i < day.length; i++) day[i] = normal();
-    let total = 0;
-    for (const c of cards) {
-      if (next() >= c.p) continue;
-      const z = shared * day[c.side]! + own * normal();
-      if (!c.past) { total += Math.max(0, c.score * (1 + THIN * z)) * c.m; continue; }
-      const u = phi(z);
-      total += c.past[Math.min(c.past.length - 1, Math.floor(u * c.past.length))]! * c.m;
+    const past = o.past.length >= 3 ? o.past.map((v) => v * scale).sort((a, b) => a - b) : null;
+    const values = Array.from({ length: runs }, (_, r) => {
+      const starts = next() < (o.start ?? 1);
+      const z = Math.sqrt(link) * day![r]! + Math.sqrt(1 - link) * normal(next);
+      return !starts ? 0 : past ? past[Math.min(past.length - 1, Math.floor(phi(z) * past.length))]! : Math.max(0, (o.score ?? 0) * (1 + 0.33 * z));
+    });
+    cards.set(o, values);
+    return values;
+  };
+  return (picks: { outlook: Outlook; captain: boolean }[]) => {
+    const draws = new Array<number>(runs).fill(0);
+    for (const p of picks) {
+      const values = samples(p.outlook), m = multiplier(p.outlook, p.captain, captainBonus);
+      for (let r = 0; r < runs; r++) draws[r]! += values[r]! * m;
     }
-    totals.push(total);
-  }
-  return totals.sort((a, b) => a - b);
+    return draws;
+  };
+}
+
+/** Sorted simulated totals; the common sample streams preserve teammate correlation and source start chances. */
+export function simulate(picks: { outlook: Outlook; captain: boolean }[], captainBonus: number, runs = RUNS, seed = 7, link = TEAMMATES): number[] {
+  return simulation(captainBonus, runs, seed, link)(picks).sort((a, b) => a - b);
+}
+
+/** Chance one of the first k insurance lineups clears, sharing every player's game and teammates' day. */
+export function batchChances(lineups: Lineup[], target: number, draw: ReturnType<typeof simulation>): number[] {
+  const cleared: boolean[] = [];
+  return lineups.map((lineup) => {
+    const totals = draw(lineup.picks);
+    for (let r = 0; r < totals.length; r++) cleared[r] = !!cleared[r] || totals[r]! >= target;
+    return cleared.filter(Boolean).length / totals.length;
+  });
 }
 
 /** The share of simulated games at or over the target. */
@@ -155,10 +173,14 @@ const SHORTLIST = 60; // lineups simulated
  * The lineup with the best chance to reach the target (points above it earn nothing): GK, DEF, MID, FWD and one more outfield card, one
  * card per player, from the outlooks given. Only cards Sofix can score are used. Null when a slot cannot be filled.
  */
-export function bestLineup(outlooks: Outlook[], target: number, captainBonus: number, runs = RUNS, shortlist = SHORTLIST): Lineup | null {
+export type LineupSearchCache = Map<string, Map<number, Lineup | null>>;
+export function bestLineup(outlooks: Outlook[], target: number, captainBonus: number, runs = RUNS, shortlist = SHORTLIST, draw = simulation(captainBonus, runs), cache?: LineupSearchCache, targets = [target]): Lineup | null {
+  const key = cache ? outlooks.map((o) => `${o.card.slug}|${o.game.id}`).sort().join(";") : "";
+  const cached = cache?.get(key);
+  if (cached?.has(target)) return cached.get(target)!;
   // One outlook per player: his best card for his earliest game among those given.
   const byPlayer = new Map<string, Outlook>();
-  for (const o of outlooks) {
+  for (const o of [...outlooks].sort((a, b) => a.card.slug.localeCompare(b.card.slug) || a.game.kickoff.localeCompare(b.game.kickoff) || a.game.id.localeCompare(b.game.id))) {
     const value = predicted(o);
     if (value === null) continue;
     const held = byPlayer.get(o.card.player);
@@ -174,36 +196,57 @@ export function bestLineup(outlooks: Outlook[], target: number, captainBonus: nu
   const pools = SLOTS.map(pool);
   if (pools.some((p) => !p.length)) return null;
 
+  const means = new Map(usable.map((o) => [o, predicted(o)!]));
+  const gains = new Map(usable.map((o) => [o, predicted(o, true, captainBonus)! - predicted(o)!]));
+  const remaining = new Array<number>(SLOTS.length + 1).fill(0);
+  const remainingGain = [...remaining];
+  for (let i = SLOTS.length - 1; i >= 0; i--) {
+    remaining[i] = remaining[i + 1]! + Math.max(...pools[i]!.map((o) => means.get(o)!));
+    remainingGain[i] = Math.max(remainingGain[i + 1]!, ...pools[i]!.map((o) => gains.get(o)!));
+  }
   const combos: { picks: Outlook[]; expected: number }[] = [];
-  const walk = (slot: number, chosen: Outlook[]) => {
+  const walk = (slot: number, chosen: Outlook[], mean: number, gain: number) => {
+    // An optimistic bound ignores position collisions. Once even that cannot enter the shortlist, no descendant can.
+    if (combos.length >= shortlist && mean + remaining[slot]! + Math.max(gain, remainingGain[slot]!) <= combos.at(-1)!.expected) return;
     if (slot === SLOTS.length) {
-      const values = chosen.map((o) => predicted(o)!);
-      const best = Math.max(...chosen.map((o) => predicted(o, true, captainBonus)! - predicted(o)!));
-      combos.push({ picks: [...chosen], expected: values.reduce((a, b) => a + b, 0) + best });
+      combos.push({ picks: [...chosen], expected: mean + gain });
+      combos.sort((a, b) => b.expected - a.expected);
+      if (combos.length > shortlist) combos.pop();
       return;
     }
-    for (const o of pools[slot]!) if (!chosen.some((c) => c.card.player === o.card.player)) walk(slot + 1, [...chosen, o]);
+    for (const o of pools[slot]!) if (!chosen.some((c) => c.card.player === o.card.player)) walk(slot + 1, [...chosen, o], mean + means.get(o)!, Math.max(gain, gains.get(o)!));
   };
-  walk(0, []);
+  walk(0, [], 0, 0);
   if (!combos.length) return null;
-  combos.sort((a, b) => b.expected - a.expected);
 
-  let best: { picks: LineupPick[]; totals: number[]; expected: number; chance: number } | null = null;
+  type Candidate = { picks: LineupPick[]; totals: number[]; expected: number; chance: number };
+  const bestAt = new Map<number, Candidate>();
+  const aims = [...new Set([target, ...targets])];
   for (const combo of combos.slice(0, shortlist)) {
     // The captain worth trying: the two who add the most, among cards with a known start % while any has one (owner, 29 Oct).
     const known = combo.picks.some((o) => o.start !== null);
     const gains = combo.picks.map((o, i) => ({ i, gain: predicted(o, true, captainBonus)! - predicted(o)! })).filter(({ i }) => !known || combo.picks[i]!.start !== null).sort((a, b) => b.gain - a.gain).slice(0, 2);
     for (const { i } of gains) {
       const picks = combo.picks.map((outlook, j) => ({ slot: SLOTS[j]!, outlook, captain: i === j }));
-      const totals = simulate(picks, captainBonus, runs);
-      const chance = chanceOf(totals, target);
+      const totals = draw(picks);
       const expected = picks.reduce((sum, p) => sum + predicted(p.outlook, p.captain, captainBonus)!, 0);
-      if (!best || chance > best.chance + 1e-9 || (Math.abs(chance - best.chance) < 1e-9 && expected > best.expected)) best = { picks, totals, expected, chance };
+      for (const aim of aims) {
+        let hits = 0;
+        for (const total of totals) if (total >= aim) hits++;
+        const chance = hits / totals.length, best = bestAt.get(aim);
+        if (!best || chance > best.chance + 1e-9 || (Math.abs(chance - best.chance) < 1e-9 && expected > best.expected)) bestAt.set(aim, { picks, totals, expected, chance });
+      }
     }
   }
-  if (!best) return null;
-  const kickoffs = best.picks.map((p) => p.outlook.game.kickoff).sort();
-  return { picks: best.picks, expected: best.expected, totals: best.totals, first: kickoffs[0]!, last: kickoffs.at(-1)! };
+  const result = new Map<number, Lineup | null>();
+  for (const aim of aims) {
+    const best = bestAt.get(aim);
+    if (!best) { result.set(aim, null); continue; }
+    const kickoffs = best.picks.map((p) => p.outlook.game.kickoff).sort();
+    result.set(aim, { picks: best.picks, expected: best.expected, totals: best.totals.sort((a, b) => a - b), first: kickoffs[0]!, last: kickoffs.at(-1)! });
+  }
+  cache?.set(key, result);
+  return result.get(target) ?? null;
 }
 
 /**

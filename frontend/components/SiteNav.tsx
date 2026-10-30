@@ -1,8 +1,9 @@
-import Link from "next/link";
+import Link from "./navigation/NavigationLink";
 import type { SystemStatus } from "../lib/control";
 import type { GridMeta } from "../lib/types";
 import type { Week } from "../lib/weeks";
 import NavLinks from "./NavLinks";
+import { NavigationComplete } from "./navigation/NavigationProvider";
 import PlayerSearch from "./PlayerSearch";
 import StatusPill from "./StatusPill";
 import LensBar from "./LensBar";
@@ -23,6 +24,7 @@ type Props = {
 export default function SiteNav({ meta, system, current, week, competition }: Props) {
   return (
     <>
+      <NavigationComplete />
       <nav className="nav">
         <div className="nav-inner">
           <Link href="/" className="brand" aria-label="Sofix home">

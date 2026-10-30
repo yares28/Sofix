@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "./navigation/NavigationLink";
+
 import { useWeekSuffix } from "../lib/navWeek";
+import { useNavigationPath } from "./navigation/NavigationProvider";
 import LinkPending from "./LinkPending";
 import { PLACES, placeOf } from "../lib/places";
 
@@ -58,7 +59,7 @@ const TABS = PLACES.map((place) => ({ href: place.href, label: place.label }));
  * top bar on purpose: its backdrop-filter would trap a fixed element inside it.
  */
 export default function TabBar({ weekId }: { weekId?: string }) {
-  const path = usePathname();
+  const path = useNavigationPath();
   const week = useWeekSuffix(weekId); // the week you picked comes with you
   return (
     <nav className="tabbar" aria-label="Sections">

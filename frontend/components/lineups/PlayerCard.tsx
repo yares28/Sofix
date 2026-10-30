@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { useContext } from "react";
 import CardArt from "../cards/CardArt";
 import Silhouette from "../Silhouette";

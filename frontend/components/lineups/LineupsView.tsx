@@ -2,7 +2,7 @@
 
 import DataAction from "../ui/DataAction";
 
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";

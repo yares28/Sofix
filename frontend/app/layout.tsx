@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import type { ReactNode } from "react";
+import NavigationProvider from "../components/navigation/NavigationProvider";
 import NearLockRefresh from "../components/NearLockRefresh";
 import { INSTALL_CAPTURE_SCRIPT } from "../lib/install";
 import { THEME_SCRIPT } from "../lib/theme";
@@ -19,6 +20,7 @@ import "./player.css";
 import "./arcade.css";
 import "./arcade-canvas.css";
 import "./targets.css";
+import "./navigation.css";
 
 // Self-hosted at build time by next/font (no request to Google from the browser, so the CSP stays 'self').
 // Geist on every device (owner's pick, 5 Oct 2026).
@@ -48,7 +50,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
       </head>
       <body>
-        {children}
+        <NavigationProvider>{children}</NavigationProvider>
         <NearLockRefresh />
       </body>
     </html>

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, type ReactNode, type Dispatch, type SetStateAction } from "react";
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { rewardKeys, rewardName, rewardNumber } from "../../lib/playRewards";
 import type { WeekRewards } from "../../lib/weekRewards";
 import { chanceLabel } from "../../lib/play";

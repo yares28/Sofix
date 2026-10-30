@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import Link from "./navigation/NavigationLink";
 import type { ComponentProps } from "react";
 import { useWeekSuffix } from "../lib/navWeek";
 import { usePathname } from "next/navigation";

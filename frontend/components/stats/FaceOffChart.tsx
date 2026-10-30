@@ -4,6 +4,7 @@ import { ResponsiveRadar } from "@nivo/radar";
 import { useMemo, useState } from "react";
 import { AXES, chartLabel, edge, profiles, type ChartWindow, type Position } from "../../lib/statCharts";
 import CardArt from "../cards/CardArt";
+import Link from "../navigation/NavigationLink";
 import { Crest, PICK_COLORS, useDark, useNarrow } from "./chartParts";
 
 const POSITIONS: Position[] = ["GK", "DEF", "MID", "FWD"];
@@ -85,7 +86,7 @@ export default function FaceOffChart({ data }: { data: ChartWindow }) {
             const best = edge(prof.get(p.slug) ?? [], pos);
             return (
               <li key={p.slug} style={{ "--pick": PICK_COLORS[i] } as React.CSSProperties}>
-                <a className="sc-picked-card" href={`/players/${p.slug}`} aria-label={`${p.name}: open his page`}><CardArt src={p.card} name={p.name} skeleton={<span className="sc-sk" />} /></a>
+                <Link className="sc-picked-card" href={`/players/${p.slug}`} prefetch={false} aria-label={`${p.name}: open his page`}><CardArt src={p.card} name={p.name} skeleton={<span className="sc-sk" />} /></Link>
                 <span className="sc-picked-text">
                   <small><Crest src={p.crest} size={16} />{p.club}</small>
                   <b>{p.name}{p.mine ? <span className="sc-yours">Yours</span> : null}</b>

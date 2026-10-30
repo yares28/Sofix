@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import CardArt from "../cards/CardArt";
 import type { HistoryDay } from "../../lib/missionLog";
 import type { MissionPick } from "../../lib/missions";

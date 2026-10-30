@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { playerHref } from "../../lib/links";
 import { appearances, broken, cannot, runStep, type Answer, type Entered, type Verdict } from "../../lib/apply";
 import { chanceLabel, essenceLabel, type GameweekPlan, type Lineup } from "../../lib/play";

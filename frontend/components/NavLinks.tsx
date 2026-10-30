@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "./navigation/NavigationLink";
+
 import { useWeekSuffix } from "../lib/navWeek";
+import { useNavigationPath } from "./navigation/NavigationProvider";
 import LinkPending from "./LinkPending";
 import { PLACES, placeOf } from "../lib/places";
 
@@ -11,7 +12,7 @@ import { PLACES, placeOf } from "../lib/places";
  * path without a navigation (hooks/useViewState.ts); usePathname picks those up.
  */
 export default function NavLinks({ weekId }: { weekId?: string }) {
-  const path = usePathname();
+  const path = useNavigationPath();
   const week = useWeekSuffix(weekId); // the week you picked comes with you
   const current = placeOf(path);
   return (

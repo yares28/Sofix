@@ -731,6 +731,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/mission-picker-phase1.md` | [open](../plans/mission-picker-phase1.md) |
 | document (check authority) | `plans/missions-audit-overview.md` | [open](../plans/missions-audit-overview.md) |
 | document (check authority) | `plans/missions-repair.md` | [open](../plans/missions-repair.md) |
+| document (check authority) | `plans/navigation-skeletons.md` | [open](../plans/navigation-skeletons.md) |
 | document (check authority) | `plans/neon-egress.md` | [open](../plans/neon-egress.md) |
 | document (check authority) | `plans/neon-quota-recurrence.md` | [open](../plans/neon-quota-recurrence.md) |
 | document (check authority) | `plans/neon-write-mostly.md` | [open](../plans/neon-write-mostly.md) |

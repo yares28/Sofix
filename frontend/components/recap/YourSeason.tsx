@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { cannot } from "../../lib/apply";
 import { playerHref } from "../../lib/links";
 import { weekWon } from "../../lib/entered";

@@ -1,5 +1,11 @@
 # Sofix illustrated user manual
 
+30 October: switching pages, gameweeks or competitions shows the destination's loading layout immediately while
+its server response arrives. Navigation remains available. Recent revisits to the same address and screen width
+reuse measured positions of its text, cards and controls; only their geometry stays in the tab. First visits use
+each page's responsive layout, with the final number of rows resolved by its data. A ready page appears without
+a minimum loading delay, and reduced motion keeps the placeholders still.
+
 30 October: a second person can run [an independent copy](independent-install.md), entering their Sorare username
 once in the repository's `SORARE_USER` variable. Each copy uses its own services and extension configuration. Actual
 table rows and the round's points-only tables no longer calculate unused season probabilities; displayed results,

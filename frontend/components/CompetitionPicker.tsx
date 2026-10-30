@@ -1,12 +1,14 @@
 "use client";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+import { useNavigationRouter } from "./navigation/NavigationProvider";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useSyncExternalStore, useTransition } from "react";
 import Image from "next/image";
 import { COMPETITIONS, competitionHref, type Competition } from "../lib/competitions";
 const subscribe = () => () => {};
 
 export default function CompetitionPicker({ competition, week, through, icons = false }: { competition: Competition; week?: string; through?: string; icons?: boolean }) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const path = usePathname();
   const search = useSearchParams();
   const ready = useSyncExternalStore(subscribe, () => true, () => false);

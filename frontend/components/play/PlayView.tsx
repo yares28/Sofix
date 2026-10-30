@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import type { GameweekPlan, Plan, PlanBy, Sorare } from "../../lib/play";
 import {
   allocation,

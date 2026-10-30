@@ -1,7 +1,9 @@
 "use client";
 
+import { useNavigationRouter } from "./navigation/NavigationProvider";
+
 import { useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+
 import { useViewState } from "../hooks/useViewState";
 import {
   horizonSize, openingColumn, selectedColumn, windowRange, type ViewState, type Horizon, type RunStats,
@@ -30,7 +32,7 @@ interface Props {
 }
 
 export default function FixtureBoard({ grid, initialView, pinsInUrl, away, baseline }: Props) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const total = grid.matchdays.length;
   const opening = useMemo(() => openingColumn(grid), [grid]);
   const finished = useMemo(() => grid.matchdays.map((md) => md.finished), [grid]);

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import LinkPending from "../LinkPending";
 
 export default function StrategyViews({ plansHref, resultsHref = "/audit/strategies", plans = false }: { plansHref: string; resultsHref?: string; plans?: boolean }) {

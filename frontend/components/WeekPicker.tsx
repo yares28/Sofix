@@ -1,6 +1,8 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useNavigationRouter } from "./navigation/NavigationProvider";
+
+import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { pageWeeks, weekDates, weekName, type Page, type Week } from "../lib/weeks";
 import { COMPETITIONS, type Competition } from "../lib/competitions";
@@ -18,7 +20,7 @@ const short = (week: Week) => (week.number !== null ? `GW${week.number}` : `R${w
  * week picker canvas.
  */
 export default function WeekPicker({ weeks, current, now, competition = "PD" }: { weeks: Week[]; current: Week | null; now: Week | null; competition?: Competition }) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const pathname = usePathname();
   const strip = useRef<HTMLDivElement>(null);
 

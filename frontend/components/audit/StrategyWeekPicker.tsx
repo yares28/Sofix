@@ -1,12 +1,14 @@
 "use client";
 
+import { useNavigationRouter } from "../navigation/NavigationProvider";
+
 import { useEffect, useRef, useSyncExternalStore, useTransition } from "react";
-import { useRouter } from "next/navigation";
+
 
 const subscribe = () => () => {};
 
 export default function StrategyWeekPicker({ weeks, selected, sort, options }: { weeks: { slug: string; number: number | null }[]; selected: string; sort: string; options: [string, string][] }) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const ready = useSyncExternalStore(subscribe, () => true, () => false);
   const [pending, start] = useTransition();
   const requested = useRef<string | null>(null);

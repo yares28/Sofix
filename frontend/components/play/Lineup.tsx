@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { matchHref, matchOfCard, playerHref } from "../../lib/links";
 import type { Lineup as LineupData, PlayCard, PlayingPlayer } from "../../lib/play";
 import { SCORE_SOURCE_NAME, cardScore, cashLabel, chanceLabel, essenceLabel, essenceName, paysNote, startChance } from "../../lib/play";

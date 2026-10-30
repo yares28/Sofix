@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "./navigation/NavigationLink";
 import { playerHref } from "../lib/links";
 import type { GameweekPlan, PlayerGame, PlayingPlayer } from "../lib/play";
 import { dayName } from "../lib/weeks";

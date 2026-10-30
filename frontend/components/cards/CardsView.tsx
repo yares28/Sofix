@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { useEffect, useMemo, useState } from "react";
 import {
   cardWindows,

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { askExtension, extensionAtLeast, MISSIONS_EXTENSION_VERSION, parseMissionsLoad, pingExtension } from "../../lib/extension";

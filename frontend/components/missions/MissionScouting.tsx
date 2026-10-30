@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import MissionFormEvidence from "./MissionFormEvidence";
 import Dots from "./Dots";
 import type { LogCand } from "../../lib/missionLog";

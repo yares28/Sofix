@@ -36,9 +36,9 @@ test("all European squads survive cold player bookmarks and unknown positions ha
   const blocks=Object.fromEntries(["CL","EL"].map(code=>[code,{competition:code,weekId:week.id,week:week.slug,generatedAt:new Date().toISOString(),complete:true,modelVersion:`${code}:xscore-v3`,market:Array.from({length:36},(_,i)=>({slug:`${code.toLowerCase()}-player-${i}`,name:`${code} Player ${i}`,pos:i===0?"UNK":"DEF",club:`${code} Club ${i}`,crest:null,average:i===0?null:0,projection:null,eur:null,pic:"",...(i===0?{}:{by:"sofix",p:0,pStart:0,x:0,start:0,mu:0,fixture:{team:`${code} Club ${i}`,opponent:`${code} Opponent`,opponentCrest:null,venue:"H",kickoff:week.start}})}))}]));
   await request.post(`${MOCK}/__test/my-weeks`,{data:{foreignBlocks:blocks}});
   await page.goto(`/players?league=CL&w=${selected.id}`);
-  await expect(page.locator(".s5-bars")).toContainText("36 Champions League players");
+  await expect(page.getByRole("main").locator(".s5-bars")).toContainText("36 Champions League players");
   await page.getByLabel("Competition",{exact:true}).selectOption("EL");
-  await expect(page.locator(".s5-bars")).toContainText("36 Europa League players");
+  await expect(page.getByRole("main").locator(".s5-bars")).toContainText("36 Europa League players");
   await page.getByRole("searchbox",{name:"Search a player or a club"}).fill("EL Player 0");
   const unknown=page.locator("article").filter({has:page.getByRole("link",{name:"EL Player 0",exact:true})});
   await expect(unknown).toContainText("Position TBC");

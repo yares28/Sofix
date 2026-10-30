@@ -1,7 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useNavigationRouter } from "./navigation/NavigationProvider";
+
+import Link from "./navigation/NavigationLink";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { findPlayers, searchPlayerHref, type SearchPlayer } from "../lib/playerSearch";
 import SorareImage from "./play/SorareImage";
@@ -18,7 +20,7 @@ export default function PlayerSearch() {
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
-  const router = useRouter();
+  const router = useNavigationRouter();
   const search = useSearchParams();
   const list = useId();
 

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import type { ReactNode } from "react";
 
 type Props = {

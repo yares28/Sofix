@@ -45,6 +45,11 @@ export async function resetBackend(
  * never touch the network. The board shows colour badges instead, and Sorare's images stay empty.
  */
 export async function offline(page: Page) {
+  // Keep an image in the DOM for card-count checks, without letting the local proxy fetch remote art.
+  await page.route("**/api/sorare-image?**", (route) => route.fulfill({
+    contentType: "image/png",
+    body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGBgAAAABQABpfZFQAAAAABJRU5ErkJggg==", "base64"),
+  }));
   await page.route("https://crests.football-data.org/**", (route) => route.abort());
   await page.route("https://upload.wikimedia.org/**", (route) => route.abort());
   await page.route("https://assets.sorare.com/**", (route) => route.abort());

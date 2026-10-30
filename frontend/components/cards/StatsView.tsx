@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Position } from "../../lib/playerSheet";
 import { fieldAverage, leaders, statGroups, statValue, type StatPlayer } from "../../lib/statLeaders";

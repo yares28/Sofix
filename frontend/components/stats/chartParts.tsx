@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { STAT_GROUPS } from "../../lib/statLeaders";
 import { AVG, chartLabel, type ChartPlayer, type ChartWindow, type Position, type WindowKey } from "../../lib/statCharts";
 import CardArt from "../cards/CardArt";
+import Link from "../navigation/NavigationLink";
 import SorareImage from "../play/SorareImage";
 
 export const POS_COLOR: Record<Position, string> = { GK: "#a86a00", DEF: "#1a7a4e", MID: "#0071e3", FWD: "#d6452f" };
@@ -149,9 +150,9 @@ export function PlayerPop({ player, lines, style, pinned, onClose, width = 140 }
   return (
     <div className={`sc-pop${pinned ? " pinned" : ""}`} style={style} role={pinned ? "dialog" : undefined} aria-label={pinned ? player.name : undefined}>
       {pinned && onClose ? <button type="button" className="sc-x" aria-label="Close" onClick={onClose}>×</button> : null}
-      <a className="sc-pop-card" href={`/players/${player.slug}`} style={{ width, height: Math.round(width * 1.62) }} tabIndex={pinned ? 0 : -1} aria-label={`${player.name}: open his page`}>
+      <Link className="sc-pop-card" href={`/players/${player.slug}`} prefetch={false} style={{ width, height: Math.round(width * 1.62) }} tabIndex={pinned ? 0 : -1} aria-label={`${player.name}: open his page`}>
         <CardArt src={player.card} name={player.name} skeleton={<span className="sc-sk" />} />
-      </a>
+      </Link>
       <div className="sc-pop-text">
         <span className="sc-pop-club"><Crest src={player.crest} />{player.club}</span>
         <b className="sc-pop-name">{player.name}{player.mine ? <span className="sc-yours">Yours</span> : null}</b>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import type { CSSProperties } from "react";
 import { scoreColour } from "../../lib/cards";
 import type { LaLigaRound, RoundGame, RoundPick } from "../../lib/laliga";

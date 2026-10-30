@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { playerHref } from "../../lib/links";
 import { useMemo, useState } from "react";
 import {

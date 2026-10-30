@@ -1,6 +1,12 @@
 import { COMPETITIONS } from "../lib/competitions";
+import { navigationSweep } from "./navigationChecks";
 import { expect, test } from "@playwright/test";
 import { offline, openingMatchday, resetBackend, smallText } from "./helpers";
+
+test("every page shows destination skeletons without overflow at 390px", async ({ page }) => {
+  test.setTimeout(240_000);
+  await navigationSweep(page, 390);
+});
 
 test("All competitions fits the phone, including double games and forty-club pagination", async ({ page }) => {
   await page.goto("/difficulty?league=ALL");

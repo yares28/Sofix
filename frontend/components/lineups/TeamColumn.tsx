@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { absenceText } from "../../lib/absence";
 import { cardHref } from "../../lib/links";
 import {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "../../../components/navigation/NavigationLink";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import Crest from "../../../components/Crest";

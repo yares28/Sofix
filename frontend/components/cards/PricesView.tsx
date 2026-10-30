@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { CollectionCard } from "../../lib/play";
 import {

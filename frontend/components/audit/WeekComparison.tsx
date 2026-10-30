@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { playerHref } from "../../lib/links";
 import type { Board, BoardCard, BoardRow, Verdict } from "../../lib/audit";
 import { scoreColour } from "../../lib/cards";

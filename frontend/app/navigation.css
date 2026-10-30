@@ -1,0 +1,76 @@
+/* Loading occupies the destination's normal page slot. The bars remain live; hidden content cannot be tabbed into. */
+.navigation-content, .ns-contents { display: contents; }
+.navigation-content[data-pending] main { display: none !important; }
+.navigation-content[data-pending] .competition-container { display: none; }
+.ns-preface { display: flex; align-items: center; gap: 12px; padding-block: 18px; }
+.ns-page { pointer-events: none; min-height: calc(100svh - 112px); }
+.ns-page *, .ns-page *::before, .ns-page *::after { animation: none !important; transition: none !important; }
+.ns-ink { display: block; flex-shrink: 0; max-width: 100%; border-radius: 5px; background: var(--track, var(--line)); }
+.ns-text { font: inherit !important; letter-spacing: inherit !important; color: transparent !important; background: var(--track, var(--line)); border-radius: .15em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.ns-icon-picker { min-height: 38px; gap: 12px; }
+.ns-round-picker, .ns-gallery-filters { display: flex; flex-wrap: wrap; gap: 10px; }
+.ns-gallery-filters { margin-top: 20px; }
+.ns-gallery-note { margin-top: 14px; }
+.ns-page .gl-legend b { margin-bottom: 4px; }
+.ns-page .s5-find > .ns-ink:first-child { margin-right: auto; }
+.ns-target-ladder { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-card); }
+.ns-target-ladder .ns-row { min-height: 40px; }
+.ns-stat-plot { height: 490px; border-radius: 18px; }
+.ns-price-plot { height: var(--tide); overflow: hidden; }
+.ns-price-plot > div { height: 100%; }
+.ns-grid-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.ns-page .st-race .ns-row { min-height: 28px; gap: 6px; }
+.ns-page .st-race .ns-crest { width: 20px !important; height: 20px !important; }
+.ns-surface { min-width: 0; padding: 24px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card, 0 0 0 1px var(--line)); }
+.ns-heading { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; }
+.ns-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px 0; }
+.ns-rows { display: flex; flex-direction: column; margin-top: 16px; }
+.ns-row { display: flex; align-items: center; gap: 14px; min-height: 56px; border-top: 1px solid var(--line); }
+.ns-row > :last-child { margin-left: auto; }
+.ns-crest { border-radius: 50%; }
+.ns-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.ns-three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 24px; }
+.ns-section { margin-top: 30px; }
+.ns-section > .ns-heading { margin-bottom: 20px; }
+.ns-cards { display: flex; gap: 12px; margin-top: 24px; }
+.ns-player { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ns-art { width: 100%; aspect-ratio: 5 / 8; border-radius: 10px; }
+.ns-chart { display: flex; align-items: flex-end; justify-content: space-around; gap: 16px; min-height: 220px; padding: 20px; border-bottom: 1px solid var(--line); }
+.ns-comparison { padding: 32px; }
+.ns-comparison > .ns-two { margin-top: 28px; }
+.ns-fixture-rail { margin: 30px 0 24px; padding: 18px 20px; border-block: 1px solid var(--line); }
+.ns-match { padding: 0; overflow: hidden; }
+.ns-match > .ns-controls { padding-inline: 20px; }
+.ns-match-head { display: flex; align-items: center; gap: 32px; padding: 26px 40px; }
+.ns-match-head .ns-heading { align-items: center; }
+.ns-pitches { padding: 20px; }
+.ns-pitch { display: flex; flex-direction: column; gap: 26px; padding: 24px 16px; background: var(--hover); border-radius: 18px; }
+.ns-formation { display: flex; justify-content: space-evenly; gap: 12px; }
+.ns-formation > span { width: min(22%, 100px); aspect-ratio: 100 / 154; border-radius: 8px; }
+.ns-fixture-grid { display: grid; gap: 8px; }
+.ns-grid-row { display: grid; grid-template-columns: minmax(90px, 1.6fr) repeat(5, minmax(0, 1fr)); gap: 8px; align-items: center; }
+.ns-gallery { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px; margin-top: 22px; }
+.ns-gallery-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ns-player-result { display: flex; gap: 16px; }
+.ns-player-result > div { flex: 1; min-width: 0; }
+.ns-season-hero { padding-block: 20px 32px; }
+.ns-season-strip { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 8px; margin-top: 20px; }
+.ns-page .team-stats { margin-block: 24px; }
+.ns-page.team-page > .ns-contents > .ns-surface { margin-block: 20px; }
+/* A measured revisit has precisely the previous page's boxes, without retaining a byte of its content. */
+main.ns-measured { position: relative; display: block; padding: 0; overflow: clip; }
+.ns-measured .ns-surface { padding: 0; }
+@media (max-width: 1199px) {
+  .ns-gallery { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .ns-stat-plot { height: 360px; }
+  .ns-two, .ns-three { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .ns-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .ns-surface { padding: 20px; }
+  .ns-match { padding: 0; }
+  .ns-match-head { gap: 14px; padding: 24px 16px; }
+  .ns-match-head > .ns-ink { width: 42px !important; height: 42px !important; }
+  .ns-controls { gap: 8px; }
+  .ns-season-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}

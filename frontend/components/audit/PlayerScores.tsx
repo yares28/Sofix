@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { PlayerScoreWeek } from "../../lib/audit";
 import { scoreColour } from "../../lib/cards";

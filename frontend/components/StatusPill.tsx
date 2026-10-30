@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "./navigation/NavigationLink";
 import { useEffect, useState } from "react";
 import { PILL_LABEL, pulseOf, type SystemStatus } from "../lib/control";
 import { freshLabel } from "../lib/fresh";

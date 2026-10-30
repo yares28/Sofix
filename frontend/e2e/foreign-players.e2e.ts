@@ -12,7 +12,7 @@ test("all three complete foreign league indexes survive a cold bookmark, GW navi
   const blocks = Object.fromEntries((["PL", "BL1", "FL1"] as const).map(code => [code, { competition: code, weekId: week.id, week: week.slug, generatedAt: new Date().toISOString(), complete: true, modelVersion: `${code}:xscore-v2`, market: Array.from({ length: code === "PL" ? 20 : 18 }, (_, i) => ({ slug: `${code.toLowerCase()}-player-${i}`, name: `${code} Player ${i}`, pos: "DEF", club: `${code} Club ${i}`, crest: null, average: i === 0 ? null : 0, projection: null, eur: null, pic: "", by: "form", p: 0, pStart: 0, x: 0, start: 0, mu: 0, fixture: { team: "Spain", opponent: "France", opponentCrest: null, venue: "A", kickoff: week.start } })) }]));
   await request.post(`${MOCK}/__test/my-weeks`, { data: { foreignBlocks: blocks } });
   await page.goto(`/players?league=PL&w=${selected.id}`);
-  await expect(page.locator(".s5-bars")).toContainText("20 Premier League players");
+  await expect(page.getByRole("main").locator(".s5-bars")).toContainText("20 Premier League players");
   const row = page.locator("article").filter({ has: page.getByRole("link", { name: "PL Player 0", exact: true }) });
   await expect(row.locator(".s5-stat").filter({ hasText: "Last 10 avg" }).locator("b")).toHaveText("-");
   await expect(row.locator(".s5-stat").filter({ hasText: "xScore" }).locator("b")).toHaveText("0");
@@ -27,9 +27,9 @@ test("all three complete foreign league indexes survive a cold bookmark, GW navi
   await detail.goto(`/players?league=PL&w=${selected.id}`);
   await detail.getByLabel("Competition", { exact: true }).selectOption("BL1");
   await expect(detail).toHaveURL(new RegExp(`league=BL1&w=${selected.id}`));
-  await expect(detail.locator(".s5-bars")).toContainText("18 Bundesliga players");
+  await expect(detail.getByRole("main").locator(".s5-bars")).toContainText("18 Bundesliga players");
   await detail.getByLabel("Competition", { exact: true }).selectOption("FL1");
-  await expect(detail.locator(".s5-bars")).toContainText("18 Ligue 1 players");
+  await expect(detail.getByRole("main").locator(".s5-bars")).toContainText("18 Ligue 1 players");
   await detail.getByRole("button", { name: "Search players" }).click();
   await detail.getByRole("combobox", { name: "Player name" }).fill("PL Player 0");
   await expect(detail.getByRole("option", { name: /PL Player 0/ })).toBeVisible();

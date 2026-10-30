@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "../../../components/navigation/NavigationLink";
 import { connection } from "next/server";
 import EuropeFixtures from "../../../components/EuropeFixtures";
 import FixturesList from "../../../components/FixturesList";

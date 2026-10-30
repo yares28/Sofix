@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import type { Sorare } from "../../lib/play";
 import { lastWeek, nextWeek } from "../../lib/play";
 import { heroOf, railOf, syncState, type SyncState } from "../../lib/sorareStatus";

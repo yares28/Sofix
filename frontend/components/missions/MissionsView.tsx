@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "../navigation/NavigationLink";
 import { freshLabel } from "../../lib/fresh";
 import { missionCandidates, missionChance, RARITY_NAME, type MissionPick, type MissionPlan, type MissionRow, type Suggestion } from "../../lib/missions";
 import type { MissionsStatus } from "../../lib/missionsToday";

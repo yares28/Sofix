@@ -830,7 +830,8 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   Ligue 1 game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
   and expected goals for the others. It is shown, not added to the card's number.
 - **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (the **Refresh start percentages** icon) and saved, so the
-  newest saved reading shows on any visit. Your cards are kept in this browser and read again only when Sorare's count changes (a pack
+  newest saved reading shows on any visit. The % button also reads Sorare's announced elevens for your clubs' games within three hours of kickoff (extension 0.4.21). Confirmed starters become 100% and non-starters 0%, ahead of every forecast, across Players and all recommendations. Unannounced sides keep their forecast or unknown value. Official readings survive navigation until three hours after their own game's kickoff; a fresh read is available with the same % button. No match tabs open.
+  Your cards are kept in this browser and read again only when Sorare's count changes (a pack
   opened). The page opens on your last read board, dated, while Sorare is asked what changed; if Sorare cannot be read, it stays and says why.
   Between two sets it still shows that board, marked ended, until Sorare opens the next one.
   Coming back to the Arcade tab (after opening packs on Sorare, say) reads your board and cards again, at most every 3 minutes, so

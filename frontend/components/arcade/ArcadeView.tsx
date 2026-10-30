@@ -15,6 +15,7 @@ import ArcadeMissions from "./ArcadeMissions";
 import ArcadePacks from "./ArcadePacks";
 import ArcadePlanner, { climbStep } from "./ArcadePlanner";
 import SegmentedControl from "../SegmentedControl";
+import { ARCADE_ELEVENS_VERSION, readArcadeElevens, type ArcadeElevens } from "../../lib/arcadeElevens";
 
 /** The page's three views (owner, 29 Oct), switched like the other pages; the last one chosen is remembered in this browser. */
 type View = "play" | "packs" | "players";
@@ -76,17 +77,19 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
     return (arcade.games ?? []).filter((g) => clubs.has(g.home?.slug ?? null) || clubs.has(g.away?.slug ?? null)).map((g) => g.id);
   }, [arcade]);
   const [bench, setBench] = useState<ArcadeBench | "reading" | null>(null);
+  const [elevens, setElevens] = useState<ArcadeElevens | null>(null);
   const benchStep = arcade.board?.steps.find((s) => s.number === climbStep(arcade)) ?? null;
   const refresh = useCallback(async (force = false) => {
-    const saved = await loadArcadeChances(gameIds);
-    setChances(saved);
-    if (!benchStep) return;
     setBench("reading");
-    const read = await readArcadeBench(benchStep.id, arcade.set.end, force);
+    const [saved, read, official] = await Promise.all([
+      loadArcadeChances(gameIds),
+      benchStep ? readArcadeBench(benchStep.id, arcade.set.end, force) : null,
+      readArcadeElevens(arcade.games ?? [], arcade.cards, force).then((official) => { setElevens(official); return official; }),
+    ]);
+    setChances(read && Object.keys(read.chances).length ? newerChances(saved, read.chances) : saved);
+    setElevens(official);
     setBench(read);
-    // The newer reading of each player, saved or just read.
-    if (Object.keys(read.chances).length) setChances((now) => newerChances(now, read.chances));
-  }, [gameIds, benchStep, arcade.set.end]);
+  }, [gameIds, benchStep, arcade.set.end, arcade.games, arcade.cards]);
   useEffect(() => { void refresh(); }, [refresh]); // once per read; never on a timer
   const [extras, setExtras] = useState<ArcadeExtras | null | "reading">("reading");
   useEffect(() => { void readArcadeExtras(arcade).then(setExtras); }, [arcade]); // once per read
@@ -97,14 +100,14 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
   const outlooks = useMemo(() => {
     const out = new Map<string, Outlook[]>();
     for (const game of arcade.games ?? []) {
-      const list = arcade.cards.filter((c) => c.teamSlug && (c.teamSlug === game.home?.slug || c.teamSlug === game.away?.slug)).map((c) => outlookOf(c, game, ready, chances, laliga));
+      const list = arcade.cards.filter((c) => c.teamSlug && (c.teamSlug === game.home?.slug || c.teamSlug === game.away?.slug)).map((c) => outlookOf(c, game, ready, chances, laliga, elevens?.chances));
       if (list.length) out.set(game.id, list);
     }
     return out;
-  }, [arcade, ready, chances, laliga]);
+  }, [arcade, ready, chances, laliga, elevens]);
   // The plan and the mission picks are worked out once the start % read is done, not again for every answer on the way.
   const [planOutlooks, setPlanOutlooks] = useState<Map<string, Outlook[]> | null>(null);
-  useEffect(() => { if (bench !== "reading" && (bench !== null || !benchStep)) setPlanOutlooks(outlooks); }, [outlooks, bench, benchStep]);
+  useEffect(() => { if (elevens || (bench !== "reading" && (bench !== null || !benchStep))) setPlanOutlooks(outlooks); }, [outlooks, bench, benchStep, elevens]);
   const captainBonus = arcade.board?.steps.find((s) => s.number === current)?.captain ?? arcade.board?.steps[0]?.captain ?? 0;
   const step = arcade.board?.steps.find((s) => s.number === current) ?? arcade.board?.steps[0] ?? null;
   const read = async () => {
@@ -117,10 +120,7 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
     await refresh();
     setWalking(false);
   };
-  // How far ahead Sorare has given numbers: it shows a start % only near a game, so later games read "no start % yet".
-  const lastRead = (arcade.games ?? []).filter((g) => Object.keys(chances?.[g.id] ?? {}).length).map((g) => g.kickoff).sort().at(-1) ?? null;
-  const later = lastRead ? (arcade.games ?? []).filter((g) => g.kickoff.slice(0, 10) > lastRead.slice(0, 10)).length : 0;
-  const withChance = arcade.cards.filter((c) => (arcade.games ? gamesOf(c, arcade.games) : []).some((g) => chanceOf(chances, g.id, c.player))).length;
+  const withChance = arcade.cards.filter((c) => (arcade.games ? gamesOf(c, arcade.games) : []).some((g) => chanceOf(elevens?.chances ?? null, g.id, c.player) ?? chanceOf(chances, g.id, c.player))).length;
   return (
     <FdrContext.Provider value={boards}>
       <header className="arc-hero">
@@ -152,11 +152,11 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
             : chances === null ? "Saved start % could not be read."
             : `Sorare's start % for ${withChance.toLocaleString("en-GB")} of ${arcade.cards.length.toLocaleString("en-GB")} cards, across ${arcade.games.length} games before the set ends.`}
         </p>
-        {lastRead && later ? (
-          <p className="arc-read-note">
-            Sorare has given start % for games up to {new Date(lastRead).toLocaleDateString("en-GB", { timeZone: "Europe/Madrid", weekday: "long" })}; the {later} later games get theirs closer to kick-off, so read again then.
-          </p>
-        ) : null}
+        {elevens?.games.length ? <p className="arc-read-note">Confirmed lineups for {elevens.games.length} game{elevens.games.length === 1 ? "" : "s"}: starters 100%, non-starters 0%.</p> : null}
+        {elevens?.state === "ok" && elevens.checked > 0 && !elevens.games.length && !elevens.unread.length ? <p className="arc-read-note">No confirmed lineups returned for the next games yet.</p> : null}
+        {elevens?.state === "outdated" ? <p className="arc-read-note" role="status">Confirmed lineups need extension {ARCADE_ELEVENS_VERSION}: reload Sofix on chrome://extensions.</p>
+          : elevens?.state === "no-extension" ? <p className="arc-read-note" role="status">The extension could not be reached for confirmed lineups. The last valid reading is kept.</p>
+          : elevens?.unread.length ? <p className="arc-read-note" role="status">Confirmed lineups could not be read for {elevens.unread.length} game{elevens.unread.length === 1 ? "" : "s"}. The last valid reading is kept.</p> : null}
         {bench === "reading" ? <p className="arc-read-note" role="status">Reading Sorare&apos;s start % from your Sorare tab, every day to the set&apos;s end…</p>
           : bench && bench.state === "ok" ? <p className="arc-read-note">Read from your Sorare tab at {new Date(bench.at).toLocaleTimeString("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" })}; nothing opened.</p>
           : bench && bench.state === "outdated" ? <p className="arc-read-note">Start % without opening a page needs extension {ARCADE_BENCH_VERSION}: reload it on chrome://extensions.</p>

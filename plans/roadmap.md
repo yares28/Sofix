@@ -22,7 +22,7 @@ results, reduce per-page data and cache football views. Keep all current control
 
 **Fri 30 Oct 14:00 Madrid (Divination opens):** **check the Arcade rework on the live board** ([arcade-rework.md](arcade-rework.md) "Not confirmed"): tiers in pack odds, Sorare's starter word, collection missions, the cards read newest first and re-read after packs. **You:** Reload the extension (0.4.19).
 
-**Next Arcade work:** **trustworthy xScore that learns** ([arcade-player-choice.md](arcade-player-choice.md)): phase A elevens in Arcade, B pre-kick-off capture, C hindsight audit and strategy replay, D per-league blend and calibration, E re-plan triggers, F upgrades.
+**Next Arcade work:** **trustworthy xScore that learns** ([arcade-player-choice.md](arcade-player-choice.md)): finish phase A's timed reads (cold load and the % button now read official elevens: [release evidence](arcade-start-refresh.md)), B pre-kick-off capture, C hindsight audit and strategy replay, D per-league blend and calibration, E re-plan triggers, F upgrades.
 
 **1 Nov, first thing (date-bound):** **all Neon projects into one** (TODO.md "All Neon projects into one"): quotas reset that
 day, so every project answers; list what each holds that the live one lacks (GW25's records are on Sofix C), copy on your yes, then
@@ -610,6 +610,8 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+30 Oct: Arcade's % refresh reads announced elevens independently of cached forecast percentages. Confirmed starters become 100% and non-starters 0% for their exact game, overriding model forecasts; all recommendations use the same readings. Extension 0.4.21; nine focused source/cache cases, the full Arcade browser spec (19 cases) and the local gate pass. Real-source and remaining live-reload limits: [acceptance record](arcade-start-refresh.md).
 
 - **30 Oct - Independent installations and unused simulation work:** one explicit Sorare username reaches refresh,
   replans, Pro and automatic reward checks; new copies have no original-owner fallback. Repository actions, usage checks

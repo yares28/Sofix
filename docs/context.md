@@ -212,6 +212,8 @@ The owner requires starters and substitutes apart, the within-seven-points compa
 
 Scope: session-bound actions and extension integration. Public GraphQL remains read-only. Check, Draft and Enter are separate explicit owner actions; never chain them or retry an uncertain write automatically. A timeout after Enter is an unknown outcome: inspect entered status before another owner-directed action. A saved draft is not an entered lineup. Slot/card/captain identities must match the intended competition and GW.
 
+Arcade's fixed `arcade-elevens` read uses public official formations through the existing tab, independently of the private forecast bench query. Announced starters and non-starters override forecasts only for their exact game, kickoff and club. Unannounced or failed reads never imply zero; confirmations are retained with bounded game expiry. See [refresh acceptance](../plans/arcade-start-refresh.md). This manual refresh fix does not introduce the later phase's timed polling.
+
 Both worker and page bridge enforce allowlists; current code also includes read operations for missions and Arcade, so the old six-operation description is historical, not a complete capability list. Inspect both allowlists and tests whenever adding an operation. Never store passwords/cookies or turn the bridge into a general proxy. Overlay numbers require the extension token; owner/account identity matching is not enforced yet. The overlay opens Apply and has no write buttons.
 
 Use dock.js, not the removed drawer.js. Read the manifest template for current hosts, including bounded Futbol Fantasy match reads. Before an extension release run node extension/scripts/configure.mjs, then the owner reloads once; generated config/manifest are secret-bearing and ignored. Mock bridge tests do not prove an authenticated real-session flow.
@@ -703,6 +705,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/arcade-consistency.md` | [open](../plans/arcade-consistency.md) |
 | document (check authority) | `plans/arcade-player-choice.md` | [open](../plans/arcade-player-choice.md) |
 | document (check authority) | `plans/arcade-rework.md` | [open](../plans/arcade-rework.md) |
+| document (check authority) | `plans/arcade-start-refresh.md` | [open](../plans/arcade-start-refresh.md) |
 | document (check authority) | `plans/audit-followups.md` | [open](../plans/audit-followups.md) |
 | document (check authority) | `plans/audit-player-comparisons.md` | [open](../plans/audit-player-comparisons.md) |
 | document (check authority) | `plans/audit-player-scores.md` | [open](../plans/audit-player-scores.md) |
@@ -1560,15 +1563,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-30",
-        "note": "Reviewed concurrent main's bridge diff: only L5/L10/L40 fields in the existing bounded read-only SofixArcadePast query and manifest version 0.4.20; background/bridge operation and origin allowlists, hosts and explicit Check/Draft/Enter boundaries are unchanged. Full extension unit tests passed in local gate; no live write exercised.",
+        "note": "Inspected both allowlists and official-eleven query validation; new read is fixed, game-bound and read-only. Mock tests do not certify the loaded browser extension.",
         "files": {
-          "extension/background.js": "941f2c60f04d76a45343af47c0c7ed848f0e1c28e810527fedbfad81a8e99178",
-          "extension/bridge.js": "a2284684f130cdc1b9ebfe63264119cc24a4590e8c604ff3d2f80445adde458a",
-          "extension/manifest.template.json": "d4985c69883145e0d4918c7dc5f72a0ac51ae8fdc9c0a444759bd7d0531e405f",
+          "extension/background.js": "43822fe7b454860cfd2cc8ecf4eda20fdfa31d377e29a2d0880fed2c52b2621d",
+          "extension/bridge.js": "763154e7c127dc8a933822890b06b2fe85234e30013254535577c1e8e8d5e6e6",
+          "extension/manifest.template.json": "00dc722408bd16910ed5020536359cd4289fe2839668acc860fe9d5c4f1c010e",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
-          "frontend/lib/extensionBridge.test.ts": "186d7ae03119f8294abf259ac869b22ce36fc446f089373457353e0087a15473",
-          "frontend/lib/extensionBackground.test.ts": "7bbde662efa947e4fdd1c912bec19a0379ba8405defedf3ad36e5601629cf07b"
+          "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
+          "frontend/lib/extensionBackground.test.ts": "2bff43be7e6b8bbabc986008711258f39e3461c86e2062707072694989b1ae3b"
         }
       }
     },
@@ -1660,10 +1663,10 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-30",
-        "note": "Inspected shared selection, stable samples, joint insurance odds, exact shortlist pruning and per-target cache, step-one resets and held-card/timing regressions; retained concurrent player filters and form parser tests during rebase. Real-data/UI proof is in plans/arcade-consistency.md.",
+        "note": "Reviewed optional confirmation evidence on Outlook; planner selection and simulation rules unchanged. Confirmed lineup probabilities override forecasts upstream.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "d8331f3b69b2d4b6715ed090fdcef81503e19d77735e64cd6de3a6738cee1e23",
-          "frontend/lib/arcadePlan.ts": "94a5dc7412a72f40daf3463ad1dd948d188316c367a26270418498880de138b4",
+          "frontend/lib/arcadePlan.ts": "33a5d5d8ca4889f3b0e4cae839dee7b0b7508c06fc72ad937a95792160936018",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
           "frontend/lib/arcadeClimb.test.ts": "0ce27f5cbee513381da05f1eea34ee2258987eaa7a9d47b3ec15843648d799d8",
           "frontend/lib/arcadePlan.test.ts": "a6bd6dd4fca0b698e95cf883e262e9acb366ab829bd8bb04d887b4036a487dc2"

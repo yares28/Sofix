@@ -1,0 +1,244 @@
+{
+  "id": "Game:ba9e398a-ca1f-453d-b986-339c3f6ee117",
+  "date": "2026-10-30T20:05:00Z",
+  "homeTeam": {
+    "slug": "lille-villeneuve-d-ascq",
+    "name": "LOSC Lille"
+  },
+  "awayTeam": {
+    "slug": "lens-avion",
+    "name": "RC Lens"
+  },
+  "homeFormation": {
+    "startingLineupAvailable": true,
+    "startingLineup": [
+      [
+        {
+          "slug": "berke-ozer",
+          "displayName": "Berke Özer",
+          "position": "Goalkeeper"
+        }
+      ],
+      [
+        {
+          "slug": "maxima-adeagan-goffi",
+          "displayName": "Maxima Goffi",
+          "position": "Defender"
+        },
+        {
+          "slug": "nathan-ngoy",
+          "displayName": "Nathan Ngoy",
+          "position": "Defender"
+        },
+        {
+          "slug": "alexsandro-victor-de-souza-ribeiro",
+          "displayName": "Alexsandro",
+          "position": "Defender"
+        },
+        {
+          "slug": "romain-perraud",
+          "displayName": "Romain Perraud",
+          "position": "Defender"
+        }
+      ],
+      [
+        {
+          "slug": "ngal-ayel-mukau",
+          "displayName": "Ngal'ayel Mukau",
+          "position": "Midfielder"
+        },
+        {
+          "slug": "nabil-bentaleb",
+          "displayName": "Nabil Bentaleb",
+          "position": "Midfielder"
+        },
+        {
+          "slug": "benjamin-andre",
+          "displayName": "Benjamin André",
+          "position": "Midfielder"
+        }
+      ],
+      [
+        {
+          "slug": "ethan-mbappe-lottin",
+          "displayName": "Ethan Mbappé",
+          "position": "Midfielder"
+        },
+        {
+          "slug": "hakon-arnar-haraldsson",
+          "displayName": "Hákon Haraldsson",
+          "position": "Midfielder"
+        },
+        {
+          "slug": "soriba-diaoune",
+          "displayName": "Soriba Diaoune",
+          "position": "Forward"
+        }
+      ]
+    ],
+    "bench": [
+      {
+        "slug": "isaac-cossier",
+        "displayName": "Isaac Cossier",
+        "position": "Defender"
+      },
+      {
+        "slug": "olivier-giroud",
+        "displayName": "Olivier Giroud",
+        "position": "Forward"
+      },
+      {
+        "slug": "maurits-kjaergaard",
+        "displayName": "Maurits Kjærgaard",
+        "position": "Midfielder"
+      },
+      {
+        "slug": "gaetan-perrin",
+        "displayName": "Gaëtan Perrin",
+        "position": "Forward"
+      },
+      {
+        "slug": "dilane-bakwa",
+        "displayName": "Dilane Bakwa",
+        "position": "Forward"
+      },
+      {
+        "slug": "osame-sahraoui",
+        "displayName": "Osame Sahraoui",
+        "position": "Forward"
+      },
+      {
+        "slug": "calvin-verdonk",
+        "displayName": "Calvin Verdonk",
+        "position": "Defender"
+      },
+      {
+        "slug": "basar-onal",
+        "displayName": "Başar Önal",
+        "position": "Forward"
+      },
+      {
+        "slug": "orlando-gill",
+        "displayName": "Orlando Gill",
+        "position": "Goalkeeper"
+      }
+    ]
+  },
+  "awayFormation": {
+    "startingLineupAvailable": true,
+    "startingLineup": [
+      [
+        {
+          "slug": "robin-risser",
+          "displayName": "Robin Risser",
+          "position": "Goalkeeper"
+        }
+      ],
+      [
+        {
+          "slug": "ruben-aguilar",
+          "displayName": "Ruben Aguilar",
+          "position": "Defender"
+        },
+        {
+          "slug": "samson-baidoo",
+          "displayName": "Samson Baidoo",
+          "position": "Defender"
+        },
+        {
+          "slug": "jean-clair-todibo",
+          "displayName": "Jean-Clair Todibo",
+          "position": "Defender"
+        }
+      ],
+      [
+        {
+          "slug": "saud-abdullah-abdul-hamid",
+          "displayName": "Saud Abdulhamid",
+          "position": "Defender"
+        },
+        {
+          "slug": "amadou-haidara",
+          "displayName": "Amadou Haïdara",
+          "position": "Midfielder"
+        },
+        {
+          "slug": "mickael-cuisance",
+          "displayName": "Michaël Cuisance",
+          "position": "Midfielder"
+        },
+        {
+          "slug": "matthieu-udol",
+          "displayName": "Matthieu Udol",
+          "position": "Defender"
+        }
+      ],
+      [
+        {
+          "slug": "florian-thauvin",
+          "displayName": "Florian Thauvin",
+          "position": "Forward"
+        },
+        {
+          "slug": "florian-sotoca",
+          "displayName": "Florian Sotoca",
+          "position": "Forward"
+        }
+      ],
+      [
+        {
+          "slug": "thorgan-hazard",
+          "displayName": "Thorgan Hazard",
+          "position": "Midfielder"
+        }
+      ]
+    ],
+    "bench": [
+      {
+        "slug": "kyllian-anderson-antonio",
+        "displayName": "Kyllian Antonio",
+        "position": "Defender"
+      },
+      {
+        "slug": "andrija-bulatovic",
+        "displayName": "Andrija Bulatović",
+        "position": "Midfielder"
+      },
+      {
+        "slug": "mathieu-gorgelin",
+        "displayName": "Mathieu Gorgelin",
+        "position": "Goalkeeper"
+      },
+      {
+        "slug": "jonathan-gradit",
+        "displayName": "Jonathan Gradit",
+        "position": "Defender"
+      },
+      {
+        "slug": "franjo-ivanovic",
+        "displayName": "Franjo Ivanović",
+        "position": "Forward"
+      },
+      {
+        "slug": "junior-morau-kadile",
+        "displayName": "Junior-Morau Kadile",
+        "position": "Forward"
+      },
+      {
+        "slug": "mezian-soares-mesloub",
+        "displayName": "Mezian Mesloub",
+        "position": "Midfielder"
+      },
+      {
+        "slug": "michal-skoras",
+        "displayName": "Michał Skóraś",
+        "position": "Forward"
+      },
+      {
+        "slug": "yacine-titraoui",
+        "displayName": "Yacine Titraoui",
+        "position": "Midfielder"
+      }
+    ]
+  }
+}

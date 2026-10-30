@@ -777,18 +777,19 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
 }
 
 /**
- * A card's outlook in one game. Start %: for a LaLiga, Premier League or Bundesliga game Sofix's number (when Sofix's game is this one),
+ * A card's outlook in one game. An official eleven overrides every forecast. Otherwise start % uses Sofix's number (when its game is this one),
  * else Sorare's as saved. Score if he plays: Sofix's xScore for that game (each league's model passed its own check), else Sorare's
  * projection, else his own average of the games he played. Nothing is filled in where no source has a number.
  */
-export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtras | null, chances: ArcadeChances | null, laliga: ArcadeLaLiga): Outlook {
+export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtras | null, chances: ArcadeChances | null, laliga: ArcadeLaLiga, elevens: ArcadeChances | null = null): Outlook {
   const past = extras?.past[card.player] ?? [];
   const projection = extras?.projections[game.id]?.[card.player];
   const form = past.length ? past.reduce((a, b) => a + b, 0) / past.length : null;
   const sofix = laliga[`${card.player}:${Date.parse(game.kickoff)}`] ?? laliga[card.player];
   const sameGame = sofix && sofix.kickoff && Date.parse(sofix.kickoff) === Date.parse(game.kickoff);
   const saved = chanceOf(chances, game.id, card.player);
-  const [start, startSource]: [number | null, StartSource | null] = sameGame && sofix.p !== null && sofix.source
+  const confirmed = chanceOf(elevens, game.id, card.player);
+  const [start, startSource]: [number | null, StartSource | null] = confirmed ? [confirmed.percent / 100, "sorare"] : sameGame && sofix.p !== null && sofix.source
     ? [sofix.p, sofix.source]
     : saved ? [saved.percent / 100, "sorare"] : [null, null];
   const club = card.teamSlug ? extras?.club[card.teamSlug] ?? null : null;
@@ -802,6 +803,7 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
     scoreSource: xscore !== null ? "sofix" : projection !== undefined ? "sorare" : form !== null ? "form" : null,
     start,
     startSource,
+    confirmed: confirmed !== null,
     startUrl: sameGame && startSource === "futbolfantasy" ? sofix.ffMatch?.url ?? null : null,
     past,
     bonus: (card.bonus !== null && card.bonus > 1 ? card.bonus - 1 : 0) + (club ?? 0),

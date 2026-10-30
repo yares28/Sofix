@@ -135,6 +135,17 @@ describe("a bridge injected again into an open tab", () => {
 });
 
 describe("mission eligibility queries", () => {
+  it("reads only the requested game's official formations and refuses malformed game ids", async () => {
+    const b = bridge();
+    await b.read(GAME, "SofixArcadeElevens", { game: GAME });
+    const query = (b.calls.at(-1) as { query: string }).query;
+    expect(query).toContain(`anyGame(id: "${GAME}")`);
+    expect(query).toContain("homeFormation { startingLineupAvailable startingLineup");
+    expect(query).toContain("awayFormation { startingLineupAvailable startingLineup");
+    const before = b.calls.length;
+    expect(await b.read(GAME, "SofixArcadeElevens", { game: 'Game:" query { currentUser { slug } }' })).toMatchObject({ state: "refused" });
+    expect(b.calls).toHaveLength(before);
+  });
   // 20 Oct 2026: Sorare answered "Tasks::TaskConfig(id=) not found" to task(id: "Tasks::Task:…") and "Game(id=Game:…) not found" to gameId: "Game:…".
   it("send Sorare the bare task and game UUIDs", async () => {
     const b = bridge();

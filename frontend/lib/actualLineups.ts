@@ -27,6 +27,16 @@ function sideOf(node:z.infer<typeof Formation>):ActualSide{
   return {state:"announced",formation:node.startingLineup.slice(1).map(r=>r.length).join("-"),
     rows:node.startingLineup.map((row,i)=>({line:(i===0?"GK":i===1?"DEF":i===node.startingLineup.length-1?"FWD":"MID") as Line,players:row.map(p=>make(p,"starter"))})).reverse(),bench:node.bench.map(p=>make(p,"bench"))};
 }
+/** Validated official sides, retaining game/club identity for consumers outside the LaLiga lineup board. */
+export function announcedSides(value:unknown){
+  const parsed=Game.safeParse(value); if(!parsed.success)return null;
+  const g=parsed.data;
+  const sides=[{team:g.homeTeam.slug,...sideOf(g.homeFormation)},{team:g.awayTeam.slug,...sideOf(g.awayFormation)}];
+  if(sides.some(s=>s.state==="incomplete"))return null;
+  const slugs=sides.flatMap(s=>[...s.rows.flatMap(r=>r.players),...s.bench].map(p=>p.slug!));
+  if(new Set(slugs).size!==slugs.length)return null;
+  return {id:g.id,kickoff:g.date,home:g.homeTeam.slug,away:g.awayTeam.slug,sides:sides.filter(s=>s.state==="announced")};
+}
 export function readActualGame(value:unknown,match:LineupMatch,readAt:string):ActualLineup|null{
   const parsed=Game.safeParse(value); if(!parsed.success||!sameGame(parsed.data,match))return null;
   const g=parsed.data,home=sideOf(g.homeFormation),away=sideOf(g.awayFormation);

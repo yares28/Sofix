@@ -509,6 +509,7 @@ describe("who may ask the extension to do something from a web page (roadmap 7.4
       entered: "SofixMyLineups",
       "week-entered": "SofixFixtureLineups",
       "pro-entered": "SofixProLineups",
+      "arcade-elevens": "SofixArcadeElevens",
       check: "SofixPreviewLineup",
       draft: "SofixSaveDraft",
       enter: "SofixConfirmLineups",

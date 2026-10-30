@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bonusLabel, chanceOf, gamesOf, keptCards, newerChances, parseArcade, parseGames, rewardLabel, setEnded, usableArcade, type Arcade } from "./arcade";
+import { bonusLabel, chanceOf, gamesOf, keptCards, newerChances, outlookOf, parseArcade, parseGames, rewardLabel, setEnded, usableArcade, type Arcade, type ArcadeCard, type ArcadeGame } from "./arcade";
 
 const main = {
   cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: "2026-09-08T08:30:00Z", endDate: "2026-10-27T16:00:00Z", availableCompetitions: [{ slug: "laliga-es", displayName: "LALIGA EA Sports" }] } },
@@ -89,6 +89,11 @@ describe("arcade read", () => {
 });
 
 describe("arcade games and start %", () => {
+  it("uses an announced starter instead of the cached 83% model forecast", () => {
+    const card = { player: "diouf", teamSlug: "nice" } as ArcadeCard;
+    const game = { id: "nice-rennes", kickoff: "2026-10-30T18:00:00Z" } as ArcadeGame;
+    expect(outlookOf(card, game, null, null, { diouf: { kickoff: game.kickoff, p: 0.83, source: "sofix", sources: { sofix: 0.83 } } }, { [game.id]: { diouf: [10000, 1] } })).toMatchObject({ start: 1, startSource: "sorare", confirmed: true });
+  });
   const game = (id: string, date: string, home: string, away: string) => ({ game: { id, date, statusTyped: "scheduled", competition: { slug: "c", displayName: "C" }, homeTeam: { slug: home, name: home }, awayTeam: { slug: away, name: away } } });
   const page = (nodes: unknown[]) => ({ currentUser: { setBoard: { pickableGames: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } } });
 

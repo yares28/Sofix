@@ -10,6 +10,8 @@ import type { ArcadeCard, ArcadeGame, DecisiveGame } from "./arcade";
 
 export type StartSource = "sorare" | "futbolfantasy" | "sofix";
 export type Outlook = {
+  /** This game's official eleven, distinct from a forecast that happens to be 100%. */
+  confirmed?: boolean;
   card: ArcadeCard;
   game: ArcadeGame;
   /** His score if he plays, and whose number it is; null when Sorare has no projection and he has no game to average. */

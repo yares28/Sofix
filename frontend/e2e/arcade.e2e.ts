@@ -439,6 +439,32 @@ test("with extension 0.4.15 Sorare's start % come from the open Sorare tab, ever
   await expect(page.locator(".arc-grid .arc-card-start")).toHaveText("85%");
 });
 
+test("% refresh replaces a cached forecast with the exact game's announced eleven and retains it across navigation", async ({ page }) => {
+  const kickoff = new Date(Date.now() + 50 * 60_000).toISOString();
+  const games = structuredClone(ANSWERS["arcade-games"]) as { currentUser: { setBoard: { pickableGames: { nodes: { game: { date: string } }[] } } } };
+  games.currentUser.setBoard.pickableGames.nodes[0]!.game.date = kickoff;
+  const person = (slug: string, position = "Defender") => ({ slug, displayName: slug, position });
+  const formation = { startingLineupAvailable: true, startingLineup: [[person("gk", "Goalkeeper")], [person("d"), person("a"), person("b"), person("c")], [person("m", "Midfielder"), person("e"), person("f"), person("h")], [person("p", "Forward"), person("j")]], bench: [person("m2", "Midfielder")] };
+  const official = { anyGame: { id: GAME, date: kickoff, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: "rival", name: "Rival" }, homeFormation: formation, awayFormation: { startingLineupAvailable: false, startingLineup: [], bench: [] } } };
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page, { ...ANSWERS, "arcade-games": games, "arcade-bench": { cards: 1, after: null, rows: [{ game: GAME, player: "p", basisPoints: 8500 }] }, "arcade-elevens": { anyGame: { ...official.anyGame, homeFormation: { startingLineupAvailable: false, startingLineup: [], bench: [] } } } }, "0.4.21");
+  await page.goto("/arcade");
+  await show(page, "Players");
+  await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
+  await expect(page.locator(".arc-grid .arc-card-start")).toHaveText("85%");
+  await page.evaluate((data) => { (window as unknown as { __answers: Record<string, unknown> }).__answers = { "arcade-elevens": data }; }, official);
+  await page.getByRole("button", { name: "Refresh start percentages" }).click();
+  await expect(page.locator(".arc-grid .arc-card-start")).toHaveText("100%");
+  await expect(page.locator(".arc-grid .arc-card-start")).toHaveAttribute("title", /announced eleven/i);
+  await expect(page.locator(".arc-read")).toContainText("Confirmed lineups for 1 game");
+  await expect(page.locator(".arc-read")).not.toContainText("closer to kick-off, so read again then");
+  await page.getByRole("searchbox", { name: "Search player or club" }).fill("midfielder five");
+  await expect(page.locator(".arc-grid .arc-card-start")).toHaveText("0%");
+  await page.reload();
+  await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
+  await expect(page.locator(".arc-grid .arc-card-start")).toHaveText("100%");
+});
+
 test("a LaLiga streak mission gets Sofix's best five for its target, and a Decisive Picker your cards by their own record", async ({ page }) => {
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
   const g = (mins: number, goals: number) => ({ anyGame: { date: "2026-10-01T12:00:00Z" }, anyPlayerGameStats: { minsPlayed: mins, gameStarted: true }, detailedScore: goals ? [{ stat: "goals", statValue: goals }] : [] });

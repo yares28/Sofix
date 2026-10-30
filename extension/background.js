@@ -623,6 +623,7 @@ const STEPS = {
   "arcade-past": (input) => ["SofixArcadePast", { players: Array.isArray(input.players) ? input.players.slice(0, 50) : [] }],
   "arcade-decisive": (input) => ["SofixArcadeDecisive", { players: Array.isArray(input.players) ? input.players.slice(0, 1) : [], before: input.before, after: input.after }],
   "arcade-projections": (input) => ["SofixArcadeProjections", { game: String(input.game ?? "").slice(0, 60) }],
+  "arcade-elevens": (input) => ["SofixArcadeElevens", { game: String(input.game ?? "").slice(0, 60) }],
   "arcade-pack-odds": (input) => ["SofixArcadePackOdds", { slots: Array.isArray(input.slots) ? input.slots.slice(0, 2) : [] }],
   // Arcade's start % without opening a page: Sorare's own bench question, one position and date window a page (the bridge checks each value).
   "arcade-bench": (input) => ["SofixArcadeBench", {

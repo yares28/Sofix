@@ -323,6 +323,16 @@
       return `query SofixArcadeProjections { anyGame(id: ${JSON.stringify(variables.game)}) { ... on Game { id playerGameScores { projection { score } anyPlayer { slug } } } } }`;
     },
 
+    // Public official elevens, independent of private forecast availability.
+    SofixArcadeElevens: (variables) => {
+      if (typeof variables?.game !== "string" || !/^Game:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(variables.game)) return null;
+      return `query SofixArcadeElevens { anyGame(id: ${JSON.stringify(variables.game)}) { ... on Game {
+        id date homeTeam { slug name } awayTeam { slug name }
+        homeFormation { startingLineupAvailable startingLineup { slug displayName position } bench { slug displayName position } }
+        awayFormation { startingLineupAvailable startingLineup { slug displayName position } bench { slug displayName position } }
+      } } }`;
+    },
+
     // Arcade step 5: Sorare's published draw odds of the current step's packs, two slots a question (Sorare's size cap).
     SofixArcadePackOdds: (variables) => {
       const slots = variables?.slots;

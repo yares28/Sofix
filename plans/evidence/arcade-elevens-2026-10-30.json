@@ -1,0 +1,110 @@
+{
+  "readAt": "2026-10-30T21:05:29.397Z",
+  "endpoint": "https://api.sorare.com/graphql",
+  "credentials": false,
+  "status": 200,
+  "query": "query ArcadeElevenCheck { football { l0:competition(slug:\"ligue-1-fr\"){pastGames(first:1){nodes{id date homeTeam{slug name} awayTeam{slug name} homeFormation{startingLineupAvailable startingLineup{slug displayName position} bench{slug displayName position}} awayFormation{startingLineupAvailable startingLineup{slug displayName position} bench{slug displayName position}}}} futureGames(first:1){nodes{id date homeTeam{slug name} awayTeam{slug name} homeFormation{startingLineupAvailable startingLineup{slug displayName position} bench{slug displayName position}} awayFormation{startingLineupAvailable startingLineup{slug displayName position} bench{slug displayName position}}}}} } }",
+  "errors": [],
+  "games": [
+    {
+      "league": "ligue-1-fr",
+      "kind": "pastGames",
+      "id": "Game:ba9e398a-ca1f-453d-b986-339c3f6ee117",
+      "date": "2026-10-30T20:05:00Z",
+      "home": {
+        "slug": "lille-villeneuve-d-ascq",
+        "name": "LOSC Lille"
+      },
+      "away": {
+        "slug": "lens-avion",
+        "name": "RC Lens"
+      },
+      "sides": [
+        {
+          "side": "homeFormation",
+          "available": true,
+          "starters": [
+            "berke-ozer",
+            "maxima-adeagan-goffi",
+            "nathan-ngoy",
+            "alexsandro-victor-de-souza-ribeiro",
+            "romain-perraud",
+            "ngal-ayel-mukau",
+            "nabil-bentaleb",
+            "benjamin-andre",
+            "ethan-mbappe-lottin",
+            "hakon-arnar-haraldsson",
+            "soriba-diaoune"
+          ],
+          "bench": [
+            "isaac-cossier",
+            "olivier-giroud",
+            "maurits-kjaergaard",
+            "gaetan-perrin",
+            "dilane-bakwa",
+            "osame-sahraoui",
+            "calvin-verdonk",
+            "basar-onal",
+            "orlando-gill"
+          ]
+        },
+        {
+          "side": "awayFormation",
+          "available": true,
+          "starters": [
+            "robin-risser",
+            "ruben-aguilar",
+            "samson-baidoo",
+            "jean-clair-todibo",
+            "saud-abdullah-abdul-hamid",
+            "amadou-haidara",
+            "mickael-cuisance",
+            "matthieu-udol",
+            "florian-thauvin",
+            "florian-sotoca",
+            "thorgan-hazard"
+          ],
+          "bench": [
+            "kyllian-anderson-antonio",
+            "andrija-bulatovic",
+            "mathieu-gorgelin",
+            "jonathan-gradit",
+            "franjo-ivanovic",
+            "junior-morau-kadile",
+            "mezian-soares-mesloub",
+            "michal-skoras",
+            "yacine-titraoui"
+          ]
+        }
+      ]
+    },
+    {
+      "league": "ligue-1-fr",
+      "kind": "futureGames",
+      "id": "Game:dece48ff-347a-49b8-bf36-95ac69111381",
+      "date": "2026-10-31T19:45:00Z",
+      "home": {
+        "slug": "troyes-troyes",
+        "name": "ESTAC Troyes"
+      },
+      "away": {
+        "slug": "le-mans-le-mans",
+        "name": "Le Mans FC"
+      },
+      "sides": [
+        {
+          "side": "homeFormation",
+          "available": false,
+          "starters": [],
+          "bench": []
+        },
+        {
+          "side": "awayFormation",
+          "available": false,
+          "starters": [],
+          "bench": []
+        }
+      ]
+    }
+  ]
+}

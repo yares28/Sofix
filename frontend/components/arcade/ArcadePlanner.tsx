@@ -1,16 +1,19 @@
 "use client";
 
-import { useContext, useMemo, useState, type CSSProperties } from "react";
+import { useContext, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
 import { climbWindows, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
+import TeamRail from "./TeamRail";
 import { bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
+const SavedTeams = z.object({ games: z.array(z.string()).max(500), aim: z.number().int().positive() });
 export const madridDay = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short" });
 export const madridTime = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
 export const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -175,7 +178,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
         </button>
         <button type="button" className="arc-small" onClick={() => setChosen(new Set())} disabled={!chosen.size}>Clear</button>
       </div>
-      <div className="arc-tickets" role="group" aria-label="Games to pick from">
+      <TeamRail label="Games to pick from" className="arc-tickets">
         {games.map((g, i) => {
           const f = boards.get(g.id);
           const on = chosen.has(g.id);
@@ -193,18 +196,18 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
             </button>
           );
         })}
-      </div>
+      </TeamRail>
       {lineup ? (
         <div className="arc-pitch-wrap">
           <Pitch lineup={lineup} captainBonus={captainBonus} title={`Best five from your ${chosen.size} game${chosen.size === 1 ? "" : "s"} · settles about ${when(settles!, now)}`} />
-          <Scale lineup={lineup} steps={steps} aim={aim} />
           <details className="arc-detail">
             <summary>Each card&apos;s numbers</summary>
             <LineupCards lineup={lineup} captainBonus={captainBonus} />
             <Chances lineup={lineup} steps={steps} aim={aim} />
           </details>
         </div>
-      ) : <p className="arc-note">{chosen.size ? "These games cannot fill a goalkeeper, defender, midfielder, forward and one more outfield card from your free cards." : "Pick at least one game."}</p>}
+      ) : <p className="arc-note arc-pick-empty">{chosen.size ? "These games cannot fill a goalkeeper, defender, midfielder, forward and one more outfield card from your free cards." : "Pick at least one game."}</p>}
+      {lineup ? <Scale lineup={lineup} steps={steps} aim={aim} /> : null}
     </div>
   );
 }
@@ -411,7 +414,8 @@ function Chain({ plan, captainBonus, now, onBuild }: { plan: Climb; captainBonus
 }
 
 export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; status: Record<string, PlayerStatus> }) {
-  const [now] = useState(() => Date.now());
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Advance the planning clock on fresh board/forecast inputs, without rebuilding it when a picker control changes.
+  const now = useMemo(() => Date.now(), [arcade, outlooks]);
   const steps = useMemo(() => stepInfos(arcade), [arcade]);
   const current = climbStep(arcade);
   const { start, waiting, after } = useMemo(() => climbStart(arcade, steps, current), [arcade, steps, current]);
@@ -419,18 +423,30 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
   const plan = useMemo(() => climbWindows(all, steps, start, captainBonus, now), [all, steps, start, captainBonus, now]);
   const busy = useMemo(() => new Set(start.held.filter((h) => h.until > now).map((h) => h.card)), [start.held, now]);
   const games = useMemo(() => (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now && (outlooks.get(g.id) ?? []).length), [arcade.games, outlooks, now]);
-  const [selection, setSelection] = useState<{ plan: Climb; chosen: Set<string>; aim: number; preset: Lineup | null } | null>(null);
-  const chosen = selection?.plan === plan ? selection.chosen : new Set((plan.path[0]?.list ?? []).map((o) => o.game.id));
-  const aim = selection?.plan === plan ? selection.aim : plan.path[0]?.step ?? current;
-  const preset = selection?.plan === plan ? selection.preset : plan.path[0]?.lineups[0] ?? null;
-  const setChosen = (next: Set<string>) => setSelection({ plan, chosen: next, aim, preset: null });
-  const setAim = (next: number) => setSelection({ plan, chosen, aim: next, preset: null });
+  const storageKey = `sofix-arcade-teams:${arcade.set.slug}:${arcade.board?.id ?? ""}`;
+  const [selection, setSelection] = useState<{ chosen: Set<string>; aim: number; preset: { plan: Climb; lineup: Lineup } | null } | null>(() => {
+    try {
+      const saved = SavedTeams.safeParse(JSON.parse(localStorage.getItem(storageKey) ?? "null"));
+      return saved.success ? { chosen: new Set(saved.data.games), aim: saved.data.aim, preset: null } : null;
+    } catch { return null; }
+  });
+  useEffect(() => {
+    if (!selection) return;
+    try { localStorage.setItem(storageKey, JSON.stringify({ games: [...selection.chosen], aim: selection.aim })); } catch { /* Storage blocked or full: retain the choice for this visit. */ }
+  }, [selection, storageKey]);
+  const available = new Set(games.map((g) => g.id));
+  const chosen = new Set([...(selection?.chosen ?? new Set((plan.path[0]?.list ?? []).map((o) => o.game.id)))].filter((id) => available.has(id)));
+  const wantedAim = selection?.aim ?? plan.path[0]?.step ?? current;
+  const aim = arcade.board?.steps.some((s) => s.number === wantedAim && !["CLAIMED", "CLAIMABLE"].includes(s.state)) ? wantedAim : current;
+  const preset = selection ? (selection.preset?.plan === plan ? selection.preset.lineup : null) : plan.path[0]?.lineups[0] ?? null;
+  const setChosen = (next: Set<string>) => setSelection({ chosen: next, aim, preset: null });
+  const setAim = (next: number) => setSelection({ chosen, aim: next, preset: null });
   const lives = start.step === current ? start.lives : 0;
   const waitingNote = after
     ? `Your ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} on step ${current} settle${waiting.length > 1 ? "" : "s"} first (about ${when(after.at, now)}); the plan goes on as if one clears it.`
     : waiting.length ? `You have ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} waiting on step ${current}: if one clears it, Sorare cancels any other you entered on the step.` : null;
   const build = (move: Move, lineup: Lineup | null) => {
-    setSelection({ plan, chosen: new Set(move.list.map((o) => o.game.id)), aim: move.step, preset: lineup });
+    setSelection({ chosen: new Set(move.list.map((o) => o.game.id)), aim: move.step, preset: lineup ? { plan, lineup } : null });
     document.getElementById("arc-teams-title")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
   };
   if (!games.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;

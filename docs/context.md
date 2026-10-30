@@ -236,7 +236,7 @@ Read only the day the page shows, not the entire history. Preserve the automatic
 
 Scope: window-based Arcade recommendations. The current source treats a lineup as entered on the current step; settlement is five minutes after its last game, a clear opens the next step, and other simultaneous entries on that step are insurance rather than queued future steps. A miss costs a life; losing the last life resets to step one. Each clear pays again; clearing the top also restarts at step one. The objective compares each prize's chance of being cleared at least once by the last listed game, the top step first (comparePrizes); within half a point the next prize down decides. It never uses a probability-weighted average of rewards, and cash and non-cash rewards are never converted into each other. A lineup comes from its window's own kickoffs unless a wider span is better by two points at some prize, and a card below 50% to start is left out while a likely starter fills its slot. Preserve held cards, settlement time and actual source state. Read the dated source evidence in the linked plan before changing external-game semantics.
 
-windowsOf groups kickoffs within 75 minutes of the first game in each window. The climb, chain and builder use bestLineup's same simulated selection and captain; insurance batches share player outcomes and teammates' day. Unknown start chance counts as one, while a known zero remains zero; this is an explicit modeling assumption, not observed certainty. With fewer than three played games, spread is 0.33 times score rather than zero. On step one, spending every remaining life is preferred over fewer entries settling before the same next window when it does not lower prize chances: all misses reset to step one with four lives. Wider spans still have to justify their delay. The Play/Hold comparison shows the actual recommended batches, their lineup counts and joint chance; changing the displayed insurance team does not change that batch probability. Editing a move in Pick teams retains that team until its games or target are changed. See [the acceptance/evidence record](../plans/arcade-consistency.md).
+windowsOf groups kickoffs within 75 minutes of the first game in each window. The climb, chain and builder use bestLineup's same simulated selection and captain; insurance batches share player outcomes and teammates' day. Unknown start chance counts as one, while a known zero remains zero; this is an explicit modeling assumption, not observed certainty. With fewer than three played games, spread is 0.33 times score rather than zero. On step one, spending every remaining life is preferred over fewer entries settling before the same next window when it does not lower prize chances: all misses reset to step one with four lives. Wider spans still have to justify their delay. The Play/Hold comparison shows the actual recommended batches, their lineup counts and joint chance; changing the displayed insurance team does not change that batch probability. Editing a move in Pick teams retains its exact lineup until games, target or planning inputs change. Explicit game/target choices persist in this browser for the same set and board, including an empty choice; refreshed inputs rebuild the five without discarding those games, and expired games leave the active pool. Teams to build around accepts one owned likely starter. Both pickers use one horizontal row with two-team arrow steps and dragging, paginated above twelve entries. See the [climb evidence](../plans/arcade-consistency.md) and [team-picker acceptance](../plans/arcade-team-picker.md).
 
 Counterexample: several lineups on step two cannot be presented as one automatically reserved lineup for each later step. No recommendation spends lives or gems automatically. Pack odds and inventory assumptions require their own source evidence; these climb contracts do not certify pack values or authorize purchases.
 
@@ -706,6 +706,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/arcade-player-choice.md` | [open](../plans/arcade-player-choice.md) |
 | document (check authority) | `plans/arcade-rework.md` | [open](../plans/arcade-rework.md) |
 | document (check authority) | `plans/arcade-start-refresh.md` | [open](../plans/arcade-start-refresh.md) |
+| document (check authority) | `plans/arcade-team-picker.md` | [open](../plans/arcade-team-picker.md) |
 | document (check authority) | `plans/audit-followups.md` | [open](../plans/audit-followups.md) |
 | document (check authority) | `plans/audit-player-comparisons.md` | [open](../plans/audit-player-comparisons.md) |
 | document (check authority) | `plans/audit-player-scores.md` | [open](../plans/audit-player-scores.md) |
@@ -1651,6 +1652,12 @@ This block is the single machine-readable index for the sections above. Test ref
         },
         {
           "path": "plans/arcade-rework.md"
+        },
+        {
+          "path": "frontend/components/arcade/ArcadePlanner.tsx"
+        },
+        {
+          "path": "frontend/lib/arcadeTeams.ts"
         }
       ],
       "tests": [
@@ -1659,17 +1666,27 @@ This block is the single machine-readable index for the sections above. Test ref
         },
         {
           "path": "frontend/lib/arcadePlan.test.ts"
+        },
+        {
+          "path": "frontend/lib/arcadeTeams.test.ts"
+        },
+        {
+          "path": "frontend/e2e/arcade.e2e.ts"
         }
       ],
       "review": {
         "date": "2026-10-30",
-        "note": "Reviewed optional confirmation evidence on Outlook; planner selection and simulation rules unchanged. Confirmed lineup probabilities override forecasts upstream.",
+        "note": "Reviewed single-player club eligibility, set/board-scoped game and target persistence, live five-player recalculation, expiry, and original climb/simulation contracts. Verification and limits in plans/arcade-team-picker.md.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "d8331f3b69b2d4b6715ed090fdcef81503e19d77735e64cd6de3a6738cee1e23",
           "frontend/lib/arcadePlan.ts": "33a5d5d8ca4889f3b0e4cae839dee7b0b7508c06fc72ad937a95792160936018",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
+          "frontend/components/arcade/ArcadePlanner.tsx": "6c388c2518f4984a94c2210b785455fb82d7d121f9b7712bcd7af9c1d16e39fe",
+          "frontend/lib/arcadeTeams.ts": "2024a4463e05b8e21c73e9b9097baf568241405e1fa564486df29e1f184e66f2",
           "frontend/lib/arcadeClimb.test.ts": "0ce27f5cbee513381da05f1eea34ee2258987eaa7a9d47b3ec15843648d799d8",
-          "frontend/lib/arcadePlan.test.ts": "a6bd6dd4fca0b698e95cf883e262e9acb366ab829bd8bb04d887b4036a487dc2"
+          "frontend/lib/arcadePlan.test.ts": "a6bd6dd4fca0b698e95cf883e262e9acb366ab829bd8bb04d887b4036a487dc2",
+          "frontend/lib/arcadeTeams.test.ts": "cf0d58177712224c0267c9fd5b1f1f397597e5b704f0035f0ea7713868d9e181",
+          "frontend/e2e/arcade.e2e.ts": "27940ef1f92606aeaf296d450b103791a588d13cb34dd8026ef5c5fa9d961f5b"
         }
       }
     },

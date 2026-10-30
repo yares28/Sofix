@@ -84,10 +84,10 @@ describe("teams to build around", () => {
     expect(signalOf(o("a", "lille", 60, null), { tier: null, playing: "REGULAR", injured: false, back: null })).toBe("sorare");
     expect(signalOf(o("a", "lille", 60, 0.9), { tier: null, playing: "STARTER", injured: true, back: null })).toBe("out");
   });
-  it("ranks clubs by what their three best likely starters add, and needs two likely starters", () => {
+  it("ranks clubs by what up to three likely starters add, including a single owned starter", () => {
     const list = [o("a", "lille", 60, 0.9), o("b", "lille", 50, null), o("c", "lille", 90, 0.2), o("d", "lens", 80, 0.9)];
     const picks = clubsToBuildAround(new Map([["G", list]]), [g], { b: { tier: null, playing: "STARTER", injured: false, back: null } }, 0, Infinity);
-    expect(picks.map((p) => [p.club, p.value, p.likely])).toEqual([["lille", 104, 2]]);
+    expect(picks.map((p) => [p.club, p.value, p.likely])).toEqual([["lille", 104, 2], ["lens", 72, 1]]);
     expect(picks[0]!.cards.map((c) => c.outlook.card.player)).toEqual(["a", "b", "c"]);
   });
 });

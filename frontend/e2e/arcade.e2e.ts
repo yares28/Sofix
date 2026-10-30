@@ -368,6 +368,99 @@ test("step one spends four resettable lives and keeps every insurance team ident
   await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play 4 lineups now");
 });
 
+test("team rows include a single Barcelona card, move two at a time, and remember games while forecasts rebuild the five", async ({ page }) => {
+  const games = Array.from({ length: 14 }, (_, i) => ({ id: i === 0 ? GAME : `Game:picker-${i}`, date: KICKOFF, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: i === 0 ? "club" : i === 1 ? "barcelona" : `club-${i}`, name: i === 0 ? "Club" : i === 1 ? "Barcelona" : `Club ${i}` }, awayTeam: { slug: `rival-${i}`, name: `Rival ${i}` } }));
+  const singleCards = games.slice(1).map((g, i) => ({ slug: `single-${i}`, pictureUrl: null, anyPositions: ["Forward"], cardSet: { slug: "glitch" }, skinEdition: { bonus: 1 }, anyPlayer: { slug: `single-${i}`, displayName: i === 0 ? "Raphinha" : `Forward ${i}` }, anyTeam: g.homeTeam }));
+  const base = ANSWERS["arcade-cards"] as { currentUser: { cards: { nodes: unknown[] } } };
+  const answers = { ...ANSWERS,
+    "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: games.map((game) => ({ game })), pageInfo: { hasNextPage: false } } } } },
+    "arcade-cards": { currentUser: { cards: { nodes: [...base.currentUser.cards.nodes, ...singleCards], pageInfo: { hasNextPage: false } } } },
+    "arcade-past": { players: [...SQUAD.map(([, player]) => ({ slug: player, playingStatus: "STARTER", playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })), ...singleCards.map((c) => ({ slug: c.anyPlayer.slug, playingStatus: "STARTER", playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) }))] },
+    ...Object.fromEntries(games.slice(1).map((g, i) => [`arcade-projections:${g.id}`, { anyGame: { id: g.id, playerGameScores: [{ projection: { score: i === 0 ? 90 : 60 }, anyPlayer: singleCards[i]!.anyPlayer }] } }])),
+  };
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page, answers, "0.4.18");
+  await page.goto("/arcade");
+  const clubs = page.locator(".arc-clubs");
+  await expect(clubs.locator(".arc-club").filter({ hasText: "Barcelona" })).toContainText("Raphinha");
+  const picker = page.locator(".arc-plan");
+  await picker.getByRole("button", { name: "Clear", exact: true }).click();
+  await picker.getByRole("button", { name: /Club v Rival 0/ }).click();
+  await picker.getByRole("button", { name: /Barcelona v Rival 1/ }).click();
+  const tickets = picker.getByRole("group", { name: "Games to pick from", exact: true });
+  const first = tickets.locator(".arc-rail-item").first();
+  const stride = await first.evaluate((el) => el.getBoundingClientRect().width + parseFloat(getComputedStyle(el.parentElement!).columnGap));
+  await picker.getByRole("button", { name: "Next two teams" }).click();
+  await expect.poll(() => tickets.evaluate((el) => el.scrollLeft)).toBeCloseTo(stride * 2, 0);
+  await picker.getByRole("button", { name: "Previous two teams" }).click();
+  await expect.poll(() => tickets.evaluate((el) => el.scrollLeft)).toBe(0);
+  const before = await tickets.getByRole("button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-pressed")));
+  const box = await first.boundingBox();
+  await page.mouse.move(box!.x + 170, box!.y + 70);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + 30, box!.y + 70, { steps: 10 });
+  await page.mouse.up();
+  await expect.poll(() => tickets.evaluate((el) => el.scrollLeft)).toBeGreaterThan(50);
+  expect(await tickets.getByRole("button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-pressed")))).toEqual(before);
+  await clubs.getByRole("button", { name: "Next page" }).click();
+  await expect(clubs.locator(".arc-club")).toHaveCount(2);
+  await clubs.getByRole("button", { name: "Previous page" }).click();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const rail of [clubs.locator(".arc-rail-track"), tickets]) {
+      const tops = await rail.locator(":scope > li").evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+      expect(new Set(tops).size).toBe(1);
+    }
+    if (width === 1440) {
+      const pitch = await picker.locator(".arc-pitch").boundingBox();
+      const list = await tickets.boundingBox();
+      expect(pitch!.x + pitch!.width).toBeLessThanOrEqual(list!.x);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  }
+  await page.reload();
+  await expect(picker.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(2);
+  await expect(picker.locator(".arc-pitch")).toContainText("Best five from your 2 games");
+  await expect(picker.locator(".arc-pitch li").filter({ hasText: "FWD" }).locator(".arc-card-blank")).toHaveText("Raphinha");
+  await page.unroute("**/api/arcade/chances");
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { "Game:picker-1": { "single-0": [0, Math.floor(Date.now() / 1000)] } } } }));
+  await page.getByRole("button", { name: "Refresh board and cards", exact: true }).click();
+  await expect(picker.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(2);
+  await expect(picker.locator(".arc-pitch")).not.toContainText("Raphinha");
+  await show(page, "Players");
+  await show(page, "Play now");
+  await expect(picker.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(2);
+  const reopened = await page.context().newPage();
+  await offline(reopened);
+  await reopened.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(reopened, answers, "0.4.18");
+  await reopened.goto("/arcade");
+  await expect(reopened.locator(".arc-plan .arc-ticket[aria-pressed=true]")).toHaveCount(2);
+  await reopened.close();
+  await picker.getByRole("button", { name: "Clear", exact: true }).click();
+  await page.reload();
+  await expect(picker).toContainText("Pick at least one game.");
+});
+
+test("saved team choices discard expired games and cleared targets, and another board starts independently", async ({ page }) => {
+  const otherGame = "Game:expired";
+  await page.addInitScript(({ game, otherGame }) => localStorage.setItem("sofix-arcade-teams:glitch:b", JSON.stringify({ games: [game, otherGame], aim: 1 })), { game: GAME, otherGame });
+  const oldGame = { id: otherGame, date: new Date(Date.now() - 3600000).toISOString(), statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: "rival", name: "Rival" } };
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page, { ...ANSWERS, "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: [{ game: oldGame }, { game: { ...oldGame, id: GAME, date: KICKOFF } }], pageInfo: { hasNextPage: false } } } } } }, "0.4.18");
+  await page.goto("/arcade");
+  const picker = page.locator(".arc-plan");
+  await expect(picker.locator(".arc-ticket")).toHaveCount(1);
+  await expect(picker.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(1);
+  await expect(picker.getByRole("combobox", { name: "Aim at" })).toHaveValue("2");
+  await picker.getByRole("button", { name: "Clear", exact: true }).click();
+  const board = structuredClone(ANSWERS.arcade) as { currentUser: { setBoard: { id: string } } };
+  board.currentUser.setBoard.id = "another-board";
+  await page.evaluate((board) => { (window as unknown as { __answers: Record<string, unknown> }).__answers = { arcade: board }; }, board);
+  await page.getByRole("button", { name: "Refresh board and cards", exact: true }).click();
+  await expect(picker.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(1);
+});
+
 test("Gems and packs: what your gems buy for an Icon, new players or a collection mission, from Sorare's odds, with the maths", async ({ page }) => {
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
   await withExtension(page, ANSWERS, "0.4.18");

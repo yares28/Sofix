@@ -78,7 +78,14 @@
 .arc-chain-detail { display: grid; gap: 12px; padding: 18px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); }
 
 /* Teams to build around */
-.arc-club-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.arc-rail { min-width: 0; display: grid; align-content: start; gap: 10px; }
+.arc-rail-controls { display: flex; justify-content: flex-end; gap: 6px; }
+.arc-rail-controls .arc-small { min-width: 44px; min-height: 40px; font-size: 20px; }
+.arc-rail-track { position: relative; list-style: none; margin: 0; padding: 6px 4px 16px; display: grid; grid-auto-flow: column; grid-auto-columns: var(--team-width, 312px); gap: 14px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-left: 4px; cursor: grab; }
+.arc-rail-track[data-dragging] { scroll-snap-type: none; cursor: grabbing; user-select: none; }
+.arc-rail-track:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 8px; }
+.arc-rail-item { min-width: 0; scroll-snap-align: start; }
+.arc-rail-item > :first-child { height: 100%; width: 100%; }
 .arc-club { display: grid; gap: 12px; padding: 16px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); align-content: start; }
 .arc-club.is-on { box-shadow: inset 0 0 0 2px var(--ink), var(--shadow-card); }
 .arc-club-head { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
@@ -135,7 +142,7 @@
   .arc-move-entry-head .arc-small { margin-left: 0; }
   .arc-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .arc-chain-rail { grid-auto-columns: 140px; }
-  .arc-club-grid { grid-template-columns: 1fr; }
+  .arc-club-rail { --team-width: min(312px, calc(100vw - 64px)); }
   .arc-gems-table .arc-packs-list li { grid-template-columns: minmax(0, 1fr) 48px; }
   .arc-gems-table .arc-packs-list .arc-packbar, .arc-gems-table .arc-pack-per { grid-column: 1 / -1; justify-self: start; }
 }
@@ -153,7 +160,11 @@
 
 /* Pick teams: tickets, the pitch and where it lands */
 .arc-teams-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.arc-tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; max-height: 470px; overflow-y: auto; padding: 4px; }
+#arc-teams-title { scroll-margin-top: 80px; }
+.arc-teams { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+.arc-teams-bar { grid-column: 2; grid-row: 1; }
+.arc-tickets { --team-width: 220px; grid-column: 2; grid-row: 2; }
+.arc-pick-empty { grid-column: 1; grid-row: 1 / 3; }
 .arc-ticket {
   position: relative; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 10px; border: 0; border-radius: 14px;
   background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); font: inherit; text-align: left; cursor: pointer;
@@ -184,16 +195,17 @@
 @keyframes arc-stamp { from { transform: rotate(-10deg) scale(2); opacity: 0; } to { transform: rotate(-10deg) scale(1); opacity: 1; } }
 .arc-stamp { position: absolute; right: 12px; bottom: 36px; padding: 2px 8px; border: 2px solid var(--fdr2-bg); border-radius: 6px; color: var(--fdr2-bg); font-weight: 800; font-size: 12px; transform: rotate(-10deg); animation: arc-stamp 450ms cubic-bezier(.3, 1.6, .5, 1) both; }
 
-.arc-pitch-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; }
+.arc-pitch-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; grid-column: 1; grid-row: 1 / 4; }
+.arc-teams > .arc-scale { grid-column: 2; grid-row: 3; }
 .arc-pitch { position: relative; min-height: 660px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card);
   background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--win) 8%, var(--surface)) 0 56px, color-mix(in srgb, var(--win) 4%, var(--surface)) 56px 112px); }
 .arc-pitch-lines { position: absolute; inset: 6% 8%; border: 2px solid color-mix(in srgb, var(--win) 30%, transparent); border-radius: 6px; }
 .arc-pitch-lines::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px solid color-mix(in srgb, var(--win) 30%, transparent); }
 .arc-pitch-lines::after { content: ""; position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px; border: 2px solid color-mix(in srgb, var(--win) 30%, transparent); border-radius: 50%; }
-.arc-pitch-head { position: absolute; left: 22px; top: 18px; display: grid; gap: 2px; z-index: 1; }
+.arc-pitch-head { position: absolute; left: 22px; right: 22px; top: 18px; display: grid; gap: 2px; z-index: 1; }
 .arc-pitch-head span { color: var(--ink-2); font-size: var(--text-sm); }
 .arc-pitch-head b { font-size: 64px; line-height: 0.95; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
-.arc-pitch ol { list-style: none; margin: 0; padding: 0; }
+.arc-pitch ol { position: absolute; inset: 104px 0 0; list-style: none; margin: 0; padding: 0; }
 .arc-pitch li { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 4px; }
 .arc-pitch li img, .arc-pitch li .arc-card-blank { width: 96px; height: auto; aspect-ratio: 120 / 194; border-radius: 9px; box-shadow: 0 16px 30px rgba(0, 0, 0, .22); }
 .arc-pitch li.is-captain img { box-shadow: 0 0 0 2px var(--accent), 0 16px 30px rgba(0, 0, 0, .22); }
@@ -282,11 +294,12 @@
 .arc-pick-chance { font-size: 32px; line-height: 1; letter-spacing: -0.03em; color: var(--win); font-variant-numeric: tabular-nums; }
 
 @media (max-width: 1000px) {
+  .arc-teams { grid-template-columns: minmax(0, 1fr); }
+  .arc-teams-bar, .arc-tickets, .arc-pitch-wrap, .arc-pick-empty, .arc-teams > .arc-scale { grid-column: 1; grid-row: auto; }
   .arc-pitch-wrap, .arc-lab { grid-template-columns: 1fr; }
   .arc-race { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-  .arc-tickets { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 420px; }
   .arc-pitch { min-height: 560px; }
   .arc-pitch ol { position: absolute; inset: 104px 0 0; } /* below the total on a phone */
   .arc-pitch li img, .arc-pitch li .arc-card-blank { width: 64px; }

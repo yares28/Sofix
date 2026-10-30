@@ -2,7 +2,7 @@ import type { ArcadeGame } from "./arcade";
 import { madridDate, predicted, type Outlook } from "./arcadePlan";
 
 /**
- * Teams to build around (owner, 29 Oct 2026): for days Sorare has not given a start % yet, the clubs where several of your cards
+ * Teams to build around: for days Sorare has not given a start % yet, the clubs where at least one of your cards
  * play, ranked by what their likely starters add. "Likely" = Sofix's start % (Futbol Fantasy, Sorare or Sofix) of 70% or more, else
  * Sorare's own playing status (starter or regular) with no injury Sorare reports. Sorare's player news is empty in its API (read
  * 29 Oct: `news(last:)` returned nothing for any player, signed in or not), so its status and injuries stand in for it.
@@ -37,7 +37,7 @@ export type ClubPick = {
   out: number;
 };
 
-/** The clubs worth building a lineup around in each game from `from` to `to`, best first. Two likely starters at least. */
+/** The clubs worth building a lineup around in each game from `from` to `to`, best first. One likely starter is enough. */
 export function clubsToBuildAround(outlooks: Map<string, Outlook[]>, games: ArcadeGame[], status: Record<string, PlayerStatus>, from: number, to: number): ClubPick[] {
   const out: ClubPick[] = [];
   for (const game of games) {
@@ -51,7 +51,7 @@ export function clubsToBuildAround(outlooks: Map<string, Outlook[]>, games: Arca
       const cards = [...byPlayer.values()].map((o) => ({ outlook: o, signal: signalOf(o, status[o.card.player]), points: predicted(o)! }))
         .sort((a, b) => Number(b.signal === "sofix" || b.signal === "sorare") - Number(a.signal === "sofix" || a.signal === "sorare") || b.points - a.points);
       const likely = cards.filter((c) => c.signal === "sofix" || c.signal === "sorare");
-      if (likely.length < 2) continue;
+      if (!likely.length) continue;
       out.push({
         club: side.slug, name: side.name, crest: side.crest ?? mine[0]?.card.teamPicture ?? null, game, day: madridDate(game.kickoff), cards,
         value: likely.slice(0, 3).reduce((sum, c) => sum + c.points, 0), likely: likely.length, out: cards.filter((c) => c.signal === "out").length,

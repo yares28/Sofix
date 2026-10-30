@@ -3,7 +3,7 @@
 .arc-kicker { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
 .arc-note { font-size: var(--text-sm); color: var(--amber-ink, #8a5a00); background: var(--amber-bg, #fff5e0); border-radius: 12px; padding: 10px 14px; }
 .arc-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px 18px; margin-bottom: 24px; }
-.arc-card { margin: 0; text-align: center; }
+.arc-card { margin: 0; text-align: center; container: arcade-player / inline-size; }
 .arc-card img, .arc-card-blank { width: 100%; height: auto; aspect-ratio: 120 / 194; border-radius: 10px; display: block; }
 .arc-card-blank { display: grid; place-items: center; background: var(--hover); font-size: var(--text-xs); padding: 8px; }
 .arc-card figcaption { font-size: 11px; color: var(--ink-2); margin-top: 4px; }
@@ -51,9 +51,6 @@
 .arc-lineup img, .arc-lineup .arc-card-blank { width: 100%; height: auto; aspect-ratio: 120 / 194; border-radius: 10px; }
 .arc-slot { font-size: var(--text-xs); color: var(--ink-2); display: flex; justify-content: center; gap: 6px; align-items: center; }
 .arc-captain { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: var(--on-ink); font-size: 11px; }
-.arc-lineup .arc-card-ratings { top: 6px; right: 6px; }
-.arc-lineup .arc-card-ratings > span { padding: 3px 5px; }
-.arc-lineup .arc-meta a { color: inherit; text-underline-offset: 2px; }
 .arc-meta { color: var(--ink-2); }
 .arc-chances p { margin: 0 0 8px; font-size: var(--text-base); }
 .arc-chances b { font-variant-numeric: tabular-nums; }
@@ -173,17 +170,24 @@
 .arc-card-fdr.f5 { background: var(--fdr5-bg); color: var(--fdr5-fg); }
 .arc-card-bonus { position: absolute; right: 8px; bottom: 8px; padding: 4px 7px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 650; border-radius: 6px; box-shadow: 0 1px 5px rgb(0 0 0 / .12); }
 .arc-card figcaption { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 8px; margin-top: 10px; min-height: 60px; text-align: left; }
-.arc-card-start { font-size: clamp(25px, 2.6vw, 36px); color: var(--ink); line-height: 1.2; letter-spacing: -.05em; font-weight: 600; font-variant-numeric: tabular-nums; text-decoration: none; }
+.arc-card-start { font-size: clamp(20px, 22cqw, 36px); color: var(--ink); line-height: 1.2; letter-spacing: -.05em; font-weight: 600; font-variant-numeric: tabular-nums; text-decoration: none; }
 .arc-card-start:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .arc-card-evidence { display: grid; justify-items: end; gap: 4px; min-width: 0; }
 .arc-card-games { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 4px; }
-.arc-card-games button { display: flex; align-items: center; gap: 2px; min-height: 32px; padding: 4px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--ink-2); cursor: pointer; transition: background-color 150ms, border-color 150ms; }
+.arc-card-games :is(button, .arc-card-fixture) { display: flex; align-items: center; gap: 2px; min-height: 32px; padding: 4px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--ink-2); }
+.arc-card-games button { cursor: pointer; transition: background-color 150ms, border-color 150ms; }
+.arc-card-games .arc-card-fixture { background: var(--surface); border-color: var(--line); }
 .arc-card-games button[aria-pressed="true"] { background: var(--surface); border-color: var(--line); }
 .arc-card-games button:hover { background: var(--hover); }
 .arc-card-games img { width: 20px; height: 20px; aspect-ratio: 1; object-fit: contain; border-radius: 0; }
 .arc-card-games button span { font-size: 11px; }
 .arc-card-xd { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .arc-no-fixture { display: grid; place-items: center; height: 32px; font-size: 14px; }
+@container arcade-player (max-width: 120px) {
+  .arc-card figcaption { gap: 4px; }
+  .arc-card-games .arc-card-fixture { padding: 2px; }
+  .arc-card-games img { width: 14px; height: 14px; }
+}
 .arc-collection-meta { display: flex; justify-content: space-between; align-items: center; min-height: 46px; gap: 12px; }
 .arc-clear { font: inherit; font-size: var(--text-sm); border: 0; color: var(--ink-2); background: transparent; padding: 8px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .arc-filters { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(0, 1fr)); }

@@ -6,7 +6,7 @@ import { climbWindows, WINDOW_MS, type Climb, type Move } from "../../lib/arcade
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
-import CardRatings from "./CardRatings";
+import PlayerCard from "./PlayerCard";
 import { bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
@@ -32,20 +32,14 @@ export function StartLabel({ outlook }: { outlook: Outlook }) {
 }
 
 export function LineupCards({ lineup, captainBonus }: { lineup: Lineup; captainBonus: number }) {
+  const crests = new Map(lineup.picks.flatMap(({ outlook }) => outlook.card.teamSlug && outlook.card.teamPicture ? [[outlook.card.teamSlug, outlook.card.teamPicture] as const] : []));
   return (
     <ol className="arc-lineup">
       {lineup.picks.map(({ slot, outlook, captain }, i) => (
         <li key={outlook.card.slug} aria-label={outlook.card.name} style={{ "--i": i } as CSSProperties}>
           <span className="arc-slot">{SLOT[slot]}{captain && captainBonus > 0 ? <b className="arc-captain" title="Captain">C</b> : null}</span>
-          <div className="arc-art">
-            {outlook.card.picture
-              // eslint-disable-next-line @next/next/no-img-element -- Sorare card art
-              ? <img src={outlook.card.picture} alt={outlook.card.name} width={120} height={194} loading="lazy" />
-              : <div className="arc-card-blank">{outlook.card.name}</div>}
-            <CardRatings outlook={outlook} game={outlook.game.id} home={outlook.game.home?.slug === outlook.card.teamSlug} captain={captain} captainBonus={captainBonus} detail={`${outlook.card.name} · ${outlook.game.home?.name ?? "?"} v ${outlook.game.away?.name ?? "?"} · ${madridDay(outlook.game.kickoff)} ${madridTime(outlook.game.kickoff)}`} />
-          </div>
+          <PlayerCard card={outlook.card} outlook={outlook} game={outlook.game} fixtures={[outlook.game]} crests={crests} captain={captain} captainBonus={captainBonus} />
           {/postpon|cancel|suspend/i.test(outlook.game.status) ? <span className="arc-warn">Game {outlook.game.status.toLowerCase()}</span> : null}
-          <span className="arc-meta"><StartLabel outlook={outlook} /> · {madridTime(outlook.game.kickoff)}</span>
         </li>
       ))}
     </ol>

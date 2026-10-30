@@ -826,7 +826,7 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   their best, **Dead** when that cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next lineup more.
 - A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga or Ligue 1 game (else Sorare's projection, else his average when he
   plays) × his start % (Sofix's in those leagues) × Sorare's bonuses (edition + club + captain),
-  shown below FDR (0–100, lower is easier) at the upper right of the card art. The lineup cards keep start chance and kickoff below, with forecast/source details in their accessible labels and titles. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or
+  shown below FDR (0–100, lower is easier) at the upper right of the card art. Lineup and Players cards share the same layout: large start percentage, fixture crests and xD below the art, with the edition bonus on the art. The selected lineup game stays fixed; its kickoff and source are available in the fixture label and forecast titles. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or
   Ligue 1 game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
   and expected goals for the others. It is shown, not added to the card's number.
 - **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (the **Refresh start percentages** icon) and saved, so the

@@ -258,7 +258,7 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   await expect(lineup).toHaveCount(5);
   await expect(page.locator(".arc-detail .arc-lineup .arc-slot")).toHaveText([/^Goalkeeper/, /^Defender/, /^Midfielder/, /^Forward/, /^Extra/]);
   await expect(page.locator(".arc-detail .arc-lineup .arc-captain")).toHaveCount(1);
-  await expect(lineup.filter({ hasText: "Keeper Two" })).toContainText("no start % yet");
+  await expect(lineup.filter({ hasText: "Keeper Two" }).getByLabel("Start chance —", { exact: true })).toHaveAttribute("title", /no start % yet/);
   await expect(page.locator(".arc-chances li.is-aim")).toContainText("Step 2 · 300");
   if (process.env.ARCADE_PLAN_SHOT) {
     await page.emulateMedia({ reducedMotion: "reduce" }); // still pictures, not mid-animation
@@ -272,7 +272,7 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
 });
 
 test("Your move says to play now, why, and the lineup to enter, beside the board's chance at every step; teams to build around feed Pick teams", async ({ page }) => {
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { [GAME]: { gk: [10000, Math.floor(Date.now() / 1000)] } } } }));
   await withExtension(page, ANSWERS, "0.4.18");
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
@@ -283,6 +283,11 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await expect(move.locator(".arc-lineup li")).toHaveCount(5); // the five to enter
   await expect(move.locator(".arc-art .arc-card-ratings .arc-card-fdr")).toHaveCount(5);
   await expect(move.locator(".arc-art .arc-card-ratings .arc-card-score")).toHaveCount(5);
+  await expect(move.locator(".arc-card figcaption .arc-card-start")).toHaveCount(5);
+  await expect(move.locator(".arc-card figcaption .arc-card-games")).toHaveCount(5);
+  await expect(move.locator(".arc-card figcaption .arc-card-xd")).toHaveCount(5);
+  await expect(move.locator(".arc-card figcaption").first()).not.toContainText(/start|if he plays|pts/);
+  expect(await move.locator(".arc-card-start").first().evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(28);
   await expect(move.locator(".arc-lineup")).not.toContainText("if he plays");
   await expect(move.locator(".arc-lineup .arc-card-name")).toHaveCount(0);
   const team = await move.locator(".arc-lineup li").evaluateAll((items) => items.map((li) => ({ name: li.getAttribute("aria-label"), captain: !!li.querySelector(".arc-captain") })));
@@ -295,6 +300,7 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
     expect(bar.width).toBeGreaterThanOrEqual(bar.parent - 1);
     expect(bar.width).toBeGreaterThan(width === 390 ? 260 : 500);
     expect(bar.labels.every((l) => l.scroll <= l.width && l.nowrap === "nowrap")).toBe(true);
+    expect(await move.locator(".arc-card figcaption").evaluateAll((items) => items.every((el) => el.scrollWidth <= el.clientWidth))).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
   await page.setViewportSize({ width: 1440, height: 900 });

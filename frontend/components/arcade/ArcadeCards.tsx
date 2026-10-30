@@ -1,56 +1,21 @@
 "use client";
 
 import { useContext, useMemo, useState } from "react";
-import { bonusLabel, gamesOf, type ArcadeCard, type ArcadeGame, type PlayerForm } from "../../lib/arcade";
+import { gamesOf, type ArcadeCard, type ArcadeGame, type PlayerForm } from "../../lib/arcade";
 import { dayLabel, matchesPick, SCORE_CUTS, TIER_OPTIONS, tierChoice } from "../../lib/arcadeCards";
 import { madridDate, predicted, type Outlook } from "../../lib/arcadePlan";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
-import CardRatings from "./CardRatings";
+import PlayerCard from "./PlayerCard";
 import { FdrContext, sideOf } from "./Fdr";
 
 const PAGE_SIZE = 12;
 const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
-const percent = (value: number | null | undefined) => value == null ? "—" : `${Math.round(value * 100)}%`;
-const SOURCES = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix", form: "Recent form" };
-const fixtureName = (game: ArcadeGame) => `${game.home?.name ?? "?"} v ${game.away?.name ?? "?"} · ${new Date(game.kickoff).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${game.competition.name}`;
-
 function Card({ card, games, outlooks, crests }: { card: ArcadeCard; games: ArcadeGame[] | null; outlooks: Map<string, Map<string, Outlook>>; crests: Map<string, string> }) {
   const [chosen, setChosen] = useState<string | null>(null);
   const mine = gamesOf(card, games ?? []);
   const game = mine.find((g) => g.id === chosen) ?? mine[0];
   const outlook = game ? outlooks.get(game.id)?.get(card.slug) : undefined;
-  const bonus = bonusLabel(card.bonus);
-  const detail = game ? fixtureName(game) : games === null ? "Games unavailable" : "No game before the set ends";
-  const startProps = { className: "arc-card-start", "aria-label": `Start chance ${percent(outlook?.start)}`, title: `${detail} · ${outlook?.startSource ? SOURCES[outlook.startSource] : "Unknown"} start chance` };
-  return (
-    <figure className="arc-card" aria-label={card.name}>
-      <div className="arc-art" title={`${card.name}${card.edition ? ` · ${card.edition}` : ""}`}>
-        {card.picture
-          // eslint-disable-next-line @next/next/no-img-element -- Original Sorare card art
-          ? <img src={card.picture} alt={card.name} loading="lazy" width={240} height={388} />
-          : <div className="arc-card-blank" role="img" aria-label={card.name}>{card.name}</div>}
-        <CardRatings outlook={outlook} game={game?.id} home={game?.home?.slug === card.teamSlug} detail={detail} />
-        {bonus ? <span className="arc-card-bonus" title={`${card.edition ?? "Edition"} bonus; club bonus is included separately in xScore`}>{bonus}</span> : null}
-      </div>
-      <figcaption>
-        {outlook?.startUrl ? <a {...startProps} href={outlook.startUrl} target="_blank" rel="noreferrer">{percent(outlook.start)}</a> : <span {...startProps}>{percent(outlook?.start)}</span>}
-        <div className="arc-card-evidence">
-          <div className="arc-card-games" aria-label="Card fixtures">
-            {mine.length ? mine.map((g) => (
-              <button key={g.id} type="button" aria-label={fixtureName(g)} title={fixtureName(g)} aria-pressed={g.id === game?.id} onClick={() => setChosen(g.id)}>
-                {[g.home, g.away].map((team, i) => {
-                  const src = team?.crest ?? (team ? crests.get(team.slug) : null);
-                  // eslint-disable-next-line @next/next/no-img-element -- Sorare club crests
-                  return src ? <img key={i} src={src} alt={team?.name ?? ""} width={20} height={20} loading="lazy" /> : <span key={i} aria-hidden="true">{(team?.name ?? "?").slice(0, 2)}</span>;
-                })}
-              </button>
-            )) : <span className="arc-no-fixture" title={detail} aria-label={detail}>—</span>}
-          </div>
-          <span className="arc-card-xd" title={`${detail} · Expected decisive contribution, including starter and substitute chances; mission odds are separate`}>xD {outlook?.xd == null ? "—" : outlook.xd.toFixed(2)}</span>
-        </div>
-      </figcaption>
-    </figure>
-  );
+  return <PlayerCard card={card} outlook={outlook} game={game} fixtures={mine} crests={crests} onSelect={setChosen} unavailable={games === null ? "Games unavailable" : undefined} />;
 }
 
 const WINDOWS = ["l5", "l10", "l40"] as const;

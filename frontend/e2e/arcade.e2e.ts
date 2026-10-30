@@ -93,7 +93,7 @@ test("without the extension Arcade says so instead of showing empty numbers", as
 
 test("collection cards keep their evidence compact and all reads in the hero toolbar", async ({ page }) => {
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { [GAME]: { p: [0, 1792579200], gk: [9000, 1792579200] } } } }));
-  await withExtension(page, ANSWERS, "0.4.17");
+  await withExtension(page, { ...ANSWERS, "arcade-past": { players: SQUAD.map(([, player], i) => ({ slug: player, gameplayTier: i === 0 ? "GOAT" : i === 1 ? "STAR_PLUS" : "IMPACT", playingStatus: "STARTER", activeInjuries: [], l5: i === 0 ? 62 : i === 1 ? 39.6 : null, l10: 55, l40: 41, playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })) } }, "0.4.17");
   await page.goto("/arcade");
   const toolbar = page.getByRole("group", { name: "Refresh Arcade data" });
   await expect(toolbar.getByRole("button", { name: "Refresh scores", exact: true })).toBeVisible();
@@ -123,6 +123,32 @@ test("collection cards keep their evidence compact and all reads in the hero too
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page.locator(".arc-grid .arc-card")).toHaveCount(6);
   await expect(page.locator(".arc-again")).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Tier", exact: true }).selectOption("icon");
+  await expect(page.locator(".arc-grid .arc-card")).toHaveAttribute("aria-label", "Player One");
+  await page.getByRole("combobox", { name: "Tier", exact: true }).selectOption("star+");
+  await expect(page.locator(".arc-grid .arc-card")).toHaveAttribute("aria-label", "Keeper Two");
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await page.getByRole("combobox", { name: "L5", exact: true }).selectOption("40");
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(2);
+  await page.getByRole("combobox", { name: "L5", exact: true }).selectOption("unknown");
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(4);
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  const day = new Date(KICKOFF).toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
+  await page.getByRole("combobox", { name: "Day", exact: true }).selectOption(day);
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(6);
+  await page.getByRole("combobox", { name: "Day", exact: true }).selectOption("none");
+  await expect(page.locator(".arc-count")).toHaveText("No card matches");
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await page.getByRole("combobox", { name: "xScore", exact: true }).selectOption("60");
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(4);
+  await page.getByRole("combobox", { name: "xScore", exact: true }).selectOption("unknown");
+  await expect(page.locator(".arc-count")).toHaveText("No card matches");
+  for (const [width, floor] of [[1440, 11], [390, 10]] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.locator(".arc-filters").scrollIntoViewIfNeeded();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await smallText(page, floor)).toEqual([]);
+  }
 });
 
 test("collection fixture buttons align scores and starts, filters reset pagination", async ({ page }) => {

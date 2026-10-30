@@ -288,10 +288,12 @@
     },
     // Up to 50 players' last 15 games: what each scored and the minutes he played (his likely range), and Sorare's word on him: his
     // tier (GOAT = Icon), his usual role (starter, regular, substitute) and any open injury (0.4.18; Sorare's `news` is empty, 29 Oct).
+    // L5, L10 and L40 are the same averages Gallery stores (0.4.20).
     SofixArcadePast: (variables) => {
       const players = variables?.players;
       if (!Array.isArray(players) || !players.length || players.length > 50 || players.some((p) => typeof p !== "string" || !/^[a-z0-9-]{1,120}$/.test(p))) return null;
       return `query SofixArcadePast { players(slugs: ${JSON.stringify(players)}) { slug ... on Player { gameplayTier playingStatus activeInjuries { active expectedEndDate }
+        l5: averageScore(type: LAST_FIVE_SO5_AVERAGE_SCORE) l10: averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE) l40: averageScore(type: LAST_FORTY_SO5_AVERAGE_SCORE)
         playerGameScores(last: 15) { score anyGame { date } anyPlayerGameStats { ... on PlayerGameStats { minsPlayed } } } } } }`;
     },
     // Arcade's collection missions (0.4.18): what each counts (players, clubs or a league), your progress and the target.

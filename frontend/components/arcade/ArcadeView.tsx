@@ -185,7 +185,7 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
         <ArcadePacks arcade={arcade} />
       </div>
       <div className="arc-view" hidden={view !== "players"}>
-        <ArcadeCards cards={arcade.cards} games={arcade.games} outlooks={outlooks} />
+        <ArcadeCards cards={arcade.cards} games={arcade.games} outlooks={outlooks} status={ready?.status ?? {}} form={ready?.form ?? {}} />
       </div>
     </FdrContext.Provider>
   );

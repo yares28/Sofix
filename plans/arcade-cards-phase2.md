@@ -23,3 +23,14 @@ Follow-up verification: the previous label failed the rendering regression befor
 - `npm run build` passed. In the owner's connected Chrome, Gallery → Arcade navigation on `next start` rendered the real collection. At 1440 px card art measured 204 px wide; at 390 px the gallery used two columns and 44 px fixture/control targets. Neither viewport overflowed. Local captures are `arcade-phase2/desktop.png`, `mobile.png` and `toolbar-desktop.png` in this session's visualization folder.
 - Real data: all 1,357 cards remained in the collection. Combining start ≥80% with FDR ≤50 returned 107 cards; the zero-start filter returned 118 cards whose visible values were 0%. The board, actual live scores, real art, crests, bonuses and 0–100 FDR were inspected. Fixture switching was proved with two mock fixtures; the real next-fixture xD values remain unverified until the scheduled refresh publishes the added field. Missing xD stays a dash in the meantime. No manual refresh is dispatched, per the owner's choice.
 - The Web Interface Guidelines pass checked the changed controls for names, focus, loading/disabled/error states, text floors, reduced motion, image dimensions and mobile targets. No new server read, polling interval, extension release, dependency or paid service was added. The owner's unrelated main-folder changes are preserved.
+
+## Players filters, 30 Oct 2026
+
+On Your cards, six menus beside the ones already there. Each is its own menu. They combine, and any of them returns to the first page.
+
+- **Tier:** All tiers, Icon, Star+, Star, Impact, Roster, Reserve. Sorare's `gameplayTier`: GOAT, STAR_PLUS, STAR, IMPACT, ROSTER, DNP. Star+ is its own choice. A plus tier with no menu of its own (Impact+, Roster+) uses the tier it sits above.
+- **L5, L10, L40:** Any, ≥40, ≥50, ≥60, unknown. L5 is `LAST_FIVE_SO5_AVERAGE_SCORE`, L10 is `LAST_TEN_PLAYED_SO5_AVERAGE_SCORE`, L40 is `LAST_FORTY_SO5_AVERAGE_SCORE`. Unknown is no number. Zero is a number. The cut uses the rounded number.
+- **Day:** Any day, each next-game day in Madrid, and No game. No game is a card whose club has no game before the set ends. A board whose games were not read matches neither.
+- **xScore:** Any, ≥40, ≥50, ≥60, unknown. The same number the card shows for the next game.
+
+L5, L10 and L40 are asked on the existing past-scores read (extension 0.4.20). Until that extension is reloaded they stay unknown. Tier, day and xScore use numbers the page already has.

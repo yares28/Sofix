@@ -662,6 +662,8 @@ export type ArcadeExtras = {
   past: Record<string, number[]>;
   /** Sorare's word on each player: tier, usual role, open injury (extension 0.4.18; absent before). */
   status?: Record<string, PlayerStatus>;
+  /** Sorare's L5, L10 (last ten played) and L40 averages, by player (extension 0.4.20; absent before). */
+  form?: Record<string, PlayerForm>;
   /** Sorare's projection by game, then player. A game asked that Sorare has not projected is an empty record. */
   projections: Record<string, Record<string, number>>;
   unread: string[];
@@ -670,6 +672,7 @@ export type ArcadeExtras = {
 const BonusAnswer = z.object({ currentUser: z.object({ setBoard: z.record(s, z.unknown()).nullable() }).nullable() });
 const BonusList = z.array(z.object({ key: s, bonusBasisPoints: n }));
 const PastAnswer = z.object({ players: z.array(z.object({ slug: s, playerGameScores: z.array(z.object({ score: n, anyPlayerGameStats: opt(z.object({ minsPlayed: opt(n) })) }).nullable()).nullish() })) });
+const FormAnswer = z.object({ players: z.array(z.object({ slug: s, l5: opt(n), l10: opt(n), l40: opt(n) })) });
 const ProjectionAnswer = z.object({ anyGame: z.object({ id: s, playerGameScores: z.array(z.object({ projection: opt(z.object({ score: n })), anyPlayer: z.object({ slug: s }) })) }).nullable() });
 
 /** Sorare's answers to the three step-3 questions, as plain numbers (exported for the tests). */
@@ -693,6 +696,14 @@ export function parseStatus(answer: unknown): Record<string, PlayerStatus> {
     return [p.slug, { tier: p.gameplayTier ?? null, playing: p.playingStatus ?? null, injured: open.length > 0, back: open.map((i) => i.expectedEndDate ?? null).find(Boolean) ?? null }];
   }));
 }
+export type PlayerForm = { l5: number | null; l10: number | null; l40: number | null };
+
+/** Sorare's L5, last-ten-played and L40 averages. A player with no average is kept, as unknown. */
+export function parseForm(answer: unknown): Record<string, PlayerForm> {
+  const parsed = FormAnswer.safeParse(answer);
+  if (!parsed.success) return {};
+  return Object.fromEntries(parsed.data.players.map((p) => [p.slug, { l5: p.l5 ?? null, l10: p.l10 ?? null, l40: p.l40 ?? null }]));
+}
 export function parsePast(answer: unknown): Record<string, number[]> {
   const parsed = PastAnswer.safeParse(answer);
   if (!parsed.success) return {};
@@ -710,7 +721,7 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
   if (!extension || !extensionAtLeast(extension.version, ARCADE_PLAN_VERSION)) return null;
   // About 100 questions to Sorare: kept 6 hours in this browser, so reloading the page does not ask them again (Sorare answered
   // 429 on 21 Oct after a few reads in a row).
-  const key = `sofix-arcade-extras:${arcade.set.slug}`;
+  const key = `sofix-arcade-extras:2:${arcade.set.slug}`; // :2 adds L5/L10/L40, so a read saved before that is asked again
   try {
     const kept = JSON.parse(localStorage.getItem(key) ?? "null") as { at: number; extras: ArcadeExtras } | null;
     if (kept && now.getTime() - kept.at < EXTRAS_KEEP_MS && !kept.extras.unread.length) return kept.extras;
@@ -737,11 +748,13 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
 
   const past: Record<string, number[]> = {};
   const status: Record<string, PlayerStatus> = {};
+  const form: Record<string, PlayerForm> = {};
   const players = [...new Set(arcade.cards.map((c) => c.player))];
   let pastMissing = 0;
   for (const batch of chunks(players, 50)) {
     const answer = await ask("arcade-past", { players: batch });
     Object.assign(status, parseStatus(answer));
+    Object.assign(form, parseForm(answer));
     const read = parsePast(answer);
     pastMissing += batch.filter((p) => !read[p]).length;
     Object.assign(past, read);
@@ -758,7 +771,7 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
   }
   if (Object.keys(projections).length < near.length) unread.push(`projections of ${near.length - Object.keys(projections).length} games`);
   if (slowed) unread.unshift("Sorare asked Sofix to slow down, so read again in a few minutes");
-  const extras = { club, past, status, projections, unread };
+  const extras = { club, past, status, form, projections, unread };
   try { localStorage.setItem(key, JSON.stringify({ at: now.getTime(), extras })); } catch { /* full or blocked: fine */ }
   return extras;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { outlookOf, parseBonuses, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
+import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
 import { bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
@@ -83,6 +83,10 @@ describe("Sorare's step-3 answers", () => {
   it("reads the club bonus of each card asked, in basis points", () => {
     const answer = { currentUser: { setBoard: { b0: [{ key: "collection", bonusBasisPoints: 300 }], b1: [] } } };
     expect(parseBonuses(answer, ["x", "y", "z"])).toEqual({ x: 0.03, y: 0 });
+  });
+  it("reads L5, the last-ten-played average and L40, and keeps a player Sorare has no average for", () => {
+    const answer = { players: [{ slug: "p", l5: 62.4, l10: 55, l40: null }, { slug: "q" }] };
+    expect(parseForm(answer)).toEqual({ p: { l5: 62.4, l10: 55, l40: null }, q: { l5: null, l10: null, l40: null } });
   });
   it("keeps only the games a player played", () => {
     const answer = { players: [{ slug: "p", playerGameScores: [{ score: 53, anyPlayerGameStats: { minsPlayed: 90 } }, { score: 0, anyPlayerGameStats: { minsPlayed: 0 } }, null] }] };

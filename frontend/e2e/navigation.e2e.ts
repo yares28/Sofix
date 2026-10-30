@@ -141,3 +141,52 @@ test("a league change has feedback, and an offline event does not trap the old p
   await expect(page).toHaveURL(/league=PL/);
   await expect(page.locator(".ns-page")).toHaveCount(0);
 });
+
+for (const width of [1440, 390]) {
+  test(`confirmed mission departures keep navigation feedback at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/missions");
+    await page.getByRole("region", { name: "History", exact: true }).locator(".ms-history-day > summary").first().click();
+    await page.getByRole("button", { name: "Edit my picks" }).first().click();
+    const note = page.getByRole("group", { name: /Edit picks/ }).getByRole("textbox", { name: "Note (optional)" });
+    await note.fill("Keep until I discard");
+    const rare = page.getByRole("navigation", { name: "Rarity" }).getByRole("link", { name: "Rare", exact: true });
+    await rare.click();
+    const guard = page.getByRole("alertdialog", { name: "Unsaved correction" });
+    await expect(guard).toBeVisible();
+    await expect(page.locator(".ns-page")).toHaveCount(0);
+    await guard.getByRole("button", { name: "Keep editing" }).click();
+    await expect(note).toHaveValue("Keep until I discard");
+    await rare.click();
+    const release = await holdNavigation(page, "/missions");
+    try {
+      await guard.getByRole("button", { name: "Discard changes" }).click();
+      await expect(page.getByRole("main", { name: "Loading Missions", exact: true })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      await page.screenshot({ path: `output/playwright/navigation/${width}-mission-discard-loading.png` });
+    } finally { release(); }
+    await expect(page).toHaveURL(/rarity=rare/);
+    await expect(page.locator(".ns-page")).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Rarity" }).getByRole("link", { name: "Rare", exact: true })).toHaveAttribute("aria-current", "page");
+  });
+}
+
+for (const width of [1440, 390]) test(`Strategies query subviews and individual plans have destination feedback at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto("/audit/strategies");
+  for (const [nav, name, label, kind] of [
+    ["Strategies view", "Plans", "Plan alternatives", "play"],
+    ["Plan", "", "Plan alternatives", "play"],
+    ["Strategies view", "Results", "Strategies", "strategies"],
+  ] as const) {
+    const release = await holdNavigation(page, "/audit/strategies");
+    try {
+      const links = page.getByRole("navigation", { name: nav, exact: true });
+      await (name ? links.getByRole("link", { name, exact: true }) : links.getByRole("link").last()).click();
+      const loading = page.getByRole("main", { name: `Loading ${label}`, exact: true });
+      await expect(loading).toBeVisible();
+      await expect(loading).toHaveAttribute("data-layout", kind);
+    } finally { release(); }
+    await expect(page.locator(".ns-page")).toHaveCount(0);
+  }
+});

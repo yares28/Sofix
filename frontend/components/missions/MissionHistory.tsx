@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "../navigation/NavigationLink";
+import { useNavigationController } from "../navigation/NavigationProvider";
 import CardArt from "../cards/CardArt";
 import type { HistoryDay } from "../../lib/missionLog";
 import type { MissionPick } from "../../lib/missions";
@@ -93,6 +94,7 @@ function Side({ who, side }: { who: "You" | "Sofix"; side: MissionHits["yours"] 
 }
 
 export default function MissionHistory({ days: plannedDays, bestDays, allTime, rarity, collection = [], title = "History" }: { days: HistoryDay[]; bestDays?: HistoryDay[]; allTime?: AllTime; rarity: string; collection?: CollectionCard[]; title?: string }) {
+  const navigatePage = useNavigationController();
   const [mode, setMode] = useState<"plan" | "best">("plan");
   const days = mode === "best" && bestDays ? bestDays : plannedDays;
   const [date, setDate] = useState(""); const [editing, setEditing] = useState<string | null>(null);
@@ -110,12 +112,13 @@ export default function MissionHistory({ days: plannedDays, bestDays, allTime, r
     const navigate = (event: MouseEvent) => {
       const link = event.target instanceof Element ? event.target.closest("a[href]") as HTMLAnchorElement | null : null;
       if (!dirty.current || !link || link.target === "_blank" || link.hasAttribute("download") || event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.href.split("#")[0] === location.href.split("#")[0]) return;
-      event.preventDefault(); event.stopPropagation(); guard(() => location.assign(link.href));
+      event.preventDefault(); event.stopPropagation();
+      guard(() => { if (navigatePage && link.origin === location.origin) navigatePage(link.href); else location.assign(link.href); });
     };
     window.addEventListener("beforeunload", warn);
     document.addEventListener("click", navigate, true);
     return () => { window.removeEventListener("beforeunload", warn); document.removeEventListener("click", navigate, true); };
-  }, [guard]);
+  }, [guard, navigatePage]);
   const dates = [...new Set(days.map((d) => d.day))];
   const ever = allTime, overall = ever ? ever[mode] : missionHits(days);
   return <section className="mx-card ms-history" aria-labelledby={`ms-history-${rarity}`}>

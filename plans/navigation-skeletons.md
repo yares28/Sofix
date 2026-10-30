@@ -58,3 +58,27 @@ stopped and its TypeScript include change restored.
 Initial live check: deployment, home HTTP 200 and recorded CI checks succeeded. The worktree checker lacked R2
 settings and reported a null Neon status; the final check must inherit the main folder's read settings rather than
 interpret missing local settings as a production failure.
+
+## Coverage recheck
+
+Recheck every route file, query-based subview and internal navigation entry point. The existing actions must keep
+their loading feedback, including confirming a departure from an unsaved mission-history correction. The route
+inventory covers 26 files; source inspection found that the correction guard used a document navigation after
+Discard, bypassing the shared skeleton. Add a failing desktop/phone regression before routing that confirmed
+internal departure through the existing controller. Also exercise the Strategies Results/Plans query subviews and
+their plan links, and rerun the desktop/phone route sweeps. First-visit data-dependent geometry remains the
+limitation recorded above; a route coverage check does not prove exact geometry for every data state.
+
+The confirmed-departure regression failed before the fix (no Loading Missions main) and passed afterwards at
+1440/390. Keep editing retains the note, Discard shows feedback, and Rare remains the destination. Results/Plans
+and an individual plan also passed with the response held. Source inspection found no other page-switch bypass:
+remaining plain anchors open external sources or jump within the page, remaining direct routers only refresh,
+and history-based match/chart/filter controls already use data held by the page. Route inventory tests cover
+all 26 entries, including the two legacy redirects. The production build and repository checks passed again.
+The final production-runtime run passed all 45 navigation, Missions and mobile cases (1.6 minutes), including
+the complete 22-page desktop/phone sweeps and both-width Strategies query-subview checks.
+
+Real local block data also exercised the unsaved correction prompt and confirmed departure, with loading and
+arrived screenshots inspected at 1440/390 and no page-width overflow. No correction was saved and no Sorare write
+was made. As in the first pass, this used installed Chrome rather than an attached owner tab; cold-state geometry
+is not a strict 1:1 match in all data states (the stale-missions state is one visible example).

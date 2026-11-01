@@ -29,3 +29,18 @@ test("invalid app origins are rejected before any generated credentials are writ
   assert.ok(!existsSync(path.join(dir, "config.js")));
   assert.ok(!result.stderr.includes("credential"));
 });
+
+test("the local app override keeps production settings intact and does not expose credentials", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "sofix-local-"));
+  const env = path.join(dir, ".env");
+  const original = "APP_URL=https://hosted.example\nEXTENSION_TOKEN=fixture-token\nVERCEL_BYPASS_SECRET=fixture-bypass\n";
+  writeFileSync(env, original);
+  const result = spawnSync(process.execPath, ["extension/scripts/configure.mjs", "--env-file", env, "--output", dir, "--app-url", "http://127.0.0.1:3000"], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  const config = readFileSync(path.join(dir, "config.js"), "utf8");
+  assert.ok(config.includes('"appUrl":"http://127.0.0.1:3000"'));
+  assert.equal(readFileSync(env, "utf8"), original);
+  assert.ok(!result.stdout.includes("fixture-token"));
+  const manifest = JSON.parse(readFileSync(path.join(dir, "manifest.json"), "utf8"));
+  assert.ok(manifest.host_permissions.includes("http://127.0.0.1:3000/*"));
+});

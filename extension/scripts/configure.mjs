@@ -24,6 +24,8 @@ const env = Object.fromEntries(
       return [line.slice(0, i).trim(), line.slice(i + 1).trim().replace(/^["']|["']$/g, "")];
     }),
 );
+// A local fallback changes only the generated files, never the production .env.
+env.APP_URL = option("--app-url", env.APP_URL);
 
 const missing = ["APP_URL", "EXTENSION_TOKEN", "VERCEL_BYPASS_SECRET"].filter((key) => !env[key]);
 if (missing.length) {

@@ -3,6 +3,29 @@
 Each person runs a separate copy: their own repository, Vercel project, Neon database, private R2 bucket and Chrome
 extension configuration. No database, bucket, saved lineup, token or service account is shared between the two copies.
 
+## Use your existing installation locally during a hosting outage
+
+On Windows, double-click **Start Sofix.cmd** in your checkout. It starts a background production server at
+`http://127.0.0.1:3000`, opens the browser when ready, and reuses that instance when opened again. After restarting the
+computer, use the same launcher. Startup errors and data updates are recorded in `output/local.log`.
+
+The launcher reads your existing `frontend/.env.local` (or your own main checkout's file when running in a worktree).
+It copies published blocks directly from private R2 at startup and every ten minutes, keeps the last copy if the network
+fails, and invalidates the local page caches after an update. GitHub jobs publish those blocks independently of the hosted
+website. Pages never need Vercel or a production database connection; external card images and signed-in Sorare reads
+still need the internet. Existing database-backed settings, mission imports and archived-week saves are unavailable in
+this local mode. Browser selections stay on their original origin: keep using `127.0.0.1:3000` rather than alternating ports.
+
+To point your already installed extension at the local server, run the following from your own repository root, then
+press **Reload** on that extension in `chrome://extensions`:
+
+```powershell
+node extension/scripts/configure.mjs --app-url http://127.0.0.1:3000
+```
+
+This changes only ignored generated files. Running the same command without `--app-url` restores the production address
+from `.env`. Extension authentication and the separate Check, Draft and Enter actions remain in force.
+
 ## Where to enter the Sorare username
 
 In **your GitHub repository → Settings → Secrets and variables → Actions → Variables → New repository variable**:

@@ -731,6 +731,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/ligue-1-fdr-xscore.md` | [open](../plans/ligue-1-fdr-xscore.md) |
 | document (check authority) | `plans/lineups-and-xscore.md` | [open](../plans/lineups-and-xscore.md) |
 | document (check authority) | `plans/load-from-sorare.md` | [open](../plans/load-from-sorare.md) |
+| document (check authority) | `plans/local-fallback.md` | [open](../plans/local-fallback.md) |
 | document (check authority) | `plans/mission-comparison-repair.md` | [open](../plans/mission-comparison-repair.md) |
 | document (check authority) | `plans/mission-outcomes-and-play-comparison.md` | [open](../plans/mission-outcomes-and-play-comparison.md) |
 | document (check authority) | `plans/mission-picker-phase1.md` | [open](../plans/mission-picker-phase1.md) |

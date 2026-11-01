@@ -173,7 +173,7 @@ From the owner. They override any older rule in this file, in CLAUDE.md or in a 
   language. Shader effects come from https://github.com/shader-effects-inc/shaders.
 
 **Checking**
-- Web checks run in the owner's open Chrome tabs.
+- Visual and real-data web checks, now and in future sessions, use the owner's already-open Google Chrome and its existing profile/tabs. Never substitute Brave or another browser/profile. If Chrome is minimized or disconnected, restore/reconnect it before testing. Automated fixture tests keep the repository's isolated mock harness.
 - A design canvas whose preview uses real pages starts from screenshots of those pages, edited to show the change.
 
 **Invisible help**

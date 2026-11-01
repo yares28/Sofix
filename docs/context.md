@@ -238,6 +238,8 @@ Scope: window-based Arcade recommendations. The current source treats a lineup a
 
 windowsOf groups kickoffs within 75 minutes of the first game in each window. The climb, chain and builder use bestLineup's same simulated selection and captain; insurance batches share player outcomes and teammates' day. Unknown start chance counts as one, while a known zero remains zero; this is an explicit modeling assumption, not observed certainty. With fewer than three played games, spread is 0.33 times score rather than zero. On step one, spending every remaining life is preferred over fewer entries settling before the same next window when it does not lower prize chances: all misses reset to step one with four lives. Wider spans still have to justify their delay. The Play/Hold comparison shows the actual recommended batches, their lineup counts and joint chance; changing the displayed insurance team does not change that batch probability. Editing a move in Pick teams retains its exact lineup until games, target or planning inputs change. Explicit game/target choices persist in this browser for the same set and board, including an empty choice; refreshed inputs rebuild the five without discarding those games, and expired games leave the active pool. Teams to build around accepts one owned likely starter. Teams to build around keeps all qualifying clubs in one draggable row, flanked by two-team arrows without a page footer (owner-directed exception to list pagination). Pick teams uses a twelve-game paginated matrix with an optional Madrid-date Today filter that preserves selections hidden by it; the enlarged pitch and compact score/range and per-step chance summary occupy the left column. See the [climb evidence](../plans/arcade-consistency.md) and [team-picker acceptance](../plans/arcade-team-picker.md).
 
+Batch is the fourth Arcade tab. It groups every future set game, including games without owned cards, into inclusive 75-minute windows anchored at their first kickoff; the Madrid date filter uses that anchor without splitting a window at midnight. A set/board-scoped saved count requests one to four sequential bestLineup teams, excluding held cards until their settlement and excluding a player's other editions across teams. Only complete teams render; a shortfall is explicit. Exact-fixture FDR/CS/xG/xGA and card xD retain missing versus zero. Count/date/target edits add no source reads or Sorare writes. See [Batch acceptance and delivery inventory](../plans/arcade-batch.md).
+
 Counterexample: several lineups on step two cannot be presented as one automatically reserved lineup for each later step. No recommendation spends lives or gems automatically. Pack odds and inventory assumptions require their own source evidence; these climb contracts do not certify pack values or authorize purchases.
 
 <a id="ui-navigation-001"></a>
@@ -701,6 +703,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | page | `/targets` | `frontend/app/targets/page.tsx` |
 | page | `/team/[code]` | `frontend/app/team/[code]/page.tsx` |
 | document (check authority) | `plans/arcade-audit.md` | [open](../plans/arcade-audit.md) |
+| document (check authority) | `plans/arcade-batch.md` | [open](../plans/arcade-batch.md) |
 | document (check authority) | `plans/arcade-cards-phase2.md` | [open](../plans/arcade-cards-phase2.md) |
 | document (check authority) | `plans/arcade-consistency.md` | [open](../plans/arcade-consistency.md) |
 | document (check authority) | `plans/arcade-player-choice.md` | [open](../plans/arcade-player-choice.md) |
@@ -762,6 +765,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/sorare-start-chances.md` | [open](../plans/sorare-start-chances.md) |
 | document (check authority) | `plans/strategies-decision-board.md` | [open](../plans/strategies-decision-board.md) |
 | document (check authority) | `plans/strategies-podium-charts.md` | [open](../plans/strategies-podium-charts.md) |
+| document (check authority) | `plans/unshipped-commit-review.md` | [open](../plans/unshipped-commit-review.md) |
 | document (check authority) | `plans/xscore.md` | [open](../plans/xscore.md) |
 | table | `competitions` | `backend/app/models.py` |
 | table | `stadiums` | `backend/app/models.py` |
@@ -1665,6 +1669,12 @@ This block is the single machine-readable index for the sections above. Test ref
         },
         {
           "path": "frontend/lib/arcadeTeams.ts"
+        },
+        {
+          "path": "frontend/lib/arcadeBatch.ts"
+        },
+        {
+          "path": "frontend/components/arcade/ArcadeBatch.tsx"
         }
       ],
       "tests": [
@@ -1678,24 +1688,30 @@ This block is the single machine-readable index for the sections above. Test ref
           "path": "frontend/lib/arcadeTeams.test.ts"
         },
         {
+          "path": "frontend/lib/arcadeBatch.test.ts"
+        },
+        {
           "path": "frontend/e2e/arcade.e2e.ts"
         }
       ],
       "review": {
-        "date": "2026-10-30",
-        "note": "Reviewed the unpaginated club row, flanking two-team arrows and phone card bounds, Madrid-date game matrix filter preserving hidden selections, enlarged pitch centered independently of entrance motion and compact visual summary below. Selection/entry rules retained; acceptance and verification in plans/arcade-team-picker.md.",
+        "date": "2026-11-01",
+        "note": "Inspected final Batch source, source-bound ratings, font-floor regression and complete/disjoint-team tests. Real Chrome checks and final acceptance evidence are recorded in plans/arcade-batch.md.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "d8331f3b69b2d4b6715ed090fdcef81503e19d77735e64cd6de3a6738cee1e23",
           "frontend/lib/arcadePlan.ts": "33a5d5d8ca4889f3b0e4cae839dee7b0b7508c06fc72ad937a95792160936018",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "b637992273e38b6b9e70ac21557ef3ee340d75e8bd8c342d507b28135850df34",
+          "frontend/components/arcade/ArcadePlanner.tsx": "e7a579e5773d204c6f353fc6237bd899fbb219b0389d9a3aebad7f67e6ecb402",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
-          "frontend/app/arcade-canvas.css": "ebb8e47bb8cf426f440eb14c59f6879bf8e42db145561a03339e203d4d574218",
+          "frontend/app/arcade-canvas.css": "f7b2e5258b47bbddb231b9134d3263b39e64475d57875c4f57d1d632dcca6474",
           "frontend/lib/arcadeTeams.ts": "2024a4463e05b8e21c73e9b9097baf568241405e1fa564486df29e1f184e66f2",
+          "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
+          "frontend/components/arcade/ArcadeBatch.tsx": "61a39850e308fedafd2619b5c8dab547151788cd7b51b7d5ad2315cdc9c61948",
           "frontend/lib/arcadeClimb.test.ts": "0ce27f5cbee513381da05f1eea34ee2258987eaa7a9d47b3ec15843648d799d8",
           "frontend/lib/arcadePlan.test.ts": "a6bd6dd4fca0b698e95cf883e262e9acb366ab829bd8bb04d887b4036a487dc2",
           "frontend/lib/arcadeTeams.test.ts": "cf0d58177712224c0267c9fd5b1f1f397597e5b704f0035f0ea7713868d9e181",
-          "frontend/e2e/arcade.e2e.ts": "2ad74aa6420daa5802347f605ba71e41ef8169f2aaaff3cd59b201143c6002fc"
+          "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
+          "frontend/e2e/arcade.e2e.ts": "40f462baefc5e5d4ed0f2e36e5dac0494f9b52ed99fed8c16d08c8d7ff7b99a7"
         }
       }
     },

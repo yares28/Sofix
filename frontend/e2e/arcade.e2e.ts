@@ -67,6 +67,47 @@ const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS, v
   } } } });
 }, [answers, version, holdPast] as const);
 
+test("Batch covers all games, bounds and remembers the team count, and never draws a partial team", async ({ page }) => {
+  const later = new Date(Date.parse(KICKOFF) + 3 * 3_600_000).toISOString();
+  const games = [{ id: GAME, date: KICKOFF, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: "rival", name: "Rival" } }, { id: "no-owned-cards", date: later, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: "other", name: "Other" }, awayTeam: { slug: "another", name: "Another" } }];
+  await withExtension(page, { ...ANSWERS, "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: games.map(game => ({ game })), pageInfo: { hasNextPage: false } } } } } });
+  await page.goto("/");
+  await page.getByRole("link", { name: "Arcade", exact: true }).click();
+  await show(page, "Batch");
+  const batch = page.getByRole("region", { name: "Batch" });
+  await expect(batch.getByRole("group", { name: "Batches" }).getByRole("button")).toHaveCount(2);
+  expect(await smallText(page, 11)).toEqual([]);
+  await expect(batch.getByRole("button", { name: "Fewer teams" })).toBeDisabled();
+  await expect(batch.locator(".arc-batch-lineup")).toHaveCount(1);
+  await batch.getByRole("button", { name: "More teams" }).click();
+  await expect(batch.getByRole("status")).toContainText("Only 1 of 2 teams");
+  await expect(batch.locator(".arc-batch-lineup")).toHaveCount(1);
+  await batch.getByRole("button", { name: "More teams" }).click();
+  await batch.getByRole("button", { name: "More teams" }).click();
+  await expect(batch.getByRole("button", { name: "More teams" })).toBeDisabled();
+  await show(page, "Players");
+  await show(page, "Batch");
+  await expect(batch.getByRole("spinbutton", { name: "Teams in this batch" })).toHaveValue("4");
+  await page.reload();
+  await expect(batch.getByRole("spinbutton", { name: "Teams in this batch" })).toHaveValue("4");
+  await batch.getByRole("group", { name: "Batches" }).getByRole("button").nth(1).click();
+  await expect(batch.getByRole("status")).toContainText("No complete team");
+  await expect(batch.locator(".arc-batch-lineup")).toHaveCount(0);
+  await expect(batch.getByText("Other", { exact: true })).toBeVisible();
+  await batch.getByLabel("Batch date").fill("2000-01-01");
+  await expect(batch.getByRole("status")).toHaveText("No batches on this date.");
+  await page.reload();
+  await expect(batch.getByLabel("Batch date")).toHaveValue("2000-01-01");
+  await batch.getByRole("button", { name: "All dates", exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(batch.getByRole("group", { name: "Batches" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(await smallText(page, 10)).toEqual([]);
+  await page.clock.setFixedTime(Date.parse(later) + 1);
+  await page.reload();
+  await expect(batch.getByRole("status")).toHaveText("No future games left in this set.");
+});
+
 test("Arcade shows the step you are on, its target, reward and lineups left, your gems, essence and set cards", async ({ page }) => {
   await withExtension(page);
   await page.goto("/arcade");
@@ -366,6 +407,13 @@ test("step one spends four resettable lives and keeps every insurance team ident
   await show(page, "Players");
   await show(page, "Play now");
   await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play 4 lineups now");
+  await show(page, "Batch");
+  const batch = page.getByRole("region", { name: "Batch" });
+  for (let i = 0; i < 3; i++) await batch.getByRole("button", { name: "More teams" }).click();
+  await expect(batch.locator(".arc-batch-lineup")).toHaveCount(4);
+  expect(await signature(".arc-batch-lineup:first-child")).toEqual(first);
+  const players = await batch.locator(".arc-lineup > li").evaluateAll(items => items.map(item => item.getAttribute("aria-label")));
+  expect(new Set(players).size).toBe(20);
 });
 
 test("the club row flanks all teams with arrows while the bigger pitch, compact chances and game matrix remember selections", async ({ page }) => {

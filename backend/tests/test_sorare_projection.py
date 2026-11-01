@@ -33,6 +33,18 @@ def no_understat(monkeypatch):
     monkeypatch.setattr(sorare_job.understat, "fetch_leagues", lambda *a, **k: {})
 
 
+@pytest.fixture
+def job_clock(monkeypatch):
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            value = at("2026-10-07", 10)
+            return value.astimezone(tz) if tz else value.replace(tzinfo=None)
+
+    monkeypatch.setattr(sorare_job, "datetime", Clock)
+    return Clock.now(UTC)
+
+
 # --------------------------------------------------------------------------- the window Sorare would give a round
 def test_a_weekend_round_gets_sorares_friday_to_tuesday_window():
     # 16 May 2027 is a Sunday: Sorare runs Fri 14:00 to Tue 14:00 around it, and locks when it opens.
@@ -232,16 +244,14 @@ def test_the_main_page_only_carries_a_headline_for_each_early_week(early):
     assert len(str(payload["projected"])) < 2000, "the whole week is not in the main page"
 
 
-def test_the_job_writes_each_early_week_apart_and_only_replans_one_that_has_gone_stale(db, monkeypatch):  # noqa: F811
+def test_the_job_writes_each_early_week_apart_and_only_replans_one_that_has_gone_stale(db, monkeypatch, job_clock):  # noqa: F811
     from app.models import ReadModel
 
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
     monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _Client())
     snap = early_snapshot()
-    snap["fetchedAt"] = datetime.now(
-        UTC
-    ).isoformat()  # the job writes with the clock, and judges staleness by the snapshot's
+    snap["fetchedAt"] = job_clock.isoformat()
     monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snap)
     monkeypatch.setattr(sorare_job.projection, "calendar", lambda db, now: rounds())
 
@@ -261,14 +271,14 @@ def test_the_job_writes_each_early_week_apart_and_only_replans_one_that_has_gone
     assert [h["round"] for h in db.get(ReadModel, sorare_job.SORARE_KEY).payload["projected"]] == [11, 36]
 
 
-def test_early_plans_that_fail_leave_the_page_publishing_with_the_list_it_had(db, monkeypatch):  # noqa: F811
+def test_early_plans_that_fail_leave_the_page_publishing_with_the_list_it_had(db, monkeypatch, job_clock):  # noqa: F811
     from app.models import ReadModel
 
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
     monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _Client())
     snap = early_snapshot()
-    snap["fetchedAt"] = datetime.now(UTC).isoformat()
+    snap["fetchedAt"] = job_clock.isoformat()
     monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snap)
     monkeypatch.setattr(sorare_job.projection, "calendar", lambda db, now: rounds())
     assert sorare_job.run(db, "yares", runs=1)["projected"] == [11, 36]

@@ -1,5 +1,7 @@
 # Sofix illustrated user manual
 
+Arcade → Batch shows every upcoming kickoff batch with a Madrid date filter, match FDR/CS/xG/xGA and the best complete teams from your commons. Use − / + to request 1–4 teams per batch and Aim at to choose the step. Each player is used once across those teams; an unavailable team shows an explanation. Date, target and batch counts are remembered in this browser for that set and board.
+
 30 October: switching pages, gameweeks or competitions shows the destination's loading layout immediately while
 its server response arrives. Navigation remains available. Recent revisits to the same address and screen width
 reuse measured positions of its text, cards and controls; only their geometry stays in the tab. First visits use

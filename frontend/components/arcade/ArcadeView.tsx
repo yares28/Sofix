@@ -14,12 +14,13 @@ import { FdrContext } from "./Fdr";
 import ArcadeMissions from "./ArcadeMissions";
 import ArcadePacks from "./ArcadePacks";
 import ArcadePlanner, { climbStep } from "./ArcadePlanner";
+import ArcadeBatch from "./ArcadeBatch";
 import SegmentedControl from "../SegmentedControl";
 import { ARCADE_ELEVENS_VERSION, readArcadeElevens, type ArcadeElevens } from "../../lib/arcadeElevens";
 
-/** The page's three views (owner, 29 Oct), switched like the other pages; the last one chosen is remembered in this browser. */
-type View = "play" | "packs" | "players";
-const VIEWS: { value: View; label: string }[] = [{ value: "play", label: "Play now" }, { value: "packs", label: "Missions & packs" }, { value: "players", label: "Players" }];
+/** Arcade views share their board readings; the last view chosen is remembered in this browser. */
+type View = "play" | "packs" | "players" | "batch";
+const VIEWS: { value: View; label: string }[] = [{ value: "play", label: "Play now" }, { value: "packs", label: "Missions & packs" }, { value: "players", label: "Players" }, { value: "batch", label: "Batch" }];
 const VIEW_KEY = "sofix-arcade-view";
 
 /** The least time between two reads when you come back to the tab. */
@@ -186,6 +187,9 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
       </div>
       <div className="arc-view" hidden={view !== "players"}>
         <ArcadeCards cards={arcade.cards} games={arcade.games} outlooks={outlooks} status={ready?.status ?? {}} form={ready?.form ?? {}} />
+      </div>
+      <div className="arc-view" hidden={view !== "batch"}>
+        {view === "batch" && ready && planOutlooks ? <ArcadeBatch key={`${arcade.set.slug}:${arcade.board?.id}`} arcade={arcade} outlooks={planOutlooks} /> : view === "batch" ? <p className="arc-read-state" role="status">Reading batch forecasts.</p> : null}
       </div>
     </FdrContext.Provider>
   );

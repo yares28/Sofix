@@ -237,7 +237,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
 }
 
 /** Each step's target, lives left (Sorare's count for a started step, else the full 4) and whether its reward is big. */
-function stepInfos(arcade: Arcade): StepInfo[] {
+export function stepInfos(arcade: Arcade): StepInfo[] {
   return (arcade.board?.steps ?? []).map((s) => ({ number: s.number, target: s.target, lives: s.lineups?.remaining ?? s.lineups?.max ?? 4, big: bigReward(s.rewards), cash: cashOf(s.rewards) }));
 }
 
@@ -251,7 +251,7 @@ const settlesOf = (l: ArcadeLineup) => Math.max(0, ...l.cards.map((c) => (c.kick
  * the first to settle clears it: the next step from then, its lives less the waiting lineups that have not started by then (they move
  * on with you, owner's answer 8). Cards in a running lineup are held until it settles.
  */
-function climbStart(arcade: Arcade, steps: StepInfo[], current: number) {
+export function climbStart(arcade: Arcade, steps: StepInfo[], current: number) {
   const step = arcade.board?.steps.find((s) => s.number === current);
   const waiting = (step?.entered ?? []).filter(running);
   const held = (arcade.board?.steps ?? []).flatMap((s) => s.entered.filter(running).flatMap((l) => l.cards.flatMap((c) => (c.slug ? [{ card: c.slug, until: settlesOf(l) }] : []))));

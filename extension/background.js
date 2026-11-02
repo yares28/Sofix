@@ -693,7 +693,8 @@ const STEPS = {
 // and your lineups) and from the overlay's own refresh of your lineups: steps and targets, and your open Arcade and Pro lineups with
 // Sorare's score and multiplier per card. Nothing in it is a credential.
 const NEED_KEY = "needData";
-const NEED_FRESH_MS = 2 * 60 * 1000; // lineups are read again at most this often, and only while a game of yours is live
+const NEED_FRESH_MS = 2 * 60 * 1000; // lineups are read again at most this often while a game of yours is live
+const NEED_IDLE_MS = 10 * 60 * 1000; // and this often otherwise
 const NEED_GAME_MS = 2.5 * 60 * 60 * 1000; // a game this long after its kick-off may still be scoring
 const num = (value) => (typeof value === "number" && Number.isFinite(value) ? value : null);
 const appearancesOf = (lineup) => (Array.isArray(lineup?.taskAppearances) ? lineup.taskAppearances : []).flatMap((a) => (a?.anyCard?.slug
@@ -737,11 +738,12 @@ async function needData(tabId, now = Date.now()) {
   const { [NEED_KEY]: kept = {} } = await chrome.storage.local.get(NEED_KEY);
   const all = [...(kept.arcadeLineups ?? []), ...(kept.proLineups ?? [])];
   const live = all.some((l) => l.cards.some((c) => c.kickoff && Date.parse(c.kickoff) <= now && now - Date.parse(c.kickoff) < NEED_GAME_MS));
-  const stale = (at) => !at || now - at > NEED_FRESH_MS;
+  // Every 2 minutes while a game is live, else every 10, so a lineup entered since the last read gets its pills.
+  const stale = (at) => !at || now - at > (live ? NEED_FRESH_MS : NEED_IDLE_MS);
   const asks = [];
   if (!kept.arcadeAt || now - kept.arcadeAt > 6 * 60 * 60 * 1000) asks.push("arcade");
-  if (stale(kept.arcadeLineupsAt) && (live || !kept.arcadeLineupsAt)) asks.push("arcade-lineups");
-  if (stale(kept.proLineupsAt) && (live || !kept.proLineupsAt)) asks.push("pro-entered");
+  if (stale(kept.arcadeLineupsAt)) asks.push("arcade-lineups");
+  if (stale(kept.proLineupsAt)) asks.push("pro-entered");
   for (const step of asks) {
     const [operation, variables] = STEPS[step]({});
     await keepNeed(step, await throughSorare(operation, variables, tabId));

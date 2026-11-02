@@ -672,4 +672,16 @@ describe("points needed on sorare.com", () => {
     await w.send({ type: "need-data" });
     expect(w.asked).toHaveLength(2); // just read: not again
   });
+
+  it("reads your lineups again every 10 minutes with no game live, so a lineup entered since shows its pills", async () => {
+    const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
+    const now = Date.now();
+    const kept = (age: number) => ({ arcade: { steps: {} }, arcadeAt: now, arcadeLineupsAt: now - age, proLineupsAt: now - age, arcadeLineups: [], proLineups: [] });
+    w.local.set("needData", kept(5 * 60_000));
+    await w.send({ type: "need-data" });
+    expect(w.asked).toHaveLength(0); // nothing live and read 5 minutes ago
+    w.local.set("needData", kept(11 * 60_000));
+    await w.send({ type: "need-data" });
+    expect(w.asked.map((a) => a.operation)).toEqual(["SofixArcadeLineups", "SofixProLineups"]);
+  });
 });

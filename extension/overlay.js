@@ -1303,7 +1303,8 @@
   // left with 100 to find shows 100, less with his bonus or the captaincy. Each pill belongs to its own team block on the page, so a
   // card that also sits in an older, settled lineup there gets nothing in that one. The worker reads your lineups again at most every
   // 2 minutes while a game of yours is live; nothing is asked while this tab is hidden.
-  const NEED_PAGES = [/^\/football\/lineups\/pro(?:\/|$)/]; // Sorare's Pro lineups page; the Arcade step lineups page goes here too
+  // Sorare's Pro lineups page and the Arcade one (/football/series/<id>/lineups).
+  const NEED_PAGES = [/^\/football\/lineups\/pro(?:\/|$)/, /^\/football\/series\/[^/]+\/lineups(?:\/|$)/];
   const NEED_ASK_MS = 2 * 60 * 1000;
   const NEED_GAME_MS = 115 * 60 * 1000; // after this a game is over (Sofix's Arcade uses the same)
   let need = null;

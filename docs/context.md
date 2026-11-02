@@ -1572,15 +1572,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026 (0.4.25): the points-needed pill only on Sorare's lineup pages (NEED_PAGES), only on a team block matching an open lineup; compose-page pills and the card-edition reads removed. Reads only.",
+        "note": "2 Nov 2026 (0.4.26): the points-needed pill also on Sorare's Arcade lineups page (/football/series/<id>/lineups); the worker re-reads your lineups every 10 minutes with no game live (every 2 while one is), so a lineup entered since shows its pills. Reads only.",
         "files": {
-          "extension/background.js": "ceba27855fd70ee4be37d70e6ff5b80ef13ad1f2f7868d59af05b8e3fb91e7a2",
+          "extension/background.js": "591ef95a449372c93c54aee549460573f201ee5ff757976b8c8684019763c1d8",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "801dea2c6d216c42703590268370718882e49de8a69531f47b3a07b0615faf8a",
+          "extension/manifest.template.json": "51d53ca642982f0a2d70593d75ff80418e41c6dace6cc01d661092fa996b9450",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "60e6d5d0ecbaae97824e9fbff9cf8dac9006ca31ff6a440c9719acf8ac2e1b75"
+          "frontend/lib/extensionBackground.test.ts": "3ca1e5ab3cdb05ffe1e87b31a1c726eef7d04824d683cb3e4a45f097dd9e0dfc"
         }
       }
     },

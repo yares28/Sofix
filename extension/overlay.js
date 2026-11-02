@@ -1319,7 +1319,7 @@
     needAsking = true;
     needAskedAt = now();
     try {
-      chrome.runtime.sendMessage({ type: "need-data" }, (reply) => {
+      chrome.runtime.sendMessage({ type: "need-data", compose: Boolean(composeStep()) }, (reply) => {
         needAsking = false;
         if (chrome.runtime.lastError || !reply) {
           void chrome.runtime.lastError;
@@ -1353,7 +1353,9 @@
       lineup.cards.forEach((c, i) => map.set(c.slug, core.needBadge(result, i, target, c.captain)));
     }
     const stepId = composeStep();
-    const step = stepId ? steps[stepId] : null;
+    // The address names the step by its bare id; Sorare's answers by "Tasks::Task:<id>".
+    const stepKey = stepId ? Object.keys(steps).find((key) => key === stepId || key.endsWith(`:${stepId}`)) : null;
+    const step = stepKey ? steps[stepKey] : null;
     if (step && typeof step.target === "number") {
       const captain = typeof step.captain === "number" ? step.captain : 0;
       for (const record of live) {

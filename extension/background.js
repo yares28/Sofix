@@ -408,7 +408,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return true;
   }
   if (message?.type === "need-data") {
-    needData(sender.tab?.id ?? null).then(reply).catch(() => reply(null));
+    needData(sender.tab?.id ?? null, message.compose === true).then(reply).catch(() => reply(null));
     return true;
   }
   if (message?.type === "pro-rebuild") {
@@ -718,7 +718,7 @@ function needFrom(step, data, input = {}, now = Date.now()) {
     return { arcade: { config: board.configSlug ?? null, current: board.myCurrentStep?.id ?? null, steps }, arcadeAt: now };
   }
   if (step === "arcade-cards" && Array.isArray(user?.cards?.nodes)) {
-    return { editions: Object.fromEntries(user.cards.nodes.flatMap((c) => (c?.slug ? [[String(c.slug), num(c.skinEdition?.bonus)]] : []))) };
+    return { editions: Object.fromEntries(user.cards.nodes.flatMap((c) => (c?.slug ? [[String(c.slug), num(c.skinEdition?.bonus)]] : []))), editionsAt: now };
   }
   if (step === "arcade-lineups" && user?.setBoard) {
     const lineups = (Array.isArray(user.setBoard.steps) ? user.setBoard.steps : []).flatMap((st) => (Array.isArray(st.myLineups) ? st.myLineups : [])
@@ -744,7 +744,7 @@ async function keepNeed(step, answer, input = {}) {
 }
 
 /** The overlay's question: the copy, after reading your lineups again when a game of yours is live (or nothing was read yet). */
-async function needData(tabId, now = Date.now()) {
+async function needData(tabId, compose = false, now = Date.now()) {
   const { [NEED_KEY]: kept = {} } = await chrome.storage.local.get(NEED_KEY);
   const all = [...(kept.arcadeLineups ?? []), ...(kept.proLineups ?? [])];
   const live = all.some((l) => l.cards.some((c) => c.kickoff && Date.parse(c.kickoff) <= now && now - Date.parse(c.kickoff) < NEED_GAME_MS));
@@ -756,6 +756,20 @@ async function needData(tabId, now = Date.now()) {
   for (const step of asks) {
     const [operation, variables] = STEPS[step]({});
     await keepNeed(step, await throughSorare(operation, variables, tabId));
+  }
+  // A compose page shows your cards: their edition bonuses are read here when the copy has none or is 6 hours old (your commons,
+  // 100 a page, at most 10 pages), so the pill does not wait for Sofix's Arcade page.
+  if (compose && (!kept.editionsAt || now - kept.editionsAt > 6 * 60 * 60 * 1000)) {
+    let after = null;
+    for (let page = 0; page < 10; page += 1) {
+      const [operation, variables] = STEPS["arcade-cards"]({ after });
+      const answer = await throughSorare(operation, variables, tabId);
+      await keepNeed("arcade-cards", answer);
+      const info = answer?.data?.currentUser?.cards?.pageInfo;
+      if (answer?.state !== "ok" || !info?.hasNextPage || !info.endCursor) break;
+      after = info.endCursor;
+    }
+    asks.push("arcade-cards");
   }
   if (!asks.length) return kept;
   const { [NEED_KEY]: fresh = {} } = await chrome.storage.local.get(NEED_KEY);

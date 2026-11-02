@@ -1572,11 +1572,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026 (0.4.23): the worker keeps a points-needed copy (board steps, card editions and club bonuses, open Arcade and Pro lineups) from relayed reads and its own lineup reads (need-data, every 2 min while a game is live); the Pro lineup read adds each card's bonus and locked; the overlay draws the pill from core.pointsNeeded. Reads only; allowlists unchanged. Earlier: appFetch tries 127.0.0.1:3000 then each Vercel address.",
+        "note": "2 Nov 2026 (0.4.24): on a compose page the worker reads your commons' edition bonuses itself (10 pages at most, every 6 hours); the overlay matches the address's bare step id to Sorare's Tasks::Task id. Reads only. 0.4.23: points-needed copy and pill; 0.4.22: appFetch.",
         "files": {
-          "extension/background.js": "5a0119719de9b68b9be02bae1d8116ab00091c9fb3fd1e2d9dee7b29541e415a",
+          "extension/background.js": "ac5fc67e149fc95b1410227188fe5da3934ca43d53af98ece6b1dc681c0973ff",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "992e66c12b27c184f59c9ce57aef2f607100d67bff200995e5acf2cec1c5390d",
+          "extension/manifest.template.json": "865258043cb0f10d03a3cbe225dcafa5e6cb55b02517c7bc46a6f65f6a4a7817",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

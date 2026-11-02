@@ -24,10 +24,6 @@ results, reduce per-page data and cache football views. Keep all current control
 
 **Next Arcade work:** **trustworthy xScore that learns** ([arcade-player-choice.md](arcade-player-choice.md)): finish phase A's timed reads (cold load and the % button now read official elevens: [release evidence](arcade-start-refresh.md)), B pre-kick-off capture, C hindsight audit and strategy replay, D per-league blend and calibration, E re-plan triggers, F upgrades.
 
-**1 Nov, first thing (date-bound):** **all Neon projects into one** (TODO.md "All Neon projects into one"): quotas reset that
-day, so every project answers; list what each holds that the live one lacks (GW25's records are on Sofix C), copy on your yes, then
-rerun the strategy audit.
-
 27 Oct, first (the account's Vercel CPU stood at 3 h 56 m of 4 h): **cacheable pages** ([cacheable-pages.md](cacheable-pages.md),
 P0 to P5): every page served from Vercel's CDN and built only when its data changes or the week rolls, so a view costs no CPU.
 
@@ -610,6 +606,11 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+2 Nov: **all Neon projects into one.** Sofix D (live) got 2,228 read models (newest write wins), 79 refresh runs and 837 player
+games from Sofix C (20–25 Oct) and Sofix (12–14 Oct), all uploaded to R2; FDR and Sofix B held nothing more. The refresh's
+`--move` run now merges any project left behind back into the live one (`neon_switch.merge_stranded`, 4b223ea). GW25's strategy
+audit was rebuilt from the merged data: 10 strategies, both plans and your 8 lineups scored; two rewards wait on Sorare.
 
 30 Oct: Arcade's % refresh reads announced elevens independently of cached forecast percentages. Confirmed starters become 100% and non-starters 0% for their exact game, overriding model forecasts; all recommendations use the same readings. Extension 0.4.21; nine focused source/cache cases, the full Arcade browser spec (19 cases) and the local gate pass. Real-source and remaining live-reload limits: [acceptance record](arcade-start-refresh.md).
 

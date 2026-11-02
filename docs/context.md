@@ -740,6 +740,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/mission-picker-phase1.md` | [open](../plans/mission-picker-phase1.md) |
 | document (check authority) | `plans/missions-audit-overview.md` | [open](../plans/missions-audit-overview.md) |
 | document (check authority) | `plans/missions-repair.md` | [open](../plans/missions-repair.md) |
+| document (check authority) | `plans/multi-competition-review.md` | [open](../plans/multi-competition-review.md) |
 | document (check authority) | `plans/navigation-skeletons.md` | [open](../plans/navigation-skeletons.md) |
 | document (check authority) | `plans/neon-egress.md` | [open](../plans/neon-egress.md) |
 | document (check authority) | `plans/neon-quota-recurrence.md` | [open](../plans/neon-quota-recurrence.md) |
@@ -872,13 +873,13 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026: publish.py pro_board_payload now also publishes the board step's captainBonus for the points-needed pills; selection logic unchanged.",
+        "note": "Mixed-week games scored one by one (B5), lineups add foreign games, waiting flag, write-time tally; selection rules unchanged.",
         "files": {
-          "backend/app/sorare/publish.py": "abb6737084526fb7db38357f8a44d16766646c10451ece5b9f70143f75ed0e85",
+          "backend/app/sorare/publish.py": "168eb29a12622722e46fb66bb45225ec97750c5edd73a29478429d3a4f569a3d",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "4bb26beb538901229489d3ff4b337939a5f898b661683a4faa98edeb5685e3fa",
+          "backend/app/jobs/sorare.py": "a78f6e923328cf728327fe01f65752d768451d4a977e592901fdb4f762b3b6f3",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "379c852e39c43e7d694fd8c1635ea837161f1ca09ea15b1b1300134f8c38d7fe"
         }
@@ -927,10 +928,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-28",
-        "note": "Compared source and existing assertions; execution results are recorded separately in the audit. Live workflow not reverified.",
+        "date": "2026-11-02",
+        "note": "Per-game sources: unmodelled game takes Sorare's number for his next game else form; waiting flag for stale European boards (B5, B7).",
         "files": {
-          "backend/app/sorare/forecast.py": "8956626101b925995b3fc2ebd609245bea7bdcb3e9065b75143923f73b57105e",
+          "backend/app/sorare/forecast.py": "a4359bd169539516f7e164fca348972bf765360eb999ce77049a3f0e77d8a23f",
           "backend/tests/test_sorare_ff_forecast.py": "c9db49a267f8b4d41a6a431b5fb5e0b1e749aef24a3e75e1f7e0adaf150667b7"
         }
       }
@@ -994,9 +995,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026: publish.py change is only the Pro board payload's captainBonus field; raw forecasts untouched.",
+        "note": "Payloads add waiting and per-game scoreSource; Sofix number only for games Sofix modelled; Conference note from backend.",
         "files": {
-          "backend/app/sorare/publish.py": "abb6737084526fb7db38357f8a44d16766646c10451ece5b9f70143f75ed0e85",
+          "backend/app/sorare/publish.py": "168eb29a12622722e46fb66bb45225ec97750c5edd73a29478429d3a4f569a3d",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "379c852e39c43e7d694fd8c1635ea837161f1ca09ea15b1b1300134f8c38d7fe"
@@ -1050,10 +1051,10 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026: play.ts ProBoard type gains optional captainBonus; reward logic unchanged.",
+        "note": "play.ts adds optional waiting field only; reward logic unchanged.",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "198fcaea2f864e04e267b634bea7846013f6798997f2992d17a2d27e0c91d3f3",
+          "frontend/lib/play.ts": "ecd0cb0f876f3648e26293acc5be0706157c0f7a58838470c908d79572a64ff7",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1155,11 +1156,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-28",
-        "note": "Compared source and existing assertions; execution results are recorded separately in the audit. Live workflow not reverified.",
+        "date": "2026-11-02",
+        "note": "New statement test covers per-game source; pre-lock capture rules unchanged.",
         "files": {
           "backend/app/sorare/player_games.py": "6771905783498e148e1193d485b747340719e0f3b1f2c1a29191e435a7336ff9",
-          "backend/tests/test_player_statements.py": "455f11bac3acd83acf289aa2ddc59c8035363dc9368dda687a860c1fb2668470",
+          "backend/tests/test_player_statements.py": "45dec08abc71fe82d7a57501e85a25a777597a0ad385943e9f654ef973575ead",
           "backend/tests/test_player_games.py": "4e331136980e80139f77d79bfcf204b6a17027bb34a93bb1ae11b8fa303ebd28"
         }
       }
@@ -1281,9 +1282,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "Inspected R2 block source/version keys and bounded completed cache. Pending downloads remain coalesced beyond six distinct reads; missing and failed downloads retry. New regressions passed locally. Version discovery and tag invalidation unchanged; cross-service publication is still not atomic. 2 Nov 2026: r2.NOT_COPIED adds neon_merged (switch bookkeeping, not a page block).",
+        "note": "put now tallies write times by key family; unchanged-payload skip and R2 upload order unchanged.",
         "files": {
-          "backend/app/services/publish.py": "895609ab701cad2e9fcf31cda71684fc96e98e0eba59546ff931fa0167dca4ce",
+          "backend/app/services/publish.py": "ad9fd1e73e97612ac993e50ef8989d26e6670f3950c0ed160db04fe3ec662f4c",
           "backend/app/services/r2.py": "82b91dea1f8d9e021b9a0276a4f93b488f8f9b02eed41fcee3eef8f91b065911",
           "frontend/lib/r2.ts": "76b01a34a5961032f76df91b3f68dce1db2c2e21462001387a50d754ef94f147",
           "frontend/lib/playData.ts": "e3e017956f561c653718a73c77fbf90fa1dbfdf18a2d0bfb8bed8006b4dbea33",
@@ -1328,11 +1329,11 @@ This block is the single machine-readable index for the sections above. Test ref
       "status": "implemented",
       "review": {
         "date": "2026-11-02",
-        "note": "Inspected implementation and available tests; execution receipt recorded separately. 2 Nov 2026: r2.NOT_COPIED adds neon_merged; sync logic unchanged.",
+        "note": "Player block read_at/last_seen kept to the Madrid day so unchanged histories are not re-uploaded; tests in test_r2_sync.",
         "files": {
           "backend/app/services/r2.py": "82b91dea1f8d9e021b9a0276a4f93b488f8f9b02eed41fcee3eef8f91b065911",
-          "backend/app/services/player_blocks.py": "2a15cfcb76203f5eee8f626c0c55aa99497876aac99dd135cb045a6be97130c1",
-          "backend/tests/test_r2_sync.py": "9c6ff41457ff5feb0611be204dcda0cc2adaeb5e0b3c7de0ca8e871ebe419c22"
+          "backend/app/services/player_blocks.py": "984e04c0e3da31890d4a9a9672a064982bd1a92b4f64bafd14adc7f8335bd872",
+          "backend/tests/test_r2_sync.py": "ea643078606d9b1daa57cff509fa5bf3838acf6f216cbdfad17a9936ac435633"
         }
       }
     },
@@ -1427,13 +1428,13 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "local-isolation-001",
       "status": "implemented",
       "review": {
-        "date": "2026-10-29",
-        "note": "Inspected localDir and blockAt source identity, mock isolation and local read tests. Same key/version from separate local directories no longer shares memory entries. Existing local production guards unchanged; ten-account isolation is not implemented by this change.",
+        "date": "2026-11-02",
+        "note": "test_r2_sync additions are mocked; no production access.",
         "files": {
           "backend/app/db.py": "c873193fd1af1704c4a839ae0772594c9d37544458a7308bc9a73016cefc097a",
           "frontend/lib/r2.ts": "76b01a34a5961032f76df91b3f68dce1db2c2e21462001387a50d754ef94f147",
           "frontend/package.json": "fd9cc0aae255d031077aabab94606e3ff1c59acbf6b2b044c825ac9291d8951e",
-          "backend/tests/test_r2_sync.py": "9c6ff41457ff5feb0611be204dcda0cc2adaeb5e0b3c7de0ca8e871ebe419c22",
+          "backend/tests/test_r2_sync.py": "ea643078606d9b1daa57cff509fa5bf3838acf6f216cbdfad17a9936ac435633",
           "frontend/lib/r2.test.ts": "22c4e3ceec84a69c1df22c0014f1197d9281620da3df3d08f8fd861d32cf99f4"
         }
       }
@@ -1476,12 +1477,12 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "schedule-clock-001",
       "status": "implemented",
       "review": {
-        "date": "2026-10-30",
-        "note": "Reviewed only username wiring in refresh.yml; timetable, dispatch timing, duplicate suppression and publication scheduling unchanged. Installation regression checks all four manager-dependent workflows.",
+        "date": "2026-11-02",
+        "note": "refresh.yml gains a quick input passed as --quick by the near-lock workflow; schedule and trigger rules unchanged.",
         "files": {
           "clock/src/clock.js": "d1c9ca65b5e06c59a38d9dbacbdce72d3e3bbd2e5faafeb0db581727d297ebca",
           "clock/timetable.json": "86241a108823e509f86904ba9005f21cb0307f369871b6ee1cfccd5960a54eca",
-          ".github/workflows/refresh.yml": "a9f1a744b67cfca0862616b45fa5301c670591a92d4dbbb7e5d4e321a138fb9d",
+          ".github/workflows/refresh.yml": "103f3a258e046acf9a6cadfde245918e90840872481d0c273486d568eb8996bb",
           "clock/test/clock.test.js": "642c93350966e1b89b1080e6602804e44e3b92a23d3d1070823eda6c36e3184c"
         }
       }
@@ -1813,10 +1814,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-29",
-        "note": "Source-inspected boundaries; referenced suites are evidence locations, not a claim of live verification.",
+        "date": "2026-11-02",
+        "note": "Release plan notes mixed-week totals replaced by per-game scoring (B5); release authority unchanged.",
         "files": {
-          "plans/conference-release.md": "8ee6abcf5d494ff65be44b593bfd52969571852d4e661b0773618ec80f9ee12b",
+          "plans/conference-release.md": "5c04df1f2595652db493286d1465c9c498c129ef2bd0992883104474a4dddd1b",
           "backend/app/sorare/european_models.py": "205d444347ee72fc16403373c720b77f89274d0e100be876d8604dcd069db0de",
           "docs/european_validation/CONF-release-proof.json": "e7e7017af3f9d6de7cf41cc66091564ea7e4c347110c4af25275d1fb7e6bb089",
           "backend/tests/test_conference_forecast.py": "47db7ec9da02310b22961b57e161004d7de3acc2e0487677a4007d4e22fb7ade"

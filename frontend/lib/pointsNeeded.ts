@@ -35,14 +35,6 @@ export type NeedResult = {
   cards: NeedCardResult[];
 };
 
-/** Arcade: 1 + edition + club (unless the step's collection rule is off) + captain. An unread club bonus of a club card is unknown. */
-export function arcadeMultiplier(o: { bonus: number; club: number | null; captain: boolean; captainBonus: number; collection: boolean | null; hasClub?: boolean }): number | null {
-  // Outlook.bonus already holds edition + club; take the club back out where the rules give none.
-  if (o.collection === false) return 1 + o.bonus - (o.club ?? 0) + (o.captain ? o.captainBonus : 0);
-  if (o.club === null && o.hasClub) return null;
-  return 1 + o.bonus + (o.captain ? o.captainBonus : 0);
-}
-
 /** Pro: the card's own bonuses (in-season, level, rarity: `Competition.multiplier`) + the board's captain bonus. Prize boosts never. */
 export function proMultiplier(o: { mult: number; captain: boolean; captainBonus: number | null | undefined }): number | null {
   if (!Number.isFinite(o.mult)) return null;

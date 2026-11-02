@@ -1298,35 +1298,34 @@
   }
 
   // -- points needed (plans/points-needed.md) -------------------------------------------------------------------------
-  // The raw score each card needs for its lineup to reach the step's target, at the card art's bottom right, the same pill as in
-  // Sofix (core.pointsNeeded). Your open Arcade and Pro lineups, wherever Sorare shows their cards; on an Arcade compose page, every
-  // card of yours shown, for the step in the address. The worker keeps the data (from your lineups and Sofix's Arcade read) and
-  // reads your lineups again at most every 2 minutes while a game of yours is live; nothing is asked while this tab is hidden.
+  // On Sorare's lineup pages only (owner, 2 Nov 2026), on the cards of a lineup still in play: the raw score each card still needs for
+  // its lineup to reach the step's target, worked out from the lineup's score so far (core.pointsNeeded, the same as Sofix). One card
+  // left with 100 to find shows 100, less with his bonus or the captaincy. Each pill belongs to its own team block on the page, so a
+  // card that also sits in an older, settled lineup there gets nothing in that one. The worker reads your lineups again at most every
+  // 2 minutes while a game of yours is live; nothing is asked while this tab is hidden.
+  const NEED_PAGES = [/^\/football\/lineups\/pro(?:\/|$)/]; // Sorare's Pro lineups page; the Arcade step lineups page goes here too
   const NEED_ASK_MS = 2 * 60 * 1000;
   const NEED_GAME_MS = 115 * 60 * 1000; // after this a game is over (Sofix's Arcade uses the same)
   let need = null;
   let needAskedAt = 0;
   let needAsking = false;
-  let needCache = { key: "", map: new Map() };
+  let needCache = { key: "", lineups: [] };
 
-  const composeStep = () => {
-    const found = location.pathname.match(/\/boards\/pro\/[^/]+\/([^/]+)\/compose-team/);
-    return found ? decodeURIComponent(found[1]) : null;
-  };
+  const needPage = () => NEED_PAGES.some((page) => page.test(location.pathname));
 
   function wantNeed() {
-    if (needAsking || now() - needAskedAt < NEED_ASK_MS || document.visibilityState !== "visible") return;
+    if (!needPage() || needAsking || now() - needAskedAt < NEED_ASK_MS || document.visibilityState !== "visible") return;
     needAsking = true;
     needAskedAt = now();
     try {
-      chrome.runtime.sendMessage({ type: "need-data", compose: Boolean(composeStep()) }, (reply) => {
+      chrome.runtime.sendMessage({ type: "need-data" }, (reply) => {
         needAsking = false;
         if (chrome.runtime.lastError || !reply) {
           void chrome.runtime.lastError;
           return;
         }
         need = reply;
-        needCache = { key: "", map: new Map() };
+        needCache = { key: "", lineups: [] };
         schedule();
       });
     } catch {
@@ -1334,52 +1333,54 @@
     }
   }
 
-  /** card slug -> its pill, worked out once a minute (and again when the data or the address changes). */
-  function needBadges() {
+  /** Your lineups still in play, each with its cards' pills, worked out once a minute (and again when the data changes). */
+  function needLineups() {
     const t = now();
-    const key = `${needAskedAt}|${location.pathname}|${Math.floor(t / 60000)}`;
-    if (!need || needCache.key === key) return needCache.map;
-    const map = new Map();
+    const key = `${needAskedAt}|${Math.floor(t / 60000)}`;
+    if (!need || needCache.key === key) return needCache.lineups;
     const steps = (need.arcade && need.arcade.steps) || {};
-    for (const lineup of [...(need.arcadeLineups || []), ...(need.proLineups || [])]) {
+    const lineups = [...(need.arcadeLineups || []), ...(need.proLineups || [])].map((lineup) => {
       const target = lineup.kind === "arcade" ? (steps[lineup.step] ? steps[lineup.step].target : null) : lineup.target;
       const cards = lineup.cards.map((c) => {
         const at = c.kickoff ? Date.parse(c.kickoff) : NaN;
         const state = !Number.isFinite(at) || t < at ? "to play" : t - at < NEED_GAME_MS ? "live" : "finished";
-        // Sorare's card score already holds the card's bonus: his raw score is that score divided by it.
+        // Sorare's card score already holds the card's bonus (and the captain's): his raw score is that score divided by it.
         return { multiplier: c.bonus, unknown: "Sorare gave no bonus for this card", state, raw: c.score === null || !c.bonus ? null : c.score / c.bonus };
       });
       const result = core.pointsNeeded(target, cards);
-      lineup.cards.forEach((c, i) => map.set(c.slug, core.needBadge(result, i, target, c.captain)));
+      return { slugs: new Set(lineup.cards.map((c) => c.slug)), pills: new Map(lineup.cards.map((c, i) => [c.slug, core.needBadge(result, i, target, c.captain)])) };
+    });
+    needCache = { key, lineups };
+    return lineups;
+  }
+
+  /** The team block a card is drawn in: the smallest box around it holding a whole lineup's worth of cards, as their slugs. */
+  function teamOf(record) {
+    if (record.needTeam && record.needTeam.epoch === pageEpoch) return record.needTeam.slugs;
+    let slugs = null;
+    let box = record.media.parentElement;
+    for (let depth = 0; box && depth < 14 && !slugs; depth += 1, box = box.parentElement) {
+      const inside = [];
+      for (const other of live) if (other.cardSlug && box.contains(other.media)) inside.push(other.cardSlug);
+      if (inside.length >= 5) slugs = new Set(inside);
     }
-    const stepId = composeStep();
-    // The address names the step by its bare id; Sorare's answers by "Tasks::Task:<id>".
-    const stepKey = stepId ? Object.keys(steps).find((key) => key === stepId || key.endsWith(`:${stepId}`)) : null;
-    const step = stepKey ? steps[stepKey] : null;
-    if (step && typeof step.target === "number") {
-      const captain = typeof step.captain === "number" ? step.captain : 0;
-      for (const record of live) {
-        const slug = record.cardSlug;
-        if (!slug || map.has(slug) || !need.editions || !Object.hasOwn(need.editions, slug)) continue; // only your cards of the set
-        const edition = need.editions[slug];
-        const club = need.clubs && Object.hasOwn(need.clubs, slug) ? need.clubs[slug] : null;
-        const known = step.collection !== true || club !== null;
-        const m = 1 + (edition && edition > 1 ? edition - 1 : 0) + (step.collection === false ? 0 : club || 0);
-        const one = (mult) => core.pointsNeeded(step.target, [{ multiplier: known ? mult : null, unknown: "club bonus not read yet: open Arcade in Sofix once", state: "to play", raw: null },
-          ...Array.from({ length: 4 }, () => ({ multiplier: 1, state: "to play", raw: null }))]);
-        const badge = core.needBadge(one(m), 0, step.target, false);
-        const asCaptain = core.needBadge(one(m + captain), 0, step.target, true);
-        map.set(slug, captain && badge.tone === "need" ? { ...badge, detail: `${badge.detail} As captain: ${asCaptain.label}.` } : badge);
-      }
-    }
-    needCache = { key, map };
-    return map;
+    record.needTeam = { epoch: pageEpoch, slugs };
+    return slugs;
+  }
+
+  /** This card's pill: only on a lineup page, only when its team block is one of your lineups still in play. */
+  function needFor(record) {
+    if (!needPage() || !record.cardSlug) return null;
+    const team = teamOf(record);
+    if (!team) return null;
+    const lineup = needLineups().find((l) => l.slugs.size === team.size && [...l.slugs].every((slug) => team.has(slug)));
+    return lineup ? lineup.pills.get(record.cardSlug) || null : null;
   }
 
   /** The pill for one card: drawn, moved to the art's bottom right, or taken off. */
   function placeNeed(read) {
     const { record, rect, tier } = read;
-    const badge = tier === "skip" || !record.cardSlug ? null : needBadges().get(record.cardSlug) || null;
+    const badge = tier === "skip" ? null : needFor(record);
     let pill = record.need && record.need.isConnected ? record.need : null;
     if (!badge) {
       if (pill) pill.remove();

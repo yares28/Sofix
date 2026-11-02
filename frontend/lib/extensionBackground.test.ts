@@ -650,17 +650,16 @@ describe("points needed on sorare.com", () => {
             { __typename: "TaskLineup", id: "pro", draft: false, aasmState: "READY", taskAppearances: [appearance("p1", 66, 1.1)] }] }] }] } }
         : { currentUser: { cards: { nodes: [{ slug: "c1", skinEdition: { bonus: 1.3 } }, { slug: "c3", skinEdition: { bonus: 1 } }] } } };
 
-  it("keeps the board, your open lineups and your card editions from the reads the app makes, nothing from settled lineups", async () => {
+  it("keeps the board and your open lineups from the reads the app makes, nothing from settled lineups", async () => {
     const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
-    for (const step of ["arcade", "arcade-lineups", "pro-entered", "arcade-cards"]) await w.sendFrom(APP, { type: "sorare", step });
+    for (const step of ["arcade", "arcade-lineups", "pro-entered"]) await w.sendFrom(APP, { type: "sorare", step });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    type Kept = { arcade: { steps: Record<string, unknown> }; arcadeLineups: { id: string; cards: unknown[] }[]; proLineups: unknown[]; editions: Record<string, number> };
+    type Kept = { arcade: { steps: Record<string, unknown> }; arcadeLineups: { id: string; cards: unknown[] }[]; proLineups: unknown[] };
     const kept = w.local.get("needData") as Kept;
     expect(kept.arcade.steps[STEP]).toMatchObject({ target: 360, captain: 0.5 });
     expect(kept.arcadeLineups.map((l) => l.id)).toEqual(["open"]);
     expect(kept.arcadeLineups[0]!.cards[1]).toMatchObject({ slug: "c2", bonus: 1.5, captain: true });
     expect(kept.proLineups[0]).toMatchObject({ target: 380, cards: [{ slug: "p1", score: 66, bonus: 1.1 }] });
-    expect(kept.editions).toEqual({ c1: 1.3, c3: 1 });
   });
 
   it("answers the overlay from what it keeps, and reads your lineups again only while a game is live, at most every 2 minutes", async () => {

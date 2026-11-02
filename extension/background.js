@@ -408,7 +408,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return true;
   }
   if (message?.type === "need-data") {
-    needData(sender.tab?.id ?? null, message.compose === true).then(reply).catch(() => reply(null));
+    needData(sender.tab?.id ?? null).then(reply).catch(() => reply(null));
     return true;
   }
   if (message?.type === "pro-rebuild") {
@@ -689,9 +689,9 @@ const STEPS = {
 };
 
 // -- points needed on sorare.com (plans/points-needed.md) ---------------------------------------------------------------
-// A compact copy of what the pill needs, kept from the reads the app already makes through here (its Arcade page reads the board,
-// your cards and your lineups) and from the overlay's own refresh of your lineups: steps and targets, each card's edition bonus,
-// and your open Arcade and Pro lineups with Sorare's score and multiplier per card. Nothing in it is a credential.
+// A compact copy of what the pill needs, kept from the reads the app already makes through here (its Arcade page reads the board
+// and your lineups) and from the overlay's own refresh of your lineups: steps and targets, and your open Arcade and Pro lineups with
+// Sorare's score and multiplier per card. Nothing in it is a credential.
 const NEED_KEY = "needData";
 const NEED_FRESH_MS = 2 * 60 * 1000; // lineups are read again at most this often, and only while a game of yours is live
 const NEED_GAME_MS = 2.5 * 60 * 60 * 1000; // a game this long after its kick-off may still be scoring
@@ -703,22 +703,12 @@ const openLineup = (l) => l && l.__typename === "TaskLineup" && !l.draft && !l.c
 /** What one read through here adds to the copy. */
 function needFrom(step, data, input = {}, now = Date.now()) {
   const user = data?.currentUser;
-  if (step === "arcade-bonuses" && user?.setBoard && Array.isArray(input.cards)) {
-    // Sorare's bonuses for each card asked (b0, b1, ...): its club ("collection") bonus, in basis points.
-    return { clubs: Object.fromEntries(input.cards.slice(0, 50).flatMap((card, i) => {
-      const list = user.setBoard[`b${i}`];
-      return Array.isArray(list) ? [[String(card), list.filter((b) => b?.key === "collection").reduce((sum, b) => sum + (num(b.bonusBasisPoints) ?? 0), 0) / 10000]] : [];
-    })) };
-  }
   if (step === "arcade" && user?.setBoard) {
     const board = user.setBoard;
     const steps = Object.fromEntries((Array.isArray(board.steps) ? board.steps : []).map((st) => [String(st.id), {
       level: num(st.level), target: num(st.target), state: String(st.state ?? ""), captain: num(st.engineConfiguration?.captain), collection: st.engineConfiguration?.collection ?? null,
     }]));
     return { arcade: { config: board.configSlug ?? null, current: board.myCurrentStep?.id ?? null, steps }, arcadeAt: now };
-  }
-  if (step === "arcade-cards" && Array.isArray(user?.cards?.nodes)) {
-    return { editions: Object.fromEntries(user.cards.nodes.flatMap((c) => (c?.slug ? [[String(c.slug), num(c.skinEdition?.bonus)]] : []))), editionsAt: now };
   }
   if (step === "arcade-lineups" && user?.setBoard) {
     const lineups = (Array.isArray(user.setBoard.steps) ? user.setBoard.steps : []).flatMap((st) => (Array.isArray(st.myLineups) ? st.myLineups : [])
@@ -739,12 +729,11 @@ async function keepNeed(step, answer, input = {}) {
   const add = needFrom(step, answer.data, input);
   if (!add) return;
   const { [NEED_KEY]: kept = {} } = await chrome.storage.local.get(NEED_KEY);
-  await chrome.storage.local.set({ [NEED_KEY]: { ...kept, ...add,
-    editions: { ...(kept.editions ?? {}), ...(add.editions ?? {}) }, clubs: { ...(kept.clubs ?? {}), ...(add.clubs ?? {}) } } });
+  await chrome.storage.local.set({ [NEED_KEY]: { ...kept, ...add } });
 }
 
 /** The overlay's question: the copy, after reading your lineups again when a game of yours is live (or nothing was read yet). */
-async function needData(tabId, compose = false, now = Date.now()) {
+async function needData(tabId, now = Date.now()) {
   const { [NEED_KEY]: kept = {} } = await chrome.storage.local.get(NEED_KEY);
   const all = [...(kept.arcadeLineups ?? []), ...(kept.proLineups ?? [])];
   const live = all.some((l) => l.cards.some((c) => c.kickoff && Date.parse(c.kickoff) <= now && now - Date.parse(c.kickoff) < NEED_GAME_MS));
@@ -756,20 +745,6 @@ async function needData(tabId, compose = false, now = Date.now()) {
   for (const step of asks) {
     const [operation, variables] = STEPS[step]({});
     await keepNeed(step, await throughSorare(operation, variables, tabId));
-  }
-  // A compose page shows your cards: their edition bonuses are read here when the copy has none or is 6 hours old (your commons,
-  // 100 a page, at most 10 pages), so the pill does not wait for Sofix's Arcade page.
-  if (compose && (!kept.editionsAt || now - kept.editionsAt > 6 * 60 * 60 * 1000)) {
-    let after = null;
-    for (let page = 0; page < 10; page += 1) {
-      const [operation, variables] = STEPS["arcade-cards"]({ after });
-      const answer = await throughSorare(operation, variables, tabId);
-      await keepNeed("arcade-cards", answer);
-      const info = answer?.data?.currentUser?.cards?.pageInfo;
-      if (answer?.state !== "ok" || !info?.hasNextPage || !info.endCursor) break;
-      after = info.endCursor;
-    }
-    asks.push("arcade-cards");
   }
   if (!asks.length) return kept;
   const { [NEED_KEY]: fresh = {} } = await chrome.storage.local.get(NEED_KEY);

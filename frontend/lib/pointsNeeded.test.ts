@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arcadeMultiplier, needBadge, pointsNeeded, proMultiplier, roundUp, type NeedCard } from "./pointsNeeded";
+import { needBadge, pointsNeeded, proMultiplier, roundUp, type NeedCard } from "./pointsNeeded";
 
 const plain = (multiplier: number | null = 1, extra: Partial<NeedCard> = {}): NeedCard => ({ multiplier, state: "to play", raw: null, ...extra });
 const five = (...cards: NeedCard[]) => [...cards, ...Array.from({ length: 5 - cards.length }, () => plain())];
@@ -26,7 +26,6 @@ describe("points needed before the games", () => {
   });
 
   it("bonuses are added, never multiplied, and reward boosts never count", () => {
-    expect(arcadeMultiplier({ bonus: 0.1, club: 0, captain: true, captainBonus: 0.5, collection: true })).toBeCloseTo(1.6);
     expect(proMultiplier({ mult: 1.1, captain: true, captainBonus: 0.5 })).toBeCloseTo(1.6);
     // Pro's Rare Reward Bonus is a prize multiplier: proMultiplier has no input for it, and the card's mult never holds it.
     expect(proMultiplier({ mult: 1, captain: false, captainBonus: 0.5 })).toBe(1);
@@ -40,11 +39,6 @@ describe("points needed before the games", () => {
     expect(roundUp(need(after, 1).raw)).toBe(53.4);
   });
 
-  it("Arcade club bonus counts only while the step's collection rule is not off, and an unread one is unknown", () => {
-    expect(arcadeMultiplier({ bonus: 0.07, club: 0.02, captain: false, captainBonus: 0.5, collection: false })).toBeCloseTo(1.05);
-    expect(arcadeMultiplier({ bonus: 0.05, club: null, captain: false, captainBonus: 0.5, collection: true, hasClub: true })).toBeNull();
-    expect(arcadeMultiplier({ bonus: 0.05, club: null, captain: false, captainBonus: 0.5, collection: true, hasClub: false })).toBeCloseTo(1.05);
-  });
 });
 
 describe("points needed during the games", () => {
@@ -176,5 +170,16 @@ describe("a week's scores as card states", () => {
     expect(unknown[0]!.label).toBe("—");
     expect(unknown[1]!.label).toBe("80");
     expect(proNeeds(400, 0.5, cards, () => ({ state: "to play", raw: null }))[0]!.label).toBe("50");
+  });
+});
+
+describe("the owner's example (2 Nov 2026)", () => {
+  it("a lineup at 260 with one player left for 360: he needs 100, less with his bonus or the captaincy", () => {
+    const done = [65, 65, 65, 65].map((raw) => ({ multiplier: 1, state: "finished" as const, raw }));
+    expect(needBadge(pointsNeeded(360, [...done, { multiplier: 1, state: "to play", raw: null }]), 4, 360).label).toBe("100");
+    expect(needBadge(pointsNeeded(360, [...done, { multiplier: 1.5, state: "to play", raw: null }]), 4, 360, true).label).toBe("66.7");
+    expect(needBadge(pointsNeeded(360, [...done, { multiplier: 1.05, state: "to play", raw: null }]), 4, 360).label).toBe("95.3");
+    // The four who have played show what they brought, not a number to reach.
+    expect(needBadge(pointsNeeded(360, [...done, { multiplier: 1, state: "to play", raw: null }]), 0, 360).label).toBe("✓");
   });
 });

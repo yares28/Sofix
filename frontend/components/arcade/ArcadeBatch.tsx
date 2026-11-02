@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Arcade, ArcadeGame } from "../../lib/arcade";
 import { batchesOf, teamsInBatch } from "../../lib/arcadeBatch";
 import { batchChances, chanceOf, simulation, type Outlook } from "../../lib/arcadePlan";
-import { climbStart, climbStep, Crest, crestsOf, LineupCards, madridDay, madridTime, pct, pts, ruleOf, stepInfos } from "./ArcadePlanner";
+import { climbStart, climbStep, Crest, crestsOf, LineupCards, madridDay, madridTime, pct, pts, stepInfos } from "./ArcadePlanner";
 import { FdrContext } from "./Fdr";
 import type { FdrSide } from "../../lib/arcadeFdr";
 
@@ -76,7 +76,7 @@ export default function ArcadeBatch({ arcade, outlooks }: { arcade: Arcade; outl
       {gamePages > 1 ? <nav className="arc-batch-pagination" aria-label="Batch game pages"><button type="button" className="arc-small" disabled={atGamePage === 0} onClick={() => setGamePage(atGamePage - 1)}>Previous games</button><span>{atGamePage + 1} / {gamePages}</span><button type="button" className="arc-small" disabled={atGamePage + 1 === gamePages} onClick={() => setGamePage(atGamePage + 1)}>Next games</button></nav> : null}
       <div className="arc-batch-result"><div><h3>{shown.length ? `${shown.length} team${shown.length === 1 ? "" : "s"}` : "No team available"}</h3>{shown.length ? <p><b>{pct(chances[shown.length - 1] ?? 0)}</b> at least one clears step {step?.number}</p> : null}</div><div className="arc-batch-count" role="group" aria-label="Team count"><button type="button" aria-label="Fewer teams" disabled={count === 1} onClick={() => changeCount(count - 1)}>−</button><input type="number" min={1} max={4} step={1} aria-label="Teams in this batch" value={count} onChange={e => changeCount(e.target.valueAsNumber)} /><button type="button" aria-label="More teams" disabled={count === 4} onClick={() => changeCount(count + 1)}>+</button></div></div>
       {shown.length < count ? <p className="arc-note" role="status">{shown.length ? `Only ${shown.length} of ${count} teams can be built.` : "No complete team can be built."} Not enough available players with scores to fill GK, DEF, MID, FWD and Extra.</p> : null}
-      <div className="arc-batch-lineups">{shown.map((team, i) => <article key={i} className="arc-batch-lineup" aria-label={`Batch team ${i + 1}`}><header><h3>Team {i + 1}</h3><span><b>{pts(team.expected)}</b> pts · <b>{pct(chanceOf(team.totals, step?.target ?? 0))}</b> to clear</span></header><LineupCards lineup={team} captainBonus={captain} rule={ruleOf(steps, step?.number ?? 0, captain)} /></article>)}</div>
+      <div className="arc-batch-lineups">{shown.map((team, i) => <article key={i} className="arc-batch-lineup" aria-label={`Batch team ${i + 1}`}><header><h3>Team {i + 1}</h3><span><b>{pts(team.expected)}</b> pts · <b>{pct(chanceOf(team.totals, step?.target ?? 0))}</b> to clear</span></header><LineupCards lineup={team} captainBonus={captain} /></article>)}</div>
     </> : <p className="arc-note" role="status">{saved.day ? "No batches on this date." : "No future games left in this set."}</p>}
   </section>;
 }

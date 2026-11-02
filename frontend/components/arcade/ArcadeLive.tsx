@@ -6,11 +6,7 @@ import { readArcadeLineups, type Arcade, type ArcadeLineup } from "../../lib/arc
 import { bigReward, cutLosses, liveLineup, madridDate, planDay, type Outlook } from "../../lib/arcadePlan";
 import { climbStep, madridTime, pct, pts } from "./ArcadePlanner";
 import ArcadeAction from "./ArcadeAction";
-import NeedPill from "../NeedPill";
-import { needBadge, pointsNeeded, type NeedCard } from "../../lib/pointsNeeded";
 
-/** Sorare's own multiplier per card (captain included) and his raw score (Sorare's card score ÷ it): what each card still needs. A played 0 is a DNP. */
-const NEED_STATE = { "to play": "to play", live: "live", played: "finished" } as const;
 
 const LIVE_EVERY_MS = 2 * 60_000; // only while a game of yours is live and the page is in front: Sorare, through your tab, never Neon
 
@@ -66,12 +62,6 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus, actions }: 
       <ul className="arc-races">
         {open.map(({ step, lineup }, index) => {
           const verdict = liveLineup(lineup.cards, step.target, find(lineup), now);
-          const need = pointsNeeded(step.target, verdict.cards.map((c, i): NeedCard => ({
-            // Sorare's card score holds its bonus: his raw score is that score ÷ the bonus.
-            multiplier: lineup.cards[i]!.bonus, unknown: "Sorare gave no bonus for this card", state: NEED_STATE[c.state],
-            raw: lineup.cards[i]!.score === null || !lineup.cards[i]!.bonus ? null : lineup.cards[i]!.score! / lineup.cards[i]!.bonus!,
-          })));
-          const cleared = ["CLAIMABLE", "CLAIMED"].includes(step.state);
           const toPlay = verdict.cards.filter((c) => c.state === "to play" && c.outlook);
           // What its cards still to play would add to the next planned lineup of their day if this one were cancelled.
           const day = toPlay.length ? madridDate(toPlay.map((c) => c.outlook!.game.kickoff).sort()[0]!) : null;
@@ -115,10 +105,6 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus, actions }: 
                             ? <img src={picture} alt={c.name} width={72} height={116} loading="lazy" />
                             : null}
                           <b>{c.state === "to play" ? "–" : pts(c.points)}</b>
-                          {(() => {
-                            const badge = needBadge(need, i, step.target, lineup.cards[i]!.captain);
-                            return <NeedPill badge={need.state === "reached" && cleared ? { ...badge, detail: `Step cleared: Sorare validated ${step.target}.` } : badge} />;
-                          })()}
                         </span>
                         <span className="arc-card-name">{c.name}</span>
                         <span>{c.state === "to play" ? (c.outlook ? `plays ${madridTime(c.outlook.game.kickoff)}` : "to play") : c.state === "live" ? "live" : c.points === 0 ? "did not score" : "played"}</span>

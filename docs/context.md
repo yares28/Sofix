@@ -874,9 +874,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "Mixed-week games scored one by one (B5), lineups add foreign games, waiting flag, write-time tally; selection rules unchanged.",
+        "note": "2 Nov 2026: the Pro board payload's captainBonus field (added earlier today for pills) removed again; nothing else changed.",
         "files": {
-          "backend/app/sorare/publish.py": "168eb29a12622722e46fb66bb45225ec97750c5edd73a29478429d3a4f569a3d",
+          "backend/app/sorare/publish.py": "7ec8c0b03bd1049401c7b582786a3f7a9cebff67169e04bff89c2cc6e268775d",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
@@ -996,9 +996,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "Payloads add waiting and per-game scoreSource; Sofix number only for games Sofix modelled; Conference note from backend.",
+        "note": "2 Nov 2026: the Pro board payload's captainBonus field (added earlier today for pills) removed again; nothing else changed.",
         "files": {
-          "backend/app/sorare/publish.py": "168eb29a12622722e46fb66bb45225ec97750c5edd73a29478429d3a4f569a3d",
+          "backend/app/sorare/publish.py": "7ec8c0b03bd1049401c7b582786a3f7a9cebff67169e04bff89c2cc6e268775d",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "379c852e39c43e7d694fd8c1635ea837161f1ca09ea15b1b1300134f8c38d7fe"
@@ -1052,10 +1052,10 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "play.ts adds optional waiting field only; reward logic unchanged.",
+        "note": "2 Nov 2026: the Pro board payload's captainBonus field (added earlier today for pills) removed again; nothing else changed.",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "ecd0cb0f876f3648e26293acc5be0706157c0f7a58838470c908d79572a64ff7",
+          "frontend/lib/play.ts": "c42c60f67795485d31ddaea7b08a4c9fc2cdb509ccdabd649a4ab8f9e7798c28",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1572,15 +1572,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026 (0.4.24): on a compose page the worker reads your commons' edition bonuses itself (10 pages at most, every 6 hours); the overlay matches the address's bare step id to Sorare's Tasks::Task id. Reads only. 0.4.23: points-needed copy and pill; 0.4.22: appFetch.",
+        "note": "2 Nov 2026 (0.4.25): the points-needed pill only on Sorare's lineup pages (NEED_PAGES), only on a team block matching an open lineup; compose-page pills and the card-edition reads removed. Reads only.",
         "files": {
-          "extension/background.js": "ac5fc67e149fc95b1410227188fe5da3934ca43d53af98ece6b1dc681c0973ff",
+          "extension/background.js": "ceba27855fd70ee4be37d70e6ff5b80ef13ad1f2f7868d59af05b8e3fb91e7a2",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "865258043cb0f10d03a3cbe225dcafa5e6cb55b02517c7bc46a6f65f6a4a7817",
+          "extension/manifest.template.json": "801dea2c6d216c42703590268370718882e49de8a69531f47b3a07b0615faf8a",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "152c46a942f0c461671ef977746ea52001deac4340f839f2df949d1433463220"
+          "frontend/lib/extensionBackground.test.ts": "60e6d5d0ecbaae97824e9fbff9cf8dac9006ca31ff6a440c9719acf8ac2e1b75"
         }
       }
     },
@@ -1699,22 +1699,22 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026: climb logic unchanged; pack comparison styles and tests from the Gems and packs upgrade (plans/arcade-packs.md); earlier the same day: climb in a worker, one step everywhere, Sorare's card scores as given.",
+        "note": "2 Nov 2026: points-needed pills removed from Arcade's plan sections (owner); climb in a worker, one step everywhere, Sorare's card scores as given.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "d8331f3b69b2d4b6715ed090fdcef81503e19d77735e64cd6de3a6738cee1e23",
           "frontend/lib/arcadePlan.ts": "d4a3fbbbd2d3e87d40b855d29b1853f7132787f95a754444b215a28b1bdd3936",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "61d24e27d1be5eba45230b6f754e12b7b81c0fde096309cd3b544ef5393248e6",
+          "frontend/components/arcade/ArcadePlanner.tsx": "e7c1d68c5a0752ddcf87ef5ce53cb5d930d5298bc7935d86c7a786c9c2ec644f",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
-          "frontend/app/arcade-canvas.css": "2fe2059984d01a51ce5e7edd1474ef4d7c203bf4ba907e74620420ab703236ae",
+          "frontend/app/arcade-canvas.css": "bf0e5f1b6524872524bc54951343cdf52ef628bab133f64add57b5952df2eab6",
           "frontend/lib/arcadeTeams.ts": "2024a4463e05b8e21c73e9b9097baf568241405e1fa564486df29e1f184e66f2",
           "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
-          "frontend/components/arcade/ArcadeBatch.tsx": "d7e93a9b8f5bb695ddec65aa10ee03e997de1df1b2ab3883f41d53196ef44030",
+          "frontend/components/arcade/ArcadeBatch.tsx": "61a39850e308fedafd2619b5c8dab547151788cd7b51b7d5ad2315cdc9c61948",
           "frontend/lib/arcadeClimb.test.ts": "0ce27f5cbee513381da05f1eea34ee2258987eaa7a9d47b3ec15843648d799d8",
           "frontend/lib/arcadePlan.test.ts": "ecd85809041795e010daf53a22f91195333d7ce089a86a67d95dfa87fc9fb3ce",
           "frontend/lib/arcadeTeams.test.ts": "cf0d58177712224c0267c9fd5b1f1f397597e5b704f0035f0ea7713868d9e181",
           "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
-          "frontend/e2e/arcade.e2e.ts": "6933a26837973a12f1b0da0d4ce5bd3bce8a6a79069ad1b7b18875a31ef69cef"
+          "frontend/e2e/arcade.e2e.ts": "8a53e4abcd162874e6ac989b893e1173755b8164a69b7d6c1f33f29a4fcd9401"
         }
       }
     },

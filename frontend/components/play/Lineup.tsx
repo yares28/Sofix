@@ -13,17 +13,6 @@ import LineupSheet from "./LineupSheet";
 import { ProSheet, ProTags } from "./Pro";
 import SorareImage from "./SorareImage";
 import SeasonIcon from "../SeasonIcon";
-import NeedPill from "../NeedPill";
-import { proNeeds, scoreState, type NeedBadge } from "../../lib/pointsNeeded";
-
-/** A Pro lineup's points-needed pills: before the games, as they are played (the week's scores), or settled after them. */
-function pillsOf(lineup: LineupData, after: boolean, scores: ActualScores): NeedBadge[] | null {
-  if (!lineup.pro) return null;
-  const pills = proNeeds(lineup.pro.target, lineup.captainBonus, lineup.starters, (card) =>
-    after ? { state: "finished", raw: card.actual ?? 0 } : scoreState(scores[card.slug]));
-  // After the games Sorare's own result has spoken: reached is no longer provisional.
-  return after && lineup.actual ? pills.map((p) => (p.tone === "reached" ? { ...p, detail: `Step cleared: Sorare scored it ${lineup.actual!.total} of ${lineup.pro!.target}.` } : p)) : pills;
-}
 
 const time = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
@@ -76,7 +65,6 @@ export default function Lineup({
   const cameIn = new Set((lineup.actual?.cameIn ?? []).map((swap) => swap.sub));
   // While the week is on, a card whose game is over shows what he scored and the team its score so far, as your entered lineups do.
   const live = !after && !lineup.actual ? lineupActual(lineup, scores) : null;
-  const needs = pillsOf(lineup, after, scores);
   const face = (
     <div className="rc-lu">
       <div className="rc-lu-c">
@@ -94,7 +82,7 @@ export default function Lineup({
           const score = after ? (stayedOut ? null : card.actual) : got?.played ? got.score : null;
           return { slug: card.slug, name: card.name, picture: card.pic ?? null, rarity: lineup.rarity, captain: !!card.captain, bench, xd: card.xd,
             x: hindsight ? undefined : cardScore(card).value, score, total: cardTotal(score, card, lineup.captainBonus),
-            why: stayedOut ? "Stayed on the bench" : (after ? card.actual === null : got && !got.played) ? "Did not play" : "Not played yet", need: needs?.[i] };
+            why: stayedOut ? "Stayed on the bench" : (after ? card.actual === null : got && !got.played) ? "Did not play" : "Not played yet" };
         })}
       />
       <div className="rc-score">
@@ -133,12 +121,12 @@ export default function Lineup({
 
   return (
     <LineupSheet title={`${lineup.comp} lineup`} head={head} card={face}>
-      <Sheet lineup={lineup} after={after} index={index} hindsight={hindsight} players={players} needs={needs} />
+      <Sheet lineup={lineup} after={after} index={index} hindsight={hindsight} players={players} />
     </LineupSheet>
   );
 }
 
-function Sheet({ lineup, after, index, hindsight, players, needs }: { lineup: LineupData; after: boolean; index: number; hindsight: boolean; players: PlayingPlayer[]; needs: NeedBadge[] | null }) {
+function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupData; after: boolean; index: number; hindsight: boolean; players: PlayingPlayer[] }) {
   const inSeason = lineup.starters.filter((card) => card.inSeason).length;
   const clubs = new Map<string, number>();
   for (const card of lineup.starters) clubs.set(card.club ?? "", (clubs.get(card.club ?? "") ?? 0) + 1);
@@ -177,7 +165,7 @@ function Sheet({ lineup, after, index, hindsight, players, needs }: { lineup: Li
 
       <div className="pl-grid" style={{ ["--n" as string]: String(Math.min(lineup.starters.length, 7)) }}>
         {lineup.starters.map((card, i) => (
-          <SheetCard key={card.slug} card={card} lineup={lineup} after={after} position={i} match={matchOfCard(card, players)} need={needs?.[i]} />
+          <SheetCard key={card.slug} card={card} lineup={lineup} after={after} position={i} match={matchOfCard(card, players)} />
         ))}
       </div>
 
@@ -292,7 +280,7 @@ function Sheet({ lineup, after, index, hindsight, players, needs }: { lineup: Li
   );
 }
 
-function SheetCard({ card, lineup, after, position, match, need }: { card: PlayCard; lineup: LineupData; after: boolean; position: number; match: number | null; need?: NeedBadge }) {
+function SheetCard({ card, lineup, after, position, match }: { card: PlayCard; lineup: LineupData; after: boolean; position: number; match: number | null }) {
   const score = cardScore(card);
   const value = after ? card.actual : score.value;
   const out = after && card.actual === null;
@@ -301,7 +289,6 @@ function SheetCard({ card, lineup, after, position, match, need }: { card: PlayC
   const start = after ? null : startChance(card);
   return (
     <div className={`pl-pc${out ? " out" : ""}`} style={{ ["--i" as string]: String(position) }}>
-      <div className="pl-pc-art">
       <Link className="art" href={playerHref(card.player ?? card.slug)} aria-label={`${card.name}: open his page`}>
         <Silhouette className="pl-sil" />
         <SorareImage src={card.pic} alt="" fill />
@@ -310,8 +297,6 @@ function SheetCard({ card, lineup, after, position, match, need }: { card: PlayC
           {value === null ? "DNP" : Math.round(value)}
         </span>
       </Link>
-      {need ? <NeedPill badge={need} /> : null}
-      </div>
       <div className="pl-who">
         <b>
           {match === null ? (

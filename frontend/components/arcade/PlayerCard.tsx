@@ -3,15 +3,13 @@
 import { bonusLabel, type ArcadeCard, type ArcadeGame } from "../../lib/arcade";
 import type { Outlook } from "../../lib/arcadePlan";
 import CardRatings from "./CardRatings";
-import NeedPill from "../NeedPill";
-import type { NeedBadge } from "../../lib/pointsNeeded";
 
 const SOURCES = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 export const fixtureName = (game: ArcadeGame) => `${game.home?.name ?? "?"} v ${game.away?.name ?? "?"} · ${new Date(game.kickoff).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${game.competition.name}`;
 
 /** Shared card art and evidence for the collection and the exact game picked in a lineup. */
-export default function PlayerCard({ card, outlook, game, fixtures, crests, onSelect, unavailable = "No game before the set ends", captain = false, captainBonus = 0, need }: {
-  card: ArcadeCard; outlook?: Outlook; game?: ArcadeGame; fixtures: ArcadeGame[]; crests: Map<string, string>; onSelect?: (id: string) => void; unavailable?: string; captain?: boolean; captainBonus?: number; need?: NeedBadge;
+export default function PlayerCard({ card, outlook, game, fixtures, crests, onSelect, unavailable = "No game before the set ends", captain = false, captainBonus = 0 }: {
+  card: ArcadeCard; outlook?: Outlook; game?: ArcadeGame; fixtures: ArcadeGame[]; crests: Map<string, string>; onSelect?: (id: string) => void; unavailable?: string; captain?: boolean; captainBonus?: number;
 }) {
   const bonus = bonusLabel(card.bonus);
   const detail = game ? fixtureName(game) : unavailable;
@@ -30,7 +28,6 @@ export default function PlayerCard({ card, outlook, game, fixtures, crests, onSe
           ? <img src={card.picture} alt={card.name} loading="lazy" width={240} height={388} />
           : <div className="arc-card-blank" role="img" aria-label={card.name}>{card.name}</div>}
         <CardRatings outlook={outlook} game={game?.id} home={game?.home?.slug === card.teamSlug} detail={detail} captain={captain} captainBonus={captainBonus} />
-        {need ? <NeedPill badge={need} /> : null}
         {bonus ? <span className="arc-card-bonus" title={`${card.edition ?? "Edition"} bonus; club bonus is included separately in xScore`}>{bonus}</span> : null}
       </div>
       <figcaption>

@@ -725,12 +725,17 @@ function needFrom(step, data, input = {}, now = Date.now()) {
   return null;
 }
 
-async function keepNeed(step, answer, input = {}) {
-  if (answer?.state !== "ok") return;
+// One save at a time: the app's reads and the overlay's land together, and two read-then-write saves would undo each other.
+let needSaving = Promise.resolve();
+function keepNeed(step, answer, input = {}) {
+  if (answer?.state !== "ok") return needSaving;
   const add = needFrom(step, answer.data, input);
-  if (!add) return;
-  const { [NEED_KEY]: kept = {} } = await chrome.storage.local.get(NEED_KEY);
-  await chrome.storage.local.set({ [NEED_KEY]: { ...kept, ...add } });
+  if (!add) return needSaving;
+  needSaving = needSaving.then(async () => {
+    const { [NEED_KEY]: kept = {} } = await chrome.storage.local.get(NEED_KEY);
+    await chrome.storage.local.set({ [NEED_KEY]: { ...kept, ...add } });
+  }).catch(() => {});
+  return needSaving;
 }
 
 /** The overlay's question: the copy, after reading your lineups again when a game of yours is live (or nothing was read yet). */

@@ -1572,15 +1572,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026 (0.4.27): the pill's team block is found up to 40 levels up (Arcade lineup cards sit 15-17 deep) and is kept only once every card in it is identified. 0.4.26: pill on Sorare's Arcade lineups page (/football/series/<id>/lineups); lineups re-read every 10 minutes with no game live. Reads only.",
+        "note": "2 Nov 2026 (0.4.28): saves of the points-needed copy run one at a time (the app's reads landing together undid each other, leaving your Arcade lineups out); seen working on the real Arcade lineups page. 0.4.27: team block up to 40 levels up, kept once all its cards are identified. 0.4.26: Arcade lineups page; 10-minute re-read. Reads only.",
         "files": {
-          "extension/background.js": "591ef95a449372c93c54aee549460573f201ee5ff757976b8c8684019763c1d8",
+          "extension/background.js": "6352a5f0b7c539d779ba026c044b4d6efed224b5b470ac08ad033e3bb6e31317",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "afb693e39875ca9c32205d5eaeab32f616f0bb26711c429afa98546e73d6826c",
+          "extension/manifest.template.json": "5989819e8699f171cfabd544307d959f9cb29b2835ee429317396596296dfae8",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "3ca1e5ab3cdb05ffe1e87b31a1c726eef7d04824d683cb3e4a45f097dd9e0dfc"
+          "frontend/lib/extensionBackground.test.ts": "43e5c2c8a1f02297222e6c6e51bc6ebc78f80ef0ba0884f3e7ad6aee29e7ebfa"
         }
       }
     },

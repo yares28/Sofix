@@ -673,6 +673,16 @@ describe("points needed on sorare.com", () => {
     expect(w.asked).toHaveLength(2); // just read: not again
   });
 
+  it("keeps every read when the app's reads land at once", async () => {
+    const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
+    await Promise.all(["arcade", "arcade-lineups", "pro-entered"].map((step) => w.sendFrom(APP, { type: "sorare", step })));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const kept = w.local.get("needData") as { arcade?: unknown; arcadeLineups?: unknown[]; proLineups?: unknown[] };
+    expect(kept.arcade).toBeTruthy();
+    expect(kept.arcadeLineups).toHaveLength(1);
+    expect(kept.proLineups).toHaveLength(1);
+  });
+
   it("reads your lineups again every 10 minutes with no game live, so a lineup entered since shows its pills", async () => {
     const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
     const now = Date.now();

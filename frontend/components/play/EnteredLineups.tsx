@@ -87,18 +87,21 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
   }, []);
 
   const estimates = useMemo(() => new Map(load.lineups.map(lineup => [lineup.id, enteredScore(lineup, forecast, week.slug, scores)])), [load.lineups, forecast, week.slug, scores]);
+  const now = new Date(); // only read once the lineups are in, which happens in the browser
+  const locked = week.lock ? Date.parse(week.lock) <= now.getTime() : Boolean(week.end && Date.parse(week.end) < now.getTime());
+  // The Recap's Rewards card: "You · Actual" is what each lineup reaches so far while the week plays, as its row says, and what
+  // Sorare paid once it has (2 Nov 2026: the card only filled after Sorare paid).
   useEffect(() => {
     if (!setRewards) return;
-    setRewards({ state: load.state, summary: checkedWeekRewards(load.lineups.filter(l => !l.draft).map(l => ({
+    const entered = load.lineups.filter(l => !l.draft);
+    const rows = enteredRewardRows(entered, estimates, rewardCheck ? { you: rewardCheck.you } : null, locked);
+    setRewards({ state: load.state, summary: checkedWeekRewards(entered.map((l, i) => ({
       id: l.id,
       chance: estimates.get(l.id)?.chance,
       expected: estimates.get(l.id)?.atScore,
-      actual: paidBySorare(l.result, estimates.get(l.id)?.prizeLine),
+      actual: rows[i]!.won ?? paidBySorare(l.result, estimates.get(l.id)?.prizeLine),
     })), rewardCheck?.you) });
-  }, [setRewards, load, estimates, rewardCheck]);
-
-  const now = new Date(); // only read once the lineups are in, which happens in the browser
-  const locked = week.lock ? Date.parse(week.lock) <= now.getTime() : Boolean(week.end && Date.parse(week.end) < now.getTime());
+  }, [setRewards, load, estimates, rewardCheck, locked]);
   // Each entered lineup's projected prize and what it won or reaches so far: the rows the header adds up.
   const enteredOnly = load.lineups.filter((l) => !l.draft);
   const prizeRows = enteredRewardRows(enteredOnly, estimates, comparison?.rewards, locked);

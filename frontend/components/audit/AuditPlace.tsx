@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import YourSeason from "../recap/YourSeason";
 import AuditView, { type AuditShow } from "./AuditView";
 import SiteNav from "../SiteNav";
 import { loadGrid } from "../../lib/api";
@@ -81,6 +82,8 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     <>
       <SiteNav meta={meta} system={system} week={show === "xscore" ? week : undefined} />
       <main className={show === "starts" ? "au au-starts-page" : "au"}>
+        {/* Your season's rewards sit with the plan's (owner, 2 Nov 2026: moved here from the Recap). */}
+        {show === "rewards" ? <YourSeason saved={myWeeks} now={new Date().toISOString()} compare={false} /> : null}
         <AuditView missionOutcomes={outcomes} plansHref={plansHref} data={data} now={new Date()} league={league} show={show} season={season} saved={saved} pics={pics} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} playerWeeks={playerWeeks} startParams={Object.fromEntries(Object.entries(params).map(([key, value]) => [key, typeof value === "string" ? value : undefined]))} />
         {show === "missions" ? <div className="pd-wrap">{owned.map((rarity) => <MissionHistory key={rarity} title={`${RARITY_NAME[rarity]} history`} days={missionHistories.find(h => h.rarity === rarity)!.recent} rarity={rarity} collection={sorare?.collection ?? []} />)}</div> : null}
       </main>

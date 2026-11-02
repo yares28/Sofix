@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import LiveRefresh from "../components/LiveRefresh";
 import Link from "../components/navigation/NavigationLink";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -7,11 +8,9 @@ import { BestCards, MissionsGlance, PlanLineups, RoundBoard, TableAfter, WeekNew
 import { WaitingTile } from "../components/home/SorareTiles";
 import TeamNewsTile from "../components/home/TeamNewsTile";
 import EnteredLineups from "../components/play/EnteredLineups";
-import YourSeason from "../components/recap/YourSeason";
 import RewardsCard, { WeekRewardsProvider } from "../components/recap/WeekRewards";
 import { planForRewards, weekRewards } from "../lib/weekRewards";
 import { projectedPrize, rewardSignature } from "../lib/playRewards";
-import { myWeeksQuietly } from "../lib/myWeeksData";
 import SiteNav from "../components/SiteNav";
 import { loadGrid } from "../lib/api";
 import { legacyBoardUrl, openingColumn } from "../lib/grid";
@@ -50,13 +49,12 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   if (legacy) redirect(legacy);
 
   // Reads start together: each one waiting for the one before made every view slower (AGENTS.md "Pages").
-  const [{ grid, meta, error }, system, sorare, lineups, missions, savedWeeks, pool] = await Promise.all([
+  const [{ grid, meta, error }, system, sorare, lineups, missions, pool] = await Promise.all([
     loadGrid(),
     loadSystem(),
     loadSorare(),
     loadLineups(),
     loadMissions(),
-    myWeeksQuietly(),
     loadMissionPool(),
   ]);
   const opening = grid ? openingColumn(grid) : 0;
@@ -135,8 +133,8 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         </header>
         {away ? <AwayWeek plan={plan} variant="recap" dates={weekDates(away)} href={href("/fixtures")} /> : null}
         {plan ? <BestCards cards={bestCards(plan.playing.players)} gw={plan.gameweek.number} /> : null}
+        <LiveRefresh from={selectedSorare && "lock" in selectedSorare ? selectedSorare.lock : null} to={selectedSorare && "end" in selectedSorare ? selectedSorare.end : null} />
         <WeekRewardsProvider key={selectedSorare?.slug ?? week.current?.id ?? "none"}><div className="rc-grid">
-          <YourSeason saved={savedWeeks} now={now.toISOString()} />
           {!away ? (
             <>
               <RoundBoard matches={roundBoard(grid, column)} href={href("/fixtures")} />

@@ -183,7 +183,7 @@ test("the page leads with Sofix's and Sorare's success rate within 7 points, sta
   }
 });
 
-test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the plan frozen at lock", async ({ page, request }) => {
+test("saved weeks survive without Chrome on Audit · Rewards and Cards, beside the plan frozen at lock", async ({ page, request }) => {
   const card = sorare.collection![0]!;
   const start = `${new Date().getUTCFullYear()}-08-01T14:00:00Z`;
   const saved = { slug: "saved-week", number: 17, start, end: start, savedAt: start,
@@ -194,9 +194,13 @@ test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the
     plans: [{ rank: 1, lineups: [{ competition: "LaLiga", board: "board", expected: 290, score: 301.5, cameIn: [], bonusLost: false },
       { competition: "Older rules", board: "missing", expected: 200, score: null, reason: "incomplete-plan", cameIn: [], bonusLost: false },
       { competition: "Waiting", board: "waiting", expected: 210, score: null, cameIn: [], bonusLost: false }] }] }] } });
+  // Your season lives on Audit · Rewards (owner, 2 Nov 2026), not on the Recap.
   await page.goto("/");
+  await expect(page.getByRole("region", { name: "Your season" })).toHaveCount(0);
+  await page.goto("/audit/rewards");
   const season = page.getByRole("region", { name: "Your season" });
   await expect(season).toContainText("250 Limited essence");
+  await expect(season.getByRole("link", { name: /Compare with the plan/ })).toHaveCount(0);
   await expect(season).toContainText("1 GW played");
   await season.getByText("Week by week", { exact: true }).click();
   await season.getByText("GW17", { exact: true }).click();
@@ -411,7 +415,7 @@ test("Rewards adds up what the plans expected over the season against what they 
   await expect(weeks.first()).toHaveText(/GW18\s*120\s*250/); // newest first
 
   // What you won is read from Sorare through the extension, which this browser does not have: it says so instead of a zero
-  await expect(page.getByRole("region", { name: "You" }).getByRole("status")).toContainText("can't reach the extension");
+  await expect(page.getByRole("region", { name: "You", exact: true }).getByRole("status")).toContainText("can't reach the extension");
 });
 
 test("Missions uses the same settled selections as history, even before its ceiling audit is checked", async ({ page, request, context }) => {

@@ -21,7 +21,7 @@ far right; two fixtures show two rectangles, and missing forecasts stay blank.
 27 October: Home splits the right column into the round's table and **Rewards** for the selected Sorare GW. You and
 Sofix show the attainable prizes at each lineup's projected score beside checked actual rewards (Sofix: **Would win**).
 Cash, each essence competition/rarity and XP remain separate; card prizes are omitted. A dash means unavailable or pending; an actual zero is a checked zero.
-A `+` marks a partial total, with checked-lineup coverage below. Your existing lineup read updates both sections.
+A `+` marks a partial total, with checked-lineup coverage below. Your existing lineup read updates both sections. While the GW is played (2 Nov 2026) your Actual is the prize each lineup reaches so far, as its row says, until Sorare pays; Recap and Play read their data again every 5 minutes while the tab is in front.
 Settled rewards keep the original checked Sofix recommendation and your saved results even if a later replay or private snapshot differs.
 
 26 October: automatic reward checks also re-evaluate older unfinished deadlines using the games represented in your entered and recommended lineups, including the bench. Checks start one hour after the job first observes all relevant games finished; scheduled-run delays can add time. Completed results keep their correction schedule. New saved rewards become visible after scheduled publication.
@@ -130,7 +130,7 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **Header**: the Sorare gameweek, its LaLiga round and days, when it locks ("Locks Fri 16:00, in 4 days") and **Open the plan**.
 - **Best cards**: your ten best cards of the week by xScore, all positions together, each with its xScore in a hexagon of Sorare's
   colour, his first game and his chance to start (whose number it is on hover).
-- **Your season**: choose a season to see Limited essence, cash, card rewards and distinct GWs with entered lineups.
+- **Your season** (on Audit · Rewards since 2 Nov 2026, no longer on the Recap): choose a season to see Limited essence, cash, card rewards and distinct GWs with entered lineups.
   **Week by week** shows rewarded GWs only; expand one to see its actual essence-winning lineups and captains.
   Zero-reward GWs still count as played. Open Home in Chrome with a signed-in Sorare tab to save missing finished
   weeks; failed reads can be retried. Saved lineups and rewards also work on your phone without the extension.

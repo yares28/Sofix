@@ -32,7 +32,7 @@ test("Home compares the selected GW's expected and checked rewards without a sec
   await expect(own.locator('.rc-reward-chance strong')).toHaveText(line.pReturn === 1 ? "100%" : chanceLabel(line.pReturn));
   const mean = plan.lineups.reduce((sum, l) => sum + l.pReturn, 0) / plan.lineups.length;
   await expect(sofix.locator('.rc-reward-chance strong')).toHaveText(mean === 1 ? "100%" : chanceLabel(mean));
-  await expect.poll(() => reads).toBe(3); // season archive reads before/after, plus one entered-lineup read
+  await expect.poll(() => reads).toBe(1); // one entered-lineup read (Your season, with its archive reads, moved to Audit · Rewards on 2 Nov 2026)
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

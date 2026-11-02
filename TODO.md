@@ -63,7 +63,7 @@ localhost to the local copy. Also seen: one LaLiga lineup reads "Actual 0" besid
 
 **G. Recap: "Your season" to Audit, rewards live (issue 7).** "In recap tab, move the 'Your season' card in audit; rewards
 card does not update in real time." `components/recap/YourSeason.tsx` (already links to `/audit/rewards`) moves to the Audit
-page; the rewards card (`components/recap/WeekRewards.tsx`) updates as scores come in, without a reload.
+page; the rewards card (`components/recap/WeekRewards.tsx`) updates as scores come in, without a reload. **Done 2 Nov**: Your season is on Audit · Rewards (the Recap no longer reads saved weeks); the card's "You · Actual" is the prize each lineup reaches so far (as its row says, also from the worked-out scores), and Recap and Play read their data again every 5 minutes while the week is played and the tab is in front (`components/LiveRefresh.tsx`). The Sofix side still updates only with the published plan's checks.
 
 **H. Ship Codex's "Gems and packs" (issue 9).** "I upgraded it in codex, make it live." Uncommitted in
 `C:/Users/Yaya/.codex/worktrees/618b/FixtureDiff` (on 93f7477): ArcadePacks.tsx, arcadePacks.ts (+tests), new

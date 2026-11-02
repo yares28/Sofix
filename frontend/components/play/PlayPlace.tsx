@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import LiveRefresh from "../LiveRefresh";
 import { connection } from "next/server";
 import EnteredLineups from "./EnteredLineups";
 import PlayView from "./PlayView";
@@ -127,6 +128,7 @@ export default async function PlayPlace({ searchParams, alternatives = false }: 
   return (
     <>
       <SiteNav meta={meta} system={system} week={navWeek} />
+      <LiveRefresh from={view.gameweek.lock} to={view.gameweek.end} />
       <PlayView
         alternatives={alternatives}
         missions={missions}

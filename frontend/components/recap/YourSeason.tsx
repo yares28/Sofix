@@ -10,7 +10,7 @@ import { archiveFinishedWeeks } from "../../lib/myWeeksClient";
 import { cashLabel, essenceLabel } from "../../lib/play";
 import CardArt from "../cards/CardArt";
 
-export default function YourSeason({ saved, now }: { saved: SavedWeek[] | null; now: string }) {
+export default function YourSeason({ saved, now, compare = true }: { saved: SavedWeek[] | null; now: string; compare?: boolean }) {
   const [weeks, setWeeks] = useState(saved ?? []);
   const [selected, setSelected] = useState<number | null>(null);
   const [status, setStatus] = useState(saved === null ? "Saved rewards are unavailable." : "");
@@ -31,7 +31,7 @@ export default function YourSeason({ saved, now }: { saved: SavedWeek[] | null; 
   const totals = seasonSummary(weeks.filter((w) => seasonYear(w.start) === year));
   const rewarded = [...totals.rewarded].sort((a, b) => b.start.localeCompare(a.start));
   return <section className="hm-tile rc-season" aria-labelledby="your-season-title">
-    <div className="rc-th"><h2 id="your-season-title">Your season</h2><Link href="/audit/rewards">Compare with the plan &gt;</Link></div>
+    <div className="rc-th"><h2 id="your-season-title">Your season</h2>{compare ? <Link href="/audit/rewards">Compare with the plan &gt;</Link> : null}</div>
     {years.length > 1 ? <label className="rc-season-select">Season<select value={year} onChange={(e) => setSelected(Number(e.target.value))}>{years.map((y) => <option key={y} value={y}>{y}/{String(y + 1).slice(-2)}</option>)}</select></label> : <p className="rc-none">{year}/{String(year + 1).slice(-2)}</p>}
     <div className="rc-season-total"><b>{essenceLabel(totals.essence)} Limited essence</b><span>{cashLabel(totals.cash)}{totals.cards ? ` · ${totals.cards} card rewards` : ""}</span><strong>{totals.played} GW played</strong></div>
     {rewarded.length ? <details><summary>Week by week</summary><ul className="rc-reward-weeks">{rewarded.map((week) => {

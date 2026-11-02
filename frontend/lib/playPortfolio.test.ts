@@ -62,6 +62,12 @@ it("gives each entered lineup its projected prize and, once locked, its checked 
   expect(rewardShort({})).toBe("No prize");
   expect(rewardShort(null)).toBe("—");
 });
+it("reaches its prize so far from the week's published scores when Sorare's saved read has no score (2 Nov 2026)", () => {
+  const line = { board: "b", x: 0, rarity: "limited", kind: "x", tiers: [{ need: 300, p: .3, essence: 30 }, { need: 400, p: .1, cash: 5 }] };
+  const unread = entry("a");
+  const forecasts = new Map<string, Parameters<typeof enteredRewardRows>[1] extends Map<string, infer F> ? F : never>([["a", { value: 290, estimated: false, atScore: {}, prizeLine: line as never, actual: 320, actualComplete: false }]]);
+  expect(enteredRewardRows([unread], forecasts, null, true)).toEqual([{ projected: {}, won: { "essence:limited:x": 30 }, soFar: true }]);
+});
 it("counts what Sorare paid a ranked lineup as won when the reward check has not run", () => {
   const paid = { ...entry("a"), result: { score: 313, rank: 1204, cash: 2.5, essence: 250, card: false } } as GameweekLineup;
   expect(enteredRewardRows([paid], new Map(), null, true)).toEqual([{ projected: null, won: { "cash:USD": 2.5, "essence:unknown:unknown": 250 }, soFar: false }]);

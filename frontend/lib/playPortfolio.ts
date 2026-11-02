@@ -42,7 +42,8 @@ function wonSoFar(rows:{checked:RewardValues|null|undefined;score:number|null;li
   const won=rows.map(r=>rowWon(r.checked,r.score,r.line,live));
   return {rewardActual:actualRewards(won.map(r=>r.won)),rewardLive:won.some(r=>r.soFar)};
 }
-const liveScore=(l:GameweekLineup,live:boolean)=>live?l.result?.score??null:null;
+/** Sorare's score once it has one; else the score worked out from the week's published scores (`enteredScore`'s actual). */
+const liveScore=(l:GameweekLineup,live:boolean,worked?:number)=>!live?null:l.result&&l.result.score>0?l.result.score:worked??l.result?.score??null;
 /** What Sorare paid a ranked lineup, once it has paid anything; null while it pays nothing yet (it pays after the GW). */
 export function paidBySorare(result:GameweekLineup["result"],line?:PrizeLine):RewardValues|null {
   if(!result||result.rank===null||!(result.cash||result.essence||result.card||result.xp))return null;
@@ -51,7 +52,7 @@ export function paidBySorare(result:GameweekLineup["result"],line?:PrizeLine):Re
 /** Per entered lineup (drafts left out): the prize its projected points reach and, once locked, what it won or reaches so far. */
 export function enteredRewardRows(lineups:GameweekLineup[],forecasts:Map<string,Forecast>,rewards?:EnteredRewardCheck|null,live=false){
   return lineups.filter(l=>!l.draft).map(l=>({projected:forecasts.get(l.id)?.atScore??null,
-    ...rowWon(rewards?.you?.find(r=>r.id===l.id)?.rewards??paidBySorare(l.result,forecasts.get(l.id)?.prizeLine),liveScore(l,live),forecasts.get(l.id)?.prizeLine,live)}));
+    ...rowWon(rewards?.you?.find(r=>r.id===l.id)?.rewards??paidBySorare(l.result,forecasts.get(l.id)?.prizeLine),liveScore(l,live,forecasts.get(l.id)?.actual),forecasts.get(l.id)?.prizeLine,live)}));
 }
 type Forecast = ReturnType<typeof enteredScore>;
 const validChance = (n: number | undefined): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1;
@@ -71,8 +72,8 @@ function summary(forecasts: Forecast[]): Portfolio {
 export function enteredPortfolio(lineups: GameweekLineup[], forecasts: Map<string, Forecast>, rewards?:EnteredRewardCheck|null, live=false): Portfolio {
   const entered = lineups.filter(l => !l.draft);
   const result=summary(entered.map(l => forecasts.get(l.id) ?? { value: null, estimated: false }));
-  const actual=mean(entered.map(l=>liveScore(l,live))),rows=enteredRewardRows(entered,forecasts,rewards,live);
-  const cards=bestCards(entered.map((l,i)=>({prize:live?rows[i]!.won:rows[i]!.projected,points:live?liveScore(l,live):forecasts.get(l.id)?.value??null,
+  const actual=mean(entered.map(l=>liveScore(l,live,forecasts.get(l.id)?.actual))),rows=enteredRewardRows(entered,forecasts,rewards,live);
+  const cards=bestCards(entered.map((l,i)=>({prize:live?rows[i]!.won:rows[i]!.projected,points:live?liveScore(l,live,forecasts.get(l.id)?.actual):forecasts.get(l.id)?.value??null,
     cards:[...l.cards].sort((a,b)=>(a.index??0)-(b.index??0)).map(c=>({slug:c.slug,name:c.name,pic:c.picture??""}))})));
   return {...result,cards,...paidCount(rows.map(r=>r.won),live),rewardActual:actualRewards(rows.map(r=>r.won)),rewardLive:rows.some(r=>r.soFar),live,actualPoints:actual.value,actualRated:actual.rated,prizeLines:entered.map((l,i)=>({name:`${l.competition} ${i+1}`,score:forecasts.get(l.id)?.value??null,options:forecasts.get(l.id)?.prizes??[]})),checkedAt:rewards?.checkedAt,nextCheckAt:rewards?.nextCheckAt};
 }

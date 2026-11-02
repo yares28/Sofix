@@ -1571,16 +1571,16 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-30",
-        "note": "Inspected both allowlists and official-eleven query validation; new read is fixed, game-bound and read-only. Mock tests do not certify the loaded browser extension.",
+        "date": "2026-11-02",
+        "note": "2 Nov 2026 (0.4.22): every app call goes through appFetch, trying 127.0.0.1:3000 then each Vercel address and remembering the one that answers JSON; open-app uses that address. Allowlists, Sorare operations and token handling unchanged.",
         "files": {
-          "extension/background.js": "43822fe7b454860cfd2cc8ecf4eda20fdfa31d377e29a2d0880fed2c52b2621d",
+          "extension/background.js": "139ff9f0cc0ec44a15cf26d53bebb5ff6c84e63a28d7b89971f283a94ec08a47",
           "extension/bridge.js": "763154e7c127dc8a933822890b06b2fe85234e30013254535577c1e8e8d5e6e6",
-          "extension/manifest.template.json": "00dc722408bd16910ed5020536359cd4289fe2839668acc860fe9d5c4f1c010e",
+          "extension/manifest.template.json": "6d52f59ef89be6fae7bfa3c5ae77da0b5077aa60cf62b78055d3ac9063a680e7",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "2bff43be7e6b8bbabc986008711258f39e3461c86e2062707072694989b1ae3b"
+          "frontend/lib/extensionBackground.test.ts": "1d29d7a38fef8f964eb569a5e42b774251cdea2c41bd7b36b6c3f1a10e166d13"
         }
       }
     },
@@ -2217,10 +2217,10 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "tests": [],
       "review": {
-        "date": "2026-10-29",
-        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "date": "2026-11-02",
+        "note": "2 Nov 2026: without a database (the local launcher) the check-in answers ok with stored false instead of 503; with one it stores as before.",
         "files": {
-          "frontend/app/api/ext/checkin/route.ts": "66f7cf1e1e48d3ef6b665d0af5804776059edcad78f5c3d74cd29ec5fd92a233",
+          "frontend/app/api/ext/checkin/route.ts": "57bcd8b3e98758e33724e7fab2e7219cbf4735213a6da2408479ee41bbb93f69",
           "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c"
         }
       }

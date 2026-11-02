@@ -70,6 +70,12 @@ page; the rewards card (`components/recap/WeekRewards.tsx`) updates as scores co
 arcadePackStore.ts and arcadePackRead.test.ts, arcade.ts, ArcadeView.tsx, arcade-canvas.css, arcade.e2e.ts, docs and
 plans/arcade-packs.md. Bring onto `main`, run its tests, push. **Shipped 2 Nov**: applied onto main (docs hashes regenerated), Arcade spec 25/25, real odds read on your board.
 
+**J. Extension: "App not reachable" (you, 2 Nov 2026).** "fix the extension not connecting to app ... i lost vercel so make
+it work for both vercel and localhost". Cause: on localhost the check-in route answered 503 "No database configured" whenever it
+had news to store, and the extension read that as unreachable; its config also lacked the main Vercel address. **Fixed 2 Nov**
+(extension 0.4.22): the check-in answers OK without a database; configure.mjs always lists 127.0.0.1:3000 and every Vercel
+address; the extension tries them in order and remembers the one that answers (`appFetch`, background.js).
+
 **I. Points-needed pill in the Sorare overlay (issues 1, 2, 5).** "I want the pill in the extension, so I can see it in
 Sorare, not in Sofix." On sorare.com's Arcade and Pro compose pages, each picked card gets the same pill (same calculation,
 `lib/pointsNeeded.ts`), for the step and lineup on screen, live while the games run. Needs an extension release (configure.mjs,

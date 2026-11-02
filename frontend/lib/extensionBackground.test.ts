@@ -74,7 +74,9 @@ function load(options: { sorareTab?: boolean; tabs?: { id: number; active: boole
     calls.push(call);
     const answer = respond(call);
     if (answer === "network") throw new TypeError("network");
-    return { ok: answer.ok, status: answer.status, json: async () => answer.body, text: async () => answer.text ?? "" };
+    // The app answers JSON; Vercel's "deployment disabled" page is text.
+    const type = answer.body !== undefined ? "application/json" : "text/html";
+    return { ok: answer.ok, status: answer.status, headers: { get: (name: string) => (name.toLowerCase() === "content-type" ? type : null) }, json: async () => answer.body, text: async () => answer.text ?? "" };
   };
   const context = vm.createContext({ chrome, fetch, console, setTimeout, clearTimeout, URL, Date });
   vm.runInContext(CORE, context, { filename: "core.js" });
@@ -267,7 +269,19 @@ describe("the overlay's numbers", () => {
     expect(await worker.send({ type: "overlay-numbers", cards: [], players: ["a-player"] })).toEqual({ state: "unreachable" });
     expect(worker.local.get("appReachable")).toBe(false);
     expect(await worker.send({ type: "overlay-numbers", cards: [], players: ["another"] })).toEqual({ state: "unreachable" });
-    expect(worker.calls).toHaveLength(1); // the second question never left the browser
+    expect(worker.calls.map((c) => new URL(c.url).origin)).toEqual([APP, "https://alias.sofix.example"]); // each address once; the second question never left the browser
+  });
+
+  it("reaches the app wherever it answers, and remembers it (2 Nov 2026: Vercel blocked, the app on this computer)", async () => {
+    // The first address is Vercel's "deployment disabled" page (text, 402); the second is the app.
+    worker.respondWith((call) => (call.url.startsWith(APP) ? { ok: false, status: 402, text: "Payment required" } : { ok: true, status: 200, body: { ok: true, cards: {}, players: {} } }));
+    expect(await worker.send({ type: "overlay-numbers", cards: [], players: ["a-player"] })).toMatchObject({ state: "ok" });
+    expect(worker.local.get("appBase")).toBe("https://alias.sofix.example");
+    await worker.send({ type: "overlay-numbers", cards: [], players: ["another"] });
+    expect(new URL(worker.calls.at(-1)!.url).origin).toBe("https://alias.sofix.example"); // asked first next time
+    await worker.send({ type: "open-app", path: "/play" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(worker.created.at(-1)?.url).toBe("https://alias.sofix.example/play");
   });
 
   it("says when the app does not accept the extension's token, without calling it unreachable", async () => {
@@ -343,12 +357,14 @@ describe("the dock's plan and missions", () => {
 describe("what a page may ask the worker to do", () => {
   it("opens the app, the Play page of one gameweek, or Control, and nothing else", async () => {
     for (const path of ["/", "/play", "/play?gw=17", "/control"]) await worker.send({ type: "open-app", path });
-    expect(worker.created.map((tab) => tab.url)).toEqual([APP + "/", APP + "/play", APP + "/play?gw=17", APP + "/control"]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(worker.created.map((tab) => tab.url).sort()).toEqual([APP + "/", APP + "/control", APP + "/play", APP + "/play?gw=17"]);
   });
 
   it("sends anything else to the front page of the app, never to an address a page chose", async () => {
     for (const path of ["/api/refresh", "//evil.example", "/play?gw=1;drop", "/play?gw=12345", "https://evil.example/", undefined, 5])
       await worker.send({ type: "open-app", path });
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(worker.created.every((tab) => tab.url === APP + "/")).toBe(true);
     expect(worker.created).toHaveLength(7);
   });

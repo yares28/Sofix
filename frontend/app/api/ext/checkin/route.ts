@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, seen_at: stored?.payload.seen_at }, { headers: { "Cache-Control": "no-store" } });
   }
   const sql = database();
-  if (!sql) return NextResponse.json({ ok: false, error: "No database configured." }, { status: 503 });
+  // On this computer (the local launcher) there is no database by design: the app is here and answering, so say so (2 Nov 2026:
+  // the extension read this 503 as "App not reachable"). Nothing is stored.
+  if (!sql) return NextResponse.json({ ok: true, stored: false, seen_at: new Date().toISOString() }, { headers: { "Cache-Control": "no-store" } });
 
   const payload = { ...parsed.data, seen_at: new Date().toISOString() };
   await sql`

@@ -7,6 +7,42 @@ import { CONFIG } from "./config.js";
 import "./core.js"; // the page reader and the formula the overlay shares: sets globalThis.__sofixCore
 
 const VERSION = chrome.runtime.getManifest().version;
+
+/**
+ * The Sofix app's addresses in the order to try them: this computer's launcher first, then each Vercel address (configure.mjs).
+ * Vercel was blocked on 2 Nov 2026 and the app moved to localhost: every call now tries them in turn and remembers the one that
+ * answered, so the extension follows the app wherever it runs. An app answer is JSON; Vercel's "deployment disabled" page is not.
+ */
+const APP_BASES = [...new Set([...(CONFIG.appUrls ?? []), CONFIG.appUrl, ...(CONFIG.allowedOrigins ?? [])])];
+let appBaseNow = null;
+async function appBase() {
+  if (appBaseNow) return appBaseNow;
+  const { appBase: saved = null } = await chrome.storage.local.get("appBase");
+  appBaseNow = APP_BASES.includes(saved) ? saved : APP_BASES[0];
+  return appBaseNow;
+}
+async function appFetch(path, init) {
+  const first = await appBase();
+  let fallback = null;
+  let failure = null;
+  for (const base of [first, ...APP_BASES.filter((b) => b !== first)]) {
+    try {
+      const response = await fetch(base + path, init);
+      if ((response.headers.get("content-type") ?? "").includes("application/json")) {
+        if (base !== appBaseNow) {
+          appBaseNow = base;
+          await chrome.storage.local.set({ appBase: base });
+        }
+        return response;
+      }
+      fallback ??= response;
+    } catch (error) {
+      failure ??= error;
+    }
+  }
+  if (fallback) return fallback;
+  throw failure ?? new Error("Sofix app not reachable");
+}
 const CHECKIN_MS = 6 * 60 * 60 * 1000;
 
 async function checkIn(force = false) {
@@ -19,7 +55,7 @@ async function checkIn(force = false) {
   const unchanged = lastPayload && JSON.stringify(lastPayload) === JSON.stringify(payload);
   if (!force && unchanged && Date.now() - lastCheckin < CHECKIN_MS - 60_000) return;
   try {
-    const response = await fetch(`${CONFIG.appUrl}/api/ext/checkin`, {
+    const response = await appFetch(`/api/ext/checkin`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -60,7 +96,7 @@ async function sendMissions(rarity, missions, force = false) {
   const text = JSON.stringify(clean);
   if (!force && missionsSent[rarity] === text) return true;
   try {
-    const response = await fetch(`${CONFIG.appUrl}/api/ext/missions`, {
+    const response = await appFetch(`/api/ext/missions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
       body: JSON.stringify({ rarity, missions: clean }),
@@ -92,7 +128,7 @@ function cleanChances(rows) {
 
 async function sendChances(rows) {
   try {
-    const response = await fetch(`${CONFIG.appUrl}/api/ext/chances`, {
+    const response = await appFetch(`/api/ext/chances`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
       body: JSON.stringify({ version: 1, rows }),
@@ -313,7 +349,7 @@ async function loadMissions(history = false) {
       if (!history) {
         await missionEligibility(outcomes, requestedAt);
       }
-      const response = await fetch(`${CONFIG.appUrl}/api/ext/missions`, {
+      const response = await appFetch(`/api/ext/missions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
         body: JSON.stringify({ version: 2, requestedAt, user: user.slug, outcomes, history }),
@@ -392,7 +428,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return;
   }
   if (message?.type === "open-app") {
-    chrome.tabs.create({ url: CONFIG.appUrl + (APP_PATH.test(String(message.path)) ? message.path : "/") });
+    appBase().then((base) => chrome.tabs.create({ url: base + (APP_PATH.test(String(message.path)) ? message.path : "/") }));
     return;
   }
 });
@@ -425,7 +461,7 @@ async function askApp(payload) {
   if (Date.now() < overlayDown.until) return { state: overlayDown.state };
   let response;
   try {
-    response = await fetch(`${CONFIG.appUrl}/api/ext/overlay`, {
+    response = await appFetch(`/api/ext/overlay`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -584,7 +620,7 @@ async function overlayPlan(fixture = null, missions = false, fresh = false) {
 /** The dock's "Load from Sorare": starts the app's Pro rebuild on the announced elevens, as Play's button does. One press, one request. */
 async function proRebuild(week, plan) {
   try {
-    const response = await fetch(`${CONFIG.appUrl}/api/pro-rebuild`, {
+    const response = await appFetch(`/api/pro-rebuild`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
       body: JSON.stringify({ week: String(week || "").slice(0, 120), plan: Number(plan) || 1 }),
@@ -743,7 +779,7 @@ async function nearLock() {
   if (Date.now() - lastNearLock < 10 * 60_000) return;
   await chrome.storage.local.set({ lastNearLock: Date.now() });
   try {
-    await fetch(`${CONFIG.appUrl}/api/ext/near-lock`, {
+    await appFetch(`/api/ext/near-lock`, {
       method: "POST",
       headers: { Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
     });

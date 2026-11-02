@@ -969,6 +969,10 @@ is rebuilt, press **Reload** on Sofix in `chrome://extensions`, reload your Sora
 1. In root `.env`, set `APP_URL`, a random `EXTENSION_TOKEN` of at least 32 bytes, and
    `VERCEL_BYPASS_SECRET`.
 2. Run `node extension/scripts/configure.mjs` from the repository root.
+   It always lists this computer's app (`http://127.0.0.1:3000`, the local launcher) and each Vercel address (`APP_URL`,
+   `APP_ORIGINS`); the extension (0.4.22, 2 Nov 2026) tries them in that order and remembers the one that answers, so it works
+   on localhost while Vercel is off and on Vercel again without a rebuild. On this computer the app's check-in answers without a
+   database (nothing is stored).
 3. Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `extension/`. If Sofix
    was already loaded, press its circular-arrow **Reload** button instead; a changed file on disk does not update the
    running Chrome extension by itself. Reload the already-open `sorare.com` tab too, because its page bridge was

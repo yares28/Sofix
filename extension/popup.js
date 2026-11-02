@@ -4,7 +4,7 @@ import { CONFIG } from "./config.js";
 const $ = (id) => document.getElementById(id);
 
 async function render() {
-  const { sorareUser = null, appReachable = null, overlayStats = null } = await chrome.storage.local.get(["sorareUser", "appReachable", "overlayStats"]);
+  const { sorareUser = null, appReachable = null, overlayStats = null, appBase = null } = await chrome.storage.local.get(["sorareUser", "appReachable", "overlayStats", "appBase"]);
   const { overlay = true } = await chrome.storage.sync.get(["overlay"]);
   const signedIn = Boolean(sorareUser);
   const linked = signedIn && appReachable !== false;
@@ -27,7 +27,9 @@ async function render() {
   // Which gameweek the address of the last sorare.com page names ("25 29 sep 2026"): numbers for another week are not drawn.
   $("fixture").textContent = !overlay || !fresh ? "—" : overlayStats.fixture ? overlayStats.fixture.replace(/^football-/, "").replace(/-/g, " ") : "none named";
   $("go").textContent = signedIn ? "Open Sofix" : "Open sorare.com";
-  $("go").onclick = () => chrome.tabs.create({ url: signedIn ? CONFIG.appUrl : "https://sorare.com/" });
+  // The address that last answered (this computer or Vercel), else the first configured one.
+  const app = appBase ?? CONFIG.appUrls?.[0] ?? CONFIG.appUrl;
+  $("go").onclick = () => chrome.tabs.create({ url: signedIn ? app : "https://sorare.com/" });
 }
 
 $("overlay").addEventListener("click", async () => {

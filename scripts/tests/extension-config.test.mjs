@@ -12,9 +12,9 @@ test("a clone's generated extension names only its own app and explicit aliases"
   const result = spawnSync(process.execPath, ["extension/scripts/configure.mjs", "--env-file", env, "--output", dir], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   const manifest = JSON.parse(readFileSync(path.join(dir, "manifest.json"), "utf8"));
-  assert.deepEqual(manifest.externally_connectable.matches, ["https://second.example/*", "https://alias.second.example/*", "http://localhost/*", "http://127.0.0.1/*"]);
+  assert.deepEqual(manifest.externally_connectable.matches, ["https://second.example/*", "http://127.0.0.1:3000/*", "https://alias.second.example/*", "http://localhost/*", "http://127.0.0.1/*"]);
   const config = readFileSync(path.join(dir, "config.js"), "utf8");
-  assert.ok(config.includes('"allowedOrigins":["https://second.example","https://alias.second.example"]'));
+  assert.ok(config.includes('"allowedOrigins":["https://second.example","http://127.0.0.1:3000","https://alias.second.example"]'));
   assert.ok(!config.includes("sofix-livid"));
   assert.ok(!result.stdout.includes("fixture-token"));
 });
@@ -36,11 +36,14 @@ test("the local app override keeps production settings intact and does not expos
   const original = "APP_URL=https://hosted.example\nEXTENSION_TOKEN=fixture-token\nVERCEL_BYPASS_SECRET=fixture-bypass\n";
   writeFileSync(env, original);
   const result = spawnSync(process.execPath, ["extension/scripts/configure.mjs", "--env-file", env, "--output", dir, "--app-url", "http://127.0.0.1:3000"], { encoding: "utf8" });
+  const manifest = () => JSON.parse(readFileSync(path.join(dir, "manifest.json"), "utf8"));
   assert.equal(result.status, 0, result.stderr);
   const config = readFileSync(path.join(dir, "config.js"), "utf8");
   assert.ok(config.includes('"appUrl":"http://127.0.0.1:3000"'));
+  // The hosted app stays known, so the extension reaches it again when this computer's app is off (2 Nov 2026).
+  assert.ok(config.includes('"appUrls":["http://127.0.0.1:3000","https://hosted.example"]'));
+  assert.ok(manifest().host_permissions.includes("https://hosted.example/*"));
   assert.equal(readFileSync(env, "utf8"), original);
   assert.ok(!result.stdout.includes("fixture-token"));
-  const manifest = JSON.parse(readFileSync(path.join(dir, "manifest.json"), "utf8"));
-  assert.ok(manifest.host_permissions.includes("http://127.0.0.1:3000/*"));
+  assert.ok(manifest().host_permissions.includes("http://127.0.0.1:3000/*"));
 });

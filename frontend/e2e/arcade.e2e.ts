@@ -264,6 +264,10 @@ test("on a phone Arcade fits the width and keeps text readable", async ({ page }
   await expect(page.locator(".arc-grid .arc-card").first()).toHaveAttribute("aria-label", "Defender Three");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   expect(await smallText(page, 10)).toEqual([]);
+  // The five points-needed pills fit inside their cards' bottom right on a phone.
+  const pills = page.locator(".arc-move .arc-art .need-pill");
+  await expect(pills).toHaveCount(5);
+  for (const fit of await pills.evaluateAll((els) => els.map((el) => { const p = el.getBoundingClientRect(), a = el.closest(".arc-art")!.getBoundingClientRect(); return p.right <= a.right + 0.5 && p.bottom <= a.bottom + 0.5 && p.left >= a.left; }))) expect(fit).toBe(true);
   if (process.env.ARCADE_SHOT) await page.screenshot({ path: process.env.ARCADE_SHOT, fullPage: true });
 });
 
@@ -327,6 +331,14 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await expect(move.locator(".arc-card figcaption .arc-card-start")).toHaveCount(5);
   await expect(move.locator(".arc-card figcaption .arc-card-games")).toHaveCount(5);
   await expect(move.locator(".arc-card figcaption .arc-card-xd")).toHaveCount(5);
+  // Each card's points needed for step 2's 300: an equal 60 each, divided by the card's own multiplier (captain +50%).
+  const pills = move.locator(".arc-art .need-pill");
+  await expect(pills).toHaveCount(5);
+  await expect(pills.first()).toHaveAttribute("aria-label", /toward the 300-point target/);
+  const captainPill = move.locator(".arc-lineup li", { has: page.locator(".arc-captain") }).locator(".need-pill");
+  await expect(captainPill).toHaveAttribute("aria-label", /captain included/);
+  await captainPill.click();
+  await expect(captainPill).toHaveAttribute("data-open", "true");
   await expect(move.locator(".arc-card figcaption").first()).not.toContainText(/start|if he plays|pts/);
   expect(await move.locator(".arc-card-start").first().evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(28);
   await expect(move.locator(".arc-lineup")).not.toContainText("if he plays");
@@ -613,6 +625,9 @@ test("a lineup on Sorare that cannot reach its target says it is dead, and cut l
   await expect(live).toContainText("Even at their best its cards cannot reach 300");
   await expect(live).toContainText("10 scored");
   await expect(live).toContainText("Cut losses");
+  // Points needed: the keeper is settled at 10; the four still to play share the 290 left, 72.5 each at ×1.
+  await expect(live.locator(".need-pill")).toHaveText(["✓", "72.5", "72.5", "72.5", "72.5"]);
+  await expect(live.locator(".need-pill").first()).toHaveAttribute("aria-label", /contributed 10 toward the 300-point target/);
   await expect(page.locator(".arc-move")).toContainText("Your free cards cannot fill a lineup"); // his cards in that lineup are not planned again
 });
 

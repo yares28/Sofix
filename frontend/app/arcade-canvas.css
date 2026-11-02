@@ -411,3 +411,11 @@
   .arc-views .segmented .thumb { display: none; }
   .arc-views .segmented.ready button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
 }
+/* Points-needed pills: on the pitch the art carries it; in the race the score strip keeps the bottom, the pill sits above it. */
+.arc-pitch-art { position: relative; }
+.arc-pitch-art > img { display: block; }
+.arc-race-cards li > span:first-child { overflow: visible; }
+.arc-race-cards li > span:first-child > img { border-radius: 8px; }
+.arc-race-cards li > span:first-child > b { border-radius: 0 0 8px 8px; }
+.arc-race-cards .need-pill { bottom: 24px; right: 4px; }
+.arc-art:has(.need-pill) .arc-card-bonus { bottom: 38px; }

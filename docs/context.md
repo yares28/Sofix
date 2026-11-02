@@ -752,6 +752,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/plan-algorithm-v2.md` | [open](../plans/plan-algorithm-v2.md) |
 | document (check authority) | `plans/play-prizes-and-mission-tooltips.md` | [open](../plans/play-prizes-and-mission-tooltips.md) |
 | document (check authority) | `plans/play-rewards-and-mission-chart.md` | [open](../plans/play-rewards-and-mission-chart.md) |
+| document (check authority) | `plans/points-needed.md` | [open](../plans/points-needed.md) |
 | document (check authority) | `plans/pro.md` | [open](../plans/pro.md) |
 | document (check authority) | `plans/recap-lineup-scores.md` | [open](../plans/recap-lineup-scores.md) |
 | document (check authority) | `plans/restructure.md` | [open](../plans/restructure.md) |
@@ -870,10 +871,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-30",
-        "note": "Reviewed manager configuration guard and explicit second-manager dry-run regression; lineup selection behavior is unchanged.",
+        "date": "2026-11-02",
+        "note": "2 Nov 2026: publish.py pro_board_payload now also publishes the board step's captainBonus for the points-needed pills; selection logic unchanged.",
         "files": {
-          "backend/app/sorare/publish.py": "6dc754874b994c37298002221197d7b4d437cb85a3ccda1e0466817e6415a96e",
+          "backend/app/sorare/publish.py": "abb6737084526fb7db38357f8a44d16766646c10451ece5b9f70143f75ed0e85",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
@@ -992,10 +993,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-30",
-        "note": "Reviewed publication dry-run regression with an explicit second manager; raw forecasts and published outputs are unchanged.",
+        "date": "2026-11-02",
+        "note": "2 Nov 2026: publish.py change is only the Pro board payload's captainBonus field; raw forecasts untouched.",
         "files": {
-          "backend/app/sorare/publish.py": "6dc754874b994c37298002221197d7b4d437cb85a3ccda1e0466817e6415a96e",
+          "backend/app/sorare/publish.py": "abb6737084526fb7db38357f8a44d16766646c10451ece5b9f70143f75ed0e85",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "379c852e39c43e7d694fd8c1635ea837161f1ca09ea15b1b1300134f8c38d7fe"
@@ -1048,11 +1049,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-29",
-        "note": "Checked 29 Oct 2026: in-season benches take in-season cards only; Pro teamsheet windows (pro.windows) simulate each Pro lineup on start chances and do not change plan selection, raw forecasts or joint plan rewards; the timeline keeps a live week playing count; currentWeek skips a live Sorare-only week with none of your cards.",
+        "date": "2026-11-02",
+        "note": "2 Nov 2026: play.ts ProBoard type gains optional captainBonus; reward logic unchanged.",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "42011487a8f57bedf4eedc509d0e4999f0197be25ab1bd858dc06c3962d48516",
+          "frontend/lib/play.ts": "198fcaea2f864e04e267b634bea7846013f6798997f2992d17a2d27e0c91d3f3",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1695,23 +1696,23 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-01",
-        "note": "Inspected final Batch source, source-bound ratings, font-floor regression and complete/disjoint-team tests. Real Chrome checks and final acceptance evidence are recorded in plans/arcade-batch.md.",
+        "date": "2026-11-02",
+        "note": "2 Nov 2026: lineup cards (Your move, chain, Pick teams pitch and list, batches) gain points-needed pills from lib/pointsNeeded.ts with each step's own captain and club rule; climb, batch and selection logic unchanged.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "d8331f3b69b2d4b6715ed090fdcef81503e19d77735e64cd6de3a6738cee1e23",
           "frontend/lib/arcadePlan.ts": "33a5d5d8ca4889f3b0e4cae839dee7b0b7508c06fc72ad937a95792160936018",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "e7a579e5773d204c6f353fc6237bd899fbb219b0389d9a3aebad7f67e6ecb402",
+          "frontend/components/arcade/ArcadePlanner.tsx": "26b9f83ee0cd65b5ec7de614b6a15f69ab821c7c16e15b1592bb2888718ab328",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
-          "frontend/app/arcade-canvas.css": "f7b2e5258b47bbddb231b9134d3263b39e64475d57875c4f57d1d632dcca6474",
+          "frontend/app/arcade-canvas.css": "cb2689cff55cdbb62b24d304f14a94e2aa8f0952f729e659bc16fa4d7903e3d4",
           "frontend/lib/arcadeTeams.ts": "2024a4463e05b8e21c73e9b9097baf568241405e1fa564486df29e1f184e66f2",
           "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
-          "frontend/components/arcade/ArcadeBatch.tsx": "61a39850e308fedafd2619b5c8dab547151788cd7b51b7d5ad2315cdc9c61948",
+          "frontend/components/arcade/ArcadeBatch.tsx": "d7e93a9b8f5bb695ddec65aa10ee03e997de1df1b2ab3883f41d53196ef44030",
           "frontend/lib/arcadeClimb.test.ts": "0ce27f5cbee513381da05f1eea34ee2258987eaa7a9d47b3ec15843648d799d8",
           "frontend/lib/arcadePlan.test.ts": "a6bd6dd4fca0b698e95cf883e262e9acb366ab829bd8bb04d887b4036a487dc2",
           "frontend/lib/arcadeTeams.test.ts": "cf0d58177712224c0267c9fd5b1f1f397597e5b704f0035f0ea7713868d9e181",
           "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
-          "frontend/e2e/arcade.e2e.ts": "40f462baefc5e5d4ed0f2e36e5dac0494f9b52ed99fed8c16d08c8d7ff7b99a7"
+          "frontend/e2e/arcade.e2e.ts": "595cae78e7f85d048405a013964944c67534afbdeb46574bf48867de62f32c9e"
         }
       }
     },

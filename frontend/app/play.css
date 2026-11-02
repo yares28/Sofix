@@ -2112,3 +2112,6 @@
 .pc-prize-line select { width:100%; min-height:36px; background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:7px; font:inherit; font-size:12px; }
 .pc-prize-line select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .pc-prize-details li small { color:var(--ink-2); font-weight:400; }
+/* Points needed on a Pro sheet card: a sibling of the art link, so it takes focus and a tap of its own. */
+.pl-pc-art { position: relative; display: flex; flex-direction: column; }
+.pl-pc-art .need-pill { right: 8px; bottom: 8px; }

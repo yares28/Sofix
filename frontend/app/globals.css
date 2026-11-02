@@ -1052,3 +1052,17 @@ thead th .tbc-mark { font-weight: 600; }
   --shadow-card: 0 0 0 1px rgba(255,255,255,.06), 0 12px 32px rgba(0,0,0,.4);
   --shadow-lift: 0 0 0 1px rgba(255,255,255,.08), 0 24px 48px rgba(0,0,0,.5);
 }
+
+/* Points needed (lib/pointsNeeded.ts): a dark glass pill at a lineup card's bottom right, readable over any card art. */
+.need-pill { appearance: none; border: 0; margin: 0; font-family: inherit; position: absolute; right: 6px; bottom: 6px; z-index: 3; display: inline-flex; align-items: center; min-width: 26px; justify-content: center; padding: 3px 7px; border-radius: 999px; background: rgb(14 14 16 / .78); color: #fff; box-shadow: 0 0 0 1px rgb(255 255 255 / .2), 0 2px 8px rgb(0 0 0 / .28); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); font-size: 12px; font-weight: 650; line-height: 1.2; font-variant-numeric: tabular-nums; letter-spacing: -.01em; white-space: nowrap; cursor: help; outline: none; }
+.need-pill[data-tone="live"] { box-shadow: 0 0 0 1.5px #ffc46b, 0 2px 8px rgb(0 0 0 / .28); }
+.need-pill:is([data-tone="settled"], [data-tone="reached"]) { color: #8fe0a0; }
+.need-pill[data-tone="reached"] { box-shadow: 0 0 0 1.5px #46c05a, 0 2px 8px rgb(0 0 0 / .28); }
+.need-pill[data-tone="unreachable"] { color: #ffb3ae; font-size: 11px; }
+.need-pill[data-tone="unknown"] { color: rgb(255 255 255 / .72); }
+.need-pill:focus-visible { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+/* Its explanation on hover, keyboard focus or a tap. */
+.need-pill[data-detail]::after { content: attr(data-detail); position: absolute; right: 0; bottom: calc(100% + 8px); width: max-content; max-width: min(240px, 70vw); padding: 8px 10px; border-radius: 10px; background: var(--ink); color: var(--on-ink); font-size: 12px; font-weight: 500; line-height: 1.35; letter-spacing: 0; white-space: normal; text-align: left; box-shadow: var(--shadow-lift, 0 12px 32px rgb(0 0 0 / .2)); opacity: 0; transform: translateY(4px); pointer-events: none; transition: opacity .16s ease, transform .16s ease; }
+.need-pill[data-detail]:is(:hover, :focus-visible, [data-open])::after { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .need-pill[data-detail]::after { transition: none; transform: none; } }
+@media (max-width: 640px) { .need-pill { font-size: 11px; padding: 2px 6px; right: 4px; bottom: 4px; } .need-pill[data-tone="unreachable"] { font-size: 10px; } }

@@ -285,3 +285,6 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .pl-lu-prizes > div { display: grid; gap: 1px; }
 .pl-lu-prizes dt { font-size: 11px; color: var(--ink-2); }
 .pl-lu-prizes dd { margin: 0; font-size: 13px; font-weight: 550; color: var(--ink); font-variant-numeric: tabular-nums; }
+/* Points needed (Pro lineups): above the score hexagons, which overlap the card's bottom 15 px. */
+.rc-team .need-pill { right: 4px; bottom: 19px; padding: 2px 6px; font-size: 11px; }
+@media (max-width: 640px) { .rc-team .need-pill { bottom: 18px; right: 3px; padding: 1px 5px; font-size: 10px; } }

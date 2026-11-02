@@ -14,6 +14,30 @@ import { chanceLabel, type GameweekPlan } from "../../lib/play";
 import { enteredScore, playerKey, type ActualScores } from "../../lib/lineupScores";
 import { ComparisonCards, ComparisonScores } from "../recap/LineupComparison";
 import DataAction from "../ui/DataAction";
+import { proNeeds, scoreState, type NeedBadge } from "../../lib/pointsNeeded";
+
+/**
+ * An entered Pro lineup's points-needed pills. Sorare sends no bonus rules for Pro, so each card is priced as the estimate prices it:
+ * its mult on the same board in this GW's plan, else the board's in-season, level and rarity bonuses; the captain adds the board's.
+ * His own score (not Sorare's card total, which already holds the bonuses) is the raw score, so nothing is counted twice.
+ */
+function enteredProNeeds(lineup: GameweekLineup, cards: GameweekLineup["cards"], plan: GameweekPlan | null, scores: ActualScores): NeedBadge[] | null {
+  if (!lineup.pro) return null;
+  const options = plan ? plan.plans.flatMap((p) => p.lineups).filter((l) => l.board === lineup.board) : [];
+  const template = options[0];
+  const boardMult = new Map(options.flatMap((l) => l.starters).map((c) => [c.slug, c.mult]));
+  const priced = cards.map((c) => {
+    const known = boardMult.get(c.slug);
+    if (known !== undefined) return known;
+    const own = template?.bonuses;
+    return own && c.level !== undefined && c.inSeason !== undefined ? 1 + (c.inSeason ? own.season : 0) + own.grade * c.level + (own.scarcity[c.rarity ?? ""] ?? 0) : Number.NaN;
+  });
+  const pills = proNeeds(lineup.pro.target, template?.captainBonus, cards.map((c, i) => ({ mult: priced[i]!, captain: c.captain, player: c.player,
+    unknown: Number.isFinite(priced[i]!) ? undefined : "Sorare's Pro read gives no card level, and this week's plan has no price for this card on this board" })),
+    (c) => scoreState(c.player ? scores[playerKey(c.player)] : undefined));
+  // Sorare's own verdict once it has one: a cleared step is cleared, whatever the provisional sum says.
+  return lineup.pro.state === "SUCCESSFUL" ? pills.map(() => ({ label: "✓", detail: `Step cleared: Sorare validated ${lineup.pro!.target}.`, tone: "reached" as const })) : pills;
+}
 
 type Week = { slug: string; number: number; lock?: string; end?: string };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
@@ -160,6 +184,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
             const cards = [...lineup.cards].sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
               .map((c, i) => ({ ...c, x: known.get(c.slug)?.x ?? (c.player ? players.get(c.player)?.x : null) ?? null,
                 xd: known.get(c.slug)?.xd ?? (c.player ? players.get(c.player)?.xd : null) ?? null, bench: size !== undefined && i >= size }));
+            const needs = enteredProNeeds(lineup, cards.filter((c) => !c.bench), forecast?.gameweek.slug === week.slug ? forecast : null, scores);
             // The same row as the Recap draws it, on the home page and on Play.
             const live = !week.end || Date.parse(week.end) > now.getTime();
             const result = lineup.draft || pending ? null : lineup.result;
@@ -168,11 +193,11 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
                 <div className="rc-lu-c"><b>{lineup.competition}</b><span>{lineup.name ?? "Untitled lineup"}</span><span>{lineup.draft ? "Draft" : "Entered"} · {cards.length} cards</span></div>
                 {/* Sorare gives a card 0 until his game is in, and 0 to one who did not play */}
                 {/* Sorare's card score counts the card's bonus and the captain's: his own score shows, that total on hover */}
-                <ComparisonCards cards={cards.map((c) => {
+                <ComparisonCards cards={cards.map((c, i) => {
                   const total = result && c.score ? c.score : null;
                   const own = total !== null && c.player && forecast?.gameweek.slug === week.slug ? scores[playerKey(c.player)] : undefined;
                   // without his own score in Sofix, the hexagon shows Sorare's total; the honeycomb still opens on it
-                  return { ...c, score: own?.played ? own.score : total, total,
+                  return { ...c, score: own?.played ? own.score : total, total, need: c.bench ? undefined : needs?.[i],
                   why: result && !live ? "Did not play" : "Not played yet" };
                 })} />
                 <div className="rc-score">

@@ -48,7 +48,7 @@ export default defineConfig({
         DATABASE_URL: "",
         SOFIX_BLOCKS_DIR: "",
         R2_ACCOUNT_ID: "",
-        NEXT_DIST_DIR: production ? ".next" : ".next-e2e", // separate from the dev server's .next
+        NEXT_DIST_DIR: process.env.E2E_DIST_DIR ?? (production ? ".next" : ".next-e2e"), // separate from the dev server's .next; E2E_DIST_DIR lets a second run go beside a first
         NEXT_TELEMETRY_DISABLED: "1",
       },
       timeout: 180_000,

@@ -8,6 +8,8 @@ import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
+import NeedPill from "../NeedPill";
+import { arcadeMultiplier, needBadge, pointsNeeded, type NeedBadge } from "../../lib/pointsNeeded";
 import { bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
@@ -33,14 +35,34 @@ export function StartLabel({ outlook }: { outlook: Outlook }) {
       : <span title={`${SOURCE[outlook.startSource!]}’s start %`}>{pct(outlook.start)} start</span>;
 }
 
-export function LineupCards({ lineup, captainBonus }: { lineup: Lineup; captainBonus: number }) {
+/** A step's rules for a lineup aimed at it: its target, its own captain bonus (else the one in use) and its club rule. */
+export type StepRule = { target: number | null; captainBonus: number; collection: boolean | null };
+export const ruleOf = (steps: ArcadeStep[], number: number, captainBonus: number): StepRule => {
+  const step = steps.find((s) => s.number === number);
+  return { target: step?.target ?? null, captainBonus: step?.captain ?? captainBonus, collection: step?.collection ?? null };
+};
+
+/** Each pick's points-needed pill before the games (lib/pointsNeeded.ts): edition + club (when the step counts it) + captain. */
+export function arcadeNeeds(lineup: Lineup, rule: StepRule): NeedBadge[] {
+  const result = pointsNeeded(rule.target, lineup.picks.map(({ outlook, captain }) => ({
+    multiplier: arcadeMultiplier({ bonus: outlook.bonus, club: outlook.club, captain, captainBonus: rule.captainBonus, collection: rule.collection, hasClub: !!outlook.card.teamSlug }),
+    unknown: "club bonus not read from Sorare yet",
+    state: "to play" as const,
+    raw: null,
+  })));
+  return lineup.picks.map((p, i) => needBadge(result, i, rule.target, p.captain && rule.captainBonus > 0));
+}
+
+/** `rule` is the board step the lineup plays for; without one (a mission's lineup, whose competition's rules Sofix lacks) no pill. */
+export function LineupCards({ lineup, captainBonus, rule }: { lineup: Lineup; captainBonus: number; rule?: StepRule }) {
+  const needs = rule ? arcadeNeeds(lineup, rule) : [];
   const crests = new Map(lineup.picks.flatMap(({ outlook }) => outlook.card.teamSlug && outlook.card.teamPicture ? [[outlook.card.teamSlug, outlook.card.teamPicture] as const] : []));
   return (
     <ol className="arc-lineup">
       {lineup.picks.map(({ slot, outlook, captain }, i) => (
         <li key={outlook.card.slug} aria-label={outlook.card.name} style={{ "--i": i } as CSSProperties}>
           <span className="arc-slot">{SLOT[slot]}{captain && captainBonus > 0 ? <b className="arc-captain" title="Captain">C</b> : null}</span>
-          <PlayerCard card={outlook.card} outlook={outlook} game={outlook.game} fixtures={[outlook.game]} crests={crests} captain={captain} captainBonus={captainBonus} />
+          <PlayerCard card={outlook.card} outlook={outlook} game={outlook.game} fixtures={[outlook.game]} crests={crests} captain={captain} captainBonus={captainBonus} need={needs[i]} />
           {/postpon|cancel|suspend/i.test(outlook.game.status) ? <span className="arc-warn">Game {outlook.game.status.toLowerCase()}</span> : null}
         </li>
       ))}
@@ -113,7 +135,8 @@ function Scale({ lineup, steps, aim }: { lineup: Lineup; steps: ArcadeStep[]; ai
 const SPOT: Record<string, [number, number]> = { FWD: [32, 17], EXTRA: [72, 22], MID: [54, 43], DEF: [25, 57], GK: [55, 82] };
 
 /** The lineup on a pitch: the card art where each slot stands, its points and start %. */
-function Pitch({ lineup, captainBonus, title }: { lineup: Lineup; captainBonus: number; title: string }) {
+function Pitch({ lineup, captainBonus, title, rule }: { lineup: Lineup; captainBonus: number; title: string; rule: StepRule }) {
+  const needs = arcadeNeeds(lineup, rule);
   const lo = lineup.totals[Math.floor(lineup.totals.length * 0.2)] ?? 0;
   const hi = lineup.totals[Math.floor(lineup.totals.length * 0.8)] ?? 0;
   return (
@@ -129,10 +152,13 @@ function Pitch({ lineup, captainBonus, title }: { lineup: Lineup; captainBonus: 
           const [left, top] = SPOT[slot] ?? [50, 50];
           return (
             <li key={outlook.card.slug} data-slot={slot} className={captain && captainBonus > 0 ? "is-captain" : undefined} style={{ left: `var(--pitch-x, ${left}%)`, top: `${top}%`, "--i": i } as CSSProperties}>
-              {outlook.card.picture
-                // eslint-disable-next-line @next/next/no-img-element -- Sorare's card art, as on the other pages
-                ? <img src={outlook.card.picture} alt={outlook.card.name} width={96} height={155} loading="lazy" />
-                : <div className="arc-card-blank">{outlook.card.name}</div>}
+              <div className="arc-pitch-art">
+                {outlook.card.picture
+                  // eslint-disable-next-line @next/next/no-img-element -- Sorare's card art, as on the other pages
+                  ? <img src={outlook.card.picture} alt={outlook.card.name} width={96} height={155} loading="lazy" />
+                  : <div className="arc-card-blank">{outlook.card.name}</div>}
+                {needs[i] ? <NeedPill badge={needs[i]} /> : null}
+              </div>
               <span><b>{captain && captainBonus > 0 ? "C · " : ""}{SLOT[slot] === "Extra" ? "+1" : slot}</b> ~{pts(predicted(outlook, captain, captainBonus) ?? 0)} <small>{outlook.start === null ? "no %" : pct(outlook.start)}</small></span>
             </li>
           );
@@ -162,6 +188,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
   const atPage = Math.min(page, pages - 1);
   const hiddenSelected = todayOnly ? games.filter((g) => chosen.has(g.id) && madridDate(g.kickoff) !== today).length : 0;
   const target = steps.find((s) => s.number === aim)?.target ?? steps[0]?.target ?? 0;
+  const rule = ruleOf(steps, aim, captainBonus);
   const lineup = useMemo(() => preset ?? bestLineup([...chosen].flatMap((id) => outlooks.get(id) ?? []).filter((o) => !busy.has(o.card.slug)), target, captainBonus), [chosen, outlooks, target, captainBonus, busy, preset]);
   const toggle = (id: string) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); };
   // The games where one of your clubs is favourite on Sofix's board (difficulty 1 or 2).
@@ -223,11 +250,11 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
       </div>
       {lineup ? (
         <div className="arc-pitch-wrap">
-          <Pitch lineup={lineup} captainBonus={captainBonus} title={`Best five from your ${chosen.size} game${chosen.size === 1 ? "" : "s"} · settles about ${when(settles!, now)}`} />
+          <Pitch lineup={lineup} captainBonus={captainBonus} rule={rule} title={`Best five from your ${chosen.size} game${chosen.size === 1 ? "" : "s"} · settles about ${when(settles!, now)}`} />
           <Scale lineup={lineup} steps={steps} aim={aim} />
           <details className="arc-detail">
             <summary>Each card&apos;s numbers</summary>
-            <LineupCards lineup={lineup} captainBonus={captainBonus} />
+            <LineupCards lineup={lineup} captainBonus={captainBonus} rule={rule} />
             <Chances lineup={lineup} steps={steps} aim={aim} />
           </details>
         </div>
@@ -344,7 +371,7 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
                 {lineups.map((l, i) => <button key={i} type="button" aria-pressed={i === Math.min(shown, lineups.length - 1)} onClick={() => setShown(i)}>Lineup {i + 1} · {pct(chanceOf(l.totals, target(move.step)))}</button>)}
               </div>
             ) : null}
-            {lineup ? <LineupCards lineup={lineup} captainBonus={captainBonus} /> : null}
+            {lineup ? <LineupCards lineup={lineup} captainBonus={captainBonus} rule={ruleOf(boardSteps, move.step, captainBonus)} /> : null}
             {lineup && lineup.picks.some((p) => p.outlook.start === null) ? <p className="arc-sub">{lineup.picks.filter((p) => p.outlook.start === null).length} of 5 have no start % yet and count as starting: read start % again closer to kick-off.</p> : null}
           </div>
         ) : null}
@@ -367,7 +394,7 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
 }
 
 /** The chain: the next moves, window by window, each settling before the next starts; the other outcome of each a tap away. */
-function Chain({ plan, captainBonus, now, onBuild }: { plan: Climb; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void }) {
+function Chain({ plan, boardSteps, captainBonus, now, onBuild }: { plan: Climb; boardSteps: ArcadeStep[]; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void }) {
   const [branch, setBranch] = useState<{ of: Climb; moves: Move[]; label: string } | null>(null);
   const moves = branch?.of === plan ? branch.moves : plan.path;
   const [focus, setFocus] = useState<number | null>(null);
@@ -417,7 +444,7 @@ function Chain({ plan, captainBonus, now, onBuild }: { plan: Climb; captainBonus
         <div className="arc-chain-detail">
           <p className="arc-sub">Step {picked.step} at {when(picked.at, now)}: {picked.play} lineup{picked.play > 1 ? "s" : ""}, {pct(picked.clear)} that one clears, settles about {when(picked.settles, now)}.</p>
           {lineups.length > 1 ? <div className="arc-modes" role="group" aria-label="Chain lineup">{lineups.map((_, i) => <button key={i} type="button" aria-pressed={shown === i} onClick={() => setShown(i)}>Lineup {i + 1}</button>)}</div> : null}
-          {lineups[shown] ? <LineupCards lineup={lineups[shown]} captainBonus={captainBonus} /> : null}
+          {lineups[shown] ? <LineupCards lineup={lineups[shown]} captainBonus={captainBonus} rule={ruleOf(boardSteps, picked.step, captainBonus)} /> : null}
           <button type="button" className="arc-small" onClick={() => onBuild(picked, lineups[shown] ?? null)}>Edit in Pick teams</button>
           <div className="arc-outcomes" role="group" aria-label="What comes next">
             {([true, false] as const).map((cleared) => {
@@ -477,7 +504,7 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
   return (
     <>
       <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} />
-      <Chain plan={plan} captainBonus={captainBonus} now={now} onBuild={build} />
+      <Chain plan={plan} boardSteps={arcade.board?.steps ?? []} captainBonus={captainBonus} now={now} onBuild={build} />
       <ArcadeTeams arcade={arcade} outlooks={outlooks} status={status} chosen={chosen} onToggle={(id) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); }} now={now} />
       <section className="arc-plan" aria-labelledby="arc-teams-title">
         <div className="arc-plan-head"><h2 id="arc-teams-title">Pick teams</h2></div>

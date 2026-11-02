@@ -160,6 +160,9 @@ test("entered Sorare lineups sit above the recommendation for their exact gamewe
   const pro = mine.locator(".pl-entered-lineup").nth(1);
   await expect(pro).toContainText("Pro · Conference League");
   await expect(pro.locator(".pl-entered-verdict")).toHaveText("Step 3 · needs 280 · cleared");
+  // Sorare validated the step: every card's points-needed pill says it is cleared, not a provisional sum.
+  await expect(pro.locator(".need-pill > [aria-hidden]")).toHaveText(["✓", "✓", "✓", "✓", "✓"]);
+  await expect(pro.locator(".need-pill").first()).toHaveAttribute("title", "Step cleared: Sorare validated 280.");
 
   const belowThePlan = await page.locator(".pl-entered").evaluate((node) =>
     Boolean(document.querySelector(".pl-board")!.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING),

@@ -2,6 +2,7 @@ import type { Lineup, ProBoard, ProWindow } from "../../lib/play";
 import { cashLabel, chanceLabel, essenceLabel, proStep } from "../../lib/play";
 import { ComparisonCards } from "../recap/LineupComparison";
 import { Cash, Chevron, Essence } from "./bits";
+import { proNeeds } from "../../lib/pointsNeeded";
 
 const kickoff = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
@@ -97,7 +98,7 @@ export function ProBoards({ boards }: { boards: ProBoard[] }) {
               </span>
             </h3>
             {board.windows.map((group) => (
-              <ProWindowRow key={group.from} group={group} />
+              <ProWindowRow key={group.from} group={group} target={step.target} captainBonus={board.captainBonus} />
             ))}
           </section>
         );
@@ -106,7 +107,9 @@ export function ProBoards({ boards }: { boards: ProBoard[] }) {
   );
 }
 
-function ProWindowRow({ group }: { group: ProWindow }) {
+function ProWindowRow({ group, target, captainBonus }: { group: ProWindow; target: number; captainBonus?: number }) {
+  // Before the games, if these five start: the step's target shared out (lib/pointsNeeded.ts).
+  const needs = proNeeds(target, captainBonus, group.starters, () => ({ state: "to play", raw: null }));
   return (
     <div className="rc-lu pl-pro-win">
       <div className="rc-lu-c">
@@ -114,7 +117,7 @@ function ProWindowRow({ group }: { group: ProWindow }) {
         <span>{`xScore ${group.x}`}</span>
       </div>
       <ComparisonCards
-        cards={group.starters.map((card) => ({
+        cards={group.starters.map((card, i) => ({
           slug: card.slug,
           player: card.player,
           name: card.name,
@@ -124,6 +127,7 @@ function ProWindowRow({ group }: { group: ProWindow }) {
           x: card.x,
           score: null,
           why: "Not played yet",
+          need: needs[i],
         }))}
       />
       <div className="rc-score">

@@ -827,6 +827,12 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   **Pick teams** has a larger five-player pitch on the left and a game grid on the right, paginated after twelve games. **Today** shows only games left on the Madrid calendar date; filtering keeps your choices and counts selected games hidden for later. A compact range and every step's chance sit below the pitch. Your chosen games and target are saved in this browser for that set and board, including an empty choice; new start percentages and plans rebuild the best five without changing those games. Games that have started leave the active selection.
 - **Your lineups on Sorare**: each lineup you entered, as a race to the target: points so far, what its cards still to play add at
   their best, **Dead** when that cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next lineup more.
+- **Points needed** (2 Nov 2026, [plans/points-needed.md](../plans/points-needed.md)): every card of an Arcade or Pro lineup (Your move,
+  the chain, Pick teams, your lineups on Sorare; on Play, Pro lineups and Pro · once the teams are out, and your entered Pro lineups) has a
+  dark pill at its art's lower right: the raw score it needs for an equal share of the step's target, its own bonuses counted once
+  (target ÷ 5 ÷ multiplier, rounded up: 72.8 for a +10% card on 400). While the games run it is the extra raw points from now (**+**),
+  ✓ once a card has finished, **Unreachable** when 100 from every card left cannot make it. Hover, focus or tap explains it; prize
+  boosts never count, and an unknown bonus or score reads **—** with why. Entered Pro cards read — until Sorare's Pro read gives card levels.
 - A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga or Ligue 1 game (else Sorare's projection, else his average when he
   plays) × his start % (Sofix's in those leagues) × Sorare's bonuses (edition + club + captain),
   shown below FDR (0–100, lower is easier) at the upper right of the card art. Lineup and Players cards share the same layout: large start percentage, fixture crests and xD below the art, with the edition bonus on the art. The selected lineup game stays fixed; its kickoff and source are available in the fixture label and forecast titles. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or

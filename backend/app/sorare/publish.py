@@ -808,6 +808,7 @@ def pro_board_payload(
         "comp": comp.name,
         "key": comp.key,
         "steps": [{"level": lv, "target": t, "cash": c, "essence": e} for lv, t, c, e in comp.pro_steps],
+        "captainBonus": comp.captain_bonus,
         "windows": [
             {
                 "from": w.start.isoformat(),

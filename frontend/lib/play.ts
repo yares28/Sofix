@@ -384,7 +384,8 @@ export type ProWindow = {
   wait: number[];
   starters: PlayCard[];
 };
-export type ProBoard = { comp: string; key: string; steps: ProStep[]; windows: ProWindow[] };
+/** `captainBonus`: the board's step captain bonus (absent on payloads before 2 Nov 2026). */
+export type ProBoard = { comp: string; key: string; steps: ProStep[]; windows: ProWindow[]; captainBonus?: number };
 
 /** The game a team-news row is about, as the plan has it. */
 export type NewsGame = { id: string; kickoff: string; team: string | null; opponent: string; venue: "H" | "A" | null };

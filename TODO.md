@@ -68,7 +68,7 @@ page; the rewards card (`components/recap/WeekRewards.tsx`) updates as scores co
 **H. Ship Codex's "Gems and packs" (issue 9).** "I upgraded it in codex, make it live." Uncommitted in
 `C:/Users/Yaya/.codex/worktrees/618b/FixtureDiff` (on 93f7477): ArcadePacks.tsx, arcadePacks.ts (+tests), new
 arcadePackStore.ts and arcadePackRead.test.ts, arcade.ts, ArcadeView.tsx, arcade-canvas.css, arcade.e2e.ts, docs and
-plans/arcade-packs.md. Bring onto `main`, run its tests, push.
+plans/arcade-packs.md. Bring onto `main`, run its tests, push. **Shipped 2 Nov**: applied onto main (docs hashes regenerated), Arcade spec 25/25, real odds read on your board.
 
 **I. Points-needed pill in the Sorare overlay (issues 1, 2, 5).** "I want the pill in the extension, so I can see it in
 Sorare, not in Sofix." On sorare.com's Arcade and Pro compose pages, each picked card gets the same pill (same calculation,

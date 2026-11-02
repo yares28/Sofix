@@ -83,6 +83,7 @@ export type ArcadeGame = {
   away: { slug: string; name: string; crest: string | null } | null;
 };
 export type Arcade = {
+  owner?: string | null;
   set: { slug: string; name: string; start: string | null; end: string | null; leagues: { slug: string; name: string }[] };
   gems: number | null;
   essence: number | null;
@@ -133,6 +134,7 @@ const ArcadeData = z.object({
     }).nullable(),
   }),
   currentUser: z.object({
+    slug: opt(s),
     gems: z.array(z.object({ currency: s, amount: n })),
     essence: z.array(z.object({ rarity: s, cardShardsCount: n, cardSet: opt(z.object({ slug: s })) })),
     setBoard: z.object({
@@ -444,6 +446,7 @@ export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown
     }));
 
   return {
+    owner: user.slug ?? null,
     set: { slug: set.slug, name: set.name, start: set.startDate ?? null, end: set.endDate ?? null, leagues: set.availableCompetitions.map((c) => ({ slug: c.slug, name: c.displayName })) },
     gems: user.gems.find((g) => g.currency === "COMMON_GEM")?.amount ?? null,
     essence: user.essence.find((e) => e.rarity === "common" && e.cardSet?.slug === set.slug)?.cardShardsCount ?? null,
@@ -845,11 +848,11 @@ export const ARCADE_TIERS_VERSION = "0.4.18";
 export async function readPackOdds(slots: number): Promise<{ odds: PackOdds; tiers: TierOdds } | "outdated" | null> {
   const extension = await pingExtension();
   if (!extension) return null;
-  if (!extensionAtLeast(extension.version, ARCADE_PACKS_VERSION)) return "outdated";
+  if (!extensionAtLeast(extension.version, ARCADE_TIERS_VERSION)) return "outdated";
   const answers: unknown[] = [];
   for (let i = 0; i < Math.min(slots, 10); i += 2) {
     const answer = Answer.safeParse(await askExtension({ type: "sorare", step: "arcade-pack-odds", slots: i + 1 < slots ? [i, i + 1] : [i] }, 60_000));
-    if (!answer.success || answer.data.state !== "ok") break;
+    if (!answer.success || answer.data.state !== "ok") return null;
     answers.push(answer.data.data);
   }
   return answers.length ? { odds: parsePackOdds(answers), tiers: parseTierOdds(answers) } : null;

@@ -44,7 +44,7 @@ const ANSWERS: Record<string, unknown> = {
   "arcade-past": { players: SQUAD.map(([, player]) => ({ slug: player, gameplayTier: "IMPACT", playingStatus: "STARTER", activeInjuries: [], playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })) },
   "arcade-pack-odds": { currentUser: { setBoard: { myCurrentStep: { cardPacks: [
     { slug: "bronze", cardsCount: 1, s0: [{ gameplayTier: "IMPACT", probabilityBasisPoint: 10000, playerOdds: [{ probabilityBasisPoint: 5000, player: { slug: "p" }, team: { slug: "club" } }, { probabilityBasisPoint: 5000, player: { slug: "new" }, team: { slug: "club" } }] }] },
-    { slug: "silver", cardsCount: 1, s0: [{ gameplayTier: "GOAT", probabilityBasisPoint: 10000, playerOdds: [{ probabilityBasisPoint: 10000, player: { slug: "new" }, team: { slug: "club" } }] }] },
+    { slug: "silver", cardsCount: 1, s0: [{ gameplayTier: "GOAT", probabilityBasisPoint: 10000, playerOdds: [{ probabilityBasisPoint: 9900, player: { slug: "new" }, team: { slug: "club" } }] }] },
   ] } } } },
   "arcade-projections": { anyGame: { id: GAME, playerGameScores: SQUAD.slice(1).map(([, player]) => ({ projection: { score: 60 }, anyPlayer: { slug: player } })) } },
 };
@@ -59,6 +59,11 @@ const show = (page: Page, view: string) => page.getByRole("group", { name: "Arca
 
 const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS, version = "0.4.14", holdPast = false) => page.addInitScript(([answers, version, holdPast]) => {
   Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_id: string, message: { type: string; step?: string; game?: string }, reply: (answer: unknown) => void) {
+    if (message.step === "arcade-pack-odds") {
+      const state = window as unknown as { __packReads?: number; __failPacks?: boolean };
+      state.__packReads = (state.__packReads ?? 0) + 1;
+      if (state.__failPacks) return reply({ ok: true, state: "failed" });
+    }
     if (message.type === "ping") return reply({ ok: true, version, sorareUser: "owner", appReachable: true });
     if (message.type === "read-arcade") return reply({ ok: true, state: "ok", players: 1, games: 1 });
     if (holdPast && message.step === "arcade-past") return;
@@ -573,40 +578,159 @@ test("saved team choices discard expired games and cleared targets, and another 
   await expect(picker.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(1);
 });
 
-test("Gems and packs: what your gems buy for an Icon, new players or a collection mission, from Sorare's odds, with the maths", async ({ page }) => {
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+test("Gems and packs compares editable mixed options without rereading odds", async ({ page }) => {
+  const board = structuredClone(ANSWERS.arcade) as { currentUser: { setBoard: { steps: { level: number; cardPacks?: unknown[] }[] } } };
+  const pack = (slug: string, title: string, price: number) => ({ slug, title, effectivePrice: price, currency: "COMMON_GEM", cardsCount: 1, canPurchase: true, competition: null });
+  board.currentUser.setBoard.steps.find(s => s.level === 2)!.cardPacks!.push(pack("gold", "Gold", 50), pack("platinum", "Platinum", 60));
+  const odds = (slug: string, p: number) => ({ slug, s0: [
+    { gameplayTier: "GOAT", probabilityBasisPoint: p * 10_000, playerOdds: [{ probabilityBasisPoint: p * 10_000, player: { slug: "new" }, team: { slug: "club" } }] },
+    { gameplayTier: "IMPACT", probabilityBasisPoint: (1 - p) * 10_000, playerOdds: [{ probabilityBasisPoint: (1 - p) * 10_000, player: { slug: "p" }, team: { slug: "club" } }] },
+  ] });
+  await withExtension(page, { ...ANSWERS, arcade: board, "arcade-pack-odds": { currentUser: { setBoard: { myCurrentStep: { cardPacks: [odds("bronze", 0), odds("silver", 0.05), odds("gold", 0.2), odds("platinum", 0.1)] } } } } }, "0.4.18");
+  await page.goto("/arcade");
+  await show(page, "Missions & packs");
+  const gems = page.getByRole("region", { name: "Gems and packs" });
+  await gems.getByRole("group", { name: "Pack calculator mode" }).getByRole("button", { name: "Compare options", exact: true }).click();
+  const a = gems.getByRole("region", { name: "Option A", exact: true }), b = gems.getByRole("region", { name: "Option B", exact: true });
+  await a.getByLabel("Pack 1", { exact: true }).selectOption("gold");
+  await a.getByLabel("Quantity 1", { exact: true }).fill("2");
+  await b.getByLabel("Pack 1", { exact: true }).selectOption("platinum");
+  await b.getByRole("button", { name: "Add pack", exact: true }).click();
+  await b.getByLabel("Pack 2", { exact: true }).selectOption("silver");
+  await b.getByLabel("Quantity 2", { exact: true }).fill("4");
+  await expect(a.getByTestId("option-goal")).toContainText("Read odds to compare");
+  expect(await page.evaluate(() => (window as unknown as { __packReads?: number }).__packReads ?? 0)).toBe(0);
+  await gems.getByRole("button", { name: "Read odds", exact: true }).click();
+  await expect(a.getByTestId("option-cost")).toHaveText("100 gems");
+  await expect(b.getByTestId("option-cost")).toHaveText("100 gems");
+  await expect(a.getByTestId("option-goal")).toContainText("36%");
+  await expect(b.getByTestId("option-goal")).toContainText("26.7%");
+  await expect(a).toContainText("Higher chance");
+  const outcomes = gems.getByRole("table", { name: "Compare tier odds" });
+  await expect(outcomes.getByRole("row", { name: /^Icon / }).filter({ hasNotText: "Icon or Star" })).toContainText("0.4");
+  await gems.getByLabel("Goal", { exact: true }).selectOption("new");
+  await expect(a.getByTestId("option-goal")).toContainText("0.36 new players on average");
+  await expect(b.getByTestId("option-goal")).toContainText("0.27 new players on average");
+  await a.getByLabel("Quantity 1", { exact: true }).fill("0");
+  await expect(a.getByLabel("Quantity 1", { exact: true })).toHaveValue("1");
+  await expect(a.getByRole("button", { name: "Fewer packs in row 1" })).toBeDisabled();
+  await a.getByLabel("Quantity 1", { exact: true }).fill("2");
+  await show(page, "Players"); await show(page, "Missions & packs");
+  expect(await page.evaluate(() => (window as unknown as { __packReads: number }).__packReads)).toBe(1);
+  await page.reload();
+  await expect(gems.getByRole("button", { name: "Compare options", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(a.getByLabel("Quantity 1", { exact: true })).toHaveValue("2");
+  await expect(b.getByLabel("Quantity 2", { exact: true })).toHaveValue("4");
+  expect(await page.evaluate(() => (window as unknown as { __packReads?: number }).__packReads ?? 0)).toBe(0);
+  await b.getByRole("button", { name: "Remove pack 2", exact: true }).click();
+  await expect(b.getByTestId("option-cost")).toHaveText("60 gems");
+  // A newly offered pack has no saved odds: the whole option stays unknown rather than counting its other packs only.
+  board.currentUser.setBoard.steps.find(s => s.level === 2)!.cardPacks!.push(pack("unread", "New pack", 20));
+  await page.evaluate(board => { (window as unknown as { __answers: Record<string, unknown> }).__answers = { arcade: board }; }, board);
+  await page.getByRole("button", { name: "Refresh board and cards", exact: true }).click();
+  await b.getByRole("button", { name: "Add pack", exact: true }).click();
+  await b.getByLabel("Pack 2", { exact: true }).selectOption("unread");
+  await expect(b.getByTestId("option-goal")).toContainText("Odds unavailable");
+  await expect(a.getByTestId("option-goal")).toContainText("36%");
+  await b.getByLabel("Pack 2", { exact: true }).selectOption("bronze");
+  await expect(b.getByTestId("option-cost")).toHaveText("60 gems + 1,000 essence");
+  const partial = structuredClone(ANSWERS["arcade-cards"]) as { currentUser: { cards: { pageInfo: { hasNextPage: boolean; endCursor: string | null } } } };
+  partial.currentUser.cards.pageInfo = { hasNextPage: true, endCursor: null };
+  await page.evaluate(partial => { (window as unknown as { __answers: Record<string, unknown> }).__answers = { "arcade-cards": partial }; }, partial);
+  await page.getByRole("button", { name: "Refresh board and cards", exact: true }).click();
+  await expect(a.getByTestId("option-goal")).toContainText("Up to");
+  await expect(a.getByTestId("option-goal")).toContainText("Collection incomplete");
+  await expect(a.getByText("Higher chance", { exact: true })).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(await smallText(page, 10)).toEqual([]);
+});
+
+test("Gems and packs saves odds until an explicit read and explains a chosen quantity", async ({ page, context }) => {
+  await page.route("**/api/arcade/chances", route => route.fulfill({ json: { chances: {} } }));
   await withExtension(page, ANSWERS, "0.4.18");
   await page.goto("/arcade");
   await show(page, "Missions & packs");
-  const gems = page.locator(".arc-gems");
-  await gems.getByRole("button", { name: "Read the odds" }).click();
-  // Silver's one slot is always the Icon "new" (10 gems); 40 gems buy four.
-  const forGems = gems.locator(".arc-gems-answer.is-gems");
-  await expect(forGems.locator(".arc-gems-buy")).toHaveText("4 × Silver");
-  await expect(forGems.locator(".arc-gems-big")).toContainText("100% at least one");
-  await expect(gems.locator(".arc-gems-answer.is-essence")).toContainText("No essence pack can give an Icon"); // Bronze holds no Icon
-  await expect(gems.locator(".arc-gems-maths")).toContainText("1 − Π(1 − h)");
-  await expect(gems.locator(".arc-packs-list li")).toHaveCount(2);
-  // A budget to look ahead: 100 gems buy ten Silver; 0 gems buy none, and the row says so.
+  const gems = page.getByRole("region", { name: "Gems and packs" });
+  const reads = () => page.evaluate(() => (window as unknown as { __packReads?: number }).__packReads ?? 0);
+  expect(await reads()).toBe(0);
+  await expect(gems.getByLabel("Goal", { exact: true })).toBeVisible();
+  const table = gems.locator(".arc-pack-outcomes");
+  expect(await table.evaluate(t => t.getBoundingClientRect().right <= t.closest(".arc-pack-calculator")!.getBoundingClientRect().right)).toBe(true);
+  await expect(gems.getByRole("button", { name: "Icon", exact: true })).toHaveCount(0);
+  await gems.getByRole("button", { name: "Read odds", exact: true }).click();
+  await expect(gems.getByText(/Saved/)).toBeVisible();
+  expect(await reads()).toBe(1);
+  await gems.getByLabel("Choose pack").selectOption("silver");
+  await gems.getByLabel("Number of packs").fill("10");
+  const calculator = gems.getByRole("region", { name: "Pack calculator" });
+  await expect(calculator).toContainText("100 gems");
+  const icon = calculator.getByRole("row", { name: /^Icon / }).filter({ hasNotText: "Icon or Star" });
+  await expect(icon).toContainText("100%");
+  await expect(icon).toContainText("10");
+  await expect(calculator.getByRole("row", { name: /^Star / })).toContainText("0%");
+  await gems.getByLabel("Goal", { exact: true }).selectOption("new");
+  await expect(calculator.getByTestId("pack-goal-result")).toContainText("1 new player on average");
+  await gems.getByLabel("Number of packs").fill("0");
+  await expect(gems.getByLabel("Number of packs")).toHaveValue("1");
+  await expect(gems.getByRole("button", { name: "Fewer packs" })).toBeDisabled();
+  await gems.getByRole("button", { name: "More packs" }).click();
+  await expect(gems.getByLabel("Number of packs")).toHaveValue("2");
   await gems.getByLabel("Gems to spend").fill("100");
-  await expect(forGems.locator(".arc-gems-buy")).toHaveText("10 × Silver");
-  await expect(gems.locator(".arc-packs-list li").filter({ hasText: "Silver" })).toContainText("10 packs");
-  await gems.getByLabel("Gems to spend").fill("0");
-  await expect(forGems).toContainText("Not enough for a pack that can give it. One Silver (10 gems): 100%.");
-  await expect(gems.locator(".arc-packs-list li").filter({ hasText: "Silver" })).toContainText("budget buys none");
-  await gems.getByRole("button", { name: "Back to my wallet" }).click();
-  await expect(forGems.locator(".arc-gems-buy")).toHaveText("4 × Silver");
-  await gems.getByRole("group", { name: "Pack type" }).getByRole("button", { name: "Bronze (1)" }).click();
-  await expect(gems.locator(".arc-packs-list li")).toHaveCount(1);
-  // New players: Bronze draws "new" half the time; Silver always.
-  await gems.getByRole("group", { name: "What to buy for" }).getByRole("button", { name: "New players" }).click();
-  await gems.getByRole("group", { name: "Pack type" }).getByRole("button", { name: "All (2)" }).click();
-  await expect(gems.locator(".arc-packs-list li").first()).toContainText("Silver");
-  // The collection mission: two Club cards. The packs hold one Club player you do not have ("new"); a second "new" is a duplicate and
-  // counts for nothing, so no number of packs finishes it.
-  await gems.getByRole("group", { name: "What to buy for" }).getByRole("button", { name: /Club collector/ }).click();
-  await expect(gems.locator(".arc-gems-mission")).toContainText("half the time in 200+ packs");
-  await expect(gems.locator(".arc-gems-mission")).toContainText("duplicates and special editions of a player you own count for nothing");
+  await expect(gems.getByTestId("budget-COMMON_GEM")).toContainText("10 × Silver");
+  await expect(gems.getByTestId("budget-COMMON_GEM")).toContainText("1 new player on average");
+  await gems.getByLabel("Pack type").selectOption("Bronze");
+  await expect(gems.locator(".arc-pack-catalogue li")).toHaveCount(1);
+  await show(page, "Players");
+  await show(page, "Missions & packs");
+  expect(await reads()).toBe(1);
+  await page.reload();
+  await expect(gems.getByLabel("Number of packs")).toHaveValue("2");
+  await expect(calculator.getByTestId("pack-goal-result")).toContainText("1 new player on average");
+  expect(await reads()).toBe(0);
+  // Closing a tab retains the complete reading in this browser, with no extension available in the new tab.
+  const next = await context.newPage();
+  await offline(next);
+  await next.goto("/arcade");
+  await page.close();
+  const retained = next.getByRole("region", { name: "Gems and packs" });
+  await expect(retained.getByText(/Saved/)).toBeVisible();
+  await expect(retained.getByLabel("Number of packs")).toHaveValue("2");
+  await retained.getByRole("button", { name: "Read odds again" }).click();
+  await expect(retained.getByRole("status")).toContainText("Saved odds kept");
+  await expect(retained.getByTestId("pack-goal-result")).toContainText("1 new player on average");
+  await next.setViewportSize({ width: 390, height: 844 });
+  expect(await next.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(await smallText(next, 10)).toEqual([]);
+});
+
+test("Gems and packs refreshes explicitly, retains odds after a failure and isolates boards", async ({ page }) => {
+  await withExtension(page, ANSWERS, "0.4.18");
+  await page.goto("/arcade");
+  await show(page, "Missions & packs");
+  const gems = page.getByRole("region", { name: "Gems and packs" });
+  await gems.getByRole("button", { name: "Read odds", exact: true }).click();
+  await gems.getByLabel("Choose pack").selectOption("silver");
+  await page.evaluate(() => { (window as unknown as { __failPacks: boolean }).__failPacks = true; });
+  await gems.getByRole("button", { name: "Read odds again" }).click();
+  await expect(gems.getByRole("status")).toContainText("Saved odds kept");
+  await expect(gems.getByRole("row", { name: /^Icon / }).filter({ hasNotText: "Icon or Star" })).toContainText("100%");
+  await page.evaluate(() => { (window as unknown as { __failPacks: boolean }).__failPacks = false; });
+  const changed = structuredClone(ANSWERS["arcade-pack-odds"]) as { currentUser: { setBoard: { myCurrentStep: { cardPacks: { slug: string; s0: { gameplayTier: string }[] }[] } } } };
+  changed.currentUser.setBoard.myCurrentStep.cardPacks.find(p => p.slug === "silver")!.s0[0]!.gameplayTier = "STAR";
+  await page.evaluate(changed => { (window as unknown as { __answers: Record<string, unknown> }).__answers = { "arcade-pack-odds": changed }; }, changed);
+  await gems.getByRole("button", { name: "Read odds again" }).click();
+  await expect(gems.getByRole("status")).toHaveCount(0);
+  await expect(gems.getByRole("row", { name: /^Icon / }).filter({ hasNotText: "Icon or Star" })).toContainText("0%");
+  await expect(gems.getByRole("row", { name: /^Star / })).toContainText("100%");
+  await page.reload();
+  await expect(gems.getByRole("row", { name: /^Star / })).toContainText("100%");
+  const board = structuredClone(ANSWERS.arcade) as { currentUser: { setBoard: { id: string } } };
+  board.currentUser.setBoard.id = "another-board";
+  await page.evaluate(board => { (window as unknown as { __answers: Record<string, unknown> }).__answers = { arcade: board }; }, board);
+  await page.getByRole("button", { name: "Refresh board and cards", exact: true }).click();
+  await expect(gems.getByRole("button", { name: "Read odds", exact: true })).toBeVisible();
+  await expect(gems.getByText(/Saved/)).toHaveCount(0);
 });
 
 test("a lineup on Sorare that cannot reach its target says it is dead, and cut losses when its cards help the next lineup more", async ({ page }) => {

@@ -184,7 +184,7 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
       </div>
       <div className="arc-view" hidden={view !== "packs"}>
         <ArcadeMissions arcade={arcade} outlooks={outlooks} />
-        <ArcadePacks arcade={arcade} />
+        <ArcadePacks key={`${arcade.owner}:${arcade.set.slug}:${arcade.board?.id}:${arcade.board?.current}`} arcade={arcade} busy={busy} />
       </div>
       <div className="arc-view" hidden={view !== "players"}>
         <ArcadeCards cards={arcade.cards} games={arcade.games} outlooks={outlooks} status={ready?.status ?? {}} form={ready?.form ?? {}} />

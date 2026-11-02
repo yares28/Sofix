@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameweekLineup } from "./entered";
 import type { GameweekPlan, Lineup, PlayCard } from "./play";
-import { enteredScore, lineupActual, withLineupRules, withEnteredEvidence } from "./lineupScores";
+import { enteredScore, lineupActual, playerKey, withLineupRules, withEnteredEvidence } from "./lineupScores";
 
 const card = (slug: string, extra: Partial<PlayCard> = {}): PlayCard => ({
   slug, player: slug, name: slug, pos: "DEF", rarity: "limited", inSeason: true, level: 0,
@@ -49,6 +49,15 @@ describe("entered lineup expected score", () => {
     expect(rewards["essence:limited:laliga"]).toBeCloseTo(10);
     expect(rewards.card).toBeCloseTo(.5);
     expect(rewards["xp:FOOTBALL_XP"]).toBeCloseTo(500);
+  });
+  it("works out Actual from the week's published scores when Sorare's saved read has none (2 Nov 2026: a browser without the extension showed '-')", () => {
+    const lineup = line();
+    // a, the +50% captain, scored 60 and is done; b is still playing on 30.
+    const played = { [playerKey("a")]: { score: 60, played: true, complete: true }, [playerKey("b")]: { score: 30, played: true, complete: false } };
+    expect(enteredScore(entered(lineup.starters), week(lineup), "selected", played)).toMatchObject({ actual: 60 * 1.5 + 30, actualComplete: false });
+    const custom = entered([card("a"), card("b", { captain: true })]);
+    expect(enteredScore(custom, week(lineup), "selected", played)).toMatchObject({ actual: 60 + 30 * 1.5, actualComplete: false });
+    expect(enteredScore(entered(lineup.starters), week(lineup), "selected", {}).actual).toBeUndefined();
   });
   it("uses the recorded forecast only for the same board, captain, starters and bench", () => {
     const lineup = line();

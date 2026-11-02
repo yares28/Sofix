@@ -1107,12 +1107,12 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-28",
-        "note": "Compared source and existing assertions; execution results are recorded separately in the audit. Live workflow not reverified.",
+        "date": "2026-11-02",
+        "note": "2 Nov 2026: restoreFrozenPlan also restores the Pro boards' groups' card art; week identity and forecasts unchanged.",
         "files": {
           "frontend/lib/playerForecasts.ts": "f49dbdf83c84b0630d251cb153e027d935eb92f628e426edbed77e4fa8566a8e",
           "frontend/lib/playData.ts": "e3e017956f561c653718a73c77fbf90fa1dbfdf18a2d0bfb8bed8006b4dbea33",
-          "frontend/lib/frozenPlan.ts": "788f10428ace97e8b35d1714845118b2adc87da5c1dae6b505d5159226cb1d74",
+          "frontend/lib/frozenPlan.ts": "52a9225f98f98f04a0bd6ca3518219c8c260b16214d58c11925d97fdd5f2af8a",
           "frontend/lib/playerForecasts.test.ts": "f54ad0aeb5f3ddb87caea2f8a91456341156fb4f5dc07be75536f65eee67a38e"
         }
       }

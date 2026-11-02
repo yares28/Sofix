@@ -14,5 +14,8 @@ export function restoreFrozenPlan(week: GameweekPlan, data: Sorare): GameweekPla
       starters: l.starters.map((c) => ({ ...c, pic: cards.get(c.slug)?.pic ?? knownCards.get(c.slug)?.pic ?? "" })),
       subs: l.subs.map((c) => ({ ...c, pic: cards.get(c.slug)?.pic ?? knownCards.get(c.slug)?.pic ?? "" })),
     })) })),
+    // The Pro boards' groups are your cards too: their art comes back the same way.
+    ...(week.pro ? { pro: week.pro.map((b) => ({ ...b, windows: b.windows.map((w) => ({ ...w,
+      starters: w.starters.map((c) => ({ ...c, pic: cards.get(c.slug)?.pic ?? knownCards.get(c.slug)?.pic ?? "" })) })) })) } : {}),
   };
 }

@@ -86,7 +86,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
     return () => document.removeEventListener("visibilitychange", again);
   }, []);
 
-  const estimates = useMemo(() => new Map(load.lineups.map(lineup => [lineup.id, enteredScore(lineup, forecast, week.slug)])), [load.lineups, forecast, week.slug]);
+  const estimates = useMemo(() => new Map(load.lineups.map(lineup => [lineup.id, enteredScore(lineup, forecast, week.slug, scores)])), [load.lineups, forecast, week.slug, scores]);
   useEffect(() => {
     if (!setRewards) return;
     setRewards({ state: load.state, summary: checkedWeekRewards(load.lineups.filter(l => !l.draft).map(l => ({
@@ -175,7 +175,8 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
       {load.lineups.length ? (
         <div className="pl-entered-list">
           {load.lineups.map((lineup) => {
-            const pending = pendingLine(lineup, week.lock, now);
+            // Started once Sorare's read or the week's published scores show a score (a read saved before the games has none).
+            const pending = estimates.get(lineup.id)?.actual !== undefined ? null : pendingLine(lineup, week.lock, now);
             const expected = estimates.get(lineup.id)!;
             const options = forecast?.gameweek.slug === week.slug ? forecast.plans.flatMap(p => p.lineups) : [];
             const known = new Map(options.flatMap(l => [...l.starters, ...l.subs]).map(c => [c.slug, c]));
@@ -195,13 +196,21 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
                 {/* Sorare's card score counts the card's bonus and the captain's: his own score shows, that total on hover */}
                 <ComparisonCards cards={cards.map((c, i) => {
                   const total = result && c.score ? c.score : null;
-                  const own = total !== null && c.player && forecast?.gameweek.slug === week.slug ? scores[playerKey(c.player)] : undefined;
-                  // without his own score in Sofix, the hexagon shows Sorare's total; the honeycomb still opens on it
+                  // His own score from the week's published scores, whether or not Sorare's saved read has one (2 Nov 2026: a
+                  // browser without the extension showed a read saved before the games, every card "Not played yet").
+                  const own = c.player ? scores[playerKey(c.player)] : undefined;
                   return { ...c, score: own?.played ? own.score : total, total, need: c.bench ? undefined : needs?.[i],
-                  why: result && !live ? "Did not play" : "Not played yet" };
+                  why: (own && !own.played && own.complete !== false) || (result && !live) ? "Did not play" : "Not played yet" };
                 })} />
                 <div className="rc-score">
-                  <ComparisonScores expected={expected.value} estimated={expected.estimated} actual={pending || lineup.draft ? null : lineup.result?.score ?? null} actualLabel={lineup.result?.rank === null ? "Actual so far" : "Actual"} entered />
+                  {(() => {
+                    // Sorare's score when it has one; else the score worked out from the week's published scores, "so far" until every game is in.
+                    const sorare = lineup.result && lineup.result.score > 0 ? lineup.result.score : null;
+                    const worked = sorare === null && expected.actual !== undefined ? expected.actual : null;
+                    const actual = pending || lineup.draft ? null : sorare ?? worked ?? lineup.result?.score ?? null;
+                    const soFar = worked !== null ? !expected.actualComplete : lineup.result?.rank === null;
+                    return <ComparisonScores expected={expected.value} estimated={expected.estimated} actual={actual} actualLabel={soFar ? "Actual so far" : "Actual"} entered />;
+                  })()}
                   {expected.value === null ? <span>{forecast ? "Forecast unavailable" : "Not recorded"}</span> : null}
                 </div>
                 <div className="rc-rew">

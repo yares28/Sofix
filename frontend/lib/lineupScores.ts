@@ -127,8 +127,10 @@ function bell(z: number): number {
 }
 
 /** Only this GW supplies forecasts: an absent player never borrows a later week's score or becomes a zero. */
-export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null, slug: string): {
+export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null, slug: string, played?: ActualScores): {
   value: number | null; estimated: boolean;
+  /** Its score from the week's published player scores (`played`, by player), for when Sorare's saved read has none; complete once every card's games are. */
+  actual?: number; actualComplete?: boolean;
   /** The chance of any cash, essence or card: the plan's own for a plan lineup, else against the score the lowest paid level took. Absent when unknown. */
   chance?: number;
   rewards?:RewardValues;
@@ -148,7 +150,15 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
     const cards = [...l.starters, ...l.subs];
     return cards.length === ordered.length && cards.every((c, i) => c.slug === ordered[i]!.slug && !!c.captain === ordered[i]!.captain);
   });
-  if (saved) {const rewards=projectedRewards(saved);return { value: saved.x, estimated: false, chance: saved.pReturn,...(rewards?{rewards}:{}),...(saved.tiers?.length?{atScore:projectedPrize(saved),prizes:prizeOptions(saved),prizeLine:saved}:{}) };}
+  // Actual from the published scores: each card's own score, with its bonuses, the captain's and the substitutions (`total`).
+  const soFar = (l: ScoringLineup): { actual?: number; actualComplete?: boolean } => {
+    if (!played || !("clubBonus" in l) || !("averageBonus" in l)) return {};
+    const cards = [...l.starters, ...l.subs];
+    const byCard: ActualScores = Object.fromEntries(cards.flatMap(c => { const got = c.player ? played[playerKey(c.player)] : undefined; return got ? [[c.slug, got]] : []; }));
+    const known = cards.filter(c => byCard[c.slug]);
+    return known.length ? { actual: total(l, byCard), actualComplete: known.length === cards.length && known.every(c => byCard[c.slug]!.complete !== false) } : {};
+  };
+  if (saved) {const rewards=projectedRewards(saved);return { ...soFar(saved), value: saved.x, estimated: false, chance: saved.pReturn,...(rewards?{rewards}:{}),...(saved.tiers?.length?{atScore:projectedPrize(saved),prizes:prizeOptions(saved),prizeLine:saved}:{}) };}
 
   const template = options[0];
   const rules = entered.scoring;
@@ -204,5 +214,5 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
   const bonusComposition=(roster:PlayCard[])=>roster.map(c=>`${c.rarity}:${c.inSeason}:${Boolean(c.captain)}`).sort().join("|");
   const boost=cards.every(c=>c.rarity==="limited")?1:template&&bonusComposition(cards)===bonusComposition(template.starters)?template.pro?.boost:Number.NaN;
   const prizeTemplate=template?.pro?{...template,pro:{...template.pro,boost:boost??Number.NaN}}:template;
-  return { ...expectation(custom, template?.group === "Room" ? null : template?.need,prizeTemplate), estimated: true, ...(prizeTemplate?.tiers?.length?{prizeLine:prizeTemplate}:{}) };
+  return { ...soFar(custom), ...expectation(custom, template?.group === "Room" ? null : template?.need,prizeTemplate), estimated: true, ...(prizeTemplate?.tiers?.length?{prizeLine:prizeTemplate}:{}) };
 }

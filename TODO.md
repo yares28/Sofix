@@ -55,11 +55,11 @@ games: every card "Not played yet", Actual "-". On localhost, saving a fresh rea
 launcher blanks the database settings), so other browsers never get it. Sofix's own rows use the week's published scores
 (`scores`, from the score job). Fix: your rows take each card's score from those published scores whenever the saved read has
 none, and Actual is worked out from them (as for Sofix's rows), labelled "so far" until Sorare ranks it; save reads made on
-localhost to the local copy. Also seen: one LaLiga lineup reads "Actual 0" beside "Rank 5,131".
+localhost to the local copy. Also seen: one LaLiga lineup reads "Actual 0" beside "Rank 5,131". **Fixed 2 Nov** (cards and Actual): every card takes his own score from the published scores, and Actual is worked out from them (card bonuses, captain, substitutions) whenever Sorare's read has no score, "so far" until every game is in; checked in a browser without the extension (Play and Recap: 394 vs Sorare's 399, 523 vs 528). Not done: saving a fresh read made on localhost (needs a local store).
 
 **F. Pro card art empty (issue 3, broken).** Play → Pro · once the teams are out shows initials. The week's plan block
 (`sorare_plan:<week>`) drops pictures when it is frozen (`backend/app/sorare/frozen.py:28`); `restoreFrozenPlan`
-(`frontend/lib/frozenPlan.ts:13`) puts them back for plan lineups but not for `pro` windows. Fix there.
+(`frontend/lib/frozenPlan.ts:13`) puts them back for plan lineups but not for `pro` windows. Fix there. **Fixed 2 Nov**: the Pro groups' cards get their art back the same way (all three groups show five cards).
 
 **G. Recap: "Your season" to Audit, rewards live (issue 7).** "In recap tab, move the 'Your season' card in audit; rewards
 card does not update in real time." `components/recap/YourSeason.tsx` (already links to `/audit/rewards`) moves to the Audit

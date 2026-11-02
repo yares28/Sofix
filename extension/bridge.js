@@ -196,7 +196,7 @@
       steps { __typename level target state
         myLineups { __typename
           ... on TaskLineup { id draft confirmable aasmState score
-            taskAppearances { id index captain rarity positions score pictureUrl(derivative: "tinified")
+            taskAppearances { id index captain rarity positions score bonus locked pictureUrl(derivative: "tinified")
               averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
               anyCard { slug inSeasonEligible anyTeam { name } } player { slug displayName } game { date } } }
           ... on So5Lineup { ${LINEUP} so5Fixture { slug startDate } } } } } } }`,

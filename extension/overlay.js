@@ -704,6 +704,8 @@
     record.ribs = null;
     record.sig = "";
     record.tile = null;
+    if (record.need) record.need.remove();
+    record.need = null;
     removeOdds(record);
   }
 
@@ -1278,6 +1280,7 @@
       try {
         if (placeTile(read)) again = true;
         if (placeOdds(read)) again = true;
+        if (placeNeed(read)) again = true;
         placeWorth(read);
       } catch {
         // one card that will not take a tile must not stop the others
@@ -1292,6 +1295,122 @@
     }
     showGuide();
     report();
+  }
+
+  // -- points needed (plans/points-needed.md) -------------------------------------------------------------------------
+  // The raw score each card needs for its lineup to reach the step's target, at the card art's bottom right, the same pill as in
+  // Sofix (core.pointsNeeded). Your open Arcade and Pro lineups, wherever Sorare shows their cards; on an Arcade compose page, every
+  // card of yours shown, for the step in the address. The worker keeps the data (from your lineups and Sofix's Arcade read) and
+  // reads your lineups again at most every 2 minutes while a game of yours is live; nothing is asked while this tab is hidden.
+  const NEED_ASK_MS = 2 * 60 * 1000;
+  const NEED_GAME_MS = 115 * 60 * 1000; // after this a game is over (Sofix's Arcade uses the same)
+  let need = null;
+  let needAskedAt = 0;
+  let needAsking = false;
+  let needCache = { key: "", map: new Map() };
+
+  const composeStep = () => {
+    const found = location.pathname.match(/\/boards\/pro\/[^/]+\/([^/]+)\/compose-team/);
+    return found ? decodeURIComponent(found[1]) : null;
+  };
+
+  function wantNeed() {
+    if (needAsking || now() - needAskedAt < NEED_ASK_MS || document.visibilityState !== "visible") return;
+    needAsking = true;
+    needAskedAt = now();
+    try {
+      chrome.runtime.sendMessage({ type: "need-data" }, (reply) => {
+        needAsking = false;
+        if (chrome.runtime.lastError || !reply) {
+          void chrome.runtime.lastError;
+          return;
+        }
+        need = reply;
+        needCache = { key: "", map: new Map() };
+        schedule();
+      });
+    } catch {
+      needAsking = false;
+    }
+  }
+
+  /** card slug -> its pill, worked out once a minute (and again when the data or the address changes). */
+  function needBadges() {
+    const t = now();
+    const key = `${needAskedAt}|${location.pathname}|${Math.floor(t / 60000)}`;
+    if (!need || needCache.key === key) return needCache.map;
+    const map = new Map();
+    const steps = (need.arcade && need.arcade.steps) || {};
+    for (const lineup of [...(need.arcadeLineups || []), ...(need.proLineups || [])]) {
+      const target = lineup.kind === "arcade" ? (steps[lineup.step] ? steps[lineup.step].target : null) : lineup.target;
+      const cards = lineup.cards.map((c) => {
+        const at = c.kickoff ? Date.parse(c.kickoff) : NaN;
+        const state = !Number.isFinite(at) || t < at ? "to play" : t - at < NEED_GAME_MS ? "live" : "finished";
+        // Sorare's card score already holds the card's bonus: his raw score is that score divided by it.
+        return { multiplier: c.bonus, unknown: "Sorare gave no bonus for this card", state, raw: c.score === null || !c.bonus ? null : c.score / c.bonus };
+      });
+      const result = core.pointsNeeded(target, cards);
+      lineup.cards.forEach((c, i) => map.set(c.slug, core.needBadge(result, i, target, c.captain)));
+    }
+    const stepId = composeStep();
+    const step = stepId ? steps[stepId] : null;
+    if (step && typeof step.target === "number") {
+      const captain = typeof step.captain === "number" ? step.captain : 0;
+      for (const record of live) {
+        const slug = record.cardSlug;
+        if (!slug || map.has(slug) || !need.editions || !Object.hasOwn(need.editions, slug)) continue; // only your cards of the set
+        const edition = need.editions[slug];
+        const club = need.clubs && Object.hasOwn(need.clubs, slug) ? need.clubs[slug] : null;
+        const known = step.collection !== true || club !== null;
+        const m = 1 + (edition && edition > 1 ? edition - 1 : 0) + (step.collection === false ? 0 : club || 0);
+        const one = (mult) => core.pointsNeeded(step.target, [{ multiplier: known ? mult : null, unknown: "club bonus not read yet: open Arcade in Sofix once", state: "to play", raw: null },
+          ...Array.from({ length: 4 }, () => ({ multiplier: 1, state: "to play", raw: null }))]);
+        const badge = core.needBadge(one(m), 0, step.target, false);
+        const asCaptain = core.needBadge(one(m + captain), 0, step.target, true);
+        map.set(slug, captain && badge.tone === "need" ? { ...badge, detail: `${badge.detail} As captain: ${asCaptain.label}.` } : badge);
+      }
+    }
+    needCache = { key, map };
+    return map;
+  }
+
+  /** The pill for one card: drawn, moved to the art's bottom right, or taken off. */
+  function placeNeed(read) {
+    const { record, rect, tier } = read;
+    const badge = tier === "skip" || !record.cardSlug ? null : needBadges().get(record.cardSlug) || null;
+    let pill = record.need && record.need.isConnected ? record.need : null;
+    if (!badge) {
+      if (pill) pill.remove();
+      record.need = null;
+      return false;
+    }
+    let fresh = false;
+    if (!pill) {
+      pill = document.createElement("span");
+      pill.setAttribute("data-sfx", "");
+      pill.setAttribute("data-pending", "");
+      record.media.parentElement.append(pill);
+      record.need = pill;
+      fresh = true;
+    }
+    const sig = `${badge.label}|${badge.tone}|${badge.detail}|${tier}`;
+    if (pill.dataset.sig !== sig) {
+      pill.dataset.sig = sig;
+      pill.className = `sfx-need sfx-need--${tier === "full" ? "full" : "small"}`;
+      pill.dataset.tone = badge.tone;
+      pill.textContent = badge.label;
+      pill.title = badge.detail;
+      pill.setAttribute("aria-label", badge.tone === "need" || badge.tone === "live" ? `Points needed ${badge.label}. ${badge.detail}` : badge.detail);
+    }
+    if (fresh) return true; // measured on the next pass
+    const box = pill.getBoundingClientRect();
+    const inset = INSET[tier === "full" ? "full" : "compact"];
+    const dx = rect.right - inset.x - box.right;
+    const dy = rect.bottom - inset.y - box.bottom;
+    if (Math.abs(dx) > 0.5) pill.style.left = `${(parseFloat(pill.style.left) || 0) + dx}px`;
+    if (Math.abs(dy) > 0.5) pill.style.top = `${(parseFloat(pill.style.top) || 0) + dy}px`;
+    pill.removeAttribute("data-pending");
+    return Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5;
   }
 
   // -- your gallery's prices (plans/overlay-bridge.md, B2) ----------------------------------------------------------
@@ -1573,6 +1692,7 @@
     wantWorth();
     wantProfile();
     wantNumbers();
+    wantNeed();
     paint();
   }
 

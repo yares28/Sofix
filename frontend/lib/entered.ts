@@ -18,6 +18,8 @@ export type EnteredCard = {
   inSeason?: boolean;
   average?: number | null;
   club?: string | null;
+  /** Sorare's multiplier for this card in this lineup (Pro, extension 0.4.22): its bonuses and the captain's, added. */
+  bonus?: number | null;
 };
 /** What Sorare says a lineup made: its score, where it ranked, and what it was paid. Rank and rewards come after the games. */
 export type LineupResult = { score: number; rank: number | null; cash: number; essence: number; card: boolean; xp?: number };
@@ -156,6 +158,7 @@ const TaskLineupSchema = z.object({
     rarity: z.string().nullish(),
     positions: z.array(z.string()).nullish(),
     score: z.number().nullish(),
+    bonus: z.number().nullish(),
     pictureUrl: z.string().nullish(),
     averageScore: z.number().nullish(),
     anyCard: z.object({ slug: z.string(), inSeasonEligible: z.boolean().optional(), anyTeam: z.object({ name: z.string() }).nullish() }).nullish(),
@@ -206,7 +209,7 @@ export function readProLineups(response: unknown, start: string, end: string): {
           pro: { ...pro, state: lineup.aasmState },
           cards: lineup.taskAppearances.flatMap((a) => a.anyCard ? [{
             slug: a.anyCard.slug, name: a.player?.displayName ?? a.anyCard.slug, picture: a.pictureUrl ?? null, rarity: a.rarity ?? null,
-            score: a.score ?? null, captain: a.captain === true,
+            score: a.score ?? null, captain: a.captain === true, ...(a.bonus != null ? { bonus: a.bonus } : {}),
             ...(a.index != null ? { index: a.index, player: a.player?.slug, positions: a.positions ?? undefined, average: a.averageScore,
               inSeason: a.anyCard.inSeasonEligible, club: a.anyCard.anyTeam?.name ?? null } : {}),
           }] : []),

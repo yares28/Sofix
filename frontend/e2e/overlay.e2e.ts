@@ -809,7 +809,7 @@ test.describe("the sorare.com overlay", () => {
 
     // Nothing it sends is a step that writes to Sorare (chances-seen hands Sorare's own readings to Sofix, read only).
     const kinds = new Set((await probe(page)).sent.map((message) => message.type));
-    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user", "ff-live", "chances-seen"].includes(kind))).toEqual([]);
+    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user", "ff-live", "chances-seen", "need-data"].includes(kind))).toEqual([]);
   });
 
   test("says what the site says is wrong with him only when it does, and keeps who says it behind one button", async ({ page }) => {

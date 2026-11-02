@@ -79,7 +79,7 @@ address; the extension tries them in order and remembers the one that answers (`
 **I. Points-needed pill in the Sorare overlay (issues 1, 2, 5).** "I want the pill in the extension, so I can see it in
 Sorare, not in Sofix." On sorare.com's Arcade and Pro compose pages, each picked card gets the same pill (same calculation,
 `lib/pointsNeeded.ts`), for the step and lineup on screen, live while the games run. Needs an extension release (configure.mjs,
-then one Reload). Includes entered Pro cards: ask Sorare's Pro read for each card's level so they are priced (today "—").
+then one Reload). Includes entered Pro cards: ask Sorare's Pro read for each card's level so they are priced (today "—"). **Built 2 Nov** (extension 0.4.23): the worker keeps the board, your card editions and club bonuses, and your open Arcade and Pro lineups (from Sofix's Arcade reads and its own read of your lineups every 2 minutes while a game is live); the overlay draws the pill on those cards wherever Sorare shows them, and on an Arcade compose page on every card of yours for that step. The Pro read now asks Sorare's own multiplier per card, so entered Pro pills on Play are priced too.
 
 ## All Neon projects into one, on 1 Nov 2026 (you, 28 Oct 2026)
 

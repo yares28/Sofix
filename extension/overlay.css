@@ -443,3 +443,20 @@
 .sfx-strip-venue, .sfx-strip-label { font-weight: 600; }
 @keyframes sfx-strip-in { from { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .sfx-strip { animation: none; } }
+
+/* Points needed (plans/points-needed.md): the dark glass pill at the card art's bottom right, as in Sofix. */
+.sfx-need {
+  position: absolute; left: 0; top: 0; z-index: 4; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; padding: 3px 7px; border-radius: 999px; background: rgb(14 14 16 / .8); color: #fff;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / .22), 0 2px 8px rgb(0 0 0 / .32); backdrop-filter: blur(6px);
+  font: 650 12px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap;
+  pointer-events: auto; cursor: help; user-select: none; animation: sfx-fade 0.2s ease-out both;
+}
+.sfx-need--small { padding: 2px 6px; font-size: 11px; }
+.sfx-need[data-pending] { visibility: hidden; }
+.sfx-need[data-tone="live"] { box-shadow: 0 0 0 1.5px #ffc46b, 0 2px 8px rgb(0 0 0 / .32); }
+.sfx-need[data-tone="settled"], .sfx-need[data-tone="reached"] { color: #8fe0a0; }
+.sfx-need[data-tone="reached"] { box-shadow: 0 0 0 1.5px #46c05a, 0 2px 8px rgb(0 0 0 / .32); }
+.sfx-need[data-tone="unreachable"] { color: #ffb3ae; font-size: 11px; }
+.sfx-need[data-tone="unknown"] { color: rgb(255 255 255 / .72); }
+@media (prefers-reduced-motion: reduce) { .sfx-need { animation: none; } }

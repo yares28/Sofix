@@ -635,3 +635,42 @@ describe("Sorare's starting chances, kept beyond the tab (plans/sorare-start-cha
     expect(w.created).toHaveLength(0);
   });
 });
+
+describe("points needed on sorare.com", () => {
+  const STEP = "Tasks::Task:step-3";
+  const appearance = (slug: string, score: number, bonus: number, captain = false, date = "2026-11-02T19:45:00Z") => ({ captain, score, bonus, anyCard: { slug }, game: { date } });
+  const answers = (operation: string) => operation === "SofixArcade"
+    ? { currentUser: { setBoard: { configSlug: "football-divination-chapter-1", myCurrentStep: { id: STEP }, steps: [{ id: STEP, level: 2, target: 360, state: "LINEUP_SET", engineConfiguration: { captain: 0.5, collection: null } }] } } }
+    : operation === "SofixArcadeLineups"
+      ? { currentUser: { setBoard: { steps: [{ id: STEP, myLineups: [
+          { __typename: "TaskLineup", id: "open", draft: false, aasmState: "READY", taskAppearances: [appearance("c1", 0, 1), appearance("c2", 0, 1.5, true)] },
+          { __typename: "TaskLineup", id: "done", draft: false, aasmState: "FAILED", taskAppearances: [appearance("c9", 40, 1)] }] }] } } }
+      : operation === "SofixProLineups"
+        ? { currentUser: { boards: [{ title: "LaLiga", steps: [{ __typename: "CareerProStep", level: 2, target: 380, myLineups: [
+            { __typename: "TaskLineup", id: "pro", draft: false, aasmState: "READY", taskAppearances: [appearance("p1", 66, 1.1)] }] }] }] } }
+        : { currentUser: { cards: { nodes: [{ slug: "c1", skinEdition: { bonus: 1.3 } }, { slug: "c3", skinEdition: { bonus: 1 } }] } } };
+
+  it("keeps the board, your open lineups and your card editions from the reads the app makes, nothing from settled lineups", async () => {
+    const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
+    for (const step of ["arcade", "arcade-lineups", "pro-entered", "arcade-cards"]) await w.sendFrom(APP, { type: "sorare", step });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    type Kept = { arcade: { steps: Record<string, unknown> }; arcadeLineups: { id: string; cards: unknown[] }[]; proLineups: unknown[]; editions: Record<string, number> };
+    const kept = w.local.get("needData") as Kept;
+    expect(kept.arcade.steps[STEP]).toMatchObject({ target: 360, captain: 0.5 });
+    expect(kept.arcadeLineups.map((l) => l.id)).toEqual(["open"]);
+    expect(kept.arcadeLineups[0]!.cards[1]).toMatchObject({ slug: "c2", bonus: 1.5, captain: true });
+    expect(kept.proLineups[0]).toMatchObject({ target: 380, cards: [{ slug: "p1", score: 66, bonus: 1.1 }] });
+    expect(kept.editions).toEqual({ c1: 1.3, c3: 1 });
+  });
+
+  it("answers the overlay from what it keeps, and reads your lineups again only while a game is live, at most every 2 minutes", async () => {
+    const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
+    const now = Date.now();
+    w.local.set("needData", { arcade: { steps: {} }, arcadeAt: now, arcadeLineupsAt: now - 3 * 60_000, proLineupsAt: now - 3 * 60_000,
+      arcadeLineups: [{ id: "x", kind: "arcade", step: STEP, cards: [{ slug: "c1", score: 10, bonus: 1, captain: false, kickoff: new Date(now - 30 * 60_000).toISOString() }] }], proLineups: [] });
+    await w.send({ type: "need-data" });
+    expect(w.asked.map((a) => a.operation)).toEqual(["SofixArcadeLineups", "SofixProLineups"]); // a game is live and the copy is 3 minutes old
+    await w.send({ type: "need-data" });
+    expect(w.asked).toHaveLength(2); // just read: not again
+  });
+});

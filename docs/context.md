@@ -1572,15 +1572,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026 (0.4.22): every app call goes through appFetch, trying 127.0.0.1:3000 then each Vercel address and remembering the one that answers JSON; open-app uses that address. Allowlists, Sorare operations and token handling unchanged.",
+        "note": "2 Nov 2026 (0.4.23): the worker keeps a points-needed copy (board steps, card editions and club bonuses, open Arcade and Pro lineups) from relayed reads and its own lineup reads (need-data, every 2 min while a game is live); the Pro lineup read adds each card's bonus and locked; the overlay draws the pill from core.pointsNeeded. Reads only; allowlists unchanged. Earlier: appFetch tries 127.0.0.1:3000 then each Vercel address.",
         "files": {
-          "extension/background.js": "139ff9f0cc0ec44a15cf26d53bebb5ff6c84e63a28d7b89971f283a94ec08a47",
-          "extension/bridge.js": "763154e7c127dc8a933822890b06b2fe85234e30013254535577c1e8e8d5e6e6",
-          "extension/manifest.template.json": "6d52f59ef89be6fae7bfa3c5ae77da0b5077aa60cf62b78055d3ac9063a680e7",
+          "extension/background.js": "5a0119719de9b68b9be02bae1d8116ab00091c9fb3fd1e2d9dee7b29541e415a",
+          "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
+          "extension/manifest.template.json": "992e66c12b27c184f59c9ce57aef2f607100d67bff200995e5acf2cec1c5390d",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "1d29d7a38fef8f964eb569a5e42b774251cdea2c41bd7b36b6c3f1a10e166d13"
+          "frontend/lib/extensionBackground.test.ts": "152c46a942f0c461671ef977746ea52001deac4340f839f2df949d1433463220"
         }
       }
     },

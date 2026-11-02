@@ -840,7 +840,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   dark pill at its art's lower right: the raw score it needs for an equal share of the step's target, its own bonuses counted once
   (target ÷ 5 ÷ multiplier, rounded up: 72.8 for a +10% card on 400). While the games run it is the extra raw points from now (**+**),
   ✓ once a card has finished, **Unreachable** when 100 from every card left cannot make it. Hover, focus or tap explains it; prize
-  boosts never count, and an unknown bonus or score reads **—** with why. Entered Pro cards read — until Sorare's Pro read gives card levels.
+  boosts never count, and an unknown bonus or score reads **—** with why. On sorare.com (extension 0.4.23) the overlay draws the same pill on the
+  cards of your open Arcade and Pro lineups wherever Sorare shows them, and on an Arcade compose page on every card of yours for that
+  step (its captain value on hover); open Sofix's Arcade once so it knows your card editions. Entered Pro cards use Sorare's own multiplier.
 - A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga or Ligue 1 game (else Sorare's projection, else his average when he
   plays) × his start % (Sofix's in those leagues) × Sorare's bonuses (edition + club + captain),
   shown below FDR (0–100, lower is easier) at the upper right of the card art. Lineup and Players cards share the same layout: large start percentage, fixture crests and xD below the art, with the edition bonus on the art. The selected lineup game stays fixed; its kickoff and source are available in the fixture label and forecast titles. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or

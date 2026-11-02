@@ -698,10 +698,60 @@
     return found ? found[0].toLowerCase() : null;
   }
 
+  // Points needed (plans/points-needed.md), the same calculation as frontend/lib/pointsNeeded.ts (frontend/lib/overlayCore.test.ts
+  // checks they agree): each scoring card's equal share of the step's target, divided by its multiplier, the 100-point ceiling
+  // shared out again; during the games what is still needed from now. Cards: { multiplier|null, unknown?, state: "to play" |
+  // "live" | "finished", raw|null }.
+  const NEED_EPS = 1e-9;
+  function pointsNeeded(target, cards, size = 5) {
+    const none = (reason, state = "unknown") => ({ state, current: null, remaining: null, room: null, cards: cards.map(() => ({ kind: "unknown", reason })) });
+    if (typeof target !== "number" || !Number.isFinite(target) || target <= 0) return none("no target for this step");
+    if (cards.length < size) return none(`the lineup has ${cards.length} of ${size} cards`, "incomplete");
+    const blind = cards.find((c) => c.state !== "to play" && (c.raw === null || c.multiplier === null));
+    if (blind) return none(blind.raw === null ? "a started card's score is unknown" : blind.unknown || "a started card's bonus is unknown");
+    const raw = (c) => (c.state === "to play" ? 0 : c.raw);
+    const contribution = (c) => (c.state === "to play" ? 0 : c.raw * c.multiplier);
+    const current = cards.reduce((sum, c) => sum + contribution(c), 0);
+    const remaining = Math.max(0, target - current);
+    if (remaining <= NEED_EPS) return { state: "reached", current, remaining: 0, room: 0, cards: cards.map((c) => ({ kind: "reached", contribution: c.state === "to play" ? null : contribution(c) })) };
+    const open = cards.map((c, i) => ({ c, i, room: c.multiplier === null ? Infinity : Math.max(0, 100 - raw(c)) * c.multiplier }))
+      .filter(({ c, room }) => c.state !== "finished" && room > NEED_EPS);
+    const room = open.some((o) => !Number.isFinite(o.room)) ? null : open.reduce((sum, o) => sum + o.room, 0);
+    const out = cards.map((c) => ({ kind: "settled", contribution: contribution(c) }));
+    if (room !== null && room < remaining - NEED_EPS) {
+      for (const o of open) out[o.i] = { kind: "unreachable" };
+      return { state: "unreachable", current, remaining, room, cards: out };
+    }
+    let left = remaining;
+    const sorted = [...open].sort((a, b) => a.room - b.room);
+    sorted.forEach((o, k) => {
+      const share = Math.min(o.room, left / (sorted.length - k));
+      left -= share;
+      out[o.i] = o.c.multiplier === null ? { kind: "unknown", reason: o.c.unknown || "score bonus unknown" }
+        : { kind: "need", raw: share / o.c.multiplier, share, live: o.c.state === "live", multiplier: o.c.multiplier };
+    });
+    return { state: "open", current, remaining, room, cards: out };
+  }
+  const needRoundUp = (x) => Math.ceil(x * 10 - 1e-6) / 10;
+  const needOne = (x) => String(Math.round(x * 10) / 10);
+  function needBadge(result, i, target, captain = false) {
+    const c = result.cards[i];
+    const goal = typeof target === "number" ? `the ${needOne(target)}-point target` : "the target";
+    const bonus = (m) => `Score bonus: ${m > 1 + NEED_EPS ? `+${Math.round((m - 1) * 100)}%` : "none"}${captain ? " (captain included)" : ""}.`;
+    if (!c || c.kind === "unknown") return { label: "—", detail: `Points needed unknown: ${c && c.kind === "unknown" ? c.reason : "no data"}.`, tone: "unknown" };
+    if (c.kind === "reached") return { label: "✓", detail: `Target reached on provisional scores: ${needOne(result.current || 0)} of ${needOne(target || 0)}. Sorare validates the result after the games${c.contribution === null ? "" : `; this card has ${needOne(c.contribution)}`}.`, tone: "reached" };
+    if (c.kind === "settled") return { label: "✓", detail: `Finished: contributed ${needOne(c.contribution)} toward ${goal}.`, tone: "settled" };
+    if (c.kind === "unreachable") return { label: "Unreachable", detail: `Even 100 from every card still able to score adds ${needOne(result.room || 0)}, short of the ${needOne(result.remaining || 0)} still needed for ${goal}.`, tone: "unreachable" };
+    const sofar = result.current ? ` (${needOne(result.current)} so far)` : "";
+    return c.live
+      ? { label: `+${needRoundUp(c.raw)}`, detail: `Needs ${needRoundUp(c.raw)} additional raw points to contribute ${needOne(c.share)} more toward ${goal}${sofar}. ${bonus(c.multiplier)}`, tone: "live" }
+      : { label: String(needRoundUp(c.raw)), detail: `Needs ${needRoundUp(c.raw)} raw points to contribute ${needOne(c.share)} toward ${goal}${sofar}. ${bonus(c.multiplier)}`, tone: "need" };
+  }
+
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
     chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
-    isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked,
+    isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;
 })(typeof globalThis !== "undefined" ? globalThis : this);

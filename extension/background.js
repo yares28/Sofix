@@ -407,6 +407,10 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     overlayPlan(fixtureOf(message.fixture), message.missions === true, message.fresh === true).then(reply);
     return true;
   }
+  if (message?.type === "need-data") {
+    needData(sender.tab?.id ?? null).then(reply).catch(() => reply(null));
+    return true;
+  }
   if (message?.type === "pro-rebuild") {
     proRebuild(message.week, message.plan).then(reply);
     return true;
@@ -684,6 +688,80 @@ const STEPS = {
   enter: (input) => ["SofixConfirmLineups", { input: { so5LineupIds: ids(input.lineupIds) } }],
 };
 
+// -- points needed on sorare.com (plans/points-needed.md) ---------------------------------------------------------------
+// A compact copy of what the pill needs, kept from the reads the app already makes through here (its Arcade page reads the board,
+// your cards and your lineups) and from the overlay's own refresh of your lineups: steps and targets, each card's edition bonus,
+// and your open Arcade and Pro lineups with Sorare's score and multiplier per card. Nothing in it is a credential.
+const NEED_KEY = "needData";
+const NEED_FRESH_MS = 2 * 60 * 1000; // lineups are read again at most this often, and only while a game of yours is live
+const NEED_GAME_MS = 2.5 * 60 * 60 * 1000; // a game this long after its kick-off may still be scoring
+const num = (value) => (typeof value === "number" && Number.isFinite(value) ? value : null);
+const appearancesOf = (lineup) => (Array.isArray(lineup?.taskAppearances) ? lineup.taskAppearances : []).flatMap((a) => (a?.anyCard?.slug
+  ? [{ slug: String(a.anyCard.slug), score: num(a.score), bonus: num(a.bonus), captain: a.captain === true, kickoff: typeof a.game?.date === "string" ? a.game.date : null }] : []));
+const openLineup = (l) => l && l.__typename === "TaskLineup" && !l.draft && !l.cancelledAt && !["SUCCESSFUL", "FAILED"].includes(l.aasmState);
+
+/** What one read through here adds to the copy. */
+function needFrom(step, data, input = {}, now = Date.now()) {
+  const user = data?.currentUser;
+  if (step === "arcade-bonuses" && user?.setBoard && Array.isArray(input.cards)) {
+    // Sorare's bonuses for each card asked (b0, b1, ...): its club ("collection") bonus, in basis points.
+    return { clubs: Object.fromEntries(input.cards.slice(0, 50).flatMap((card, i) => {
+      const list = user.setBoard[`b${i}`];
+      return Array.isArray(list) ? [[String(card), list.filter((b) => b?.key === "collection").reduce((sum, b) => sum + (num(b.bonusBasisPoints) ?? 0), 0) / 10000]] : [];
+    })) };
+  }
+  if (step === "arcade" && user?.setBoard) {
+    const board = user.setBoard;
+    const steps = Object.fromEntries((Array.isArray(board.steps) ? board.steps : []).map((st) => [String(st.id), {
+      level: num(st.level), target: num(st.target), state: String(st.state ?? ""), captain: num(st.engineConfiguration?.captain), collection: st.engineConfiguration?.collection ?? null,
+    }]));
+    return { arcade: { config: board.configSlug ?? null, current: board.myCurrentStep?.id ?? null, steps }, arcadeAt: now };
+  }
+  if (step === "arcade-cards" && Array.isArray(user?.cards?.nodes)) {
+    return { editions: Object.fromEntries(user.cards.nodes.flatMap((c) => (c?.slug ? [[String(c.slug), num(c.skinEdition?.bonus)]] : []))) };
+  }
+  if (step === "arcade-lineups" && user?.setBoard) {
+    const lineups = (Array.isArray(user.setBoard.steps) ? user.setBoard.steps : []).flatMap((st) => (Array.isArray(st.myLineups) ? st.myLineups : [])
+      .filter(openLineup).map((l) => ({ id: String(l.id), kind: "arcade", step: String(st.id), cards: appearancesOf(l) })));
+    return { arcadeLineups: lineups, arcadeLineupsAt: now };
+  }
+  if (step === "pro-entered" && Array.isArray(user?.boards)) {
+    const lineups = user.boards.flatMap((board) => (Array.isArray(board?.steps) ? board.steps : []).filter((st) => st?.__typename === "CareerProStep")
+      .flatMap((st) => (Array.isArray(st.myLineups) ? st.myLineups : []).filter(openLineup)
+        .map((l) => ({ id: String(l.id), kind: "pro", target: num(st.target), board: board.title ?? "Pro", cards: appearancesOf(l) }))));
+    return { proLineups: lineups, proLineupsAt: now };
+  }
+  return null;
+}
+
+async function keepNeed(step, answer, input = {}) {
+  if (answer?.state !== "ok") return;
+  const add = needFrom(step, answer.data, input);
+  if (!add) return;
+  const { [NEED_KEY]: kept = {} } = await chrome.storage.local.get(NEED_KEY);
+  await chrome.storage.local.set({ [NEED_KEY]: { ...kept, ...add,
+    editions: { ...(kept.editions ?? {}), ...(add.editions ?? {}) }, clubs: { ...(kept.clubs ?? {}), ...(add.clubs ?? {}) } } });
+}
+
+/** The overlay's question: the copy, after reading your lineups again when a game of yours is live (or nothing was read yet). */
+async function needData(tabId, now = Date.now()) {
+  const { [NEED_KEY]: kept = {} } = await chrome.storage.local.get(NEED_KEY);
+  const all = [...(kept.arcadeLineups ?? []), ...(kept.proLineups ?? [])];
+  const live = all.some((l) => l.cards.some((c) => c.kickoff && Date.parse(c.kickoff) <= now && now - Date.parse(c.kickoff) < NEED_GAME_MS));
+  const stale = (at) => !at || now - at > NEED_FRESH_MS;
+  const asks = [];
+  if (!kept.arcadeAt || now - kept.arcadeAt > 6 * 60 * 60 * 1000) asks.push("arcade");
+  if (stale(kept.arcadeLineupsAt) && (live || !kept.arcadeLineupsAt)) asks.push("arcade-lineups");
+  if (stale(kept.proLineupsAt) && (live || !kept.proLineupsAt)) asks.push("pro-entered");
+  for (const step of asks) {
+    const [operation, variables] = STEPS[step]({});
+    await keepNeed(step, await throughSorare(operation, variables, tabId));
+  }
+  if (!asks.length) return kept;
+  const { [NEED_KEY]: fresh = {} } = await chrome.storage.local.get(NEED_KEY);
+  return fresh;
+}
+
 /** The lineup as Sorare takes it: a card per slot, in order, one captain. Anything else is dropped. */
 function appearances(input) {
   return (Array.isArray(input.appearances) ? input.appearances : []).slice(0, 12).map((slot, index) => ({
@@ -887,7 +965,10 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
   }
   if (message?.type === "sorare" && Object.hasOwn(STEPS, message.step)) {
     const [operation, variables] = STEPS[message.step](message);
-    throughSorare(operation, variables).then((answer) => reply({ ok: true, step: message.step, ...answer }));
+    throughSorare(operation, variables).then((answer) => {
+      reply({ ok: true, step: message.step, ...answer });
+      keepNeed(message.step, answer, message).catch(() => {}); // the pill on sorare.com keeps what the app read
+    });
     return true;
   }
 });

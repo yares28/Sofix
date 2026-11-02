@@ -32,8 +32,11 @@ function enteredProNeeds(lineup: GameweekLineup, cards: GameweekLineup["cards"],
     const own = template?.bonuses;
     return own && c.level !== undefined && c.inSeason !== undefined ? 1 + (c.inSeason ? own.season : 0) + own.grade * c.level + (own.scarcity[c.rarity ?? ""] ?? 0) : Number.NaN;
   });
-  const pills = proNeeds(lineup.pro.target, template?.captainBonus, cards.map((c, i) => ({ mult: priced[i]!, captain: c.captain, player: c.player,
-    unknown: Number.isFinite(priced[i]!) ? undefined : "Sorare's Pro read gives no card level, and this week's plan has no price for this card on this board" })),
+  // Sorare's own multiplier for each card when its read has it (extension 0.4.22): the captain's is in it already.
+  const pills = proNeeds(lineup.pro.target, template?.captainBonus, cards.map((c, i) => typeof c.bonus === "number" && c.bonus > 0
+    ? { mult: c.bonus, captain: false, player: c.player }
+    : { mult: priced[i]!, captain: c.captain, player: c.player,
+      unknown: Number.isFinite(priced[i]!) ? undefined : "Sorare's Pro read gives no card level, and this week's plan has no price for this card on this board: reload the extension (0.4.22) for Sorare's own" }),
     (c) => scoreState(c.player ? scores[playerKey(c.player)] : undefined));
   // Sorare's own verdict once it has one: a cleared step is cleared, whatever the provisional sum says.
   return lineup.pro.state === "SUCCESSFUL" ? pills.map(() => ({ label: "✓", detail: `Step cleared: Sorare validated ${lineup.pro!.target}.`, tone: "reached" as const })) : pills;

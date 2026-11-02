@@ -1,6 +1,6 @@
 import httpx
 
-from app.jobs.neon_switch import LIMIT_BYTES, endpoint_id, move_to, pick, sent_bytes, table_order
+from app.jobs.neon_switch import LIMIT_BYTES, endpoint_id, move_to, pick, sent_bytes, table_order, to_merge
 
 GB = 1024**3
 
@@ -61,3 +61,14 @@ def test_usage_is_read_with_a_personal_or_an_organization_key() -> None:
     ]
     for personal in (True, False):
         assert sent_bytes(urls, "key", transport=fake_neon(personal)) == ([None, 3 * GB], None)
+
+
+def test_merges_only_projects_written_since_their_last_merge() -> None:
+    urls = [f"postgresql://u:p@ep-{name}-pooler.c-8.x.neon.tech/db" for name in ("a", "b", "c", "d")]
+    merged = {"ep-a": 100.0, "ep-b": 100.0, "ep-c": 100.0}
+    # d is live; b wrote after its merge (production fell back while it refused for quota); a did not; c still refuses.
+    assert to_merge(3, [100.0, 250.0, None, 300.0], merged, urls) == [1]
+    # A project never recorded is only recorded, never merged; the live one never merges into itself.
+    assert to_merge(3, [100.0, 100.0, 100.0, 300.0], {"ep-d": 1.0}, urls) == []
+    # The stranded project answers again on the 1st: its writes since the merge come back.
+    assert to_merge(1, [100.0, 400.0, 500.0, 300.0], merged | {"ep-d": 200.0}, urls) == [2, 3]

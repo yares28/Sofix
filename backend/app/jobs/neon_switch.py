@@ -7,7 +7,9 @@ POSTGRES_URL and POSTGRES_URL_SPARE (one or more URLs, separated by spaces or ne
 FDR, Sofix B); all hold the same tables. The live one is the one whose `read_models` was written last, the same rule the
 app uses (frontend/lib/db.ts), so nothing has to be stored about which is live. With --move and NEON_API_KEY, when the
 live project has sent LIMIT_BYTES this month, every table is copied to the answering project that has sent the least
-(under the limit) and that one becomes live. The live URL goes to $GITHUB_ENV as
+(under the limit) and that one becomes live. --move also merges into the live project what another one wrote since its
+last merge (`merge_stranded`): a project that refused for quota before the move left its rows behind, and they come back
+once it answers again (on the 1st). The live URL goes to $GITHUB_ENV as
 POSTGRES_URL for the next steps. Only the app login (rows only) is needed: sequences are moved on with nextval.
 """
 
@@ -183,6 +185,116 @@ def advance_sequence(conn: psycopg.Connection, table: str) -> None:
         conn.execute("SELECT max(nextval(%s)) FROM generate_series(1, %s)", (seq[0], behind))
 
 
+MERGED_KEY = "neon_merged"
+
+
+def to_merge(live: int, stamps: list[float | None], merged: dict[str, float], urls: list[str]) -> list[int]:
+    """Projects written since their last merge into the live one: production left them without a copy (they refused
+    for quota, so the jobs fell back to a stale project, 19-25 Oct 2026). A project seen for the first time is only
+    recorded, never merged: it holds nothing newer than what was copied when production last left it."""
+    return [
+        i
+        for i, at in enumerate(stamps)
+        if i != live and at is not None and endpoint_id(urls[i]) in merged and at > merged[endpoint_id(urls[i])]
+    ]
+
+
+def merge_from(source: str, target: str, since: float) -> tuple[dict[str, int], list[tuple[str, str, datetime]]]:
+    """Copy into `target` what `source` wrote after `since` (epoch seconds) and `target` lacks, in one transaction.
+
+    read_models: newest write wins per key, keeping its write time (so `target` stays the one written last).
+    refresh_runs: runs `target` has not got (by start time), a "running" one as abandoned so it holds no lock.
+    player_games: new (player, game) rows, and blanks of existing rows filled (pre-kick-off chances), never overwritten.
+    Tables every refresh replaces (odds, predictions, absences) are left: the live project's are newer.
+    Returns the counts and the read models copied, for R2.
+    """
+    # ponytail: a key the live project deleted after the split comes back from `source`; r2.sync deletes it again only if Neon drops it.
+    at = datetime.fromtimestamp(since, UTC)
+    done = {"read_models": 0, "refresh_runs": 0, "player_games": 0}
+    copied: list[tuple[str, str, datetime]] = []
+    with psycopg.connect(dsn(source), connect_timeout=15) as src, psycopg.connect(dsn(target)) as dst:
+        models = src.execute(
+            "SELECT key, payload::text, updated_at FROM read_models WHERE updated_at > %s AND key <> ALL(%s)",
+            (at, [STATUS_KEY, MERGED_KEY, "neon_live"]),
+        ).fetchall()
+        runs = src.execute(
+            "SELECT trigger, CASE WHEN status = 'running' THEN 'abandoned' ELSE status END, step, started_at, "
+            "finished_at, error, details::text FROM refresh_runs WHERE coalesce(finished_at, started_at) > %s",
+            (at,),
+        ).fetchall()
+        games = src.execute(
+            "SELECT row_to_json(t)::text FROM player_games t WHERE greatest(read_at, said_at) > %s", (at,)
+        ).fetchall()
+        columns = [
+            r[0]
+            for r in dst.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' "
+                "AND table_name = 'player_games' AND column_name NOT IN ('player', 'game_id')"
+            )
+        ]
+        fill = sql.SQL(", ").join(
+            sql.SQL("{0} = coalesce(player_games.{0}, excluded.{0})").format(sql.Identifier(c)) for c in columns
+        )
+        with dst.transaction():
+            for key, payload, written in models:
+                row = dst.execute(
+                    "INSERT INTO read_models (key, payload, updated_at) VALUES (%s, %s::json, %s) "
+                    "ON CONFLICT (key) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at "
+                    "WHERE read_models.updated_at < excluded.updated_at RETURNING key",
+                    (key, payload, written),
+                ).fetchone()
+                if row is not None:
+                    copied.append((key, payload, written))
+            done["read_models"] = len(copied)
+            have = {r[0] for r in dst.execute("SELECT started_at FROM refresh_runs")}
+            for run in runs:
+                if run[3] not in have:
+                    dst.execute(
+                        "INSERT INTO refresh_runs (trigger, status, step, started_at, finished_at, error, details) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s::json)",
+                        run,
+                    )
+                    done["refresh_runs"] += 1
+            for (game,) in games:
+                dst.execute(
+                    sql.SQL(
+                        "INSERT INTO player_games SELECT * FROM json_populate_record(NULL::player_games, %s::json) "
+                        "ON CONFLICT (player, game_id) DO UPDATE SET {}"
+                    ).format(fill),
+                    (game,),
+                )
+                done["player_games"] += 1
+    return done, copied
+
+
+def merge_stranded(urls: list[str], live: int, stamps: list[float | None], left: int | None = None) -> None:
+    """Merge every project written since its last merge into the live one, then record each answering project's last
+    write (`neon_merged` in the live one). `left` is the project production just moved away from: its rows were all
+    copied, so it is recorded as merged."""
+    try:
+        with psycopg.connect(dsn(urls[live]), connect_timeout=15) as conn:
+            row = conn.execute("SELECT payload::text FROM read_models WHERE key = %s", (MERGED_KEY,)).fetchone()
+        merged: dict[str, float] = json.loads(row[0]) if row else {}
+        for i in to_merge(live, stamps, merged, urls):
+            done, copied = merge_from(urls[i], urls[live], merged[endpoint_id(urls[i])])
+            logger.info("merged %s into %s: %s", endpoint_id(urls[i]), endpoint_id(urls[live]), done)
+            for key, payload, written in copied:
+                r2.put_block(key, json.loads(payload), written)  # r2.sync skips blocks uploaded after their write time
+        for i, at in enumerate(stamps):
+            if i != live and at is not None:
+                merged[endpoint_id(urls[i])] = at
+        if left is not None and stamps[left] is not None:
+            merged[endpoint_id(urls[left])] = stamps[left]
+        with psycopg.connect(dsn(urls[live]), connect_timeout=15) as conn:
+            conn.execute(
+                "INSERT INTO read_models (key, payload, updated_at) VALUES (%s, %s, now()) "
+                "ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload, updated_at = now()",
+                (MERGED_KEY, json.dumps(merged)),
+            )
+    except psycopg.Error as error:  # the merge waits for the next refresh; this one carries on
+        logger.warning("could not merge the other projects: %s", str(error).splitlines()[0][:120])
+
+
 STATUS_KEY = "neon_status"
 
 
@@ -231,6 +343,7 @@ def main() -> int:
         unknown: list[int | None] = [None] * len(urls)
         sent, note = sent_bytes(urls, key) if key else (unknown, "NEON_API_KEY is not set")
         target = move_to(live, sent, stamps)
+        left = live if target is not None else None
         if target is not None:
             # ponytail: a job writing to the old project during the copy loses that write; jobs run minutes apart.
             logger.info(
@@ -241,6 +354,7 @@ def main() -> int:
             )
             copy_all(urls[live], urls[target])
             live = target
+        merge_stranded(urls, live, stamps, left)
         write_status(urls, live, stamps, sent, note)
     logger.info("live project: %s", endpoint_id(urls[live]))
     if path := os.environ.get("GITHUB_ENV"):

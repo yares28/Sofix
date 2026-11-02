@@ -168,7 +168,7 @@ Play’s `sorareWrittenAt` version lookup caches for one hour, while split paylo
 
 **Rule:** choose the latest-written answering project, not a fixed project name. Quota refusal is an expected unavailable candidate. At the configured 4 GiB threshold, the scheduled move chooses an answering spare with known usage below the limit and the least sent bytes. Unknown usage is not zero evidence: a failed usage API can leave the refresh running while preventing a move. The status note must remain visible.
 
-**Boundary:** copy_all requires matching Alembic versions before copying tables. Migrate every production project through the owner process; never alter spare settings, reset a project or call the copy/move command manually without authorization. Preserve neon_live and neon_status. Availability and latest-write selection do not prove historical completeness; the retained GW25 gap is a separate reconciliation task.
+**Boundary:** copy_all requires matching Alembic versions before copying tables. Migrate every production project through the owner process; never alter spare settings, reset a project or call the copy/move command manually without authorization. Preserve neon_live, neon_status and neon_merged. Availability and latest-write selection do not prove historical completeness: a live project refused for quota before the move strands its rows (19–25 Oct 2026 on Sofix C, merged by hand 2 Nov 2026). So the refresh's `--move` run also calls `merge_stranded`: each answering project written since its last merge (neon_merged, kept in the live project) has its newer read models (newest write wins, write time kept), refresh runs and player games merged into the live one, and the merged blocks go to R2. A project seen for the first time, or the one just moved away from, is only recorded. Tables every refresh replaces are not merged.
 
 **Diagnosis:** missing neon_status on R2 establishes only that this status read returned nothing. It does not by itself prove a missing API key, exhausted quota, broken database or failed refresh. Inspect existing job/status publication evidence before attributing the cause. Do not print connection strings or query every project as a speculative repair.
 
@@ -1279,11 +1279,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-29",
-        "note": "Inspected R2 block source/version keys and bounded completed cache. Pending downloads remain coalesced beyond six distinct reads; missing and failed downloads retry. New regressions passed locally. Version discovery and tag invalidation unchanged; cross-service publication is still not atomic.",
+        "date": "2026-11-02",
+        "note": "Inspected R2 block source/version keys and bounded completed cache. Pending downloads remain coalesced beyond six distinct reads; missing and failed downloads retry. New regressions passed locally. Version discovery and tag invalidation unchanged; cross-service publication is still not atomic. 2 Nov 2026: r2.NOT_COPIED adds neon_merged (switch bookkeeping, not a page block).",
         "files": {
           "backend/app/services/publish.py": "895609ab701cad2e9fcf31cda71684fc96e98e0eba59546ff931fa0167dca4ce",
-          "backend/app/services/r2.py": "b203c6f542dada96bc0388aee7205098101502206839a99ff15924989bd8a6fb",
+          "backend/app/services/r2.py": "82b91dea1f8d9e021b9a0276a4f93b488f8f9b02eed41fcee3eef8f91b065911",
           "frontend/lib/r2.ts": "76b01a34a5961032f76df91b3f68dce1db2c2e21462001387a50d754ef94f147",
           "frontend/lib/playData.ts": "e3e017956f561c653718a73c77fbf90fa1dbfdf18a2d0bfb8bed8006b4dbea33",
           "frontend/lib/db.ts": "2b863d41de59b0f9f0db7ea19b6a9986f5fba0f05a44624093b1a263d9dc4836",
@@ -1326,10 +1326,10 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "publication-sync-001",
       "status": "implemented",
       "review": {
-        "date": "2026-10-29",
-        "note": "Inspected implementation and available tests; execution receipt recorded separately.",
+        "date": "2026-11-02",
+        "note": "Inspected implementation and available tests; execution receipt recorded separately. 2 Nov 2026: r2.NOT_COPIED adds neon_merged; sync logic unchanged.",
         "files": {
-          "backend/app/services/r2.py": "b203c6f542dada96bc0388aee7205098101502206839a99ff15924989bd8a6fb",
+          "backend/app/services/r2.py": "82b91dea1f8d9e021b9a0276a4f93b488f8f9b02eed41fcee3eef8f91b065911",
           "backend/app/services/player_blocks.py": "2a15cfcb76203f5eee8f626c0c55aa99497876aac99dd135cb045a6be97130c1",
           "backend/tests/test_r2_sync.py": "9c6ff41457ff5feb0611be204dcda0cc2adaeb5e0b3c7de0ca8e871ebe419c22"
         }
@@ -1381,11 +1381,11 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "database-selection-001",
       "status": "implemented",
       "review": {
-        "date": "2026-10-29",
-        "note": "Inspected implementation and available tests; execution receipt recorded separately.",
+        "date": "2026-11-02",
+        "note": "merge_stranded/to_merge/merge_from added 2 Nov 2026; to_merge unit-tested; the player_games upsert was prepared (parsed and planned) on the live schema, not executed; read_models and refresh_runs statements match the manual 2 Nov merge that ran on Sofix D",
         "files": {
-          "backend/app/jobs/neon_switch.py": "5bb9f0c1c3140cb2729e4f03c8ba2019994e4620b037770e5a0305da92b8f276",
-          "backend/tests/test_neon_switch.py": "2cc6a9ab7347b1c69634da8f79d09e13b2e765bf17564033782dff7e5f23a3bb"
+          "backend/app/jobs/neon_switch.py": "ea7d1fb3a74a737d02946dbbb12f7b595589c24b74e3046ad3671460c773accb",
+          "backend/tests/test_neon_switch.py": "575cf44154238808bef26fc03767f5575d88ac7dd022542a29c6f27aef84f651"
         }
       }
     },

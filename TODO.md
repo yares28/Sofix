@@ -28,6 +28,9 @@ five answer again.
   newer.
 - Show you that list; on your yes, copy them into one project (the live one, or the one you pick), newest write wins per key,
   `neon_live`/`neon_status` untouched.
+- **Done 2 Nov 2026** (owner's yes): Sofix D got 2,228 read models (newest write wins: 2,148 from Sofix C, 80 from Sofix),
+  79 refresh runs (Sofix 12–14 Oct, Sofix C 20–25 Oct) and 837 player games (Sofix C, 24–26 Oct); the blocks were uploaded to
+  R2. FDR and Sofix B held nothing D lacked; odds, predictions and absences were left (each refresh replaces them).
 - Then the fix so it cannot split again (the separate task "Neon fallback dropped 5 days of rows"), and the strategy audit
   rerun so GW25 gets its lineups, hindsight and rewards.
 

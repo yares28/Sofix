@@ -408,7 +408,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return true;
   }
   if (message?.type === "need-data") {
-    needData(sender.tab?.id ?? null).then(reply).catch(() => reply(null));
+    needData(sender.tab?.id ?? null, Date.now(), message.fresh === true).then(reply).catch(() => reply(null));
     return true;
   }
   if (message?.type === "pro-rebuild") {
@@ -695,6 +695,7 @@ const STEPS = {
 const NEED_KEY = "needData";
 const NEED_FRESH_MS = 2 * 60 * 1000; // lineups are read again at most this often while a game of yours is live
 const NEED_IDLE_MS = 10 * 60 * 1000; // and this often otherwise
+const NEED_ENTRY_MS = 15 * 1000; // opening a lineup page reads them afresh, unless they were read this recently
 const NEED_GAME_MS = 2.5 * 60 * 60 * 1000; // a game this long after its kick-off may still be scoring
 const num = (value) => (typeof value === "number" && Number.isFinite(value) ? value : null);
 const appearancesOf = (lineup) => (Array.isArray(lineup?.taskAppearances) ? lineup.taskAppearances : []).flatMap((a) => (a?.anyCard?.slug
@@ -738,13 +739,13 @@ function keepNeed(step, answer, input = {}) {
   return needSaving;
 }
 
-/** The overlay's question: the copy, after reading your lineups again when a game of yours is live (or nothing was read yet). */
-async function needData(tabId, now = Date.now()) {
+/** The overlay's question: the copy, after reading your lineups again when you open a lineup page, when it is old, or when nothing was read yet. */
+async function needData(tabId, now = Date.now(), entered = false) {
   const { [NEED_KEY]: kept = {} } = await chrome.storage.local.get(NEED_KEY);
   const all = [...(kept.arcadeLineups ?? []), ...(kept.proLineups ?? [])];
   const live = all.some((l) => l.cards.some((c) => c.kickoff && Date.parse(c.kickoff) <= now && now - Date.parse(c.kickoff) < NEED_GAME_MS));
-  // Every 2 minutes while a game is live, else every 10, so a lineup entered since the last read gets its pills.
-  const stale = (at) => !at || now - at > (live ? NEED_FRESH_MS : NEED_IDLE_MS);
+  // Afresh when you open a lineup page (not twice in 15 seconds), then every 2 minutes while a game is live, else every 10.
+  const stale = (at) => !at || now - at > (entered ? NEED_ENTRY_MS : live ? NEED_FRESH_MS : NEED_IDLE_MS);
   const asks = [];
   if (!kept.arcadeAt || now - kept.arcadeAt > 6 * 60 * 60 * 1000) asks.push("arcade");
   if (stale(kept.arcadeLineupsAt)) asks.push("arcade-lineups");

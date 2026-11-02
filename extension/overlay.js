@@ -1301,25 +1301,34 @@
   // On Sorare's lineup pages only (owner, 2 Nov 2026), on the cards of a lineup still in play: the raw score each card still needs for
   // its lineup to reach the step's target, worked out from the lineup's score so far (core.pointsNeeded, the same as Sofix). One card
   // left with 100 to find shows 100, less with his bonus or the captaincy. Each pill belongs to its own team block on the page, so a
-  // card that also sits in an older, settled lineup there gets nothing in that one. The worker reads your lineups again at most every
-  // 2 minutes while a game of yours is live; nothing is asked while this tab is hidden.
-  // Sorare's Pro lineups page and the Arcade one (/football/series/<id>/lineups).
-  const NEED_PAGES = [/^\/football\/lineups\/pro(?:\/|$)/, /^\/football\/series\/[^/]+\/lineups(?:\/|$)/];
+  // card that also sits in an older, settled lineup there gets nothing in that one. Each time you open one of these pages your lineups
+  // are read afresh; while you stay, again every 2 minutes during a game of yours, else every 10. Nothing is asked from a hidden tab.
+  // Sorare's Pro lineups page, every Pro step's (/football/play/boards/pro/<board>/<step>/lineups) and every Arcade step's
+  // (/football/series/<step>/lineups).
+  const NEED_PAGES = [
+    /^\/football\/lineups\/pro(?:\/|$)/,
+    /^\/football\/play\/boards\/pro\/[^/]+\/[^/]+\/lineups(?:\/|$)/,
+    /^\/football\/series\/[^/]+\/lineups(?:\/|$)/,
+  ];
   const NEED_ASK_MS = 2 * 60 * 1000;
   const NEED_GAME_MS = 115 * 60 * 1000; // after this a game is over (Sofix's Arcade uses the same)
   let need = null;
   let needAskedAt = 0;
   let needAsking = false;
   let needCache = { key: "", lineups: [] };
+  let needPath = ""; // the page the last answer was for: opening another one reads afresh
 
   const needPage = () => NEED_PAGES.some((page) => page.test(location.pathname));
 
   function wantNeed() {
-    if (!needPage() || needAsking || now() - needAskedAt < NEED_ASK_MS || document.visibilityState !== "visible") return;
+    if (!needPage() || needAsking || document.visibilityState !== "visible") return;
+    const entered = location.pathname !== needPath;
+    if (!entered && now() - needAskedAt < NEED_ASK_MS) return;
     needAsking = true;
     needAskedAt = now();
+    needPath = location.pathname;
     try {
-      chrome.runtime.sendMessage({ type: "need-data" }, (reply) => {
+      chrome.runtime.sendMessage({ type: "need-data", fresh: entered }, (reply) => {
         needAsking = false;
         if (chrome.runtime.lastError || !reply) {
           void chrome.runtime.lastError;
@@ -1383,7 +1392,7 @@
     return lineup ? lineup.pills.get(record.cardSlug) || null : null;
   }
 
-  /** The pill for one card: drawn, moved to the art's bottom right, or taken off. */
+  /** The pill for one card: drawn, moved to the art's top right, or taken off. */
   function placeNeed(read) {
     const { record, rect, tier } = read;
     const badge = tier === "skip" ? null : needFor(record);
@@ -1415,7 +1424,7 @@
     const box = pill.getBoundingClientRect();
     const inset = INSET[tier === "full" ? "full" : "compact"];
     const dx = rect.right - inset.x - box.right;
-    const dy = rect.bottom - inset.y - box.bottom;
+    const dy = rect.top + inset.y - box.top;
     if (Math.abs(dx) > 0.5) pill.style.left = `${(parseFloat(pill.style.left) || 0) + dx}px`;
     if (Math.abs(dy) > 0.5) pill.style.top = `${(parseFloat(pill.style.top) || 0) + dy}px`;
     pill.removeAttribute("data-pending");

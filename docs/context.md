@@ -1572,15 +1572,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026 (0.4.28): saves of the points-needed copy run one at a time (the app's reads landing together undid each other, leaving your Arcade lineups out); seen working on the real Arcade lineups page. 0.4.27: team block up to 40 levels up, kept once all its cards are identified. 0.4.26: Arcade lineups page; 10-minute re-read. Reads only.",
+        "note": "2 Nov 2026 (0.4.29): the points-needed pill sits at the card's top right; drawn on every Pro step's lineups page (/football/play/boards/pro/<board>/<step>/lineups) and every Arcade step's; opening such a page reads your lineups afresh (not twice in 15 s). 0.4.28: copy saved one read at a time. Reads only.",
         "files": {
-          "extension/background.js": "6352a5f0b7c539d779ba026c044b4d6efed224b5b470ac08ad033e3bb6e31317",
+          "extension/background.js": "bcd51b9230d765563617ab977034fe0494823d52a5d1cd25841a5be0b8b7d4f2",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "5989819e8699f171cfabd544307d959f9cb29b2835ee429317396596296dfae8",
+          "extension/manifest.template.json": "ae98fb76abc6c72da8bb76d4e497acf29f29141163ea35bbe048e6427fded7f6",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "43e5c2c8a1f02297222e6c6e51bc6ebc78f80ef0ba0884f3e7ad6aee29e7ebfa"
+          "frontend/lib/extensionBackground.test.ts": "cf3b5cc7abf1723add98bd67ee2bc80298c726606f56ee6defa2a83bc191a7bc"
         }
       }
     },

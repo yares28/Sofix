@@ -2,7 +2,8 @@
 
 ## Owner's request
 
-Every card of a complete Arcade or Pro lineup carries a pill at its art's bottom right: the raw Sorare player score that card
+Every card of a complete Arcade or Pro lineup carries a pill at its art's top right (owner, 2 Nov 2026; was bottom right), on Sorare's lineup page of any Arcade or Pro step,
+read afresh each time the page is opened: the raw Sorare player score that card
 needs for the lineup to reach its step's target. It is a target calculation, apart from xScore, predicted score and start %.
 
 ## Workflow (the contract)

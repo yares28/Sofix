@@ -836,8 +836,8 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
 - **Your lineups on Sorare**: each lineup you entered, as a race to the target: points so far, what its cards still to play add at
   their best, **Dead** when that cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next lineup more.
 - **Points needed** (2 Nov 2026, [plans/points-needed.md](../plans/points-needed.md)): only on lineups you entered and that are still in
-  play, on Sorare's lineup pages (extension 0.4.28: the Pro lineups page and the Arcade one, `/football/series/<id>/lineups`; lineups re-read every 10 minutes, every 2 while a game is live) and
-  on Play's entered Pro lineups. A dark pill at each card's lower right: the raw score it still needs, from the lineup's score so far
+  play, on Sorare's lineup pages (extension 0.4.29: the Pro lineups page and every Pro and Arcade step's lineups page; read afresh each time you open one, then every 10 minutes, every 2 while a game is live) and
+  on Play's entered Pro lineups. A dark pill at each card's upper right: the raw score it still needs, from the lineup's score so far
   (a lineup at 260 of 360 with one player left: he needs 100, less with his bonus or the captaincy); played cards show ✓.
   Not on plans or on Sofix's Arcade sections.
 - A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga or Ligue 1 game (else Sorare's projection, else his average when he

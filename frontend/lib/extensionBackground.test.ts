@@ -683,6 +683,18 @@ describe("points needed on sorare.com", () => {
     expect(kept.proLineups).toHaveLength(1);
   });
 
+  it("reads your lineups afresh each time you open a lineup page, at most every 15 seconds", async () => {
+    const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
+    const now = Date.now();
+    w.local.set("needData", { arcade: { steps: {} }, arcadeAt: now, arcadeLineupsAt: now - 60_000, proLineupsAt: now - 60_000, arcadeLineups: [], proLineups: [] });
+    await w.send({ type: "need-data" });
+    expect(w.asked).toHaveLength(0); // read a minute ago, nothing live: the copy will do
+    await w.send({ type: "need-data", fresh: true });
+    expect(w.asked.map((a) => a.operation)).toEqual(["SofixArcadeLineups", "SofixProLineups"]);
+    await w.send({ type: "need-data", fresh: true });
+    expect(w.asked).toHaveLength(2); // just read
+  });
+
   it("reads your lineups again every 10 minutes with no game live, so a lineup entered since shows its pills", async () => {
     const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
     const now = Date.now();

@@ -28,3 +28,20 @@ needs for the lineup to reach its step's target. It is a target calculation, apa
 `frontend/lib/pointsNeeded.ts` (calculation and wording, tests in `pointsNeeded.test.ts`), drawn by Arcade's lineup cards
 (Your move, The chain, Pick teams: pitch and card list), Arcade's live lineups, Play's Pro lineups (plan rows and "Pro · once the
 teams are out") and your entered Pro lineups.
+
+## On sorare.com (owner, 2 Nov 2026: "I want the pill in the extension, so I can see it in Sorare, not in Sofix")
+
+Same calculation (`frontend/lib/pointsNeeded.ts`, ported to `extension/core.js`, the formula file the overlay already shares),
+drawn by the overlay on the card art at its bottom right, on Sorare's own pages:
+
+- **Entered lineups (Arcade and Pro), before and during the games.** The background worker reads the board's steps and your
+  lineups through the page bridge (the existing `SofixArcadeLineups` and `SofixProLineups` reads: each card's score, Sorare's
+  multiplier, captain, kick-off), at most every 2 minutes while a game of yours is live and the tab is in front. The overlay
+  already knows which card each picture is (by slug); a card in an open lineup gets that lineup's pill, wherever Sorare shows it.
+- **The compose page** (`/football/play/boards/pro/<config>/<step>/compose-team`): the step is in the address, so every card
+  shown gets its pre-match pill for that step (target ÷ 5 ÷ its multiplier; the captain's value in the explanation), from
+  Sorare's own bonus answer for the card.
+- Reward boosts never count; unknown stays "—" with why; no Sorare writes.
+
+Open evidence to collect before building: the DOM of the compose page's five slots and of Sorare's view of an entered lineup
+(screenshots in the owner's Chrome; the window must be in front, else Chrome stops painting it).

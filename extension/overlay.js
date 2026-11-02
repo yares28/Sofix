@@ -1355,18 +1355,23 @@
     return lineups;
   }
 
-  /** The team block a card is drawn in: the smallest box around it holding a whole lineup's worth of cards, as their slugs. */
+  /**
+   * The team block a card is drawn in: the smallest box around it holding five or more cards, as their slugs. Cards sit 12 to 17
+   * levels deep on the Arcade lineups page (2 Nov 2026), so the walk goes up to 40. Until every card in that box is identified
+   * the answer is not kept, so a block read half-identified is read again.
+   */
   function teamOf(record) {
     if (record.needTeam && record.needTeam.epoch === pageEpoch) return record.needTeam.slugs;
-    let slugs = null;
     let box = record.media.parentElement;
-    for (let depth = 0; box && depth < 14 && !slugs; depth += 1, box = box.parentElement) {
-      const inside = [];
-      for (const other of live) if (other.cardSlug && box.contains(other.media)) inside.push(other.cardSlug);
-      if (inside.length >= 5) slugs = new Set(inside);
+    for (let depth = 0; box && box !== document.body && depth < 40; depth += 1, box = box.parentElement) {
+      const inside = [...live].filter((other) => box.contains(other.media));
+      if (inside.length < 5) continue;
+      if (inside.some((other) => !other.cardSlug)) return null;
+      const slugs = new Set(inside.map((other) => other.cardSlug));
+      record.needTeam = { epoch: pageEpoch, slugs };
+      return slugs;
     }
-    record.needTeam = { epoch: pageEpoch, slugs };
-    return slugs;
+    return null;
   }
 
   /** This card's pill: only on a lineup page, only when its team block is one of your lineups still in play. */

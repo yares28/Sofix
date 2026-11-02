@@ -1572,11 +1572,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026 (0.4.26): the points-needed pill also on Sorare's Arcade lineups page (/football/series/<id>/lineups); the worker re-reads your lineups every 10 minutes with no game live (every 2 while one is), so a lineup entered since shows its pills. Reads only.",
+        "note": "2 Nov 2026 (0.4.27): the pill's team block is found up to 40 levels up (Arcade lineup cards sit 15-17 deep) and is kept only once every card in it is identified. 0.4.26: pill on Sorare's Arcade lineups page (/football/series/<id>/lineups); lineups re-read every 10 minutes with no game live. Reads only.",
         "files": {
           "extension/background.js": "591ef95a449372c93c54aee549460573f201ee5ff757976b8c8684019763c1d8",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "51d53ca642982f0a2d70593d75ff80418e41c6dace6cc01d661092fa996b9450",
+          "extension/manifest.template.json": "afb693e39875ca9c32205d5eaeab32f616f0bb26711c429afa98546e73d6826c",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

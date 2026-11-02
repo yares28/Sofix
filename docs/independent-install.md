@@ -6,7 +6,9 @@ extension configuration. No database, bucket, saved lineup, token or service acc
 ## Use your existing installation locally during a hosting outage
 
 On Windows, double-click **Start Sofix.cmd** in your checkout. It starts a background production server at
-`http://127.0.0.1:3000`, opens the browser when ready, and reuses that instance when opened again. After restarting the
+`http://127.0.0.1:3000`; its window shows progress until the app answers (a first start after an update rebuilds for a
+minute or two), then opens the browser, or shows the log's last lines if it stopped. Opened again, or with another Sofix
+(the dev server) already on the port, it just opens that one. After restarting the
 computer, use the same launcher. Startup errors and data updates are recorded in `output/local.log`.
 
 The launcher reads your existing `frontend/.env.local` (or your own main checkout's file when running in a worktree).

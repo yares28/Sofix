@@ -35,6 +35,7 @@ test("offline restart serves the saved data and keeps the synchronizer available
     sync: async () => { events.push("sync"); throw new Error("offline"); },
     hasBlocks: () => true,
     build: async () => events.push("build"),
+    answering: async () => false,
     serve: async () => events.push("serve"),
     warn: () => events.push("kept"),
   });
@@ -45,4 +46,19 @@ test("offline restart serves the saved data and keeps the synchronizer available
 test("reopening the launcher reuses the server without another sync or build", async () => {
   const result = await startLocal({ running: async () => true });
   assert.equal(result, "running");
+});
+
+test("a Sofix that took the port during the build is used instead of crashing on it", async () => {
+  const events = [];
+  const result = await startLocal({
+    running: async () => false,
+    sync: async () => events.push("sync"),
+    hasBlocks: () => true,
+    build: async () => events.push("build"),
+    answering: async () => true,
+    serve: async () => events.push("serve"),
+    warn: () => {},
+  });
+  assert.equal(result, "running");
+  assert.deepEqual(events, ["sync", "build"]);
 });

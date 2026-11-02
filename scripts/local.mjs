@@ -18,11 +18,13 @@ export function localEnvironment({ inherited, settings, envDir, frontend, port }
     DATABASE_URL: "", DATABASE_URL_SPARE: "", POSTGRES_URL: "", POSTGRES_MIGRATION_URL: "", SOFIX_PRODUCTION: "", R2_WRITE_ACCESS_KEY_ID: "", R2_WRITE_SECRET_ACCESS_KEY: "" };
 }
 
-export async function startLocal({ running, sync, hasBlocks, build, serve, warn }) {
+export async function startLocal({ running, sync, hasBlocks, build, answering, serve, warn }) {
   if (await running()) return "running";
   try { await sync(); } catch { warn("[local] Update unavailable; keeping the saved blocks."); }
   if (!hasBlocks()) throw new Error("No saved blocks. Connect to the internet and configure the R2 read settings before the first start.");
   await build();
+  // A build takes minutes; a Sofix that started on the port meanwhile (the dev server) is used, not fought for the port.
+  if (await answering()) return "running";
   await serve();
   return "started";
 }
@@ -56,13 +58,31 @@ async function main() {
   const output = path.join(ROOT, "output");
   mkdirSync(output, { recursive: true });
 
-  // The background copy owns the process lock and the log; closing this launcher does not stop the app.
+  const answering = async () => { try { return (await fetch(origin, { signal: AbortSignal.timeout(3000) })).ok; } catch { return false; } };
+  const open = () => {
+    if (args.includes("--no-open")) return;
+    if (process.platform === "win32") spawn("explorer.exe", [origin], { windowsHide: true, stdio: "ignore" }).unref();
+    else console.log(`[local] Open ${origin}`);
+  };
+
+  // The background copy owns the process lock and the log; closing this launcher does not stop the app. The launcher's
+  // window waits for it and opens the browser, or shows why it stopped.
   if (args.includes("--background")) {
-    const log = openSync(path.join(output, "local.log"), "a");
-    const child = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", fileURLToPath(import.meta.url), ...args.filter(arg => arg !== "--background")], { cwd: ROOT, detached: true, windowsHide: true, stdio: ["ignore", log, log] });
-    child.unref();
-    console.log(`Sofix is starting at ${origin}. Startup details: output/local.log`);
-    return;
+    if (await answering()) { console.log(`Sofix is already running at ${origin}.`); open(); return; }
+    const logFile = path.join(output, "local.log");
+    const log = openSync(logFile, "a");
+    const child = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", fileURLToPath(import.meta.url), ...args.filter(arg => arg !== "--background" && arg !== "--no-open"), "--no-open"], { cwd: ROOT, detached: true, windowsHide: true, stdio: ["ignore", log, log] });
+    let exited = null;
+    child.once("exit", code => { exited = code ?? 1; });
+    console.log(`Starting Sofix at ${origin}. After an update the first start rebuilds the app, which takes a few minutes.`);
+    for (let waited = 0; waited < 15 * 60; waited += 2) {
+      if (await answering()) { child.unref(); console.log("Sofix is ready."); open(); return; }
+      if (exited !== null) break;
+      if (waited % 30 === 0 && waited) console.log(`  still starting (${waited / 60 | 0} min ${waited % 60} s)...`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    const tail = readFileSync(logFile, "utf8").split(/\r?\n/).filter(Boolean).slice(-15).join("\n");
+    throw new Error(`Sofix did not start. Last lines of output/local.log:\n${tail}`);
   }
 
   const lock = path.join(output, `local-${port}.pid`);
@@ -88,13 +108,10 @@ async function main() {
     }
     throw new Error("The local server did not become ready. See output/local.log.");
   };
-  const open = () => {
-    if (args.includes("--no-open")) return;
-    if (process.platform === "win32") spawn("explorer.exe", [origin], { windowsHide: true, stdio: "ignore" }).unref();
-    else console.log(`[local] Open ${origin}`);
-  };
   const result = await startLocal({
+    answering,
     running: async () => {
+      if (await answering()) return true;
       if (existsSync(lock)) {
         const pid = Number(readFileSync(lock, "utf8"));
         if (pid > 0 && alive(pid)) { await ready(); return true; }

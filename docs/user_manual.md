@@ -828,7 +828,7 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   Beside it, every step's chance to be cleared at least once by the last game Sorare lists,. A card with no start % counts as starting, is never
   captain while another has one, and a card with under 3 played games gets the usual spread (a third of his score) instead of a sure number.
 - **The chain**: the next moves window by window, each settling before the next starts; a tap shows that move's lineup and opens
-  **If it clears** / **If it misses** (back to the likely plan with one tap). Its cards, captain and chance are the same as Your move; insurance teams can each be opened in Pick teams without rebuilding them.
+  **If it clears** / **If it misses** (back to the likely plan with one tap). The climb and both outcomes are worked out in the background (2 Nov 2026), so a tap never freezes the page; an outcome still being worked out says so. Its cards, captain and chance are the same as Your move; insurance teams can each be opened in Pick teams without rebuilding them.
 - **Teams to build around**: for the next four days, the clubs whose likely starters among your cards add most (Sofix's start % of 70% or
   more, else Sorare's own word: starter or regular, no open injury; Sorare's news feed is empty in its API). **Add to Pick teams** puts
   the game in the builder. One owned likely starter is enough. All qualifying clubs stay in one horizontal row: drag, swipe, or use the arrows at either end to move two teams, with no page footer.

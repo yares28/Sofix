@@ -3,7 +3,8 @@
 import { useContext, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
-import { climbWindows, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
+import { WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
+import { useClimb, type ClimbPlan } from "../../lib/climbClient";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
@@ -306,7 +307,7 @@ const VERB: Record<Climb["verdict"]["kind"], string> = { play: "Play now", wait:
 
 /** Your move: play, wait or spend your lives, why, and the lineup to enter. */
 function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote }: {
-  plan: Climb; steps: StepInfo[]; boardSteps: ArcadeStep[]; current: number; lives: number; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void; waitingNote: string | null;
+  plan: ClimbPlan; steps: StepInfo[]; boardSteps: ArcadeStep[]; current: number; lives: number; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void; waitingNote: string | null;
 }) {
   const move = plan.path[0] ?? null;
   const target = (n: number) => steps.find((s) => s.number === n)?.target ?? 0;
@@ -398,16 +399,42 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
 }
 
 /** The chain: the next moves, window by window, each settling before the next starts; the other outcome of each a tap away. */
-function Chain({ plan, boardSteps, captainBonus, now, onBuild }: { plan: Climb; boardSteps: ArcadeStep[]; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void }) {
-  const [branch, setBranch] = useState<{ of: Climb; moves: Move[]; label: string } | null>(null);
+/** A move's two outcomes, asked of the worker when the move is opened; each button waits for its own answer. */
+function Outcomes({ plan, picked, now, onFollow }: { plan: ClimbPlan; picked: Move; now: number; onFollow: (cleared: boolean, after: Move[]) => void }) {
+  const [after, setAfter] = useState<{ of: Move; cleared: Move[] | null; missed: Move[] | null }>({ of: picked, cleared: null, missed: null });
+  useEffect(() => {
+    let live = true;
+    setAfter({ of: picked, cleared: null, missed: null });
+    void plan.after(picked, true).then((m) => { if (live) setAfter((a) => (a.of === picked ? { ...a, cleared: m } : a)); });
+    void plan.after(picked, false).then((m) => { if (live) setAfter((a) => (a.of === picked ? { ...a, missed: m } : a)); });
+    return () => { live = false; };
+  }, [plan, picked]);
+  return (
+    <div className="arc-outcomes" role="group" aria-label="What comes next">
+      {([true, false] as const).map((cleared) => {
+        const moves = after.of === picked ? (cleared ? after.cleared : after.missed) : null;
+        const next = moves?.[0] ?? null;
+        return (
+          <button key={String(cleared)} type="button" disabled={!next} aria-busy={moves === null} onClick={() => moves && onFollow(cleared, moves)}>
+            <b>{cleared ? (picked.play > 1 ? "If one clears" : "If it clears") : (picked.play > 1 ? "If all miss" : "If it misses")}</b>
+            <span>{moves === null ? "working it out…" : next ? `then step ${next.step} at ${when(next.at, now)}, ${pct(next.clear)}` : "no game left to play"}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Chain({ plan, boardSteps, captainBonus, now, onBuild }: { plan: ClimbPlan; boardSteps: ArcadeStep[]; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void }) {
+  const [branch, setBranch] = useState<{ of: ClimbPlan; moves: Move[]; label: string } | null>(null);
   const moves = branch?.of === plan ? branch.moves : plan.path;
   const [focus, setFocus] = useState<number | null>(null);
   const [shown, setShown] = useState(0);
   const picked = focus !== null ? moves[focus] ?? null : null;
   const lineups = picked?.lineups ?? [];
   if (moves.length < 2 && !branch) return null;
-  const follow = (m: Move, i: number, cleared: boolean) => {
-    setBranch({ of: plan, moves: [...moves.slice(0, i + 1), ...plan.after(m, cleared)], label: `if ${m.play > 1 ? (cleared ? "one clears" : "all miss") : cleared ? "it clears" : "it misses"} at ${when(m.at, now)}` });
+  const follow = (m: Move, i: number, cleared: boolean, after: Move[]) => {
+    setBranch({ of: plan, moves: [...moves.slice(0, i + 1), ...after], label: `if ${m.play > 1 ? (cleared ? "one clears" : "all miss") : cleared ? "it clears" : "it misses"} at ${when(m.at, now)}` });
     setFocus(null);
   };
   let day = "";
@@ -450,18 +477,7 @@ function Chain({ plan, boardSteps, captainBonus, now, onBuild }: { plan: Climb; 
           {lineups.length > 1 ? <div className="arc-modes" role="group" aria-label="Chain lineup">{lineups.map((_, i) => <button key={i} type="button" aria-pressed={shown === i} onClick={() => setShown(i)}>Lineup {i + 1}</button>)}</div> : null}
           {lineups[shown] ? <LineupCards lineup={lineups[shown]} captainBonus={captainBonus} rule={ruleOf(boardSteps, picked.step, captainBonus)} /> : null}
           <button type="button" className="arc-small" onClick={() => onBuild(picked, lineups[shown] ?? null)}>Edit in Pick teams</button>
-          <div className="arc-outcomes" role="group" aria-label="What comes next">
-            {([true, false] as const).map((cleared) => {
-              const next = plan.after(picked, cleared)[0] ?? null;
-              const i = moves.indexOf(picked);
-              return (
-                <button key={String(cleared)} type="button" disabled={!next} onClick={() => follow(picked, i, cleared)}>
-                  <b>{cleared ? (picked.play > 1 ? "If one clears" : "If it clears") : (picked.play > 1 ? "If all miss" : "If it misses")}</b>
-                  <span>{next ? `then step ${next.step} at ${when(next.at, now)}, ${pct(next.clear)}` : "no game left to play"}</span>
-                </button>
-              );
-            })}
-          </div>
+          <Outcomes plan={plan} picked={picked} now={now} onFollow={(cleared, after) => follow(picked, moves.indexOf(picked), cleared, after)} />
         </div>
       ) : null}
     </section>
@@ -475,11 +491,11 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
   const current = climbStep(arcade);
   const { start, waiting, after } = useMemo(() => climbStart(arcade, steps, current), [arcade, steps, current]);
   const all = useMemo(() => [...outlooks.values()].flat(), [outlooks]);
-  const plan = useMemo(() => climbWindows(all, steps, start, captainBonus, now), [all, steps, start, captainBonus, now]);
+  const plan = useClimb(all, steps, start, captainBonus, now);
   const busy = useMemo(() => new Set(start.held.filter((h) => h.until > now).map((h) => h.card)), [start.held, now]);
   const games = useMemo(() => (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now && (outlooks.get(g.id) ?? []).length), [arcade.games, outlooks, now]);
   const storageKey = `sofix-arcade-teams:${arcade.set.slug}:${arcade.board?.id ?? ""}`;
-  const [selection, setSelection] = useState<{ chosen: Set<string>; aim: number; preset: { plan: Climb; lineup: Lineup } | null } | null>(() => {
+  const [selection, setSelection] = useState<{ chosen: Set<string>; aim: number; preset: { plan: ClimbPlan; lineup: Lineup } | null } | null>(() => {
     try {
       const saved = SavedTeams.safeParse(JSON.parse(localStorage.getItem(storageKey) ?? "null"));
       return saved.success ? { chosen: new Set(saved.data.games), aim: saved.data.aim, preset: null } : null;
@@ -490,10 +506,10 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
     try { localStorage.setItem(storageKey, JSON.stringify({ games: [...selection.chosen], aim: selection.aim })); } catch { /* Storage blocked or full: retain the choice for this visit. */ }
   }, [selection, storageKey]);
   const available = new Set(games.map((g) => g.id));
-  const chosen = new Set([...(selection?.chosen ?? new Set((plan.path[0]?.list ?? []).map((o) => o.game.id)))].filter((id) => available.has(id)));
-  const wantedAim = selection?.aim ?? plan.path[0]?.step ?? current;
+  const chosen = new Set([...(selection?.chosen ?? new Set((plan?.path[0]?.list ?? []).map((o) => o.game.id)))].filter((id) => available.has(id)));
+  const wantedAim = selection?.aim ?? plan?.path[0]?.step ?? current;
   const aim = arcade.board?.steps.some((s) => s.number === wantedAim && !["CLAIMED", "CLAIMABLE"].includes(s.state)) ? wantedAim : current;
-  const preset = selection ? (selection.preset?.plan === plan ? selection.preset.lineup : null) : plan.path[0]?.lineups[0] ?? null;
+  const preset = selection ? (selection.preset?.plan === plan ? selection.preset.lineup : null) : plan?.path[0]?.lineups[0] ?? null;
   const setChosen = (next: Set<string>) => setSelection({ chosen: next, aim, preset: null });
   const setAim = (next: number) => setSelection({ chosen, aim: next, preset: null });
   const lives = start.step === current ? start.lives : 0;
@@ -501,14 +517,16 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
     ? `Your ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} on step ${current} settle${waiting.length > 1 ? "" : "s"} first (about ${when(after.at, now)}); the plan goes on as if one clears it.`
     : waiting.length ? `You have ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} waiting on step ${current}: if one clears it, Sorare cancels any other you entered on the step.` : null;
   const build = (move: Move, lineup: Lineup | null) => {
-    setSelection({ chosen: new Set(move.list.map((o) => o.game.id)), aim: move.step, preset: lineup ? { plan, lineup } : null });
+    setSelection({ chosen: new Set(move.list.map((o) => o.game.id)), aim: move.step, preset: lineup && plan ? { plan, lineup } : null });
     document.getElementById("arc-teams-title")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
   };
   if (!games.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;
   return (
     <>
-      <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} />
-      <Chain plan={plan} boardSteps={arcade.board?.steps ?? []} captainBonus={captainBonus} now={now} onBuild={build} />
+      {plan ? <>
+        <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} />
+        <Chain plan={plan} boardSteps={arcade.board?.steps ?? []} captainBonus={captainBonus} now={now} onBuild={build} />
+      </> : <p className="arc-read-state" role="status">Planning the climb…</p>}
       <ArcadeTeams arcade={arcade} outlooks={outlooks} status={status} chosen={chosen} onToggle={(id) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); }} now={now} />
       <section className="arc-plan" aria-labelledby="arc-teams-title">
         <div className="arc-plan-head"><h2 id="arc-teams-title">Pick teams</h2></div>

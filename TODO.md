@@ -46,7 +46,7 @@ Makengo. Check its live pills on Arcade's "Your lineups on Sorare" once B is fix
 **D. Arcade freezes (issue 8, broken).** "The pages are not reactive and it bugs out a lot. Sometimes clicking chain games or
 teams in pick teams, etc the page freezes and i can't do anything." Hypothesis: each click reruns the lineup search and its
 simulations (`bestLineup`, `climbWindows`, `teamsInBatch`) on the page's main thread; measure each click first, then move the
-work off the click path (cache by inputs, a worker, or precomputed results) so every tap answers at once.
+work off the click path (cache by inputs, a worker, or precomputed results) so every tap answers at once. **Fixed 2 Nov**: measured on your page, a tap on a chain move blocked it 14 s (one 6.7 s freeze) while both outcomes were planned; the climb and the outcomes now run in a worker (`lib/climb.worker.ts`), taps block under 50 ms.
 
 **E. My lineup scores missing on Play and Recap (issues 6, 7c, broken).** "/play doesn't get the my lineup scores (but gets
 sofix's), doesn't get Actual points (but gets sofix's)". Seen 2 Nov: in your Chrome (with the extension) your rows have scores

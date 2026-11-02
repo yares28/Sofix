@@ -1698,12 +1698,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-02",
-        "note": "2 Nov 2026: climbStep passes every cleared step and the whole page uses it; liveLineup takes Sorare's card scores as given (bonus already in them); pills from lib/pointsNeeded.ts on lineup cards. Batch and selection logic unchanged.",
+        "note": "2 Nov 2026: the climb (climbWindows) and each move's outcomes run in lib/climb.worker.ts via useClimb; same results, the page never blocks. Earlier the same day: one step everywhere (climbStep) and Sorare's card scores taken as given.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "d8331f3b69b2d4b6715ed090fdcef81503e19d77735e64cd6de3a6738cee1e23",
           "frontend/lib/arcadePlan.ts": "d4a3fbbbd2d3e87d40b855d29b1853f7132787f95a754444b215a28b1bdd3936",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "0d6b1de0857b6e7d8ea188da17930dcc238472d26cbde536af0e38341180dc1c",
+          "frontend/components/arcade/ArcadePlanner.tsx": "61d24e27d1be5eba45230b6f754e12b7b81c0fde096309cd3b544ef5393248e6",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
           "frontend/app/arcade-canvas.css": "cb2689cff55cdbb62b24d304f14a94e2aa8f0952f729e659bc16fa4d7903e3d4",
           "frontend/lib/arcadeTeams.ts": "2024a4463e05b8e21c73e9b9097baf568241405e1fa564486df29e1f184e66f2",
@@ -1713,7 +1713,7 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/arcadePlan.test.ts": "ecd85809041795e010daf53a22f91195333d7ce089a86a67d95dfa87fc9fb3ce",
           "frontend/lib/arcadeTeams.test.ts": "cf0d58177712224c0267c9fd5b1f1f397597e5b704f0035f0ea7713868d9e181",
           "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
-          "frontend/e2e/arcade.e2e.ts": "595cae78e7f85d048405a013964944c67534afbdeb46574bf48867de62f32c9e"
+          "frontend/e2e/arcade.e2e.ts": "72a19e9d8965e19ea958491e139cc8ff3108c2860665f712e8733f61d76a4d0f"
         }
       }
     },

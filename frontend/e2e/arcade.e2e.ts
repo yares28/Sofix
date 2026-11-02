@@ -408,6 +408,10 @@ test("step one spends four resettable lives and keeps every insurance team ident
   await page.locator(".arc-chain-node").first().click();
   expect(await signature(".arc-chain-detail")).toEqual(first);
   await expect(page.locator(".arc-chain-node").first().locator("b")).toHaveText((await move.locator(".arc-split .is-pick > b").textContent())!);
+  // Both outcomes are worked out off the page (the tap itself answers at once) and arrive in the buttons.
+  const outcomes = page.getByRole("group", { name: "What comes next" });
+  await expect(outcomes.getByRole("button")).toHaveCount(2);
+  await expect(outcomes).not.toContainText("working it out", { timeout: 30_000 });
   await move.getByRole("group", { name: "Lineup", exact: true }).getByRole("button").nth(1).click();
   const second = await signature(".arc-move");
   expect(second).not.toEqual(first);

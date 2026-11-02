@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import MissionsAudit from "./MissionsAudit";
 import type { MissionOutcome } from "../../lib/missionOutcomes";
 import MatchAudit from "./MatchAudit";
@@ -32,6 +33,7 @@ export default function AuditView({
   startParams = {},
   plansHref,
   missionOutcomes,
+  yourSeason = null,
 }: {
   data: Audit | null;
   now: Date;
@@ -48,6 +50,8 @@ export default function AuditView({
   startParams?: Record<string, string | undefined>;
   plansHref?: string;
   missionOutcomes?: MissionOutcome[];
+  /** Rewards: your season card, under what you won (owner, 2 Nov 2026: moved here from the Recap). */
+  yourSeason?: ReactNode;
 }) {
   if (!data) {
     return (
@@ -91,7 +95,7 @@ export default function AuditView({
           <p>The essence the plans expected over the season, against what was really won.</p>
           {updated}
         </header>
-        <RewardsAudit rewards={data.rewards} floor={data.floor} season={season} saved={saved} frozen={data.frozenPlans} />
+        <RewardsAudit rewards={data.rewards} floor={data.floor} season={season} saved={saved} frozen={data.frozenPlans} yourSeason={yourSeason} />
       </>
     );
   }

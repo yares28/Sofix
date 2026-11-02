@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { cannot } from "../../lib/apply";
 import { percent, wonShare, type Rewards } from "../../lib/audit";
 import { type WeekLineupsAnswer, type WeekWon } from "../../lib/entered";
@@ -18,7 +19,7 @@ type Reading = { state: "reading" } | { state: "done" } | { state: "stopped"; an
  * they expected and what their lineups really won, from the weeks the job kept. You: what your own entered lineups won, read from Sorare
  * through the extension, a week at a time. Final weeks are saved on the server; old browser readings remain a fallback.
  */
-export default function RewardsAudit({ rewards, floor, season, saved = [], frozen = [] }: { rewards: Rewards; floor: number; season: Week[]; saved?: SavedWeek[]; frozen?: FrozenWeek[] }) {
+export default function RewardsAudit({ rewards, floor, season, saved = [], frozen = [], yourSeason = null }: { rewards: Rewards; floor: number; season: Week[]; saved?: SavedWeek[]; frozen?: FrozenWeek[]; yourSeason?: ReactNode }) {
   const [weeks, setWeeks] = useState(saved);
   const [won, setWon] = useState<Record<string, WeekWon>>(() => wonWeeks(saved));
   const [unavailable, setUnavailable] = useState(false);
@@ -147,6 +148,7 @@ export default function RewardsAudit({ rewards, floor, season, saved = [], froze
                 : null}
         </p>
       </section>
+      {yourSeason}
 
       <section className="au-w" aria-label="Your lineups against the plan at lock">
         <h2>Your lineups against the plan at lock</h2>

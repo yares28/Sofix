@@ -67,7 +67,8 @@ const WALKED: Record<string, string> = {
 function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcade; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; onReload: () => void; busy: boolean }) {
   // Each game of a league with a Sofix board, matched to the board's fixture (kick-off and clubs).
   const boards = useMemo(() => new Map((arcade.games ?? []).flatMap((g) => { const f = matchFixture(g, fdr); return f ? [[g.id, f] as const] : []; })), [arcade.games, fdr]);
-  const current = arcade.board?.current ?? null;
+  // The same step as the plan everywhere on the page (header, captain bonus, start % read), never Sorare's raw step.
+  const current = arcade.board?.current == null ? null : climbStep(arcade);
   const [actions, setActions] = useState<HTMLDivElement | null>(null);
   const [showRead, setShowRead] = useState(false);
   const [chances, setChances] = useState<ArcadeChances | null>(null);

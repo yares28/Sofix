@@ -816,6 +816,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   several steps. Lineups entered together on one step are insurance only: when one clears, Sorare cancels the others (21 Oct: a 371.76 that
   would have cleared step 3 was cancelled after a 313.93 cleared step 2). A miss costs a life; the last one sends you back to step 1.
   Every clear pays its reward again, and the last step pays €1,000 each time it is reached, then the climb starts again from step 1.
+  The step Sofix plans for is the one Sorare's compose page lets you play: a cleared step Sorare still names until its reward is
+  claimed is passed over everywhere on the page (2 Nov 2026: the header said step 2 · 300 while lineups went on step 3 · 360).
+  A lineup's live points are Sorare's card scores as given (each already holds its card's bonus), never multiplied again.
 - **Your move**: **Play now**, **Wait for** a named window, or **Spend** a hard step's last lives so the climb restarts sooner, and why:
   a **Play | Hold** bar for the step you are on: the recommended batch now against the batch after holding, each with its lineup count and joint chance that at least one clears, the advised side filled. On step one, using every life is preferred when all misses reset to the same step with four fresh lives before the same next opportunity; a wider batch can still lose an earlier chance to advance. The advice itself weighs every prize to the set's end (the top's
   €1,000 first), never an average, so it can say play even when the next games are a little better: a miss still leaves lives for them (a near tie is played: speed first). Lineups come from the window's own kick-offs first, so

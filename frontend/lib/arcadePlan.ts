@@ -361,7 +361,7 @@ export type LiveCard = { slug: string | null; name: string; state: "played" | "l
 export type LiveVerdict = { cards: LiveCard[]; now: number; ceiling: number; dead: boolean; chance: number };
 
 /**
- * An entered lineup while it plays. Points so far = each played or live card's score × Sorare's multiplier for it. Its ceiling adds, for
+ * An entered lineup while it plays. Points so far = each played or live card's score as Sorare gives it (its bonus included). Its ceiling adds, for
  * every card still able to score, his best score of his last games he played (his own record, never a guess); with no record the
  * ceiling stays open. Dead when even the ceiling misses the target. Chance left: the cards still to play simulated as for a plan
  * (start % and past games), the live ones counted as they stand.
@@ -373,7 +373,8 @@ export function liveLineup(cards: { slug: string | null; name: string | null; sc
     const bonus = c.bonus ?? 1;
     const outlook = outlookOf(c.slug);
     const past = outlook?.past ?? [];
-    return { slug: c.slug, name: c.name ?? "?", state, points: state === "to play" ? 0 : (c.score ?? 0) * bonus, best: past.length ? Math.max(...past) * bonus : null, outlook, bonus };
+    // Sorare's card score already holds the card's bonus (a lineup's five add up to its score): never multiply it again.
+    return { slug: c.slug, name: c.name ?? "?", state, points: state === "to play" ? 0 : c.score ?? 0, best: past.length ? Math.max(...past) * bonus : null, outlook, bonus };
   });
   const sum = live.reduce((total, c) => total + c.points, 0);
   const open = live.some((c) => c.state !== "played" && c.best === null);

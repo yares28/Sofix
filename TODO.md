@@ -16,6 +16,65 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Nine issues after the points-needed pill (you, 2 Nov 2026)
+
+Sent after the pill shipped (a3c45a0) and localhost was rebuilt from `main`. Order of work: broken first (A–E), then new
+work (F–H). Each step: check, push, you check it on your page, then the next.
+
+**A. Arcade read a 360 step as the 300 step (issue 4, broken; cost 2 lives).** Your words: "yesterday lineups were in the
+360 step and it read them as the 300 step, so i lost 2 lives because the app thought i was playing the 300pts step and gave
+me the wrong odds." Evidence (your saved board, 2 Nov 13:40): step 2 (300) CLAIMED with 1a61f8 = 372.04 SUCCESSFUL and three
+FAILED; step 3 (360) holds 82aab8 = 331.63 and 0cb7b3 = 330.5, both FAILED (they would have cleared 300), plus today's test
+lineup. Sorare files the lineups under the right step, and Sofix's lineup read keys them by step id (`lib/arcade.ts:333`).
+Sorare's step states (its published schema, `enum StepState`): CLAIMABLE, CLAIMED, FAILED, LINEUP_SET, LIVE, LOCKED,
+PLAYABLE, PRE_MATCHDAY_LOCKED. Two places disagree on "the step you are on": the hero, the captain bonus and the hero's lives
+use Sorare's raw `myCurrentStep` (`components/arcade/ArcadeView.tsx:70,112-113`), which stays on a cleared step until its reward
+is claimed, while the planner uses `climbStep` (`ArcadePlanner.tsx`), which moves on only for CLAIMABLE/CLAIMED. Hypothesis:
+on 1 Nov step 2 was cleared but still named by Sorare, so the page said "Step 2 · 300" while Sorare's compose page was step 3.
+**Fixed 2 Nov** (with B): one step everywhere (`climbStep` passes every cleared step; header, captain bonus, start % read and live view use it). Open question for you: which number said 300 (the header, Your move's bar, Pick teams' "Aim at", or Batch)?
+Fix: one "step you are on" everywhere, Sorare's own word first (the lowest step not CLAIMED/CLAIMABLE that Sorare lets you
+play: PLAYABLE, LINEUP_SET, LIVE), and every lineup and chance labelled with the step and target it is on.
+
+**B. Arcade counts card bonuses twice in live lineups (found checking issue 4, broken).** Sorare's per-card score in an
+Arcade lineup already holds the card's bonus: 331.63 = 48.4 + 45.68 + 42.3 + 118.95 + 76.3 (Mbappé 118.95 = 79.3 × 1.5, above
+the raw 100 ceiling). `liveLineup` (`lib/arcadePlan.ts:376`) multiplies it by the bonus again, so "scored", "Dead", "chance
+left" and the new live pills overstate (Mbappé counted 178). Fix: raw = score ÷ bonus; points = Sorare's score as given. **Fixed 2 Nov**: regression test from the 331.63 lineup (Sofix had 404.8).
+
+**C. Your test lineup (issue 4, check).** Step 3, today 19:45–20:00 UTC: Horníček, Adjei, Cadiou (C, ×1.5), George,
+Makengo. Check its live pills on Arcade's "Your lineups on Sorare" once B is fixed and its games run.
+
+**D. Arcade freezes (issue 8, broken).** "The pages are not reactive and it bugs out a lot. Sometimes clicking chain games or
+teams in pick teams, etc the page freezes and i can't do anything." Hypothesis: each click reruns the lineup search and its
+simulations (`bestLineup`, `climbWindows`, `teamsInBatch`) on the page's main thread; measure each click first, then move the
+work off the click path (cache by inputs, a worker, or precomputed results) so every tap answers at once.
+
+**E. My lineup scores missing on Play and Recap (issues 6, 7c, broken).** "/play doesn't get the my lineup scores (but gets
+sofix's), doesn't get Actual points (but gets sofix's)". Seen 2 Nov: in your Chrome (with the extension) your rows have scores
+and Actual; in a browser without the extension (the Claude pane) they show the last read saved in Sofix, made before the
+games: every card "Not played yet", Actual "-". On localhost, saving a fresh read fails ("Sofix storage is unavailable": the
+launcher blanks the database settings), so other browsers never get it. Sofix's own rows use the week's published scores
+(`scores`, from the score job). Fix: your rows take each card's score from those published scores whenever the saved read has
+none, and Actual is worked out from them (as for Sofix's rows), labelled "so far" until Sorare ranks it; save reads made on
+localhost to the local copy. Also seen: one LaLiga lineup reads "Actual 0" beside "Rank 5,131".
+
+**F. Pro card art empty (issue 3, broken).** Play → Pro · once the teams are out shows initials. The week's plan block
+(`sorare_plan:<week>`) drops pictures when it is frozen (`backend/app/sorare/frozen.py:28`); `restoreFrozenPlan`
+(`frontend/lib/frozenPlan.ts:13`) puts them back for plan lineups but not for `pro` windows. Fix there.
+
+**G. Recap: "Your season" to Audit, rewards live (issue 7).** "In recap tab, move the 'Your season' card in audit; rewards
+card does not update in real time." `components/recap/YourSeason.tsx` (already links to `/audit/rewards`) moves to the Audit
+page; the rewards card (`components/recap/WeekRewards.tsx`) updates as scores come in, without a reload.
+
+**H. Ship Codex's "Gems and packs" (issue 9).** "I upgraded it in codex, make it live." Uncommitted in
+`C:/Users/Yaya/.codex/worktrees/618b/FixtureDiff` (on 93f7477): ArcadePacks.tsx, arcadePacks.ts (+tests), new
+arcadePackStore.ts and arcadePackRead.test.ts, arcade.ts, ArcadeView.tsx, arcade-canvas.css, arcade.e2e.ts, docs and
+plans/arcade-packs.md. Bring onto `main`, run its tests, push.
+
+**I. Points-needed pill in the Sorare overlay (issues 1, 2, 5).** "I want the pill in the extension, so I can see it in
+Sorare, not in Sofix." On sorare.com's Arcade and Pro compose pages, each picked card gets the same pill (same calculation,
+`lib/pointsNeeded.ts`), for the step and lineup on screen, live while the games run. Needs an extension release (configure.mjs,
+then one Reload). Includes entered Pro cards: ask Sorare's Pro read for each card's level so they are priced (today "—").
+
 ## All Neon projects into one, on 1 Nov 2026 (you, 28 Oct 2026)
 
 "On Nov 1, have all the Neon databases converge to one so everything is in the same place." The five free projects (Sofix,

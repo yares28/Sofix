@@ -229,8 +229,9 @@ describe("a lineup while it plays", () => {
   const known = (slug: string | null) => (slug ? outlook(slug, ["Forward"], 50, 1, [40, 50, 60]) : null);
   const card = (slug: string, score: number | null, kickoff: string, bonus = 1) => ({ slug, name: slug, score, kickoff, bonus });
 
-  it("counts played and live cards with Sorare's multiplier, and the rest at their best past score for the ceiling", () => {
-    const v = liveLineup([card("a", 50, played, 1.5), card("b", 20, playing), card("c", null, later)], 200, known, NOW);
+  it("counts played and live cards at Sorare's score, which already holds the card's bonus, and the rest at their best past score for the ceiling", () => {
+    // a scored 50 raw as a ×1.5 captain: Sorare gives his card 75.
+    const v = liveLineup([card("a", 75, played, 1.5), card("b", 20, playing), card("c", null, later)], 200, known, NOW);
     expect(v.cards.map((c) => c.state)).toEqual(["played", "live", "to play"]);
     expect(v.now).toBe(95);
     expect(v.ceiling).toBe(95 + 40 + 60);
@@ -241,6 +242,13 @@ describe("a lineup while it plays", () => {
     const v = liveLineup([card("a", 50, played), card("c", null, later)], 100, known, NOW);
     expect(v.dead).toBe(false);
     expect(v.chance).toBeCloseTo(2 / 3, 1); // he needs 50 of 40 / 50 / 60
+  });
+  it("never counts a card's bonus twice: Sorare's five card scores add up to its lineup score (step 3, 1 Nov 2026)", () => {
+    const at = "2026-11-01T15:15:00Z", after = Date.parse("2026-11-02T00:00:00Z");
+    const real = [card("dituro", 48.4, at), card("laporte", 45.68, at, 1.3), card("silva", 42.3, at), card("mbappe", 118.95, at, 1.5), card("diomande", 76.3, at)];
+    const v = liveLineup(real, 360, () => null, after);
+    expect(v.now).toBeCloseTo(331.63);
+    expect(v.dead).toBe(true);
   });
   it("never calls a lineup dead when a card still to play has no past games", () => {
     expect(liveLineup([card("a", 10, played), card("x", null, later)], 400, () => null, NOW).dead).toBe(false);

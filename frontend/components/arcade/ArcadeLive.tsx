@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import { createPortal } from "react-dom";
 import { readArcadeLineups, type Arcade, type ArcadeLineup } from "../../lib/arcade";
 import { bigReward, cutLosses, liveLineup, madridDate, planDay, type Outlook } from "../../lib/arcadePlan";
-import { madridTime, pct, pts } from "./ArcadePlanner";
+import { climbStep, madridTime, pct, pts } from "./ArcadePlanner";
 import ArcadeAction from "./ArcadeAction";
 import NeedPill from "../NeedPill";
 import { needBadge, pointsNeeded, type NeedCard } from "../../lib/pointsNeeded";
 
-/** Sorare's own multiplier per card (captain included) and his raw score: what each card still needs from now. A played 0 is a DNP. */
+/** Sorare's own multiplier per card (captain included) and his raw score (Sorare's card score ÷ it): what each card still needs. A played 0 is a DNP. */
 const NEED_STATE = { "to play": "to play", live: "live", played: "finished" } as const;
 
 const LIVE_EVERY_MS = 2 * 60_000; // only while a game of yours is live and the page is in front: Sorare, through your tab, never Neon
@@ -67,7 +67,9 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus, actions }: 
         {open.map(({ step, lineup }, index) => {
           const verdict = liveLineup(lineup.cards, step.target, find(lineup), now);
           const need = pointsNeeded(step.target, verdict.cards.map((c, i): NeedCard => ({
-            multiplier: lineup.cards[i]!.bonus, unknown: "Sorare gave no bonus for this card", state: NEED_STATE[c.state], raw: lineup.cards[i]!.score,
+            // Sorare's card score holds its bonus: his raw score is that score ÷ the bonus.
+            multiplier: lineup.cards[i]!.bonus, unknown: "Sorare gave no bonus for this card", state: NEED_STATE[c.state],
+            raw: lineup.cards[i]!.score === null || !lineup.cards[i]!.bonus ? null : lineup.cards[i]!.score! / lineup.cards[i]!.bonus!,
           })));
           const cleared = ["CLAIMABLE", "CLAIMED"].includes(step.state);
           const toPlay = verdict.cards.filter((c) => c.state === "to play" && c.outlook);
@@ -77,7 +79,7 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus, actions }: 
           if (day && lineup.forfeitable) {
             const pool = [...outlooks.values()].flat().filter((o) => madridDate(o.game.kickoff) === day && Date.parse(o.game.kickoff) > now);
             const freed = new Set(toPlay.map((c) => c.slug));
-            const current = arcade.board?.current ?? step.number;
+            const current = arcade.board?.current == null ? step.number : climbStep(arcade);
             const without = planDay(pool, infos, current, captainBonus, busy)[0]?.chance ?? 0;
             const withCards = planDay(pool, infos, current, captainBonus, new Set([...busy].filter((s) => !freed.has(s))))[0]?.chance ?? 0;
             gain = Math.max(0, withCards - without);

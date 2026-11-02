@@ -290,12 +290,16 @@ export function climbStart(arcade: Arcade, steps: StepInfo[], current: number) {
   return { start: { step: current + 1, lives: Math.max(0, 4 - movingOn), notBefore: at, held }, waiting, after: { at, movingOn } };
 }
 
-/** The step the climb is on: Sorare's current step, or the next one once it is cleared (Sorare keeps naming it until its reward is claimed). */
+/**
+ * The step the climb is on, the one Sorare's compose page lets you play: Sorare's current step, moved past every step already cleared
+ * (Sorare keeps naming a cleared step until its reward is claimed: on 1 Nov 2026 the page said step 2 · 300 while lineups went on
+ * step 3 · 360). Every number on the page reads this one step.
+ */
 export function climbStep(arcade: Arcade): number {
   const steps = arcade.board?.steps ?? [];
-  const current = arcade.board?.current ?? 1;
-  const cleared = ["CLAIMABLE", "CLAIMED"].includes(steps.find((s) => s.number === current)?.state ?? "");
-  return cleared && steps.some((s) => s.number === current + 1) ? current + 1 : current;
+  let current = arcade.board?.current ?? 1;
+  while (["CLAIMABLE", "CLAIMED"].includes(steps.find((s) => s.number === current)?.state ?? "") && steps.some((s) => s.number === current + 1)) current += 1;
+  return current;
 }
 
 const VERB: Record<Climb["verdict"]["kind"], string> = { play: "Play now", wait: "Wait", spend: "Spend them now", none: "Nothing to play yet" };

@@ -278,6 +278,50 @@ page (the gallery's ?card= player page, 0.4.37), the card inside the dialog keep
 Tests: core tests for the captain choice, price thirds, far-apart rule; e2e for chip order, the 11 px floor, and the pill's new
 place.
 
+**Progress (3 Nov):** shipped in parts. Part 1 (0.4.38): the tile as two chips, the start % chip under Sorare's grade found by
+position (its box kept as offsets per card size and page change, so scrolling does not probe again), the 30-point ring, the hover
+lines, the pill above Sorare's start badge or beside it; the rank badges and the text walk that found "Select your..." headings
+went with them. Captain "C" and price per point follow.
+
+### Step 3b. A light overlay (owner, 3 Nov: "the page lags, it's unbearable"; next after step 3)
+
+**Measured (3 Nov, his Chrome, 0.4.37, Hot Streaks builder, 34 cards, overlay on):** scrolling five ticks down and up gave frames
+of 170-640 ms, almost all inside animation-frame callbacks with no page script named (Long Animation Frames API; content scripts
+are not attributed), while Sorare's own named script took 6 ms. The overlay's redraw runs in an animation frame, so it is the
+overlay. Cause in the code: step 2's `scroll`/`resize` listeners (`onMove`) call `schedule()`, the full `pass()`: discover,
+identify, every `want*` and `paint()` over every visible card, each one measured and redrawn, with layout reads (`subIconOf`'s
+`elementsFromPoint`, `barFor`, `roomIsFree`, `clearOfCached`, `locateAgo`) between writes. Worse, `clearOfCached` keys its answer on the card's
+`rect.top`, so every scroll frame re-runs `clearOf` on every card: a grid of `elementsFromPoint` probes (every 10 px across the
+tile, every 12 px down) per card, then a `getBoundingClientRect` for each element hit. Before step 2 a scroll did not start a pass.
+Seen at the same time: crests of cards scrolled under the builder's sticky search bar float over it (the crest layer sits above
+Sorare's header).
+
+Instructions:
+1. **A scroll only moves crests.** `onMove` calls `moveCrests()`: one read pass (each drawn crest's card `getBoundingClientRect`),
+   then one write pass setting `transform: translate3d()` (not `left`/`top`). No discover, no identify, no `want*`, no tile or pill
+   redraw (those live inside the cards and scroll with them). The island repositions in the same pass.
+2. **`clearOf` once per card, not per frame.** Key its answer on the card's size, the tile's size and `pageEpoch`, and store it as
+   an offset from the card's top (not a page position), so scrolling reuses it.
+3. **Read everything, then write everything, in every pass.** No layout read after a write: `subIconOf`, `barFor`, `roomIsFree`,
+   `clearOfCached` and `locateAgo` run in the read phase and keep their answer per card until its size or the page epoch changes
+   (the `ResizeObserver` and `pageEpoch` already say when).
+4. **Only what changed is redrawn.** A card whose rect, entry and tier are the same as last pass is skipped (compare a small
+   signature); a pass with nothing new touches no DOM.
+5. **Page changes are batched.** The `MutationObserver` ignores attribute-only changes and our own nodes, and asks for discover
+   at most every 250 ms (idle callback), not every frame.
+6. **Crests are clipped to their card's scroll box.** A crest shows only while its card's top edge is inside the nearest
+   scrolling ancestor's visible rect (found once per card, kept), so it never rides over a sticky header or a closed list.
+7. **Cheap to paint.** Our nodes get `contain: layout paint style`; no `backdrop-filter` or large blurred shadows on per-card
+   nodes; `will-change` only on the island while it animates; the live dot's pulse is `opacity`/`transform` only.
+8. **A budget, checked.** Each pass times itself (`performance.now()`); the popup's report line shows the slowest pass of the
+   last minute. Target: no pass over 8 ms on a 100-card page, no frame over 50 ms while scrolling.
+
+Tests: e2e, the fixture page with 200 cards: 20 scroll frames run no discover and no tile redraw (counters on the test hook), the
+crest still sits on its card's top edge after the scroll, a card under a sticky header shows no crest, and the slowest pass
+stays under its budget (a loose bound on the test machine). Accept on his Chrome: the same Long Animation Frames measurement on
+the builder and the gallery, before and after, with frames while scrolling under 50 ms, and the same with the overlay switched
+off as the baseline.
+
 ### Step 4. Panel and "comes on"
 
 - Backend: `forecast.py` gains the 10-game minutes record per player (from `player_games`: started, came on, unused, minutes

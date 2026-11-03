@@ -1056,12 +1056,14 @@ has no number, its row says "LaLiga only" (FF covers LaLiga only). The overlay n
 translates them. Escape closes it. It only shows things; nothing in
 it writes to Sorare.
 
-- **His chance of starting** is the bottom row of every full tile ("90%") with a mark for whose it is: FF's expected lineup where
-  it has him, else Sorare's odds, else the app's own. It is quiet while he probably starts, **amber in doubt** (FF calls him a
-  doubt, or he is under 50%) and **red when he will not start** (injured, banned, or under 15%). A tile greyed as "Started" or
-  "Old" has none, and a small lineup tile has no room for it. Hovering the row says it is Sofix's number and whose it stands on.
-  **A mint ring** round the tile means Sofix and Sorare disagree on whether he starts: one says 40% or less, the other 60% or more
-  (Sorare's own % is the badge at the card's foot on your Lineups page).
+- **The tile** (extension 0.4.38, 3 Nov 2026) is two chips at the card's top left: his xScore, then "64 FDR" for his game, black on
+  Sorare's colours; a small card has the xScore chip only. No plan tick, captain star, rank or "×2" any more. A number that no longer
+  holds (his game started, or over a day old) goes grey; the hover says why.
+- **His chance of starting** is a small dark chip at the top right, under Sorare's own start badge and grade (in their place when the
+  card has none), with a faint purple mark for whose it is: FF's expected lineup where it has him, else Sorare's odds, else the app's
+  own. White while he probably starts, **amber in doubt**, **red when he will not start**; none on a greyed number or a thumbnail.
+  Hover it: "Sofix 83% · Sorare 80%" on a full card, its own source on a small one ("FF 90%"). **An amber ring** means Sofix and
+  Sorare are 30 points or more apart. The points-needed pill sits above Sorare's start badge (beside it when there is no room).
 - **Your gallery's prices.** On your own gallery (with Sorare's "Show details" on), each card gets a line under Sorare's "Bought 2 days
   ago": what it is worth now and how far that is up or down on what you paid ("now €3.40 ▲13%", or "not bought" for a crafted or won
   card). The toolbar row adds the bought cards' total ("BOUGHT, NOW €312 · paid €268 for 30 cards · ▲ €44 · +16%"), the same figures as

@@ -190,12 +190,11 @@
     return "ok";
   }
 
-  /** Sofix and Sorare disagree when one has him at this or less to start and the other at DISAGREE_HIGH or more (the owner, 21 Oct 2026). */
-  const DISAGREE_LOW = 0.4;
-  const DISAGREE_HIGH = 0.6;
+  /** Sofix and Sorare are far apart when their start chances differ by this many points or more (plans/overlay-v2.md 1.2, 3 Nov 2026). */
+  const APART_POINTS = 30;
 
   /**
-   * Sofix's start chance and Sorare's own when one says he won't start and the other that he will; null otherwise, or when Sorare has
+   * Sofix's start chance and Sorare's own when they are APART_POINTS or more apart; null otherwise, or when Sorare has
    * no number. `onPage` is Sorare's number as the page itself received it (the badge at the card's foot); it wins over the copy in
    * Sofix's answer, which can be missing or older.
    */
@@ -203,9 +202,17 @@
     const sorare = typeof onPage === "number" ? onPage : entry.sources && entry.sources.sorare;
     if (typeof sorare !== "number" || entry.startSource === "sorare") return null;
     const sofix = startChance(entry);
-    const no = (p) => p <= DISAGREE_LOW;
-    const yes = (p) => p >= DISAGREE_HIGH;
-    return (no(sofix) && yes(sorare)) || (no(sorare) && yes(sofix)) ? { sofix, sorare } : null;
+    return Math.round(Math.abs(sofix - sorare) * 100) >= APART_POINTS ? { sofix, sorare } : null;
+  }
+
+  const SOURCE_NAME = { futbolfantasy: "FF", sorare: "Sorare", sofix: "Sofix" };
+
+  /** The start % chip's hover: "Sofix 83% · Sorare 80%" on a full card, the number's own source on a small one ("FF 90%"). */
+  function startHover(entry, onPage, full) {
+    const mine = chanceLabel(startChance(entry));
+    if (!full || entry.startSource === "sorare") return `${SOURCE_NAME[entry.startSource] || "Sofix"} ${mine}`;
+    const sorare = typeof onPage === "number" ? onPage : entry.sources && entry.sources.sorare;
+    return typeof sorare === "number" ? `Sofix ${mine} · Sorare ${chanceLabel(sorare)}` : `Sofix ${mine}`;
   }
 
   const SOURCE_FROM = { futbolfantasy: "Futbol Fantasy's expected lineup", sorare: "Sorare's starter odds", sofix: "his form" };
@@ -790,7 +797,7 @@
   root.__sofixCore = {
     crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

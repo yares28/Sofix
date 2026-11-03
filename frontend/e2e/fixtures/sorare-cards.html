@@ -37,6 +37,10 @@ a.card { display: block; color: inherit; }
 /* A chip lower down the edge, between where the tile's top and bottom would be looked at. */
 .theirs.mid { top: 24px; }
 .gold { top: 8px; right: -6px; background: #f7c948; color: #0e0e0e; border-radius: 4px 4px 0; }
+/* Sorare's own start badge and projection grade at a lineup card's top right: Sofix's start % goes under them. */
+.so-start, .so-grade { position: absolute; z-index: 2; right: 6px; height: 18px; padding: 2px 4px; font: 700 12px/14px -apple-system, "Segoe UI", sans-serif; border-radius: 4px; }
+.so-start { top: 6px; background: #00f3eb; color: #0e0e0e; }
+.so-grade { top: 28px; width: 18px; background: #00f3eb; color: #0e0e0e; text-align: center; }
 .frame { position: relative; width: 180px; }
 .frame .card { width: 180px; }
 .cap { position: absolute; z-index: 2; top: 32px; right: -6px; width: 24px; height: 24px; border: 0; border-radius: 6px; background: #3fb950; color: #0e0e0e; font-weight: 700; }
@@ -81,6 +85,7 @@ a.card { display: block; color: inherit; }
     <div class="card" id="badged"><span class="theirs" id="badge">1/1</span><img alt="Unai Simón - super_rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000004/picture/tinified-aaa4.png?width=300"></div>
     <div class="card" id="midchip"><span class="theirs mid" id="midbadge">#7</span><img alt="Unai Simón - super_rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000004/picture/tinified-aaa4.png?width=300"></div>
     <div class="card" id="doubtful"><img alt="Pau Cubarsí - rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000002/picture/tinified-aaa2.png?width=300"></div>
+    <div class="card" id="graded"><span class="so-start" id="sostart">80%</span><span class="so-grade" id="grade">A</span><img alt="Pau Cubarsí - rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000002/picture/tinified-aaa2.png?width=300"></div>
     <div class="card" id="stranger"><img alt="Someone Else - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000005/picture/tinified-aaa5.png?width=300"></div>
     <div class="card" id="abroad"><img alt="Lionel Messi - rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000007/picture/tinified-aaa7.png?width=300"></div>
     <div class="card" id="noxg"><img alt="Kai Havertz - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000008/picture/tinified-aaa8.png?width=300"></div>

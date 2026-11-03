@@ -41,6 +41,7 @@ type Core = {
   startTone: (entry: { p: number; pStart?: number; ffStatus?: { kind?: string } }) => "out" | "doubt" | "ok";
   startDisagreement: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage?: number) => { sofix: number; sorare: number } | null;
   startTitle: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage?: number) => string;
+  startHover: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage: number | undefined, full: boolean) => string;
   statusNote: (entry: { ffStatus?: { kind?: string; cause?: string; since?: string } }) => { kind: string; text: string } | null;
   clockLabel: (iso: unknown) => string | null;
   sourceRows: (entry: {
@@ -420,13 +421,14 @@ describe("the start row", () => {
     expect(core.SOURCE_SHORT).toEqual({ futbolfantasy: "FF", sorare: "SO", sofix: "SF" });
   });
 
-  // The owner, 21 Oct 2026: one thinks he won't start (40% or less), the other thinks he will (60% or more).
-  it("flags Sofix and Sorare disagreeing only when one says no and the other yes", () => {
+  // plans/overlay-v2.md 1.2 (3 Nov 2026): far apart when the two start chances differ by 30 points or more.
+  it("flags Sofix and Sorare far apart when their start chances differ by 30 points or more", () => {
     const ff = (pStart: number, sorare?: number) => ({ p: pStart, pStart, startSource: "futbolfantasy", sources: (sorare === undefined ? {} : { sorare }) as Record<string, number> });
     expect(core.startDisagreement(ff(0.8, 0.4))).toEqual({ sofix: 0.8, sorare: 0.4 }); // Mojica on 21 Oct
-    expect(core.startDisagreement(ff(0.4, 0.6))).toEqual({ sofix: 0.4, sorare: 0.6 });
-    expect(core.startDisagreement(ff(0.5, 0.8))).toBeNull(); // 50% is neither a no nor a yes
-    expect(core.startDisagreement(ff(0.41, 0.9))).toBeNull();
+    expect(core.startDisagreement(ff(0.5, 0.8))).toEqual({ sofix: 0.5, sorare: 0.8 }); // exactly 30 points
+    expect(core.startDisagreement(ff(0.6, 0.3))).toEqual({ sofix: 0.6, sorare: 0.3 });
+    expect(core.startDisagreement(ff(0.4, 0.6))).toBeNull(); // 20 points
+    expect(core.startDisagreement(ff(0.51, 0.8))).toBeNull(); // 29 points
     expect(core.startDisagreement(ff(0.9, 0.95))).toBeNull();
     expect(core.startDisagreement(ff(0.9))).toBeNull(); // Sorare has no number
     expect(core.startDisagreement({ p: 0.2, pStart: 0.2, startSource: "sorare", sources: { sorare: 0.2 } })).toBeNull();
@@ -900,5 +902,21 @@ describe("the crest above each card (plans/overlay-v2.md step 2)", () => {
   });
   it("colours a stat by its sixth with Sorare's six score colours, worst first", () => {
     expect(core.SIXTHS).toEqual(["#ff5a5a", "#ff7e34", "#f0ce1d", "#b6ff1a", "#25ed36", "#00f3eb"]);
+  });
+});
+
+describe("the start % chip's hover (plans/overlay-v2.md 1.2)", () => {
+  const entry = (pStart: number, startSource: string, sorare?: number) => ({ p: pStart, pStart, startSource, sources: (sorare === undefined ? {} : { sorare }) as Record<string, number> });
+  it("says Sofix's and Sorare's numbers on a full card, Sofix's alone when Sorare has none", () => {
+    expect(core.startHover(entry(0.83, "futbolfantasy", 0.8), undefined, true)).toBe("Sofix 83% · Sorare 80%");
+    expect(core.startHover(entry(0.83, "futbolfantasy"), 0.7, true)).toBe("Sofix 83% · Sorare 70%"); // the page's own number wins
+    expect(core.startHover(entry(0.83, "sofix"), undefined, true)).toBe("Sofix 83%");
+    expect(core.startHover(entry(0.8, "sorare", 0.8), undefined, true)).toBe("Sorare 80%"); // the same number twice says it once
+  });
+  it("names the number's own source on a small card", () => {
+    expect(core.startHover(entry(0.9, "futbolfantasy", 0.8), undefined, false)).toBe("FF 90%");
+    expect(core.startHover(entry(0.8, "sorare", 0.8), undefined, false)).toBe("Sorare 80%");
+    expect(core.startHover(entry(0.83, "sofix"), undefined, false)).toBe("Sofix 83%");
+    expect(core.startHover({ p: 0.83 }, undefined, false)).toBe("Sofix 83%");
   });
 });

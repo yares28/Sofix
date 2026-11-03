@@ -875,15 +875,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: European markets (CL, EL, CONF) publish no next-week game (block budget); domestic markets keep it; numbers unchanged.",
+        "note": "market rows gain now, the week being played's game still ahead from its frozen record (publish.with_now; plans/overlay-v2.md 1.7.3); no change to plan selection, forecasts or rewards",
         "files": {
-          "backend/app/sorare/publish.py": "70680347a343d0cce3fb83ff82fe47dc994d4c939be96053544b4b7a605aa93a",
+          "backend/app/sorare/publish.py": "408063bbeabeef6ce9bd35af323c543a11d7bdf1d09da1e6167e6be803d5ec23",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "501f72b18aad3fb23ff099048ba2bdefc59c5456c1e76d996f92a7e9367b91b6",
+          "backend/app/jobs/sorare.py": "ae6598e9a0cca2649be47386ce6ee71f1c7a783987bfa3b4a6c3230a72435ca2",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
-          "backend/tests/test_sorare_publish.py": "89afdc0d5c64dbc191509db3bc03cad72e84c37088b3ba629135c485959ead7e"
+          "backend/tests/test_sorare_publish.py": "8f4140ccab478238952fa3083e92019a15cfd534c760631d0fed209669d43219"
         }
       }
     },
@@ -997,12 +997,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: European markets (CL, EL, CONF) publish no next-week game (block budget); domestic markets keep it; numbers unchanged.",
+        "note": "market rows gain now, the week being played's game still ahead from its frozen record (publish.with_now; plans/overlay-v2.md 1.7.3); no change to plan selection, forecasts or rewards",
         "files": {
-          "backend/app/sorare/publish.py": "70680347a343d0cce3fb83ff82fe47dc994d4c939be96053544b4b7a605aa93a",
+          "backend/app/sorare/publish.py": "408063bbeabeef6ce9bd35af323c543a11d7bdf1d09da1e6167e6be803d5ec23",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
-          "backend/tests/test_sorare_publish.py": "89afdc0d5c64dbc191509db3bc03cad72e84c37088b3ba629135c485959ead7e"
+          "backend/tests/test_sorare_publish.py": "8f4140ccab478238952fa3083e92019a15cfd534c760631d0fed209669d43219"
         }
       }
     },
@@ -1053,10 +1053,10 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: per-game x/start (forecast.game_x/game_start) published on games and market fixtures, weeks list perGame (Pro leaderboards); overlay shows them for Pro/Arcade cards; plans, rewards and selection unchanged.",
+        "note": "market rows gain now, the week being played's game still ahead from its frozen record (publish.with_now; plans/overlay-v2.md 1.7.3); no change to plan selection, forecasts or rewards",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "a1db9023fde7ef3eaa29141db010bd726d5fdf93ffbacc4c14a97bee6924c660",
+          "frontend/lib/play.ts": "18c89330a756e7592e5be98b7df64124e976d871898c839ae12db612db50d6ed",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }

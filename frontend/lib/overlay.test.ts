@@ -201,6 +201,20 @@ describe("overlayNumbers", () => {
       expect(on("2026-10-08T12:00:00Z", { week: data.weeks[0]!.gameweek.id }).match!.id).toBe("g-liga");
     });
 
+    it("gives a player Sofix does not hold his game of the week being played while it is still ahead (the refresh's `now`)", () => {
+      const fixture = (id: string, kickoff: string, opponent: string) => ({ id, team: "Real Madrid", opponent, opponentCrest: `${id}.png`, venue: "A" as const, kickoff, competition: "uefa-champions-league" });
+      const mbappe: MarketPlayer = {
+        slug: "kylian-mbappe-lottin", name: "Kylian Mbappé", pos: "FWD", club: "Real Madrid", crest: "rm.png", average: 70, projection: null, eur: null, pic: "",
+        p: 0.93, pStart: 0.9, startSource: "sofix", x: 64.7, start: 68, fixture: { ...fixture("g-vcf", "2026-10-11T19:00:00Z", "Valencia"), competition: "laliga-es", venue: "H" },
+        now: { p: 0.886, pStart: 0.829, startSource: "sofix", start: 60, x: 53.2, fixture: fixture("g-aek", "2026-10-08T17:45:00Z", "AEK Athens") },
+      };
+      const on = (at: string, over: Record<string, unknown> = {}) =>
+        overlayNumbers(sorare([player()]), grid, ask({ players: ["kylian-mbappe-lottin"], ...over }), new Date(at), null, { market: [mbappe], grids: [] }).players["kylian-mbappe-lottin"]!;
+      expect(on("2026-10-08T12:00:00Z")).toMatchObject({ x: 53.2, p: 0.886, match: { id: "g-aek", opponent: "AEK Athens", teamCrest: "rm.png" } });
+      expect(on("2026-10-08T21:00:00Z")).toMatchObject({ x: 64.7, match: { id: "g-vcf" } }); // played: the planned week's game
+      expect(on("2026-10-08T12:00:00Z", { week: "17" }).match!.id).toBe("g-vcf"); // a page naming the planned week keeps to it
+    });
+
     it("gives a player Sofix does not hold his next game from the week after when this week has none for him", () => {
       const fixture = (id: string, kickoff: string) => ({ id, team: "Athletic Club", opponent: "Getafe CF", opponentCrest: null, venue: "H" as const, kickoff, competition: "laliga-es" });
       const resting: MarketPlayer = {

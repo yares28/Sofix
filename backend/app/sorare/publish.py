@@ -2141,6 +2141,39 @@ def market_out(
     return out
 
 
+def with_now(rows: list[dict[str, Any]], record: dict[str, Any] | None, at: datetime) -> list[dict[str, Any]]:
+    """Each market row with `now`, his first game of the week being played that is still ahead, from that week's frozen record
+    (`score_record:<slug>`): only what the overlay draws (his chance to play and to start, his score if he starts, his xScore, the
+    game), so a card on a page naming no week shows his next game whatever the week (plans/overlay-v2.md 1.7.3). A row whose game
+    this week is played, or who has none, is left as it was."""
+    players = (record or {}).get("players") or {}
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        his = players.get(row.get("slug"))
+        game = (
+            next((g for g in his.get("games") or [] if g.get("kickoff") and _dt(g["kickoff"]) > at), None)
+            if his and his.get("pPlay") is not None and his.get("mu") is not None
+            else None
+        )
+        if his is None or game is None:
+            out.append(row)
+            continue
+        now = {
+            "p": his["pPlay"],
+            **(
+                {"pStart": his["pStart"], "startSource": his["startSource"]}
+                if his.get("pStart") is not None and his.get("startSource")
+                else {}
+            ),
+            **({"start": game["sofix"]} if game.get("sofix") is not None else {}),
+            "x": round(his["pPlay"] * his["mu"], 1),
+            # The side's own crest is the row's (`crest`): left out, it keeps the Champions League block under its 1.6 MB budget.
+            "fixture": {k: game[k] for k in FIXTURE_KEYS if k != "teamCrest" and game.get(k) is not None},
+        }
+        out.append({**row, "now": now})
+    return out
+
+
 def week_of(payload: dict[str, Any], which: str = "next") -> dict[str, Any] | None:
     """The gameweek being planned (`next`) or the last one played (`last`), out of the payload's `weeks`."""
     wanted = payload.get("nextId") if which == "next" else payload.get("lastId")

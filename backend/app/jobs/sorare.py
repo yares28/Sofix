@@ -752,6 +752,31 @@ def run(
         strategy_record.payload if strategy_record and isinstance(strategy_record.payload, dict) else None
     )
     foreign_markets = payload.pop("_foreignMarkets", {})
+    # The week being played (locked, not over): each market row gains his game of it still ahead, from its frozen record, read from R2
+    # first and kept between runs (plans/overlay-v2.md 1.7.3; 3 Nov 2026, Mbappé's Wednesday game on the Hot Streaks builder).
+    playing = next(
+        (
+            w
+            for w in snapshot["gameweeks"]
+            if w["slug"] != snapshot["planGameweek"]["slug"]
+            and datetime.fromisoformat(w["lock"]) <= fetched < datetime.fromisoformat(w["end"])
+        ),
+        None,
+    )
+    if playing:
+        kept_record = optional(
+            db,
+            failed,
+            "playing record",
+            lambda: kept_blocks.read(db, f"{sorare_publish.RECORD_PREFIX}{playing['slug']}"),
+            None,
+        )
+        db.rollback()
+        live_record = kept_record.payload if kept_record else None
+        payload["market"] = sorare_publish.with_now(payload.get("market") or [], live_record, fetched)
+        for market in foreign_markets.values():
+            market["market"] = sorare_publish.with_now(market["market"], live_record, fetched)
+        laps("this week's games")
     alt, record = payload.pop("_alt", None), payload.pop("_record", None)
     lab = payload.pop("_strategies", None)
     lenses = payload.pop("_lenses", None)

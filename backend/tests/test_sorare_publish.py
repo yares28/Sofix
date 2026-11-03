@@ -1150,3 +1150,63 @@ def test_a_market_row_says_what_its_game_is_worth_on_its_own() -> None:
     him = publish.build_payload(snap, runs=2, draws=100)["market"][0]
     assert him["fixture"]["x"] == him["x"] and him["fixture"]["start"] == him["start"]
     assert him["next"]["fixture"]["x"] == him["next"]["x"]
+
+
+def test_a_market_row_carries_his_game_of_the_week_being_played_while_it_is_still_ahead() -> None:
+    # 3 Nov 2026, the Hot Streaks builder: Mbappé's Champions League game on Wednesday belongs to the week being played, whose numbers
+    # are only in that week's frozen record; his row holds the planned week's Saturday game.
+    at = datetime(2026, 11, 3, 15, 0, tzinfo=UTC)
+    record = {
+        "players": {
+            "kylian-mbappe-lottin": {
+                "pPlay": 0.886,
+                "pStart": 0.829,
+                "startSource": "sofix",
+                "mu": 60,
+                "games": [
+                    {
+                        "id": "Game:aek",
+                        "kickoff": "2026-11-04T17:45:00Z",
+                        "competition": "uefa-champions-league",
+                        "team": "Real Madrid",
+                        "teamCrest": "rm.png",
+                        "opponent": "AEK Athens",
+                        "opponentCrest": "aek.png",
+                        "venue": "A",
+                        "sofix": 60,
+                        "sorare": 62,
+                    }
+                ],
+            },
+            "played-tuesday": {
+                "pPlay": 0.9,
+                "mu": 50,
+                "games": [{"id": "Game:tue", "kickoff": "2026-11-03T12:00:00Z", "venue": "H"}],
+            },
+        }
+    }
+    rows = [
+        {"slug": "kylian-mbappe-lottin", "x": 64.7},
+        {"slug": "played-tuesday", "x": 40.0},
+        {"slug": "nobody", "x": 1.0},
+    ]
+    out = publish.with_now(rows, record, at)
+    assert out[0]["now"] == {
+        "p": 0.886,
+        "pStart": 0.829,
+        "startSource": "sofix",
+        "start": 60,
+        "x": 53.2,
+        "fixture": {
+            "id": "Game:aek",
+            "team": "Real Madrid",
+            "competition": "uefa-champions-league",
+            "opponent": "AEK Athens",
+            "opponentCrest": "aek.png",
+            "venue": "A",
+            "kickoff": "2026-11-04T17:45:00Z",
+        },
+    }
+    assert "now" not in out[1]  # his game this week is played
+    assert out[2] == {"slug": "nobody", "x": 1.0}
+    assert publish.with_now(rows, None, at) == rows

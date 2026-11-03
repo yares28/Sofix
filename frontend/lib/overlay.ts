@@ -666,6 +666,9 @@ export function overlayNumbers(
   // Anyone else Sofix rates (an Arcade common, a player you do not hold): his market row for the week being planned, and the one after.
   const market = plan === planned || plan === afterPlanned ? new Map(others.market.map((row) => [row.slug, row])) : new Map<string, MarketPlayer>();
   const nextOf = (row: MarketPlayer): MarketPlayer | null => (row.next ? { ...row, ...row.next, fixture: row.next.fixture } : null);
+  // His game of the week being played, still ahead: the refresh leaves the side's crest out of it (the row has it).
+  const nowOf = (row: MarketPlayer): MarketPlayer | null =>
+    row.now ? { ...row, ...row.now, fixture: { ...row.now.fixture, teamCrest: row.now.fixture.teamCrest ?? row.crest } } : null;
   const boards = [...new Map([grid, ...others.grids].flatMap(g => g ? [[g.competition ?? "PD", g] as const] : [])).values()];
   const leaguesOf = (week: GameweekPlan) => (request.board ? (week.boards?.[request.board] ?? null) : null);
   const counted = (row: MarketPlayer | null, week: GameweekPlan) => {
@@ -677,7 +680,7 @@ export function overlayNumbers(
   const priced = (row: MarketPlayer | null, one: boolean) => {
     const entry = row ? marketEntry(row, boards, now, sorare.generatedAt, one) : null;
     if (!entry || !row?.fixture?.kickoff) return entry;
-    const week = plan === afterPlanned || row.fixture === row.next?.fixture ? afterPlanned : plan;
+    const week = row.now && row.fixture.id === row.now.fixture.id ? (others.playing ?? null) : plan === afterPlanned || row.fixture === row.next?.fixture ? afterPlanned : plan;
     const fixture = { ...row.fixture, kickoff: row.fixture.kickoff, competition: row.fixture.competition ?? "", opponent: row.fixture.opponent ?? "", venue: row.fixture.venue ?? "H" } as PlayerGame;
     return { ...entry, island: islandOf([fixture], row.club, week, () => entry.game) };
   };
@@ -732,8 +735,11 @@ export function overlayNumbers(
     const later = roll && following ? ownedFor(playerSlug, following, { leagues: leaguesOf(following) }) : null;
     if (later?.ahead) return later.entry;
     if (here) return here.entry;
-    // Anyone else, the same from his market row; a page about the week after reads that row's next game.
+    // Anyone else, the same from his market row: his game of the week being played while it is ahead; a page about the week after
+    // reads that row's next game.
     if (!row) return null;
+    const soon = roll ? nowOf(row) : null;
+    if (soon && ahead(soon.fixture, now) && counted(soon, playing ?? plan)) return priced(soon, oneGame(playing ?? plan, undefined));
     if (plan === afterPlanned) return priced(counted(nextOf(row), plan), oneGame(plan, undefined));
     const current = counted(row, plan);
     if (current && (ahead(current.fixture, now) || !roll)) return priced(current, oneGame(plan, undefined));

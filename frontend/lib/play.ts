@@ -514,6 +514,8 @@ export type MarketPlayer = {
   fixture?: MarketFixture;
   /** His first game of the week after, when there is one (payloads from 3 Nov 2026): what the sorare.com overlay draws for it. */
   next?: { p: number; pStart?: number; startSource?: StartSource; start?: number; x: number; fixture: MarketFixture };
+  /** His first game of the week being played still ahead when the refresh ran, from that week's frozen record (plans/overlay-v2.md 1.7.3). */
+  now?: { p: number; pStart?: number; startSource?: StartSource; start?: number; x: number; fixture: MarketFixture };
 };
 
 export type MarketFixture = {

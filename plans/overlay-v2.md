@@ -295,7 +295,11 @@ Sorare's own badge is (only for paint containment or a clip path; a card cut by 
 Crests on an Arcade builder (owner, 3 Nov): the app picked only between the week being planned (GW29) and the week after, so on
 the Hot Streaks builder Mbappé showed Valencia (Sat), not AEK (Wed, the week being played). A page naming no week now reads the week
 being played too (the same cached frozen plan a lineup page reads) and a card's game in it that is still ahead comes first (1.7.3);
-for your cards only, since market rows hold the planned week and the next.
+for your cards first. Then (owner: "build it"): the refresh gives every market row `now`, his first game of the week being played
+still ahead, from that week's frozen record read through `kept_blocks` (R2 first, kept between runs), so no Neon payload is read
+again; `publish.with_now`. The side's crest is left out of it (the row has it): measured on 3 Nov's blocks, `players:CL` would
+otherwise reach 1.54 MB of its 1.6 MB budget (with it out, ~1.38 MB; EL ~1.3, CONF ~1.2). The app answers it first while it is ahead
+on a page naming no week. Its numbers are as they stood at that week's lock.
 Captain, decided from the code: Sorare adds bonuses together (`frontend/lib/arcadePlan.ts`, `multiplier`, read 21 Oct), so a captain
 adds his captain bonus × his raw score whatever his card's own bonus; the card to captain is the one with the highest xScore, not
 "xScore × card multiplier" as 1.2 says. Not built yet: how Sorare draws a placed pitch card and its captain was not seen (his builders

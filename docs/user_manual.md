@@ -1009,7 +1009,8 @@ colour for that score. Under it is one thing that drives the score, chosen by po
   (a lineup mixing two gameweeks shows all five); on a competition's builder, his next game that counts there (Ezzalzouli on Pro
   Spain: Elche, not Dortmund); anywhere else, his next game, moving on to the week after once this week's is played or when he
   has none (an Arcade common of the next round); a game of yours this week still ahead comes before the planned week's (3 Nov 2026:
-  Mbappé's Wednesday Champions League game on the Hot Streaks builder, not Saturday's). A page whose address names a gameweek still shows that week only. A Pro or
+  Mbappé's Wednesday Champions League game on the Hot Streaks builder, not Saturday's), for players you do not own too, from the
+  numbers that week locked with. A page whose address names a gameweek still shows that week only. A Pro or
   Arcade card plays one game, so on a lineup page and a Pro builder its xScore is that game's; Classic gameweek builders and every
   other page keep the week's (two games: the better of the two counts).
 - **The opponent's crest on each card** (extension 0.4.34, 3 Nov 2026): centred on the card's top edge, half outside (22 px, 16 on a

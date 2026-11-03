@@ -42,6 +42,7 @@ type Core = {
   startDisagreement: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage?: number) => { sofix: number; sorare: number } | null;
   startTitle: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage?: number) => string;
   startLevel: (p: number) => "low" | "medium" | "high";
+  captainPick: (cards: { x: number | null; captain: boolean }[]) => number;
   START_COLOURS: Record<string, [string, string]>;
   startHover: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage: number | undefined, full: boolean) => string;
   statusNote: (entry: { ffStatus?: { kind?: string; cause?: string; since?: string } }) => { kind: string; text: string } | null;
@@ -920,6 +921,22 @@ describe("the start % chip's hover (plans/overlay-v2.md 1.2)", () => {
     expect(core.startHover(entry(0.8, "sorare", 0.8), undefined, false)).toBe("Sorare 80%");
     expect(core.startHover(entry(0.83, "sofix"), undefined, false)).toBe("Sofix 83%");
     expect(core.startHover({ p: 0.83 }, undefined, false)).toBe("Sofix 83%");
+  });
+});
+
+describe("the captain Sofix would pick on Sorare's builder", () => {
+  it("is the card on the pitch with the highest xScore, first on a tie", () => {
+    const card = (x: number | null, captain = false) => ({ x, captain });
+    expect(core.captainPick([card(40), card(62), card(55)])).toBe(1);
+    expect(core.captainPick([card(62), card(62)])).toBe(0);
+    expect(core.captainPick([card(null), card(30)])).toBe(1); // a card with no number is passed over
+  });
+  it("says nothing once Sorare has that card as captain, or with no number to go on", () => {
+    const card = (x: number | null, captain = false) => ({ x, captain });
+    expect(core.captainPick([card(40), card(62, true)])).toBe(-1);
+    expect(core.captainPick([card(40, true), card(62)])).toBe(1); // another captain: the pick still shows
+    expect(core.captainPick([card(null), card(null)])).toBe(-1);
+    expect(core.captainPick([])).toBe(-1);
   });
 });
 

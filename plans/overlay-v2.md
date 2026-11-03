@@ -305,6 +305,10 @@ Captain, decided from the code: Sorare adds bonuses together (`frontend/lib/arca
 adds his captain bonus × his raw score whatever his card's own bonus; the card to captain is the one with the highest xScore, not
 "xScore × card multiplier" as 1.2 says. Not built yet: how Sorare draws a placed pitch card and its captain was not seen (his builders
 were empty on 3 Nov and none of his GW28/29 lineups was entered); it needs a filled builder to read.
+Captain C built (0.4.45): a filled Classic builder (Spain arena draft, 3 Nov) draws a 32 px round `div[title="Captain"]` "C"
+centred on each pitch card's top-left corner, white, pink with the class `active` on the captain; a 16 px one sits in the "Select
+Captain" line. On a builder page (`composeBoard`, or an Arcade step's `compose-team`) the cards with such a mark are the pitch;
+`core.captainPick` takes the highest fresh xScore and nothing once it is Sorare's captain. Price per point is left in step 3.
 
 ### Step 3b. A light overlay (owner, 3 Nov: "the page lags, it's unbearable"; next after step 3)
 

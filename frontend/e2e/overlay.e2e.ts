@@ -1585,6 +1585,48 @@ test.describe("the sorare.com overlay", () => {
     await expect(page.getByLabel(/points expected from/)).toHaveCount(0); // gone with the lineup page
   });
 
+  test("on Sorare's builder, a faint purple C marks the card on the pitch Sofix would captain, until Sorare has him as captain", async ({ page }, testInfo) => {
+    await openPage(page, { url: "https://sorare.com/football/play/classic/compose/all-star" });
+    await settled(page);
+    await expect(page.locator(".sfx-captain")).toHaveCount(0); // no card on the pitch yet
+    // Sorare's pitch, as drawn on 3 Nov 2026: a 32 px round "C" titled "Captain" centred on each placed card's top-left corner,
+    // outside the card's own box; the captain's turns pink with the class "active". Pick 1 (70) beats Pick 2 (65) and Pick 3 (60).
+    const mark = (ids: string[], captain: string | null) =>
+      page.evaluate(([list, cap]) => {
+        document.querySelectorAll("[data-test-mark]").forEach((el) => el.remove());
+        for (const id of list as string[]) {
+          const r = document.getElementById(id)!.getBoundingClientRect();
+          const c = document.createElement("div");
+          c.title = "Captain";
+          c.textContent = "C";
+          c.dataset.testMark = "";
+          if (id === cap) c.className = "active";
+          c.style.cssText = `position:absolute;left:${r.left + scrollX - 16}px;top:${r.top + scrollY - 16}px;width:32px;height:32px;border-radius:50%;background:${id === cap ? "#ff0974" : "#fff"}`;
+          document.body.append(c);
+        }
+      }, [ids, captain] as const);
+    await page.locator("#pick-1").scrollIntoViewIfNeeded();
+    await mark(["pick-1", "pick-2", "pick-3"], null);
+    const c = page.locator(".sfx-captain");
+    await expect(c).toHaveCount(1);
+    await expect(c).toHaveText("C");
+    await expect(c).toHaveAttribute("title", /^Sofix's captain: the highest xScore on the pitch \(70\)/);
+    const [card, ours] = [await box(page, "#pick-1 img"), await box(page, ".sfx-captain")];
+    expect(Math.abs(ours.right - card.right)).toBeLessThan(10); // at the card's bottom right
+    expect(Math.abs(ours.bottom - card.bottom)).toBeLessThan(10);
+    expect(ours.width).toBeGreaterThanOrEqual(14);
+    expect(await c.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(11);
+    await page.screenshot({ path: testInfo.outputPath("overlay-captain.png") });
+    await mark(["pick-1", "pick-2", "pick-3"], "pick-2"); // another captain: the advice stays on Pick 1
+    await expect(c).toHaveCount(1);
+    expect(Math.abs((await box(page, ".sfx-captain")).right - card.right)).toBeLessThan(10);
+    await mark(["pick-1", "pick-2", "pick-3"], "pick-1"); // Sorare has him as captain: nothing more to say
+    await expect(page.locator(".sfx-captain")).toHaveCount(0);
+    await mark(["pick-2", "pick-3"], null); // he left the pitch: the next best
+    await expect(page.locator(".sfx-captain")).toHaveCount(1);
+    expect(Math.abs((await box(page, ".sfx-captain")).right - (await box(page, "#pick-2 img")).right)).toBeLessThan(10);
+  });
+
   test("the Missions tab shows today's swap, and Swap guides it on Sorare's missions page", async ({ page }) => {
     await page.route("https://sorare.com/football/missions/play/limited", (route) => route.fulfill({ contentType: "text/html", body: FIXTURE }));
     await openPage(page);

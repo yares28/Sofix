@@ -1068,6 +1068,8 @@ it writes to Sorare.
   none), drawn like Sorare's (0.4.40) and in one column with its badge, past the card's edge where Sorare's hangs (0.4.41): its colours for the chance (red under 50%, yellow under 80%, cyan above), with a mark where
   Sorare has its shirt for whose number it is: FF's expected lineup where it has him, else Sorare's odds, else the app's own. An FF
   doubt is never cyan, a player who will not start always red; none on a greyed number or a thumbnail.
+- **Captain** (0.4.45, 3 Nov 2026): on Sorare's builder (Classic, Pro and Arcade), a faint purple "C" at the bottom right of the card
+  on the pitch with the highest xScore; it goes once Sorare has that card as captain. The hover gives his xScore.
   Hover it: "Sofix 83% · Sorare 80%" on a full card, its own source on a small one ("FF 90%"). **An amber ring** means Sofix and
   Sorare are 30 points or more apart. The points-needed pill, in the same badge shape (white; yellow while his game is on; cyan once
   reached; red when out of reach), sits above Sorare's start badge (beside it when there is no room).

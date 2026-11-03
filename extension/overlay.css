@@ -449,3 +449,26 @@
   100% { opacity: 1; clip-path: inset(0 0 0 0 round 22px); }
 }
 @media (prefers-reduced-motion: reduce) { .sfx-island, .sfx-live-dot { animation: none; } }
+
+/* Sofix's captain pick on Sorare's builder (1.2): a faint purple C at the card's bottom right, never glowing. */
+.sfx-captain {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 1.5px solid rgba(124, 92, 255, 0.55);
+  border-radius: 50%;
+  background: rgba(14, 14, 14, 0.72);
+  color: rgba(167, 146, 255, 0.9);
+  font: 700 11px/1 var(--sfx-font);
+  pointer-events: auto;
+  cursor: help;
+  user-select: none;
+  animation: sfx-fade 0.2s ease-out both;
+}
+.sfx-captain[data-pending] { visibility: hidden; }

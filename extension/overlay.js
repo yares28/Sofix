@@ -665,6 +665,8 @@
     record.need = null;
     if (record.start) record.start.remove();
     record.start = null;
+    if (record.captain) record.captain.remove();
+    record.captain = null;
     dropCrest(record);
     removeOdds(record);
   }
@@ -1440,6 +1442,7 @@
       }
       return read;
     });
+    const captain = captainOf(reads);
 
     let again = false;
     for (const read of reads) {
@@ -1448,6 +1451,7 @@
         if (placeOdds(read)) again = true;
         if (placeNeed(read)) again = true;
         if (placeStart(read)) again = true;
+        if (placeCaptain(read, read === captain)) again = true;
         placeCrest(read);
         placeWorth(read);
       } catch {
@@ -1726,6 +1730,61 @@
     const width = chip.getBoundingClientRect().width;
     if (tile && tile.right + 3 > edge - width && tile.bottom + 3 > top && tile.top < top + 18) top = tile.bottom + 3; // never over the tile
     return moveTo(chip, edge, top);
+  }
+
+  // -- captain C on Sorare's builder (plans/overlay-v2.md 1.2) ---------------------------------------------------------
+  // Sorare's builder draws a 32 px round "C" titled "Captain" on each card on the pitch, centred on its top-left corner, and turns
+  // the captain's pink with the class "active" (seen 3 Nov 2026, a Classic builder). Sofix marks the card it would captain with a
+  // faint purple C at the bottom right, until Sorare has that card as captain.
+  const builderPage = () => Boolean(core.composeBoard(location.pathname)) || /^\/football\/series\/[^/]+\/compose-team(?:\/|$)/.test(location.pathname);
+
+  /** The read of the pitch card to mark, or null. Only reads the page (called before anything is written). */
+  function captainOf(reads) {
+    if (!builderPage()) return null;
+    const marks = [...document.querySelectorAll('[title="Captain"]')]
+      .filter((el) => !el.closest("[data-sfx]"))
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ r }) => r.width >= 20); // Sorare's 16 px one in the "Select Captain" line is not on a card
+    if (!marks.length) return null;
+    const pitch = [];
+    for (const read of reads) {
+      if (read.tier !== "full" || read.covered) continue;
+      const { rect } = read;
+      const mark = marks.find(({ r }) => Math.abs(r.left + r.width / 2 - rect.left) < 24 && Math.abs(r.top + r.height / 2 - rect.top) < 24);
+      if (mark) pitch.push({ read, captain: mark.el.classList.contains("active") });
+    }
+    const i = core.captainPick(pitch.map(({ read, captain }) => {
+      const held = entryOf(read.record);
+      const entry = held && held.entry;
+      return { x: entry && !core.staleness(entry, now()) ? entry.x : null, captain };
+    }));
+    return i < 0 ? null : pitch[i].read;
+  }
+
+  function placeCaptain(read, mine) {
+    const { record, rect } = read;
+    let mark = record.captain && record.captain.isConnected ? record.captain : null;
+    if (!mine) {
+      if (mark) mark.remove();
+      record.captain = null;
+      return false;
+    }
+    let fresh = false;
+    if (!mark) {
+      mark = node("span", "sfx-captain", "C");
+      mark.setAttribute("data-sfx", "");
+      mark.setAttribute("data-pending", "");
+      hostOf(record).append(mark);
+      record.captain = mark;
+      fresh = true;
+    }
+    const title = `Sofix's captain: the highest xScore on the pitch (${Math.round(entryOf(record).entry.x)})`;
+    if (mark.title !== title) {
+      mark.title = title;
+      mark.setAttribute("aria-label", title);
+    }
+    if (fresh) return true; // measured on the next pass
+    return moveTo(mark, rect.right - INSET.full.x, rect.bottom - INSET.full.y - mark.getBoundingClientRect().height);
   }
 
   function placeNeed(read) {

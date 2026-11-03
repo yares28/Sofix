@@ -219,6 +219,19 @@
     return "high";
   }
 
+  /**
+   * The card on Sorare's builder pitch Sofix would make captain, from `{ x, captain }` per pitch card: the highest xScore (Sorare
+   * adds bonuses together, so the captain's bonus is worth most on the best score whatever the card's own bonus), first on a tie.
+   * -1 when no card has a number, or when Sorare already has that card as captain.
+   */
+  function captainPick(cards) {
+    let best = -1;
+    cards.forEach((card, i) => {
+      if (Number.isFinite(card.x) && (best < 0 || card.x > cards[best].x)) best = i;
+    });
+    return best >= 0 && cards[best].captain ? -1 : best;
+  }
+
   /** The start % chip's hover: "Sofix 83% · Sorare 80%" on a full card, the number's own source on a small one ("FF 90%"). */
   function startHover(entry, onPage, full) {
     const mine = chanceLabel(startChance(entry));
@@ -822,7 +835,7 @@
   root.__sofixCore = {
     crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

@@ -75,6 +75,13 @@
 .sfx-chip--fdr .sfx-fdr { font: 700 14px/20px var(--sfx-cond); }
 .sfx-chip--fdr small { font: 700 11px/20px var(--sfx-cond); letter-spacing: 0.02em; opacity: 0.78; }
 
+/* A full card in a narrow list (Sorare's builder, 118 px): the same two chips, tighter. */
+.sfx-tile--narrow { gap: 2px; }
+.sfx-tile--narrow .sfx-chip { height: 17px; padding: 0 3px; border-radius: 5px; }
+.sfx-tile--narrow .sfx-chip--x { min-width: 22px; font-size: 13px; line-height: 17px; }
+.sfx-tile--narrow .sfx-chip--fdr .sfx-fdr { font-size: 12px; line-height: 17px; }
+.sfx-tile--narrow .sfx-chip--fdr small { line-height: 17px; }
+
 .sfx-tile--compact { pointer-events: none; }
 .sfx-tile--compact .sfx-chip { height: 16px; padding: 0 4px; border-radius: 5px; }
 .sfx-tile--compact .sfx-chip--x { min-width: 20px; font-size: 12px; line-height: 16px; }

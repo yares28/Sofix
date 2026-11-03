@@ -332,8 +332,9 @@
   }
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const INSET = { full: { x: 6, y: 6 }, compact: { x: 4, y: 4 }, tiny: { x: 3, y: 3 } }; // how far in from the picture's top-left corner the tile sits
+  const INSET = { full: { x: 6, y: 6 }, narrow: { x: 5, y: 5 }, compact: { x: 4, y: 4 }, tiny: { x: 3, y: 3 } }; // how far in from the picture's top-left corner the tile sits
   const TINY_UNDER = 80; // a card narrower than this (a bench thumbnail) gets the smallest tile
+  const NARROW_UNDER = 130; // a full card narrower than this (Sorare's builder list, 118 px) gets the tighter chips
   const ODDS_GAP = 4; // between Sorare's odds bar and ours; the room made for the row is this plus its own 22px
 
   let tokenAt = 0;
@@ -450,7 +451,7 @@
       return { sig: `${tier}|tag|${appState}`, node: tag, label, interactive: false };
     }
     if (slug && asking.has(slug)) {
-      const tile = node("span", `sfx-tile sfx-tile--loading${tier === "compact" ? " sfx-tile--compact" : ""}${size === "tiny" ? " sfx-tile--tiny" : ""}`);
+      const tile = node("span", `sfx-tile sfx-tile--loading${tier === "compact" ? " sfx-tile--compact" : ""}${size === "tiny" ? " sfx-tile--tiny" : ""}${size === "narrow" ? " sfx-tile--narrow" : ""}`);
       tile.setAttribute("role", "img");
       tile.setAttribute("aria-label", "Sofix numbers loading");
       tile.append(node("span", "sfx-chip sfx-chip--x sfx-chip--skel"));
@@ -472,7 +473,8 @@
 
     const score = node("b", "sfx-chip sfx-chip--x sfx-score", String(f.score));
     score.style.background = scoreColour;
-    const tile = node(tier === "compact" ? "span" : "button", `sfx-tile${tier === "compact" ? " sfx-tile--compact" : ""}${size === "tiny" ? " sfx-tile--tiny" : ""}${stale ? " sfx-tile--stale" : ""}`);
+    const narrow = size === "narrow";
+    const tile = node(tier === "compact" ? "span" : "button", `sfx-tile${tier === "compact" ? " sfx-tile--compact" : ""}${size === "tiny" ? " sfx-tile--tiny" : ""}${narrow ? " sfx-tile--narrow" : ""}${stale ? " sfx-tile--stale" : ""}`);
     tile.append(score);
     if (why) tile.title = why; // an out-of-date number goes grey; the reason is on hover, no "Old" written on the card
     if (tier === "compact") {
@@ -1393,7 +1395,7 @@
     const reads = drawing.map((record) => {
       const rect = record.media.getBoundingClientRect();
       const tier = core.surfaceOf(rect.width, rect.height, isRound(record.media, rect));
-      const size = tier === "compact" && rect.width < TINY_UNDER ? "tiny" : tier;
+      const size = tier === "compact" && rect.width < TINY_UNDER ? "tiny" : tier === "full" && rect.width < NARROW_UNDER ? "narrow" : tier;
       const ribs = record.ribs && record.ribs.isConnected ? record.ribs : null;
       const box = ribs ? ribs.getBoundingClientRect() : null;
       const read = {
@@ -1657,6 +1659,9 @@
     const pill = record.need && record.need.isConnected && !record.need.hasAttribute("data-pending") ? record.need.getBoundingClientRect() : null;
     let top = corner ? rect.top + corner.bottom + 3 : rect.top + inset.y;
     if (pill && pill.right > rect.right - 40 && pill.bottom + 3 > top && pill.top < top + 16) top = pill.bottom + 3; // never under the pill
+    const tile = record.ribs && record.ribs.isConnected && !record.ribs.hasAttribute("data-pending") ? record.ribs.getBoundingClientRect() : null;
+    const width = chip.getBoundingClientRect().width;
+    if (tile && tile.right + 3 > rect.right - inset.x - width && tile.bottom + 3 > top && tile.top < top + 18) top = tile.bottom + 3; // never over the tile
     return moveTo(chip, rect.right - inset.x, top);
   }
 

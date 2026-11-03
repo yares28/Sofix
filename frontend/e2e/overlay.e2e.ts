@@ -460,6 +460,29 @@ test.describe("the sorare.com overlay", () => {
     }
   });
 
+  test("on a narrow full card the chips are tighter, and the start % never lies over the tile", async ({ page }) => {
+    // 3 Nov 2026, Sorare's builder list: 118 x 191 px cards, a badge of theirs pushing the tile down into the start % row.
+    await openPage(page);
+    await settled(page);
+    await page.evaluate(() => {
+      const card = document.querySelector<HTMLElement>("#graded")!;
+      card.style.width = "118px";
+      card.querySelector("img")!.style.cssText = "height:191px;aspect-ratio:auto"; // Sorare's builder card, measured 3 Nov
+      document.querySelector<HTMLElement>("#grade")!.style.top = "20px";
+      const theirs = Object.assign(document.createElement("span"), { className: "theirs", textContent: "1" });
+      theirs.style.top = "22px";
+      card.prepend(theirs);
+    });
+    await page.locator("#graded").scrollIntoViewIfNeeded();
+    await expect(tileOf(page, "graded")).toHaveClass(/sfx-tile--narrow/);
+    await expect
+      .poll(async () => {
+        const [t, chip] = [await tile(page, "graded"), await box(page, "#graded .sfx-start")];
+        return !meets(t, chip) && t.height === 17;
+      })
+      .toBe(true);
+  });
+
   test("on a lineup page, the points-needed pill sits above Sorare's start badge, or beside it with no room above", async ({ page }) => {
     // plans/overlay-v2.md 1.2: the pill stays top right, above Sorare's start badge; Sofix's start % goes under the badge.
     const at = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();

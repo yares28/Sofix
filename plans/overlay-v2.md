@@ -281,7 +281,8 @@ place.
 **Progress (3 Nov):** shipped in parts. Part 1 (0.4.38): the tile as two chips, the start % chip under Sorare's grade found by
 position (its box kept as offsets per card size and page change, so scrolling does not probe again), the 30-point ring, the hover
 lines, the pill above Sorare's start badge or beside it; the rank badges and the text walk that found "Select your..." headings
-went with them. Captain "C" and price per point follow.
+went with them. 0.4.39: on a full card under 130 px (Sorare's builder list, 118 x 191) the chips are tighter, and the start % steps
+below the tile when a badge of Sorare's pushes the tile into its row. Captain "C" and price per point follow.
 
 ### Step 3b. A light overlay (owner, 3 Nov: "the page lags, it's unbearable"; next after step 3)
 

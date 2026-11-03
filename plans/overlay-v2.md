@@ -283,6 +283,9 @@ position (its box kept as offsets per card size and page change, so scrolling do
 lines, the pill above Sorare's start badge or beside it; the rank badges and the text walk that found "Select your..." headings
 went with them. 0.4.39: on a full card under 130 px (Sorare's builder list, 118 x 191) the chips are tighter, and the start % steps
 below the tile when a badge of Sorare's pushes the tile into its row. Captain "C" and price per point follow.
+0.4.40 (owner, 3 Nov): the FDR chip sits under the xScore chip, not beside it; the start % and points-needed pills are drawn like
+Sorare's own start badge, with its colour steps read from its script ([[49.5, "low"], [79.5, "medium"]], then high:
+`--c-score-veryLow`, `--c-yellow-400`, `--c-onBase-success`).
 Captain, decided from the code: Sorare adds bonuses together (`frontend/lib/arcadePlan.ts`, `multiplier`, read 21 Oct), so a captain
 adds his captain bonus × his raw score whatever his card's own bonus; the card to captain is the one with the highest xScore, not
 "xScore × card multiplier" as 1.2 says. Not built yet: how Sorare draws a placed pitch card and its captain was not seen (his builders

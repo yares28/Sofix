@@ -207,6 +207,18 @@
 
   const SOURCE_NAME = { futbolfantasy: "FF", sorare: "Sorare", sofix: "Sofix" };
 
+  /**
+   * Sorare's own steps for its start badge, read from its script on 3 Nov 2026 ([[49.5, "low"], [79.5, "medium"]], then "high")
+   * with its colours: --c-score-veryLow, --c-yellow-400, --c-onBase-success.
+   */
+  const START_STEPS = [[49.5, "low"], [79.5, "medium"]];
+  const START_COLOURS = { low: ["--c-score-veryLow", "#ff5a5a"], medium: ["--c-yellow-400", "#ffd914"], high: ["--c-onBase-success", "#00f3eb"] };
+  function startLevel(p) {
+    const pct = p * 100;
+    for (const [limit, level] of START_STEPS) if (pct < limit) return level;
+    return "high";
+  }
+
   /** The start % chip's hover: "Sofix 83% · Sorare 80%" on a full card, the number's own source on a small one ("FF 90%"). */
   function startHover(entry, onPage, full) {
     const mine = chanceLabel(startChance(entry));
@@ -797,7 +809,7 @@
   root.__sofixCore = {
     crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

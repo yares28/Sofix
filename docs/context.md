@@ -1573,11 +1573,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "0.4.39: version bump only; tighter chips on narrow cards, no action change",
+        "note": "0.4.40: version bump only; stacked chips and Sorare-style pills, no action change",
         "files": {
           "extension/background.js": "9bd5b360dfd64eced25762f151f64e618637a298113c95871d96d9f886e7cfed",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "d86c65591ca21b14d0a066a5d0381dc0a3f34b911a762735fcf4e82438a96bb5",
+          "extension/manifest.template.json": "d16cb1e9f9a838a39319c7939ca6b9b3f1f4ed397c503ac0d02874e0437ce0d5",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

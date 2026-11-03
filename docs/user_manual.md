@@ -1056,14 +1056,16 @@ has no number, its row says "LaLiga only" (FF covers LaLiga only). The overlay n
 translates them. Escape closes it. It only shows things; nothing in
 it writes to Sorare.
 
-- **The tile** (extension 0.4.38, 3 Nov 2026) is two chips at the card's top left: his xScore, then "64 FDR" for his game, black on
-  Sorare's colours; a small card has the xScore chip only. No plan tick, captain star, rank or "×2" any more. A number that no longer
+- **The tile** (extension 0.4.38, 3 Nov 2026) is two chips at the card's top left: his xScore, and "64 FDR" for his game under it
+  (0.4.40), black on Sorare's colours; a small card has the xScore chip only. No plan tick, captain star, rank or "×2" any more. A number that no longer
   holds (his game started, or over a day old) goes grey; the hover says why.
-- **His chance of starting** is a small dark chip at the top right, under Sorare's own start badge and grade (in their place when the
-  card has none), with a faint purple mark for whose it is: FF's expected lineup where it has him, else Sorare's odds, else the app's
-  own. White while he probably starts, **amber in doubt**, **red when he will not start**; none on a greyed number or a thumbnail.
+- **His chance of starting** is a badge at the top right, under Sorare's own start badge and grade (in their place when the card has
+  none), drawn like Sorare's (0.4.40): its colours for the chance (red under 50%, yellow under 80%, cyan above), with a mark where
+  Sorare has its shirt for whose number it is: FF's expected lineup where it has him, else Sorare's odds, else the app's own. An FF
+  doubt is never cyan, a player who will not start always red; none on a greyed number or a thumbnail.
   Hover it: "Sofix 83% · Sorare 80%" on a full card, its own source on a small one ("FF 90%"). **An amber ring** means Sofix and
-  Sorare are 30 points or more apart. The points-needed pill sits above Sorare's start badge (beside it when there is no room).
+  Sorare are 30 points or more apart. The points-needed pill, in the same badge shape (white; yellow while his game is on; cyan once
+  reached; red when out of reach), sits above Sorare's start badge (beside it when there is no room).
 - **Your gallery's prices.** On your own gallery (with Sorare's "Show details" on), each card gets a line under Sorare's "Bought 2 days
   ago": what it is worth now and how far that is up or down on what you paid ("now €3.40 ▲13%", or "not bought" for a crafted or won
   card). The toolbar row adds the bought cards' total ("BOUGHT, NOW €312 · paid €268 for 30 cards · ▲ €44 · +16%"), the same figures as

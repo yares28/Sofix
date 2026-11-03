@@ -353,6 +353,18 @@
     return tokens[level] || core.SCORE_FALLBACK[level];
   }
 
+  /** One of Sorare's own colour tokens, read from the page (kept 10 s like the score colours), else its measured value. */
+  const pageTokens = new Map();
+  function token(name, fallback) {
+    const held = pageTokens.get(name);
+    if (held && now() - held.at < 10000) return held.value;
+    const read = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const value = /^#[0-9a-f]{6}$/i.test(read) ? read : fallback;
+    pageTokens.set(name, { at: now(), value });
+    return value;
+  }
+  const startColour = (level) => token(...core.START_COLOURS[level]);
+
   function node(tag, className, text) {
     const made = document.createElement(tag);
     if (className) made.className = className;
@@ -1634,7 +1646,10 @@
     const onPage = record.playerSlug ? pageOdds.get(record.playerSlug) : undefined;
     const f = facts(entry, onPage);
     const hover = core.startHover(entry, onPage, tier === "full");
-    const sig = `${tier}|${f.startChance}|${f.tone}|${f.source}|${Boolean(f.apart)}|${hover}`;
+    // Sorare's own start badge colours: its steps for the chance, amber for an FF doubt, red for a player who will not start.
+    const level = f.tone === "out" ? "low" : f.tone === "doubt" && core.startLevel(f.startChance) === "high" ? "medium" : core.startLevel(f.startChance);
+    const background = startColour(level);
+    const sig = `${tier}|${f.startChance}|${f.tone}|${f.source}|${Boolean(f.apart)}|${hover}|${background}`;
     let fresh = false;
     if (!chip) {
       chip = node("span");
@@ -1648,6 +1663,7 @@
       chip.dataset.sig = sig;
       chip.className = `sfx-start sfx-start--${tier}${f.tone === "doubt" ? " sfx-start--doubt" : ""}${f.tone === "out" ? " sfx-start--out" : ""}${f.apart ? " sfx-start--apart" : ""}`;
       chip.title = hover;
+      chip.style.background = background;
       chip.setAttribute("aria-hidden", "true"); // the tile's own name says the same to a screen reader
       const value = node("b");
       value.append(core.chanceLabel(f.startChance).replace("%", ""), node("small", "", "%"));

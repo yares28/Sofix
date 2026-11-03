@@ -375,10 +375,10 @@ test.describe("the sorare.com overlay", () => {
     await expect(tileOf(page, "abroad").locator(".sfx-score")).toHaveCSS("background-color", "rgb(37, 237, 54)");
     await expect(tileOf(page, "abroad")).toHaveAttribute("aria-label", "Sofix: 64 if he starts. Difficulty 30 of 100, very favourite. He starts 82% of the time (SF). Sorare says 30%: they disagree.");
 
-    // A defender Futbol Fantasy calls a doubt, at 31%: his score if he starts is still shown; his start % says it in amber.
+    // A defender Futbol Fantasy calls a doubt, at 31%: his score if he starts is still shown; his start % is Sorare's red for 31%.
     expect(await text(page, "doubtful")).toEqual(["53", "58", "31%"]);
     await expect(startOf(page, "doubtful")).toHaveClass(/sfx-start--doubt/);
-    await expect(startOf(page, "doubtful").locator("b")).toHaveCSS("color", "rgb(240, 206, 29)");
+    await expect(startOf(page, "doubtful")).toHaveCSS("background-color", "rgb(255, 90, 90)");
     await expect(startOf(page, "doubtful").locator(".sfx-src--futbolfantasy")).toHaveCount(1);
     await expect(tileOf(page, "doubtful")).toHaveAttribute("aria-label", /He starts only 31% of the time \(FF\)\./);
     await expect(startOf(page, "slot-b")).toHaveClass(/sfx-start--doubt/);
@@ -478,7 +478,7 @@ test.describe("the sorare.com overlay", () => {
     await expect
       .poll(async () => {
         const [t, chip] = [await tile(page, "graded"), await box(page, "#graded .sfx-start")];
-        return !meets(t, chip) && t.height === 17;
+        return !meets(t, chip) && t.height === 36;
       })
       .toBe(true);
   });
@@ -731,8 +731,8 @@ test.describe("the sorare.com overlay", () => {
       const [t, m] = [await tile(page, id), await art(page, id)];
       expect(Math.abs(t.left - (m.left + 6)), `${id} sits 6px in`).toBeLessThan(1);
       expect(Math.abs(t.top - (m.top + 6)), `${id} sits 6px down`).toBeLessThan(1);
-      expect(t.height, id).toBe(20);
-      expect(t.width * t.height, id).toBeLessThan(44 * 50 * 0.7); // well under the old 44 x 50 glass tile (plans/overlay-v2.md 1.2)
+      expect(t.height, id).toBe(42); // the xScore chip, "45 FDR" under it (the owner, 3 Nov 2026)
+      expect(t.width, id).toBeLessThan(48);
       expect(t.left, id).toBeGreaterThan(m.left);
       expect(t.right, id).toBeLessThan(m.right);
     }
@@ -919,13 +919,18 @@ test.describe("the sorare.com overlay", () => {
     const big = await seen("big");
     await expect(big).toHaveText("88%");
     await expect(big).not.toHaveClass(/sfx-start--doubt|sfx-start--out|sfx-start--apart/);
-    await expect(big.locator("b")).toHaveCSS("color", "rgb(255, 255, 255)");
-    await expect(big).toHaveCSS("background-color", "rgb(11, 10, 16)"); // the dark of everything that floats
-    // A doubt is amber, a player who will not start red.
-    await expect((await seen("doubtful")).locator("b")).toHaveCSS("color", "rgb(240, 206, 29)");
+    // Drawn like Sorare's own start badge (read 3 Nov 2026): black 12 px text on Sorare's colour for the chance (under 49.5% red,
+    // under 79.5% yellow, else its cyan), 4 px corners but the bottom right.
+    await expect(big).toHaveCSS("background-color", "rgb(0, 243, 235)"); // 88%
+    await expect(big).toHaveCSS("color", "rgb(14, 14, 14)");
+    await expect(big).toHaveCSS("font-size", "12px");
+    await expect(big).toHaveCSS("border-radius", "4px 4px 0px");
+    await expect(await seen("linked")).toHaveCSS("background-color", "rgb(0, 243, 235)"); // 90%
+    await expect(await seen("noxg")).toHaveCSS("background-color", "rgb(0, 243, 235)"); // 80%
+    // An FF doubt never shows Sorare's top colour; a player who will not start is red.
     await expect(await seen("pick-6")).toHaveClass(/sfx-start--out/);
-    await expect((await seen("pick-6")).locator("b")).toHaveCSS("color", "rgb(255, 122, 122)");
-    // Whose number it is is a faint purple mark: FF a filled dot, SO a ring, SF a dashed ring.
+    await expect(await seen("pick-6")).toHaveCSS("background-color", "rgb(255, 90, 90)");
+    // Whose number it is is a mark where Sorare has its shirt: FF a filled dot, SO a ring, SF a dashed ring.
     await expect(big.locator(".sfx-src--sorare")).toHaveCount(1);
     await expect((await seen("abroad")).locator(".sfx-src--sofix")).toHaveCount(1);
 
@@ -934,7 +939,7 @@ test.describe("the sorare.com overlay", () => {
     const apart = await seen("noxg");
     await expect(apart).toHaveClass(/sfx-start--apart/);
     await expect(apart).toHaveAttribute("title", "Sofix 80% · Sorare 35%");
-    await expect(apart).toHaveCSS("box-shadow", /rgb\(255, 174, 43\) 0px 0px 0px 1\.5px/);
+    await expect(apart).toHaveCSS("outline", "rgb(255, 174, 43) solid 2px");
     await expect(await seen("abroad")).toHaveClass(/sfx-start--apart/);
     await expect(await seen("abroad")).toHaveAttribute("title", "Sofix 82% · Sorare 30%");
     await expect(await seen("doubtful")).not.toHaveClass(/sfx-start--apart/);

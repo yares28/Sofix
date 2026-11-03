@@ -41,6 +41,8 @@ type Core = {
   startTone: (entry: { p: number; pStart?: number; ffStatus?: { kind?: string } }) => "out" | "doubt" | "ok";
   startDisagreement: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage?: number) => { sofix: number; sorare: number } | null;
   startTitle: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage?: number) => string;
+  startLevel: (p: number) => "low" | "medium" | "high";
+  START_COLOURS: Record<string, [string, string]>;
   startHover: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage: number | undefined, full: boolean) => string;
   statusNote: (entry: { ffStatus?: { kind?: string; cause?: string; since?: string } }) => { kind: string; text: string } | null;
   clockLabel: (iso: unknown) => string | null;
@@ -918,5 +920,14 @@ describe("the start % chip's hover (plans/overlay-v2.md 1.2)", () => {
     expect(core.startHover(entry(0.8, "sorare", 0.8), undefined, false)).toBe("Sorare 80%");
     expect(core.startHover(entry(0.83, "sofix"), undefined, false)).toBe("Sofix 83%");
     expect(core.startHover({ p: 0.83 }, undefined, false)).toBe("Sofix 83%");
+  });
+});
+
+describe("the start badge colours, Sorare's own steps", () => {
+  it("is red under 49.5%, yellow under 79.5%, Sorare's cyan from 80%", () => {
+    expect([0, 0.3, 0.49].map(core.startLevel)).toEqual(["low", "low", "low"]);
+    expect([0.5, 0.7, 0.79].map(core.startLevel)).toEqual(["medium", "medium", "medium"]);
+    expect([0.8, 0.9, 1].map(core.startLevel)).toEqual(["high", "high", "high"]);
+    expect(core.START_COLOURS).toEqual({ low: ["--c-score-veryLow", "#ff5a5a"], medium: ["--c-yellow-400", "#ffd914"], high: ["--c-onBase-success", "#00f3eb"] });
   });
 });

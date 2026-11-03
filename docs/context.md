@@ -2318,9 +2318,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: entries gain island (games with both sides, board numbers incl. goals against, tones by sixths of the week's rated games, computed per request from the loaded grids).",
+        "note": "a page naming no week also reads the week being played (cached frozen plan); a card's game in it still ahead comes first (plans/overlay-v2.md 1.7.3)",
         "files": {
-          "frontend/app/api/ext/overlay/route.ts": "c41987849188d727ace62ca421636b8ab3a2cc65152e690189b4f2ee9d7464a9",
+          "frontend/app/api/ext/overlay/route.ts": "14e86d810781f0d5ead531ef4c2c82d9fc66001ff7a131178cbe759397e4453d",
           "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c",
           "frontend/app/api/ext/overlay/route.test.ts": "584c1a7c5920027512051ac4f98363092b5d550dcf9a66088e856b6de327a799"
         }

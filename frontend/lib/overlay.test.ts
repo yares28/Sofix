@@ -187,6 +187,20 @@ describe("overlayNumbers", () => {
       expect(shown("a-board-sofix-does-not-know")).toBe("g-ucl");
     });
 
+    it("away from a lineup page, shows a game of the week being played while it is still ahead (3 Nov 2026, Hot Streaks builder)", () => {
+      // Mbappé's Champions League game on Wednesday is in the week being played; the week being planned holds his Saturday game.
+      const data = sorare([player({ games: [game({ id: "g-liga", kickoff: "2026-10-11T19:00:00Z", opponent: "Valencia" })] })]);
+      const playing = structuredClone(data.weeks[0]!);
+      playing.gameweek = { ...playing.gameweek, number: 16, slug: "gw-16" };
+      playing.playing.players = [player({ x: 64.7, games: [game({ id: "g-ucl", kickoff: "2026-10-08T18:45:00Z", competition: "uefa-champions-league", opponent: "AEK Athens" })] })];
+      const on = (at: string, over: Record<string, unknown> = {}) =>
+        overlayNumbers(data, grid, ask({ players: ["unai-simon"], ...over }), new Date(at), null, { market: [], grids: [], playing }).players["unai-simon"]!;
+      expect(on("2026-10-08T12:00:00Z")).toMatchObject({ x: 64.7, match: { id: "g-ucl", opponent: "AEK Athens" } });
+      // Once it has kicked off, the planned week's game takes over; a page naming the planned week keeps to it.
+      expect(on("2026-10-08T21:00:00Z").match!.id).toBe("g-liga");
+      expect(on("2026-10-08T12:00:00Z", { week: data.weeks[0]!.gameweek.id }).match!.id).toBe("g-liga");
+    });
+
     it("gives a player Sofix does not hold his next game from the week after when this week has none for him", () => {
       const fixture = (id: string, kickoff: string) => ({ id, team: "Athletic Club", opponent: "Getafe CF", opponentCrest: null, venue: "H" as const, kickoff, competition: "laliga-es" });
       const resting: MarketPlayer = {

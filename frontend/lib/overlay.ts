@@ -615,9 +615,10 @@ export function overlayNumbers(
   archived: GameweekPlan | null = null,
   /**
    * Every player Sofix rates (not only yours) and the leagues' boards; `weeks` are other weeks a lineup's game may sit in (the one
-   * being played), read only for a game a page names.
+   * being played), read only for a game a page names; `playing` is the week being played, whose games still ahead come first on a
+   * page that names no week (plans/overlay-v2.md 1.7.3: his next game, whatever the week).
    */
-  others: { market: MarketPlayer[]; grids: (FixtureGrid | null)[]; weeks?: GameweekPlan[] } = { market: [], grids: [] },
+  others: { market: MarketPlayer[]; grids: (FixtureGrid | null)[]; weeks?: GameweekPlan[]; playing?: GameweekPlan | null } = { market: [], grids: [] },
 ): OverlayAnswer {
   const named = request.fixture ? sorare.timeline.find((item) => item.slug === request.fixture) : undefined;
   const kept = named && archived && archived.gameweek.slug === named.slug ? archived : null;
@@ -721,7 +722,11 @@ export function overlayNumbers(
       }
       return priced([row, row && nextOf(row)].find((one) => one?.fixture?.id === hint) ?? null, true);
     }
-    // Yours: this week's game while it is ahead (or the page is about this week), else his next one in the week after.
+    // Yours: a game of the week being played while it is still ahead (3 Nov 2026: Mbappé's Wednesday Champions League game, not his
+    // Saturday one), then this week's game while it is ahead (or the page is about this week), else his next one in the week after.
+    const playing = roll && others.playing && others.playing !== plan ? others.playing : null;
+    const sooner = playing ? ownedFor(playerSlug, playing, { leagues: leaguesOf(playing) }) : null;
+    if (sooner?.ahead) return sooner.entry;
     const here = ownedFor(playerSlug, plan, { leagues: leaguesOf(plan) });
     if (here && (here.ahead || !roll || !following)) return here.entry;
     const later = roll && following ? ownedFor(playerSlug, following, { leagues: leaguesOf(following) }) : null;

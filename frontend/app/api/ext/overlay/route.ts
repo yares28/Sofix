@@ -43,12 +43,15 @@ export async function POST(request: NextRequest) {
     : undefined;
   // Every LaLiga, Premier League, Bundesliga and Ligue 1 player Sofix rates, so Arcade commons and players you do not hold get numbers too.
   // A lineup page names each card's game: one of the week being played is found in that week's plan (read only then).
-  const played = parsed.data.games ? scoringWeek(sorare) : null;
+  // A page naming no week reads it too: a game of it still ahead is a card's next game (plans/overlay-v2.md 1.7.3). A cached read.
+  const roll = !parsed.data.fixture && !parsed.data.week;
+  const played = parsed.data.games || (roll && sorare.timeline) ? scoringWeek(sorare) : null;
   const playedPlan = played ? (weekPlan(sorare, played.id) ?? await loadFrozenPlan(played.slug, sorare)) : null;
   const others = {
     market: [...(sorare.market ?? []), ...plPlayers, ...blPlayers, ...flPlayers, ...clPlayers, ...elPlayers, ...confPlayers],
     grids: [loaded.grid, pl.grid, bl.grid, fl.grid, cl.grid, el.grid, conf.grid],
-    weeks: playedPlan ? [playedPlan] : [],
+    weeks: playedPlan && parsed.data.games ? [playedPlan] : [],
+    playing: roll ? playedPlan : null,
   };
   const numbers = overlayNumbers(data, loaded.grid, parsed.data, now, archived, others);
   // The dock, on a page naming no gameweek or the one being played: while that week has Pro lineups before their first kickoff,

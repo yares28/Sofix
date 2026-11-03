@@ -1057,7 +1057,8 @@ translates them. Escape closes it. It only shows things; nothing in
 it writes to Sorare.
 
 - **The tile** (extension 0.4.38, 3 Nov 2026) is two chips at the card's top left: his xScore, and "64 FDR" for his game under it
-  (0.4.40), black on Sorare's colours; a small card has the xScore chip only. No plan tick, captain star, rank or "×2" any more. A number that no longer
+  (0.4.40), black on Sorare's colours, drawn like Sorare's start badge mirrored for the left side and hanging past the card's left
+  edge where Sorare's badge hangs past the right (0.4.42); a small card has the xScore chip only. No plan tick, captain star, rank or "×2" any more. A number that no longer
   holds (his game started, or over a day old) goes grey; the hover says why.
 - **His chance of starting** is a badge at the top right, under Sorare's own start badge and grade (in their place when the card has
   none), drawn like Sorare's (0.4.40) and in one column with its badge, past the card's edge where Sorare's hangs (0.4.41): its colours for the chance (red under 50%, yellow under 80%, cyan above), with a mark where

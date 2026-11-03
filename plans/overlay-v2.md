@@ -288,7 +288,8 @@ Sorare's own start badge, with its colour steps read from its script ([[49.5, "l
 `--c-score-veryLow`, `--c-yellow-400`, `--c-onBase-success`).
 0.4.41 (owner's pitch screenshot): Sorare's badge sits 4 px past the card's right edge, 8 px down, its grade under it, both
 right-aligned; ours joins that column 4 px under the grade (or takes the badge's place), inside the card only where the card's box
-clips. The captain's round button on the corner is left out of the probe.
+clips. The captain's round button on the corner is left out of the probe. 0.4.42 (owner: "all pills"): the xScore and FDR chips take the same badge
+form, mirrored (square bottom-left corner), 4 px apart, 4 px past the left edge and 8 px down where the card lets it show.
 Captain, decided from the code: Sorare adds bonuses together (`frontend/lib/arcadePlan.ts`, `multiplier`, read 21 Oct), so a captain
 adds his captain bonus × his raw score whatever his card's own bonus; the card to captain is the one with the highest xScore, not
 "xScore × card multiplier" as 1.2 says. Not built yet: how Sorare draws a placed pitch card and its captain was not seen (his builders

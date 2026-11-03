@@ -513,8 +513,8 @@
    * and starts below it. Found by position and size, never by what anything is called: a backdrop or a card-sized
    * link is not a chip; a small box in the strip is.
    */
-  function clearOf(media, rect, size, width, height) {
-    const wanted = rect.top + INSET[size].y;
+  function clearOf(media, rect, size, width, height, start) {
+    const wanted = rect.top + start.y;
     // Every 12px down the band, so a chip smaller than the band cannot sit between two of the lines that are looked along.
     const rows = (top) => {
       const ys = [];
@@ -523,7 +523,7 @@
       return ys;
     };
     const limit = rect.top + rect.height * 0.45; // never sink into the player's face to get out of the way
-    const left = rect.left + INSET[size].x;
+    const left = rect.left + start.x;
     const xs = [];
     for (let x = left + 1; x < left + width; x += 10) xs.push(x);
     xs.push(left + width - 1);
@@ -553,7 +553,7 @@
     const key = [rect.left, rect.top, rect.width, rect.height, size, Math.round(width), Math.round(height), pageEpoch].map((n) => (typeof n === "number" ? Math.round(n) : n)).join("|");
     if (record.bandKey !== key) {
       record.bandKey = key;
-      record.bandTop = clearOf(record.media, rect, size, width, height);
+      record.bandTop = clearOf(record.media, rect, size, width, height, tileStart(record, size));
     }
     return record.bandTop;
   }
@@ -1319,7 +1319,7 @@
     if (box && at && !created) {
       // Sorare's layout decides where an absolutely placed box starts, so the tile is moved by how far it is from
       // where it should be, rather than worked out from their styles.
-      const dx = rect.left + INSET[size].x - box.left;
+      const dx = rect.left + tileStart(record, size).x - box.left;
       const dy = top - box.top;
       if (Math.abs(dx) > 0.5) target.style.left = `${at.left + dx}px`;
       if (Math.abs(dy) > 0.5) target.style.top = `${at.top + dy}px`;
@@ -1630,6 +1630,11 @@
   function hangs(record) {
     if (record.hangs === undefined) record.hangs = getComputedStyle(record.media.parentElement).overflow === "visible";
     return record.hangs;
+  }
+
+  /** Where the tile's top-left corner goes, from the card's: Sorare's badge place mirrored (4 px out, 8 px down) where the card lets it show. */
+  function tileStart(record, size) {
+    return (size === "full" || size === "narrow") && hangs(record) ? { x: -BADGE.out, y: BADGE.down } : INSET[size];
   }
 
   /** Moves one of ours (absolutely placed in the card's box) so its top-right corner lands on (right, top). */

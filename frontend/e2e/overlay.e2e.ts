@@ -351,6 +351,12 @@ test.describe("the sorare.com overlay", () => {
     await expect(tileOf(page, "big").locator(".sfx-score")).toHaveCSS("color", "rgb(14, 14, 14)");
     await expect(tileOf(page, "big").locator(".sfx-chip--fdr")).toHaveCSS("background-color", "rgb(37, 237, 54)"); // band 2 of 5
     await expect(tileOf(page, "big").locator(".sfx-chip--fdr")).toHaveText("45FDR");
+    // Drawn like Sorare's start badge, mirrored for the left: 16 px tall, 12 px text, 4 px corners but the bottom left.
+    for (const chip of [".sfx-score", ".sfx-chip--fdr"]) {
+      await expect(tileOf(page, "big").locator(chip)).toHaveCSS("height", "16px");
+      await expect(tileOf(page, "big").locator(chip)).toHaveCSS("font-size", "12px");
+      await expect(tileOf(page, "big").locator(chip)).toHaveCSS("border-radius", "4px 4px 4px 0px");
+    }
     await expect(tileOf(page, "big")).toHaveAttribute("aria-label", "Sofix: 53 if he starts. Difficulty 45 of 100, favourite. He starts 88% of the time (SO).");
     await expect(tileOf(page, "big")).toHaveAttribute("aria-haspopup", "dialog");
     await expect(ribs(page, "big")).toHaveClass(/sfx-ribs--full/);
@@ -493,6 +499,9 @@ test.describe("the sorare.com overlay", () => {
         return [Math.round(chip.right - card.right) || 0, Math.round(chip.top - card.top) || 0];
       })
       .toEqual([4, 8]);
+    // The tile mirrors it on the left: 4 px out past the left edge, 8 px down.
+    const [t, card] = [await tile(page, "graded"), await art(page, "graded")];
+    expect([Math.round(card.left - t.left), Math.round(t.top - card.top)]).toEqual([4, 8]);
   });
 
   test("on a narrow full card the chips are tighter, and the start % never lies over the tile", async ({ page }) => {
@@ -766,7 +775,7 @@ test.describe("the sorare.com overlay", () => {
       const [t, m] = [await tile(page, id), await art(page, id)];
       expect(Math.abs(t.left - (m.left + 6)), `${id} sits 6px in`).toBeLessThan(1);
       expect(Math.abs(t.top - (m.top + 6)), `${id} sits 6px down`).toBeLessThan(1);
-      expect(t.height, id).toBe(42); // the xScore chip, "45 FDR" under it (the owner, 3 Nov 2026)
+      expect(t.height, id).toBe(36); // the xScore chip, "45 FDR" 4 px under it (the owner, 3 Nov 2026)
       expect(t.width, id).toBeLessThan(48);
       expect(t.left, id).toBeGreaterThan(m.left);
       expect(t.right, id).toBeLessThan(m.right);

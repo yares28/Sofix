@@ -36,8 +36,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
+  align-items: flex-start;
+  gap: 4px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -58,48 +58,37 @@
 }
 .sfx-tile:focus-visible, .sfx-tag:focus-visible { outline: 2px solid var(--sfx-white); outline-offset: 2px; }
 
-/* A number about a player or game: black text on Sorare's colour for that value. */
+/* A number about a player or game, drawn like Sorare's own start badge (read 3 Nov 2026) mirrored for the left side: black 12 px
+   text on Sorare's colour for the value, 2 x 4 px padding, 16 px tall, 4 px corners but the bottom left, no shadow. */
 .sfx-chip {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
-  gap: 2px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: 6px;
+  gap: 3px;
+  height: 16px;
+  padding: 2px 4px;
+  border-radius: 4px 4px 4px 0;
   color: var(--sfx-ink);
-  box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.7);
+  font: 400 12px/12px var(--sfx-font);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.sfx-chip--x { min-width: 26px; font: 700 16px/20px var(--sfx-cond); letter-spacing: -0.01em; }
-.sfx-chip--fdr .sfx-fdr { font: 700 14px/20px var(--sfx-cond); }
-.sfx-chip--fdr small { font: 700 11px/20px var(--sfx-cond); letter-spacing: 0.02em; opacity: 0.78; }
-
-/* A full card in a narrow list (Sorare's builder, 118 px): the same two chips, tighter. */
-.sfx-tile--narrow { gap: 2px; }
-.sfx-tile--narrow .sfx-chip { height: 17px; padding: 0 3px; border-radius: 5px; }
-.sfx-tile--narrow .sfx-chip--x { min-width: 22px; font-size: 13px; line-height: 17px; }
-.sfx-tile--narrow .sfx-chip--fdr .sfx-fdr { font-size: 12px; line-height: 17px; }
-.sfx-tile--narrow .sfx-chip--fdr small { line-height: 17px; }
+.sfx-chip .sfx-fdr, .sfx-chip small { font: inherit; }
 
 .sfx-tile--compact { pointer-events: none; }
-.sfx-tile--compact .sfx-chip { height: 16px; padding: 0 4px; border-radius: 5px; }
-.sfx-tile--compact .sfx-chip--x { min-width: 20px; font-size: 12px; line-height: 16px; }
-.sfx-tile--tiny .sfx-chip { height: 14px; padding: 0 3px; border-radius: 4px; }
-.sfx-tile--tiny .sfx-chip--x { min-width: 16px; font-size: 11px; line-height: 14px; }
+.sfx-tile--tiny .sfx-chip { height: 14px; padding: 1px 3px; font-size: 11px; line-height: 12px; }
 
 /* An out-of-date number: grey, the reason on hover (overlay.js sets the grey). */
-.sfx-tile--stale .sfx-chip { box-shadow: none; opacity: 0.85; }
+.sfx-tile--stale .sfx-chip { opacity: 0.85; }
 
 /* Waiting for the numbers: grey chips of the same size and place. */
 .sfx-chip--skel {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.26) 50%, rgba(255, 255, 255, 0.1) 100%);
   background-size: 60px 100%;
-  box-shadow: none;
   animation: sfx-shimmer 1.1s linear infinite;
 }
-.sfx-chip--fdr.sfx-chip--skel { width: 44px; }
+.sfx-chip--x.sfx-chip--skel { width: 24px; }
+.sfx-chip--fdr.sfx-chip--skel { width: 46px; }
 
 /* Signed out of Sofix, or the app is not answering: a very small tag, the only thing here that takes a click. */
 .sfx-tag {

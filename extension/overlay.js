@@ -1227,7 +1227,7 @@
   function placeCrest(read) {
     const { record, rect, tier } = read;
     const held = entryOf(record);
-    const shown = (tier === "full" || tier === "compact") && held && held.entry && rect.bottom > 0 && rect.top < innerHeight && rect.width > 0;
+    const shown = !read.covered && (tier === "full" || tier === "compact") && held && held.entry && rect.bottom > 0 && rect.top < innerHeight && rect.width > 0;
     const button = shown ? buildCrest(record, held.entry, tier) : null;
     if (!button) {
       dropCrest(record);
@@ -1514,6 +1514,17 @@
       else if (record.ribs || record.need || record.crest) clearDrawn(record);
     }
 
+    // Sorare opens a player as a dialog laid over the page (the gallery's ?card=): the cards under it keep their place, so their
+    // crests, which live on the page, would float over the dialog.
+    const sheets = [...document.querySelectorAll('[role="dialog"], dialog[open], [aria-modal="true"]')]
+      .filter((el) => !el.closest("[data-sfx]"))
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ r }) => r.width > 0 && r.height > 0);
+    const underSheet = (media, rect) => {
+      const x = rect.left + rect.width / 2;
+      return sheets.some(({ el, r }) => !el.contains(media) && x >= r.left && x <= r.right && rect.top >= r.top && rect.top <= r.bottom);
+    };
+
     // Read every measurement first, then write every change: alternating the two makes a page of 200 cards stutter.
     const reads = drawing.map((record) => {
       const rect = record.media.getBoundingClientRect();
@@ -1524,6 +1535,7 @@
       const read = {
         record,
         rect,
+        covered: sheets.length > 0 && underSheet(record.media, rect),
         tier,
         size,
         ribs,

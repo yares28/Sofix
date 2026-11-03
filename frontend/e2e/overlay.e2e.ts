@@ -566,6 +566,25 @@ test.describe("the sorare.com overlay", () => {
     await expect(page.locator(".sfx-crest")).toHaveCount(0);
   });
 
+  test("takes the crests away from cards under a player's page laid over them, and keeps the one on his card", async ({ page }) => {
+    // 3 Nov 2026, the gallery: Sorare opens a player as a full-screen dialog over the gallery, whose cards stay where they were.
+    await openPage(page);
+    await settled(page);
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    await expect(page.locator(".sfx-crest").first()).toBeVisible();
+    await page.evaluate(() => {
+      const sheet = document.createElement("div");
+      sheet.setAttribute("role", "dialog");
+      sheet.style.cssText = "position:fixed;inset:0;background:#111;z-index:10";
+      const card = document.querySelector("#big")!.cloneNode(true) as HTMLElement;
+      card.id = "big-open";
+      card.style.cssText = "position:absolute;left:300px;top:200px";
+      sheet.append(card);
+      document.body.append(sheet);
+    });
+    await expect(page.locator(".sfx-crest")).toHaveCount(1);
+  });
+
   test("keeps the tiles when the extension is reloaded under an open page", async ({ page }) => {
     // 2 Nov 2026, GW29 builder: after a Reload the worker puts a fresh overlay in the open tab (its own isolated world, as
     // Chrome does), and the old one, left with nothing to talk to, took every tile on the page with it minutes later.

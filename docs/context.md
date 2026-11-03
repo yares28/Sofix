@@ -1573,11 +1573,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "0.4.36: version bump only; the sorare.com crest is smaller and leaves with its hidden card, no action change",
+        "note": "0.4.37: version bump only; crests of cards under a dialog laid over the page are taken away, no action change",
         "files": {
           "extension/background.js": "9bd5b360dfd64eced25762f151f64e618637a298113c95871d96d9f886e7cfed",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "6c8c26bc873dfed9923bec99cd70c02aa2c2fb1f0b4808afed182e7c8cfa5a9a",
+          "extension/manifest.template.json": "da8e418f33f638d91f3b057810da7eef9e45ff0ae07d39f639104b237e2b7687",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

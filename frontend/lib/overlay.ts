@@ -730,16 +730,17 @@ export function overlayNumbers(
     const playing = roll && others.playing && others.playing !== plan ? others.playing : null;
     const sooner = playing ? ownedFor(playerSlug, playing, { leagues: leaguesOf(playing) }) : null;
     if (sooner?.ahead) return sooner.entry;
+    // Not in that week's plan (an Arcade common you hold): his market row's game of the week being played, from the refresh.
+    const soon = roll && row ? nowOf(row) : null;
+    if (soon && ahead(soon.fixture, now) && counted(soon, playing ?? plan)) return priced(soon, oneGame(playing ?? plan, undefined));
     const here = ownedFor(playerSlug, plan, { leagues: leaguesOf(plan) });
     if (here && (here.ahead || !roll || !following)) return here.entry;
     const later = roll && following ? ownedFor(playerSlug, following, { leagues: leaguesOf(following) }) : null;
     if (later?.ahead) return later.entry;
     if (here) return here.entry;
-    // Anyone else, the same from his market row: his game of the week being played while it is ahead; a page about the week after
+    // Anyone else, the same from his market row (his game of the week being played came first, above); a page about the week after
     // reads that row's next game.
     if (!row) return null;
-    const soon = roll ? nowOf(row) : null;
-    if (soon && ahead(soon.fixture, now) && counted(soon, playing ?? plan)) return priced(soon, oneGame(playing ?? plan, undefined));
     if (plan === afterPlanned) return priced(counted(nextOf(row), plan), oneGame(plan, undefined));
     const current = counted(row, plan);
     if (current && (ahead(current.fixture, now) || !roll)) return priced(current, oneGame(plan, undefined));

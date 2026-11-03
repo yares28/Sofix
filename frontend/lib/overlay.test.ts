@@ -213,6 +213,11 @@ describe("overlayNumbers", () => {
       expect(on("2026-10-08T12:00:00Z")).toMatchObject({ x: 53.2, p: 0.886, match: { id: "g-aek", opponent: "AEK Athens", teamCrest: "rm.png" } });
       expect(on("2026-10-08T21:00:00Z")).toMatchObject({ x: 64.7, match: { id: "g-vcf" } }); // played: the planned week's game
       expect(on("2026-10-08T12:00:00Z", { week: "17" }).match!.id).toBe("g-vcf"); // a page naming the planned week keeps to it
+      // A card of his you hold (an Arcade common in the planned week's plan) shows this week's game too, when the plan of the week
+      // being played does not hold him.
+      const held = sorare([player({ player: "kylian-mbappe-lottin", games: [game({ id: "g-vcf", kickoff: "2026-10-11T19:00:00Z" })] })]);
+      const mine = overlayNumbers(held, grid, ask({ players: ["kylian-mbappe-lottin"] }), new Date("2026-10-08T12:00:00Z"), null, { market: [mbappe], grids: [] });
+      expect(mine.players["kylian-mbappe-lottin"]).toMatchObject({ x: 53.2, match: { id: "g-aek" } });
     });
 
     it("gives a player Sofix does not hold his next game from the week after when this week has none for him", () => {

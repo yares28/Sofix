@@ -1573,11 +1573,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: version 0.4.33 only (overlay draws nothing for settled lineup cards); no actions or permissions changed.",
+        "note": "3 Nov 2026: 0.4.34 draws the crest layer and island (read-only, no new actions or permissions).",
         "files": {
           "extension/background.js": "9bd5b360dfd64eced25762f151f64e618637a298113c95871d96d9f886e7cfed",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "a93538606c9baa589e43ea1bf11cba645912f94c5d507f334d024642d251722a",
+          "extension/manifest.template.json": "3bde1f0671bd2edbbff880b8f215f7c35cc47abdd714fea2178c7bc51f894207",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
@@ -2318,11 +2318,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: games/board inputs; answers per game across planned week, week after and (for a named game) the week being played; one extra frozen-plan read only when games are sent.",
+        "note": "3 Nov 2026: entries gain island (games with both sides, board numbers incl. goals against, tones by sixths of the week's rated games, computed per request from the loaded grids).",
         "files": {
           "frontend/app/api/ext/overlay/route.ts": "c41987849188d727ace62ca421636b8ab3a2cc65152e690189b4f2ee9d7464a9",
           "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c",
-          "frontend/app/api/ext/overlay/route.test.ts": "f9e172e280b60a33f62aa4e3a7380fe13bad0e9826c3da82c75255ec7c560509"
+          "frontend/app/api/ext/overlay/route.test.ts": "584c1a7c5920027512051ac4f98363092b5d550dcf9a66088e856b6de327a799"
         }
       }
     },

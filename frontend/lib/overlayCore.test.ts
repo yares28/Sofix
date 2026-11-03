@@ -89,6 +89,11 @@ type Core = {
   fixtureOf: (url: unknown) => string | null;
   gamesCount: (entry: { fixtures?: unknown }) => number;
   fixtureLine: (fixture: { kickoff?: string; venue?: string; opponent?: string }, timeZone?: string) => string | null;
+  crestState: (entry: unknown, now: number) => { kind: "none" | "crests" | "live" | "out"; games: { opponent: string }[] };
+  shieldCode: (game: { opponentCode?: string | null; opponent?: string | null }) => string;
+  islandWhen: (kickoff: string | null | undefined) => string;
+  competitionName: (slug: string | null | undefined) => string;
+  SIXTHS: string[];
 };
 const core = createRequire(import.meta.url)("../../extension/core.js") as Core;
 
@@ -862,5 +867,38 @@ describe("a player's Sorare page (B3)", () => {
     expect(core.verdictLine({ yours: false, inPlan: [], verdict: { kind: "flat", value: "+4", note: "starts 55%" } })).toEqual({ text: "+4 · starts 55%", tone: "flat" });
     expect(core.verdictLine({ yours: false, inPlan: [], verdict: { kind: "flat", value: "level", note: "vs your GK" } })).toEqual({ text: "level · vs your GK", tone: "flat" });
     expect(core.verdictLine({ yours: false, inPlan: [], verdict: null })).toBeNull();
+  });
+});
+
+
+describe("the crest above each card (plans/overlay-v2.md step 2)", () => {
+  const NOW = Date.parse("2026-11-04T19:30:00Z");
+  const island = (kickoff: string, over: Record<string, unknown> = {}) => ({ id: "g", kickoff, opponent: "Borussia Dortmund", opponentCrest: "bvb.png", ...over });
+  it("shows the crest of each game ahead, both in a two-game week, and nothing without a game", () => {
+    expect(core.crestState({ island: [island("2026-11-05T20:00:00Z"), island("2026-11-08T15:00:00Z", { opponent: "Elche" })] }, NOW)).toMatchObject({ kind: "crests", games: [{ opponent: "Borussia Dortmund" }, { opponent: "Elche" }] });
+    expect(core.crestState({}, NOW).kind).toBe("none");
+    expect(core.crestState({ island: [] }, NOW).kind).toBe("none");
+    expect(core.crestState(null, NOW).kind).toBe("none");
+  });
+  it("turns into the live pill from kick-off until the game is over, and says Out for a player sure not to play", () => {
+    expect(core.crestState({ island: [island("2026-11-04T19:00:00Z")] }, NOW).kind).toBe("live");
+    expect(core.crestState({ island: [island("2026-11-04T16:00:00Z")] }, NOW).kind).toBe("crests"); // over: a played game, no pill
+    expect(core.crestState({ island: [island("2026-11-05T20:00:00Z")], ffStatus: { kind: "out" } }, NOW).kind).toBe("out");
+    expect(core.crestState({ island: [island("2026-11-05T20:00:00Z")], ffStatus: { kind: "doubt" } }, NOW).kind).toBe("crests");
+  });
+  it("names a club Sorare has no crest for by its three letters, Sorare's own when it has them", () => {
+    expect(core.shieldCode({ opponentCode: "FEN", opponent: "Fenerbahçe" })).toBe("FEN");
+    expect(core.shieldCode({ opponentCode: null, opponent: "Fenerbahçe" })).toBe("FEN");
+    expect(core.shieldCode({ opponent: "" })).toBe("?");
+  });
+  it("says the day and time in Madrid, and each competition by its name", () => {
+    expect(core.islandWhen("2026-11-04T20:00:00Z")).toBe("Wed 4 Nov · 21:00");
+    expect(core.islandWhen(null)).toBe("Date TBC");
+    expect(core.competitionName("uefa-champions-league")).toBe("Champions League");
+    expect(core.competitionName("laliga-es")).toBe("LaLiga");
+    expect(core.competitionName("copa-del-rey")).toBe("Copa Del Rey");
+  });
+  it("colours a stat by its sixth with Sorare's six score colours, worst first", () => {
+    expect(core.SIXTHS).toEqual(["#ff5a5a", "#ff7e34", "#f0ce1d", "#b6ff1a", "#25ed36", "#00f3eb"]);
   });
 });

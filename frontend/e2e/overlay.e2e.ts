@@ -87,6 +87,16 @@ const LINEUPS = readFileSync(path.join(__dirname, "fixtures", "sorare-arcade-lin
 const LINEUPS_URL = "https://sorare.com/football/series/hot-streak-step-2/lineups";
 const gameId = (n: number) => `Game:22222222-bbbb-4bbb-8bbb-0000000000${String(n).padStart(2, "0")}`;
 
+// The crest's island (plans/overlay-v2.md step 2): each game as the app answers it, with both sides and the week's tones.
+const inHours = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
+const islandGame = (over: Record<string, unknown> = {}) => ({
+  id: "Game:aaaa", kickoff: inHours(30), venue: "H", competition: "laliga-es", team: "Athletic Club", teamCrest: "https://crests.football-data.org/77.png",
+  opponent: "Getafe CF", opponentCrest: "https://crests.football-data.org/82.png", opponentCode: "GET", opponentColor: "#004fa3",
+  game: { win: 0.46, cleanSheet: 0.33, goalsFor: 1.42, goalsAgainst: 0.88, difficulty: 45.2, bucket: 2, label: "Favourite", source: "model" },
+  tones: { win: 4, cleanSheet: 3, goalsFor: 4, goalsAgainst: 5 },
+  ...over,
+});
+
 const ELEVEN_HOURS_AGO = new Date(Date.now() - 11 * 3600_000).toISOString();
 const FORTY_HOURS_AGO = new Date(Date.now() - 40 * 3600_000).toISOString();
 
@@ -102,6 +112,7 @@ const NUMBERS = {
       x: 53.4, p: 0.88, average: 55, pos: "GK", laliga: true, at: ELEVEN_HOURS_AGO, start: 53.4, bench: 1.2, on: 42, pStart: 0.88, pOn: 0.01,
       startSource: "sorare", sources: { sorare: 0.88, sofix: 0.7 },
       game: { win: 0.46, cleanSheet: 0.33, difficulty: 45.2, bucket: 2, label: "Favourite", source: "model" },
+      island: [islandGame()],
     },
     "pau-cubarsi": {
       x: 47.2, p: 0.31, average: 50, pos: "DEF", at: ELEVEN_HOURS_AGO, start: 52.6, bench: 8.4, pStart: 0.31, pOn: 0.3,
@@ -109,6 +120,7 @@ const NUMBERS = {
       sources: { futbolfantasy: 0.31, sorare: 0.4, sofix: 0.35 },
       ffMatch: { id: 22502, url: "https://www.futbolfantasy.com/partidos/22502-real-sociedad-deportivo" }, ffPlayer: "2802", benchedOn: 0.435,
       game: { win: 0.38, cleanSheet: 0.22, difficulty: 58.4, bucket: 3, label: "Even", source: "sorare" },
+      island: [islandGame({ id: "Game:live", kickoff: inHours(-0.5), team: "FC Barcelona", opponent: "Real Sociedad" })],
     },
     "lionel-messi": {
       x: 61.3, p: 0.9, average: 70, pos: "FWD", laliga: false, at: ELEVEN_HOURS_AGO, start: 64.2, bench: 20.1, on: 45.2, pStart: 0.82, pOn: 0.08, xg: 0.38,
@@ -116,12 +128,17 @@ const NUMBERS = {
       onShape: { p: 0.07, dec: 70, plain: 43, sdDec: 8, sdPlain: 7, low: 33, high: 62, why: [["Minutes", -19]] },
       startSource: "sofix", sources: { sofix: 0.82 },
       game: { win: 0.65, cleanSheet: 0.29, difficulty: 30.4, bucket: 1, label: "Very favourite", source: "sorare" },
+      island: [
+        islandGame({ id: "Game:arg1", competition: "fifa-world-cup-qualifiers", team: "Argentina", opponent: "Brazil", venue: "A" }),
+        islandGame({ id: "Game:arg2", kickoff: inHours(100), competition: "fifa-world-cup-qualifiers", team: "Argentina", opponent: "Chile", opponentCrest: "https://crests.football-data.org/1.png" }),
+      ],
     },
     // A forward at a club Understat does not cover, with a priced game: he has odds but no xG.
     "kai-havertz": {
       x: 55.1, p: 0.85, average: 58, pos: "FWD", at: ELEVEN_HOURS_AGO, start: 58.4, bench: 9.1, pStart: 0.8, pOn: 0.05,
       sources: { sorare: 0.35 }, // Sofix 80%, Sorare 35%: they disagree on whether he starts (B1)
       game: { win: 0.52, cleanSheet: 0.31, difficulty: 38.7, bucket: 2, label: "Favourite", source: "model" },
+      island: [islandGame({ id: "Game:fen", competition: "uefa-europa-league", opponent: "Fenerbahçe", opponentCrest: null, opponentCode: "FEN", opponentColor: "#16233f", game: null, tones: {} })],
     },
     ...Object.fromEntries(
       PICKS.map((p) => [
@@ -131,7 +148,7 @@ const NUMBERS = {
           game: { win: 0.5, cleanSheet: 0.3, difficulty: 44, bucket: 2, label: "Favourite", source: "model" },
           // The best plan uses the second and fourth of them, and captains the fourth.
           // The last of them is out, as Futbol Fantasy says: a red row on his tile.
-          ...(p.n === 6 ? { pStart: 0.05, startSource: "futbolfantasy", startAt: "2026-10-09T14:56:00Z", ffStatus: { kind: "out" }, sources: { futbolfantasy: 0 } } : {}),
+          ...(p.n === 6 ? { pStart: 0.05, startSource: "futbolfantasy", startAt: "2026-10-09T14:56:00Z", ffStatus: { kind: "out" }, sources: { futbolfantasy: 0 }, island: [islandGame()] } : {}),
           ...(p.n === 2 ? { inPlan: { [p.card]: { lineup: "All Star", captain: false } } } : {}),
           ...(p.n === 4 ? { inPlan: { [p.card]: { lineup: "All Star", captain: true } } } : {}),
         },
@@ -449,6 +466,95 @@ test.describe("the sorare.com overlay", () => {
     expect((await probe(page)).sent.some((m) => m.type === "need-data")).toBe(true); // it did look: none of them is in play
   });
 
+  test("puts the opponent's crest on each card's top edge, half outside, in each of its states", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    const read = (id: string) =>
+      page.evaluate((cardId) => {
+        const art = document.querySelector(`#${cardId} img, #${cardId} video`)!.getBoundingClientRect();
+        const near = [...document.querySelectorAll<HTMLElement>(".sfx-crests .sfx-crest")].find((c) => {
+          const r = c.getBoundingClientRect();
+          return Math.abs(r.top + r.height / 2 - art.top) < 3 && r.left < art.right && r.right > art.left;
+        });
+        if (!near) return null;
+        const r = near.getBoundingClientRect();
+        return { cx: r.left + r.width / 2 - (art.left + art.width / 2), cy: r.top + r.height / 2 - art.top, kind: near.className, text: near.textContent, imgs: near.querySelectorAll("img").length, width: r.width };
+      }, id);
+    // The crests follow their cards on the next frame after a scroll.
+    const crestOf = async (id: string) => {
+      await page.waitForTimeout(150);
+      return read(id);
+    };
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    const big = await crestOf("big");
+    expect(big).toMatchObject({ imgs: 1, text: "" });
+    expect(Math.abs(big!.cx)).toBeLessThan(2); // centred on the card
+    expect(Math.abs(big!.cy)).toBeLessThan(2); // on its top edge: half outside
+    expect(big!.width).toBeCloseTo(40, 0);
+    await page.locator("#abroad").scrollIntoViewIfNeeded();
+    expect(await crestOf("abroad")).toMatchObject({ imgs: 2 }); // two games, two crests
+    await page.locator("#noxg").scrollIntoViewIfNeeded();
+    expect(await crestOf("noxg")).toMatchObject({ imgs: 0, text: "FEN" }); // no crest from Sorare: its shield
+    await page.locator("#doubtful").scrollIntoViewIfNeeded();
+    expect((await crestOf("doubtful"))!.text).toBe("Live");
+    await page.locator("#pick-6").scrollIntoViewIfNeeded();
+    expect((await crestOf("pick-6"))!.text).toBe("Out");
+    // A card Sofix has no game for draws no crest at all.
+    await page.locator("#over").scrollIntoViewIfNeeded();
+    expect(await crestOf("over")).toBeNull();
+  });
+
+  test("opens the island from the crest, above the card, by pointer or keyboard, and closes it on Escape", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    await page.waitForTimeout(150); // the crests follow their cards on the next frame
+    // The crest on this card's top edge (other copies of the same player have crests of their own).
+    const index = await page.evaluate(() => {
+      const art = document.querySelector("#big img")!.getBoundingClientRect();
+      return [...document.querySelectorAll(".sfx-crest")].findIndex((c) => {
+        const r = c.getBoundingClientRect();
+        return Math.abs(r.top + r.height / 2 - art.top) < 3 && Math.abs(r.left + r.width / 2 - (art.left + art.width / 2)) < 3;
+      });
+    });
+    expect(index).toBeGreaterThanOrEqual(0);
+    const crest = page.locator(".sfx-crest").nth(index);
+    await expect(crest).toHaveAccessibleName(/Sofix: next game v Getafe CF/);
+    await page.mouse.move(5, 5);
+    const at = (await crest.boundingBox())!;
+    await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2); // a pointer, as a person moves one: the island then covers the crest
+    const isle = page.getByRole("dialog", { name: /Sofix: v Getafe CF/ });
+    await expect(isle).toBeVisible();
+    await expect(isle.locator(".sfx-isl-stat")).toHaveText(["WIN46%", "CS33%", "XG1.42", "XGA0.88", "FDR45"]);
+    await expect(isle.locator(".sfx-isl-stat").first()).toHaveCSS("background-color", "rgb(37, 237, 54)"); // fifth sixth: Sorare's green
+    await expect(isle.locator(".sfx-isl-mid span")).toHaveText("LaLiga");
+    const art = await box(page, "#big img");
+    const shown = await isle.boundingBox();
+    expect(shown!.y + shown!.height).toBeLessThanOrEqual(art.top + 21); // above the card, not over its art
+    expect((await new AxeBuilder({ page }).include(".sfx-island").analyze()).violations).toEqual([]);
+    await page.mouse.move(5, 5);
+    await expect(isle).toHaveCount(0);
+    // Keyboard: focus the crest, Enter opens it with focus inside, Escape closes it and gives the focus back.
+    await crest.focus();
+    await page.keyboard.press("Enter");
+    await expect(isle).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(isle).toHaveCount(0);
+    await expect(crest).toBeFocused();
+    // Pressing the crest never presses the card under it.
+    expect(await page.evaluate(() => (window as unknown as { __clicked?: string }).__clicked ?? null)).toBeNull();
+  });
+
+  test("the crest disappears with the switch and its motion stops under reduced motion", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openPage(page);
+    await settled(page);
+    await page.locator("#doubtful").scrollIntoViewIfNeeded();
+    await expect(page.locator(".sfx-live-dot").first()).toHaveCSS("animation-name", "none");
+    await page.evaluate(() => (window as unknown as { __sfx: { setOverlay: (v: boolean) => void } }).__sfx.setOverlay(false));
+    await expect(page.locator(".sfx-crests, .sfx-crest, .sfx-island")).toHaveCount(0);
+  });
+
   test("keeps the tiles when the extension is reloaded under an open page", async ({ page }) => {
     // 2 Nov 2026, GW29 builder: after a Reload the worker puts a fresh overlay in the open tab (its own isolated world, as
     // Chrome does), and the old one, left with nothing to talk to, took every tile on the page with it minutes later.
@@ -607,7 +713,8 @@ test.describe("the sorare.com overlay", () => {
     const buy = await page.evaluate(() => {
       const target = document.querySelector("#buy")!.getBoundingClientRect();
       const top = document.elementFromPoint(target.left + target.width / 2, target.top + target.height / 2) as HTMLElement | null;
-      const overlaps = [...document.querySelectorAll("[data-sfx]")].some((el) => {
+      // Anything of ours that takes the pointer (the crests' page-wide layer takes none).
+      const overlaps = [...document.querySelectorAll("[data-sfx]")].filter((el) => getComputedStyle(el).pointerEvents !== "none").some((el) => {
         const r = el.getBoundingClientRect();
         return r.left < target.right && r.right > target.left && r.top < target.bottom && r.bottom > target.top;
       });
@@ -616,7 +723,8 @@ test.describe("the sorare.com overlay", () => {
     expect(buy).toEqual({ hit: "buy", overlaps: false });
 
     // The wrappers take no click. What does is the tile of a full card, in its own 44px, and never a small card's number.
-    const wrappers = await page.evaluate(() => [...document.querySelectorAll("[data-sfx]")].filter((el) => getComputedStyle(el).pointerEvents !== "none").length);
+    // The crests are buttons of their own above the card's edge (step 2): the only other thing of ours that answers the pointer.
+    const wrappers = await page.evaluate(() => [...document.querySelectorAll("[data-sfx]")].filter((el) => !el.matches(".sfx-crest") && getComputedStyle(el).pointerEvents !== "none").length);
     expect(wrappers).toBe(0);
     const answering = await page.evaluate(() =>
       [...document.querySelectorAll(".sfx-tile")].map((el) => ({ pointer: getComputedStyle(el).pointerEvents, width: el.getBoundingClientRect().width, compact: el.classList.contains("sfx-tile--compact") })),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clubKey } from "./home";
-import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan, overlayProfile, overlayWorth, proPlan } from "./overlay";
+import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan, overlayProfile, overlayWorth, proPlan, toneOf, weekCuts } from "./overlay";
 import { prices } from "./prices";
 import type { MissionPlan, Suggestion } from "./missions";
 import type { GameOdds, GameweekPlan, Lineup, MarketPlayer, PlayCard, PlayerGame, PlayingPlayer, Plan, Sorare } from "./play";
@@ -220,6 +220,31 @@ describe("overlayNumbers", () => {
       expect(overlayNumbers(old, grid, ask({ players: ["unai-simon"], games: { "p:unai-simon": "g-old" } }), NOW).players["unai-simon"]!.x).toBe(58.7);
     });
 
+    it("lists the island's games in kickoff order, each with both sides, the board's numbers and each stat's place in the week", () => {
+      const later = game({ id: "g2", kickoff: "2026-10-12T19:00:00Z", competition: "uefa-nations-league", opponent: "Elche CF", opponentCrest: "elc.png", opponentCode: "ELC", opponentColor: "#1f8f4e", venue: "A", odds: MACEDONIA });
+      const first = game({ id: "g1", team: "Athletic Club", teamCrest: "ath.png", opponentCrest: "get.png", opponentCode: "GET", opponentColor: "#004fa3" });
+      const entry = overlayNumbers(sorare([player({ games: [later, first] })]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
+      expect(entry.island!.map((g) => g.id)).toEqual(["g1", "g2"]);
+      const [home, away] = entry.island!;
+      expect(home).toMatchObject({ team: "Athletic Club", teamCrest: "ath.png", opponent: "Getafe CF", opponentCrest: "get.png", opponentCode: "GET", opponentColor: "#004fa3", venue: "H" });
+      expect(home!.game).toMatchObject({ source: "model" });
+      expect(typeof home!.game!.goalsAgainst).toBe("number");
+      for (const stat of ["win", "cleanSheet", "goalsFor", "goalsAgainst"] as const) expect(home!.tones[stat]).toBeGreaterThanOrEqual(0);
+      expect(away!.game).toMatchObject({ source: "sorare", difficulty: 74 }); // a game the board does not rate: Sorare's odds
+    });
+
+    it("places a stat in sixths of the games Sofix rates that week, higher better except goals against", () => {
+      const cells = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 0.05, 0.12, 0.22, 0.32, 0.42, 0.52];
+      const synthetic = { competition: "PD", teams: [{ code: "AAA", name: "A", cells: [cells.map((v, i) => ({ opponent_code: "BBB", venue: "H", kickoff_utc: `2026-10-${String(10 + (i % 3)).padStart(2, "0")}T19:00:00Z`, status: "scheduled", prediction: { probabilities: { win: v, draw: 0.2, loss: 0.2 }, clean_sheet: v, xg_for: v * 3, xg_against: v * 3, difficulty: 50, bucket: 3, label: "Even" } }))] }] } as unknown as FixtureGrid;
+      const cuts = weekCuts([synthetic], Date.parse("2026-10-09T00:00:00Z"), Date.parse("2026-10-13T00:00:00Z"));
+      expect(cuts.win).toHaveLength(5);
+      expect(toneOf(0.95, cuts.win!, true)).toBe(5); // top sixth: Sorare's cyan
+      expect(toneOf(0.05, cuts.win!, true)).toBe(0); // bottom sixth: red
+      expect(toneOf(0.05 * 3, cuts.goalsAgainst!, false)).toBe(5); // fewest goals against is the best
+      // A week of fewer than 12 rated games is ranked against the whole season instead.
+      expect(weekCuts([synthetic], Date.parse("2026-10-10T00:00:00Z"), Date.parse("2026-10-10T23:00:00Z")).win).toEqual(cuts.win);
+    });
+
     it("takes game hints and a board only in their own shapes", () => {
       expect(OverlayRequest.safeParse({ cards: ["a-1"], players: [], games: { "c:a-1": "Game:0b0c1f2e-aaaa-4bbb-8ccc-000000000001" }, board: "football-6-10-nov-2026-seasonal-spain-in_season_spain_limited" }).success).toBe(true);
       expect(OverlayRequest.safeParse({ cards: [], players: [], games: { "x:a": "g" } }).success).toBe(false);
@@ -237,7 +262,7 @@ describe("overlayNumbers", () => {
   it("uses Sorare's odds for a national-team game, and never the club's board numbers for it", () => {
     const abroad = player({ games: [game({ competition: "uefa-nations-league", team: "Athletic Club", opponent: "Getafe CF", odds: SLOVENIA })] });
     const shown = overlayNumbers(sorare([abroad]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!.game!;
-    expect(shown).toEqual({ win: 0.56, cleanSheet: 0.556, goalsFor: 1.47, difficulty: 35, bucket: 1, label: "Very favourite", source: "sorare" });
+    expect(shown).toEqual({ win: 0.56, cleanSheet: 0.556, goalsFor: 1.47, goalsAgainst: 0.59, difficulty: 35, bucket: 1, label: "Very favourite", source: "sorare" });
   });
 
   it("does not lend a LaLiga fixture's numbers to another competition between the same two clubs", () => {
@@ -251,6 +276,7 @@ describe("overlayNumbers", () => {
     // the game is not LaLiga's: Futbol Fantasy covers none of it, which the panel says when it has no number
     expect(entry).toEqual({
       match: expect.objectContaining({ competition: "mls", team: "Inter Miami CF", opponent: "Orlando City", venue: "A" }),
+      island: [expect.objectContaining({ opponent: "Orlando City", game: null, tones: {} })],
       x: 54.5, p: 0.94, average: 55, pos: "GK", laliga: false, at: "2026-10-08T00:00:00Z", game: null,
     });
   });

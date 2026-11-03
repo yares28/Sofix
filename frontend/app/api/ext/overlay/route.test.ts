@@ -72,7 +72,7 @@ describe("POST /api/ext/overlay", () => {
 
   it("carries Sofix's read of the game: Sorare's odds for a national-team game, nothing where none are priced", async () => {
     const body = await (await call({ cards: [], players: ["jan-oblak", "unai-simon"] })).json();
-    expect(body.players["jan-oblak"].game).toEqual({ win: 0.56, cleanSheet: 0.556, goalsFor: null, difficulty: 35, bucket: 1, label: "Very favourite", source: "sorare" });
+    expect(body.players["jan-oblak"].game).toEqual({ win: 0.56, cleanSheet: 0.556, goalsFor: null, goalsAgainst: null, difficulty: 35, bucket: 1, label: "Very favourite", source: "sorare" });
     expect(body.players["unai-simon"].game).toBeNull();
   });
 

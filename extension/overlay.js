@@ -741,6 +741,10 @@
     record.tile = null;
     if (record.need) record.need.remove();
     record.need = null;
+    if (island && island.record === record) closeIsland(false);
+    if (record.crest) record.crest.remove();
+    record.crest = null;
+    record.crestSig = "";
     removeOdds(record);
   }
 
@@ -1122,6 +1126,240 @@
     }));
   }
 
+
+  // -- the crest above each card and its island (plans/overlay-v2.md 1.2, step 2) -------------------------------------
+  // The opponent's crest sits on the card's top edge, half outside, in a layer of its own on the page (Sorare's boxes clip anything
+  // drawn inside them), moved with the card on each pass. Two games: both crests. His game on: a dark pill with a live dot. Sure not
+  // to play: the same pill, "Out". No crest from Sorare: a shield in the club's colour with its letters. Hovering or focusing it opens
+  // the island above the card: both sides, when, where, and the game's five numbers coloured against the week's games.
+
+  let crestLayer = null;
+  let island = null; // the one open island: { record, el, timer }
+  const CREST_SIZE = { full: [40, 30], compact: [26, 22] }; // one game, two games
+  const PILL_CREST = { full: 26, compact: 20 };
+
+  function crestHome() {
+    if (crestLayer && crestLayer.isConnected) return crestLayer;
+    crestLayer = document.createElement("div");
+    crestLayer.setAttribute("data-sfx", "crests");
+    crestLayer.className = "sfx-crests";
+    document.body.append(crestLayer);
+    return crestLayer;
+  }
+
+  /** A club's crest as Sorare gives it, or the shield in its colour with its letters when Sorare has none. */
+  function clubMark(crest, name, code, color, size) {
+    if (crest) {
+      const img = node("img", "sfx-crest-img");
+      img.src = crest;
+      img.alt = "";
+      img.width = size;
+      img.height = size;
+      img.decoding = "async";
+      img.referrerPolicy = "no-referrer";
+      return img;
+    }
+    const shield = node("span", "sfx-shield", core.shieldCode({ opponentCode: code, opponent: name }));
+    shield.style.setProperty("--sfx-club", typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color) ? color : "#2a2537");
+    shield.style.setProperty("--sfx-size", `${size}px`);
+    return shield;
+  }
+
+  function gameWords(game) {
+    return `${game.venue === "A" ? "at" : "v"} ${game.opponent}, ${core.islandWhen(game.kickoff)}`;
+  }
+
+  function buildCrest(record, entry, tier) {
+    const state = core.crestState(entry, now());
+    if (state.kind === "none") return null;
+    const sig = `${state.kind}|${tier}|${state.games.map((g) => `${g.id}:${g.opponentCrest || g.opponentCode}`).join(",")}`;
+    if (record.crest && record.crest.isConnected && record.crestSig === sig) return record.crest;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("data-sfx", "crest");
+    button.setAttribute("aria-haspopup", "dialog");
+    button.setAttribute("aria-expanded", "false");
+    button.className = `sfx-crest sfx-crest--${tier} sfx-crest--${state.kind}`;
+    if (state.kind === "crests") {
+      const size = CREST_SIZE[tier][state.games.length > 1 ? 1 : 0];
+      for (const g of state.games) button.append(clubMark(g.opponentCrest, g.opponent, g.opponentCode, g.opponentColor, size));
+      button.setAttribute("aria-label", `Sofix: next game ${state.games.map(gameWords).join("; then ")}. Show the game`);
+    } else {
+      const g = state.games[0];
+      button.append(clubMark(g.opponentCrest, g.opponent, g.opponentCode, g.opponentColor, PILL_CREST[tier]));
+      if (state.kind === "live") button.append(node("i", "sfx-live-dot"), node("b", "", "Live"));
+      else button.append(node("b", "sfx-out", "Out"));
+      button.setAttribute("aria-label", `Sofix: ${state.kind === "live" ? "his game is on" : "sure not to play"}, ${gameWords(g)}. Show the game`);
+    }
+    if (record.crest) record.crest.remove();
+    if (island && island.record === record) closeIsland(false);
+    crestHome().append(button);
+    record.crest = button;
+    record.crestSig = sig;
+    wireCrest(record, button);
+    return button;
+  }
+
+  /** Sorare's own round substitution icon on the card's top edge, when it draws one: the crest then sits to its right. */
+  function subIconOf(record, rect) {
+    if (record.subIcon && record.subIcon.epoch === pageEpoch) return record.subIcon.el && record.subIcon.el.isConnected ? record.subIcon.el : null;
+    let found = null;
+    const x = rect.left + rect.width / 2;
+    if (rect.top >= 0 && rect.top < innerHeight) {
+      for (const el of document.elementsFromPoint(x, rect.top + 1)) {
+        if (el === record.media || el.contains(record.media) || el.closest("[data-sfx]")) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width >= 14 && r.width <= 40 && Math.abs(r.width - r.height) <= 4 && Math.abs(r.left + r.width / 2 - x) <= 8) {
+          found = el;
+          break;
+        }
+      }
+    }
+    record.subIcon = { epoch: pageEpoch, el: found };
+    return found;
+  }
+
+  /** Draws, moves or removes one card's crest. */
+  function placeCrest(read) {
+    const { record, rect, tier } = read;
+    const held = entryOf(record);
+    const shown = (tier === "full" || tier === "compact") && held && held.entry && rect.bottom > 0 && rect.top < innerHeight && rect.width > 0;
+    const button = shown ? buildCrest(record, held.entry, tier) : null;
+    if (!button) {
+      if (record.crest) record.crest.remove();
+      record.crest = null;
+      record.crestSig = "";
+      if (island && island.record === record) closeIsland(false);
+      return;
+    }
+    const icon = subIconOf(record, rect);
+    const left = icon ? icon.getBoundingClientRect().right + 4 : rect.left + rect.width / 2;
+    button.classList.toggle("sfx-crest--beside", Boolean(icon));
+    button.style.left = `${Math.round(left)}px`;
+    button.style.top = `${Math.round(rect.top)}px`;
+    if (island && island.record === record) positionIsland();
+  }
+
+  function statCell(label, value, background, title) {
+    const cell = node("div", value === null ? "sfx-isl-stat sfx-isl-stat--none" : "sfx-isl-stat");
+    if (background && value !== null) cell.style.background = background;
+    cell.append(node("span", "", label), node("b", "", value === null ? "–" : value));
+    if (title) cell.title = title;
+    return cell;
+  }
+
+  function islandGame(g) {
+    const block = node("div", "sfx-isl-game");
+    const mine = [g.teamCrest, g.team || "", null, null];
+    const theirs = [g.opponentCrest, g.opponent, g.opponentCode, g.opponentColor];
+    const [home, away] = g.venue === "A" ? [theirs, mine] : [mine, theirs];
+    const top = node("div", "sfx-isl-top");
+    const mid = node("div", "sfx-isl-mid");
+    mid.append(node("b", "", core.islandWhen(g.kickoff)), node("span", "", core.competitionName(g.competition)));
+    top.append(clubMark(home[0], home[1], home[2], home[3], 40), mid, clubMark(away[0], away[1], away[2], away[3], 40));
+    const n = g.game || {};
+    const tone = (stat) => (Number.isInteger(g.tones && g.tones[stat]) ? core.SIXTHS[g.tones[stat]] : null);
+    const pct = (v) => (typeof v === "number" ? `${Math.round(v * 100)}%` : null);
+    const goals = (v) => (typeof v === "number" ? v.toFixed(2) : null);
+    const stats = node("div", "sfx-isl-stats");
+    stats.append(
+      statCell("WIN", pct(n.win), tone("win"), "His side's chance to win"),
+      statCell("CS", pct(n.cleanSheet), tone("cleanSheet"), "His side's chance to keep a clean sheet"),
+      statCell("XG", goals(n.goalsFor), tone("goalsFor"), "Goals his side is expected to score"),
+      statCell("XGA", goals(n.goalsAgainst), tone("goalsAgainst"), "Goals his side is expected to concede"),
+      statCell("FDR", typeof n.difficulty === "number" ? String(Math.round(n.difficulty)) : null, colour(core.fdrLevel(n.bucket)), "Difficulty, 0 to 100, lower is easier"),
+    );
+    block.append(top, stats);
+    block.setAttribute("aria-label", `${home[1]} against ${away[1]}, ${core.islandWhen(g.kickoff)}, ${core.competitionName(g.competition)}`);
+    return block;
+  }
+
+  function positionIsland() {
+    if (!island || !island.record.crest) return;
+    const r = island.record.crest.getBoundingClientRect();
+    const el = island.el;
+    const width = el.offsetWidth || 286;
+    const height = el.offsetHeight;
+    el.style.left = `${Math.round(Math.min(Math.max(8, r.left + r.width / 2 - width / 2), innerWidth - width - 8))}px`;
+    el.style.top = `${Math.round(Math.max(8, r.top + r.height / 2 + 20 - height))}px`;
+  }
+
+  function openIsland(record, focusInside) {
+    const held = entryOf(record);
+    const games = held && held.entry && Array.isArray(held.entry.island) ? held.entry.island.slice(0, 2) : [];
+    if (!games.length || !record.crest) return;
+    if (island && island.record === record) {
+      clearTimeout(island.timer);
+      if (focusInside) island.el.focus({ preventScroll: true });
+      return;
+    }
+    closeIsland(false);
+    const el = node("div", "sfx-island");
+    el.setAttribute("data-sfx", "island");
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-label", `Sofix: ${games.map((g) => gameWords(g)).join("; ")}`);
+    el.tabIndex = -1;
+    for (const g of games) el.append(islandGame(g));
+    el.addEventListener("pointerenter", guard(() => island && clearTimeout(island.timer)));
+    el.addEventListener("pointerleave", guard(() => scheduleIslandClose()));
+    el.addEventListener("focusout", guard(() => scheduleIslandClose()));
+    crestHome().append(el);
+    island = { record, el, timer: 0 };
+    record.crest.setAttribute("aria-expanded", "true");
+    positionIsland();
+    document.addEventListener("keydown", onIslandKey, true);
+    if (focusInside) el.focus({ preventScroll: true });
+  }
+
+  function scheduleIslandClose() {
+    if (!island) return;
+    clearTimeout(island.timer);
+    island.timer = setTimeout(guard(() => {
+      if (!island) return;
+      const crest = island.record.crest;
+      const still = island.el.matches(":hover") || island.el.contains(document.activeElement) || (crest && (crest.matches(":hover") || crest === document.activeElement));
+      if (!still) closeIsland(false);
+    }), 160);
+  }
+
+  function closeIsland(returnFocus) {
+    if (!island) return;
+    const { record, el, timer } = island;
+    clearTimeout(timer);
+    el.remove();
+    island = null;
+    document.removeEventListener("keydown", onIslandKey, true);
+    if (record.crest) {
+      record.crest.setAttribute("aria-expanded", "false");
+      if (returnFocus && record.crest.isConnected) {
+        record.quietCrest = true; // the focus given back is not a new visit: it does not open the island again
+        record.crest.focus({ preventScroll: true });
+      }
+    }
+  }
+
+  const onIslandKey = guard((event) => {
+    if (event.key !== "Escape" || !island) return;
+    event.preventDefault();
+    event.stopPropagation();
+    closeIsland(true);
+  });
+
+  function wireCrest(record, button) {
+    button.addEventListener("pointerenter", guard(() => openIsland(record, false)));
+    button.addEventListener("pointerleave", guard(() => scheduleIslandClose()));
+    button.addEventListener("focus", guard(() => {
+      if (record.quietCrest) record.quietCrest = false;
+      else openIsland(record, false);
+    }));
+    button.addEventListener("blur", guard(() => scheduleIslandClose()));
+    button.addEventListener("click", guard((event) => {
+      event.preventDefault(); // the card underneath is not selected by a press on its crest
+      event.stopPropagation();
+      openIsland(record, true); // Escape or moving away closes it
+    }));
+  }
+
   // -- placing ----------------------------------------------------------------------------------------------------
 
   /** Draws, updates or removes one card's tile. Returns true when it needs another pass to be placed. */
@@ -1318,6 +1556,7 @@
         if (placeTile(read)) again = true;
         if (placeOdds(read)) again = true;
         if (placeNeed(read)) again = true;
+        placeCrest(read);
         placeWorth(read);
       } catch {
         // one card that will not take a tile must not stop the others
@@ -1746,6 +1985,7 @@
     if (!enabled || frame) return;
     frame = requestAnimationFrame(guard(pass));
   }
+  const onMove = () => schedule();
 
   /** A page that moves to another gameweek (Sorare changes the address without a reload) must not keep the last one's numbers. */
   function watchFixture() {
@@ -1848,6 +2088,8 @@
     mutations.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset", "poster", "alt"] });
     window.addEventListener("message", onBridge);
     window.addEventListener("popstate", schedule); // back and forward change the address: the gameweek it names may have too
+    window.addEventListener("scroll", onMove, { capture: true, passive: true }); // the crests live outside the cards: they follow them
+    window.addEventListener("resize", onMove, { passive: true });
     window.addEventListener("sofix-guide", schedule);
     document.addEventListener("pointerup", onGuidePress, true);
     liveTimer = setInterval(guard(() => wantLive(true)), LIVE_POLL_MS);
@@ -1865,6 +2107,8 @@
     mutations = visibility = resizing = null;
     window.removeEventListener("message", onBridge);
     window.removeEventListener("popstate", schedule);
+    window.removeEventListener("scroll", onMove, { capture: true });
+    window.removeEventListener("resize", onMove);
     window.removeEventListener("sofix-guide", schedule);
     document.removeEventListener("pointerup", onGuidePress, true);
     if (frame) cancelAnimationFrame(frame);
@@ -1891,6 +2135,9 @@
     worthBox = null;
     strip = null;
     closePanel(false);
+    closeIsland(false);
+    if (crestLayer) crestLayer.remove();
+    crestLayer = null;
     if (!mine) return;
     document.querySelectorAll("[data-sfx-guide]").forEach((el) => el.removeAttribute("data-sfx-guide"));
     document.querySelectorAll("[data-sfx]").forEach((el) => el.remove());

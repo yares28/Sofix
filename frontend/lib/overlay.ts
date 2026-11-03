@@ -65,8 +65,9 @@ export type OverlayRequest = z.infer<typeof OverlayRequest>;
 export type OverlayGame = {
   win: number | null;
   cleanSheet: number | null;
-  /** The goals his side is expected to score in it: the model's for a LaLiga game, else what Sorare's prices imply. */
+  /** The goals his side is expected to score in it and to concede: the model's for a game a board rates, else what Sorare's prices imply. */
   goalsFor: number | null;
+  goalsAgainst?: number | null;
   difficulty: number;
   bucket: Bucket;
   label: string;
@@ -88,7 +89,16 @@ export type OverlayMatch = {
   opponentColor: string | null;
 };
 
+/** A stat's place among the games Sofix rates that week, in sixths: 0 the worst sixth (Sorare's red) to 5 the best (its cyan). */
+export type Tones = Partial<Record<Stat, number>>;
+type Stat = "win" | "cleanSheet" | "goalsFor" | "goalsAgainst";
+
+/** One game in the crest's island (plans/overlay-v2.md 1.2): who plays whom, when, the numbers for his side and where each stands. */
+export type OverlayIslandGame = OverlayMatch & { game: OverlayGame | null; tones: Tones };
+
 export type OverlayEntry = {
+  /** His games for the island, kickoff order: the game the numbers are about, and the week's second one when he has two. */
+  island?: OverlayIslandGame[];
   /** The game these numbers are about (plans/overlay-v2.md 1.7): his next one, a lineup's own, or the one counting on a builder. */
   match?: OverlayMatch;
   /** What he is expected to score, the chance he plays (a substitute appearance counts), and the average every cap counts. */
@@ -435,7 +445,7 @@ function boardFor(
         // A European pair can meet again in a knockout: the actual date identifies the leg.
         if (isEuropean(code) && (!game.kickoff || Math.abs(Date.parse(cell.kickoff_utc) - Date.parse(game.kickoff)) > 20 * 60_000)) continue;
         matches.push({ club: team.name, opponent: opponent.name, win: p.probabilities.win, cleanSheet: p.clean_sheet,
-          xgFor: p.xg_for, difficulty: p.difficulty, bucket: p.bucket, label: p.label });
+          xgFor: p.xg_for, xgAgainst: p.xg_against, difficulty: p.difficulty, bucket: p.bucket, label: p.label });
       }
     }
   }
@@ -447,12 +457,57 @@ function gameFor(player: PlayingPlayer, game: PlayerGame | null, outlook: Map<st
   const side = game.team ?? player.club;
   const board = (outlook && side && LALIGA.test(game.competition) ? outlook.get(`${clubKey(side)}|${game.venue}|${clubKey(game.opponent)}`) : undefined) ?? boardFor(game,player.club,grids);
   if (board && board.win !== null && board.difficulty !== null && board.bucket !== null && board.label !== null) {
-    return { win: board.win, cleanSheet: board.cleanSheet, goalsFor: board.xgFor, difficulty: board.difficulty, bucket: board.bucket, label: board.label, source: "model" };
+    return { win: board.win, cleanSheet: board.cleanSheet, goalsFor: board.xgFor, goalsAgainst: board.xgAgainst ?? null, difficulty: board.difficulty, bucket: board.bucket, label: board.label, source: "model" };
   }
   const odds = game.odds;
   return odds
-    ? { win: odds.win, cleanSheet: odds.cleanSheet, goalsFor: odds.goalsFor ?? null, difficulty: odds.difficulty, bucket: odds.bucket, label: odds.label, source: "sorare" }
+    ? { win: odds.win, cleanSheet: odds.cleanSheet, goalsFor: odds.goalsFor ?? null, goalsAgainst: odds.goalsAgainst ?? null, difficulty: odds.difficulty, bucket: odds.bucket, label: odds.label, source: "sorare" }
     : null;
+}
+
+const STATS: Record<Stat, (cell: FixtureGrid["teams"][number]["cells"][number][number]) => number | null | undefined> = {
+  win: (cell) => cell.prediction?.probabilities.win,
+  cleanSheet: (cell) => cell.prediction?.clean_sheet,
+  goalsFor: (cell) => cell.prediction?.xg_for,
+  goalsAgainst: (cell) => cell.prediction?.xg_against,
+};
+const LOWER_IS_BETTER: Stat[] = ["goalsAgainst"];
+
+/**
+ * Each stat's five cut points (sixths) over every game Sofix rates between two times, on every board (plans/overlay-v2.md 7): a game
+ * is one side's cell. A week of fewer than 12 rated games is too few to rank fairly, so the season's games are used instead.
+ */
+export function weekCuts(grids: (FixtureGrid | null)[], from: number, to: number): Record<Stat, number[] | undefined> {
+  const cells = grids.flatMap((grid) => (grid ? grid.teams.flatMap((team) => team.cells.flat()) : [])).filter((cell) => cell.prediction);
+  const week = cells.filter((cell) => {
+    const at = Date.parse(cell.kickoff_utc);
+    return at >= from && at <= to;
+  });
+  const pool = week.length >= 12 ? week : cells;
+  const out = {} as Record<Stat, number[] | undefined>;
+  for (const stat of Object.keys(STATS) as Stat[]) {
+    const values = pool.map(STATS[stat]).filter((v): v is number => typeof v === "number" && Number.isFinite(v)).sort((a, b) => a - b);
+    out[stat] = values.length >= 12 ? [1, 2, 3, 4, 5].map((k) => values[Math.min(values.length - 1, Math.floor((k * values.length) / 6))]!) : undefined;
+  }
+  return out;
+}
+
+/** A value's sixth: 0 (worst) to 5 (best), against five cut points. */
+export function toneOf(value: number, cuts: number[], higherIsBetter: boolean): number {
+  const above = cuts.filter((cut) => value > cut).length;
+  return higherIsBetter ? above : 5 - above;
+}
+
+function tonesOf(game: OverlayGame | null, cuts: ReturnType<typeof weekCuts>): Tones {
+  if (!game) return {};
+  const out: Tones = {};
+  const values: Record<Stat, number | null | undefined> = { win: game.win, cleanSheet: game.cleanSheet, goalsFor: game.goalsFor, goalsAgainst: game.goalsAgainst };
+  for (const stat of Object.keys(values) as Stat[]) {
+    const value = values[stat];
+    const statCuts = cuts[stat];
+    if (typeof value === "number" && statCuts) out[stat] = toneOf(value, statCuts, !LOWER_IS_BETTER.includes(stat));
+  }
+  return out;
 }
 
 /**
@@ -538,7 +593,7 @@ function marketEntry(row: MarketPlayer, boards: (FixtureGrid | null)[], now: Dat
     pos: row.pos,
     laliga: LALIGA.test(f.competition ?? ""),
     at,
-    game: board ? { win: board.win, cleanSheet: board.cleanSheet, goalsFor: board.xgFor, difficulty: board.difficulty!, bucket: board.bucket!, label: board.label!, source: "model" } : null,
+    game: board ? { win: board.win, cleanSheet: board.cleanSheet, goalsFor: board.xgFor, goalsAgainst: board.xgAgainst ?? null, difficulty: board.difficulty!, bucket: board.bucket!, label: board.label!, source: "model" } : null,
     ...(Date.parse(f.kickoff) <= now.getTime() ? { over: true as const } : {}),
   };
 }
@@ -618,7 +673,32 @@ export function overlayNumbers(
   };
   // Pro and Arcade cards play one game: a lineup page's card (it names its game) and a Pro board's builder. Classic counts the week.
   const oneGame = (week: GameweekPlan, hint: string | undefined) => Boolean(hint) || Boolean(request.board && week.perGame?.includes(request.board));
-  const priced = (row: MarketPlayer | null, one: boolean) => (row ? marketEntry(row, boards, now, sorare.generatedAt, one) : null);
+  const priced = (row: MarketPlayer | null, one: boolean) => {
+    const entry = row ? marketEntry(row, boards, now, sorare.generatedAt, one) : null;
+    if (!entry || !row?.fixture?.kickoff) return entry;
+    const week = plan === afterPlanned || row.fixture === row.next?.fixture ? afterPlanned : plan;
+    const fixture = { ...row.fixture, kickoff: row.fixture.kickoff, competition: row.fixture.competition ?? "", opponent: row.fixture.opponent ?? "", venue: row.fixture.venue ?? "H" } as PlayerGame;
+    return { ...entry, island: islandOf([fixture], row.club, week, () => entry.game) };
+  };
+
+  // The island ranks each stat against the games of the week it is about (the gameweek's dates, else three and a half days either side).
+  const cutsFor = new Map<string, ReturnType<typeof weekCuts>>();
+  const cutsAround = (week: GameweekPlan | null, kickoff: string) => {
+    const start = Date.parse(week?.gameweek.start ?? "");
+    const end = Date.parse(week?.gameweek.end ?? "");
+    const at = Date.parse(kickoff);
+    const [from, to] = Number.isFinite(start) && Number.isFinite(end) ? [start, end] : [at - 84 * 3_600_000, at + 84 * 3_600_000];
+    const key = `${from}|${to}`;
+    if (!cutsFor.has(key)) cutsFor.set(key, weekCuts(boards, from, to));
+    return cutsFor.get(key)!;
+  };
+  const islandOf = (games: PlayerGame[], club: string | null, week: GameweekPlan | null, game: (one: PlayerGame) => OverlayGame | null): OverlayIslandGame[] =>
+    [...games]
+      .sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff))
+      .map((one) => {
+        const numbers = game(one);
+        return { ...matchOf(one, club), game: numbers, tones: tonesOf(numbers, cutsAround(week, one.kickoff)) };
+      });
 
   const ownedFor = (playerSlug: string, week: GameweekPlan, pick: Pick): { entry: OverlayEntry; ahead: boolean } | null => {
     const known = weekOf(week);
@@ -626,7 +706,10 @@ export function overlayNumbers(
     const shown = player ? shownGame(player.games, now, pick) : null;
     if (!player || !shown) return null;
     const entry = entryFor(player, outlook, now, known.at, known.inPlan.get(playerSlug), boards, shown, oneGame(week, pick.id));
-    return { entry, ahead: ahead(shown, now) };
+    // A lineup's card is about its one game; elsewhere the island lists the week's games that count on the page (two: both crests).
+    const counted = pick.id ? [shown] : player.games.filter((one) => !pick.leagues || pick.leagues.includes(one.competition));
+    const island = islandOf(counted, player.club, week, (one) => gameFor(player, one, outlook, boards));
+    return { entry: { ...entry, island }, ahead: ahead(shown, now) };
   };
 
   const answer = (playerSlug: string, hint: string | undefined): OverlayEntry | null => {

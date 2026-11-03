@@ -8,7 +8,7 @@ clear; "comes on" is rebuilt from real minutes.
   panel, a small card), Edge states, On Sorare's builder, On Sorare's Arcade lineups, Captain and price per point (with the
   team gauge and panel), Comes on and start % hover. Every number on it is real data from 2-3 Nov 2026; a bracket marks a
   number that only exists after step 1.
-- **Status:** steps 0 and 1 shipped 3 Nov 2026 (extensions 0.4.30, 0.4.31); step 2 next. Section 9 keeps the decision log.
+- **Status:** steps 0, 1 and 2 shipped 3 Nov 2026 (extensions 0.4.30, 0.4.31, 0.4.34); step 3 next. Section 9 keeps the decision log.
 - **Reads before building:** AGENTS.md (Sorare safety, Pages, Limits), [overlay.md](overlay.md),
   [overlay-bridge.md](overlay-bridge.md), [points-needed.md](points-needed.md), `docs/context.md` contract EXTENSION-ACTIONS-001.
 
@@ -254,6 +254,13 @@ their own league's rows).
 
 Tests: e2e for each state on the fixture page (two games, live, out, missing crest, substitution icon), axe on the island,
 reduced-motion snapshot.
+
+**Result (3 Nov):** built as above, with three changes. The live pill says "Live", not the minute: no source here gives the real
+minute (a clock from kick-off is wrong by half-time and stoppages). The sixths are worked out by the app from the boards it already
+loads (each rated side-game of the gameweek, the season's below 12), not stored by the refresh: a few thousand cells per call, no new
+block. Hover tilt is not followed (the crest sits on the card's resting edge). The substitution icon is found by what lies on the card's
+top centre (a round 14-40 px element); not yet seen on a real Sorare card. Edge case 8 (a card at the top of a scrolling list) waits on
+the owner's look at the screenshots.
 
 ### Step 3. Tile, start %, captain C, price per point
 

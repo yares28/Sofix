@@ -748,7 +748,47 @@
       : { label: String(needRoundUp(c.raw)), detail: `Needs ${needRoundUp(c.raw)} raw points to contribute ${needOne(c.share)} toward ${goal}${sofar}. ${bonus(c.multiplier)}`, tone: "need" };
   }
 
+  // The crest above each card and its island (plans/overlay-v2.md 1.2, step 2). `entry.island` is the app's list of his games, kickoff order.
+  const LIVE_FOR_MS = 115 * 60 * 1000; // from kick-off to the final whistle, stoppages included (the points-needed pill uses the same)
+  /** What the crest shows: "out" (sure not to play), "live" (his game is on), "crests" (one per game), or "none" (no game). */
+  function crestState(entry, now) {
+    const games = entry && Array.isArray(entry.island) ? entry.island.filter((g) => g && g.opponent) : [];
+    if (!games.length) return { kind: "none", games: [] };
+    if (entry.ffStatus && entry.ffStatus.kind === "out") return { kind: "out", games: games.slice(0, 1) };
+    const at = Date.parse(games[0].kickoff);
+    if (Number.isFinite(at) && now >= at && now < at + LIVE_FOR_MS) return { kind: "live", games: games.slice(0, 1) };
+    return { kind: "crests", games: games.slice(0, 2) };
+  }
+  /** The three letters on the shield that stands in for a crest Sorare does not have: Sorare's own code, else the name's first three. */
+  function shieldCode(game) {
+    const code = game && typeof game.opponentCode === "string" && game.opponentCode.trim();
+    if (code) return code.slice(0, 4).toUpperCase();
+    const name = game && typeof game.opponent === "string" ? game.opponent.normalize("NFD").replace(/[^A-Za-z]/g, "") : "";
+    return name ? name.slice(0, 3).toUpperCase() : "?";
+  }
+  /** "Wed 4 Nov · 21:00", in Madrid; "Date TBC" when there is no date. */
+  function islandWhen(kickoff) {
+    const at = typeof kickoff === "string" ? new Date(kickoff) : null;
+    if (!at || Number.isNaN(at.getTime())) return "Date TBC";
+    const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(at);
+    const of = (type) => (parts.find((part) => part.type === type) || {}).value || "";
+    return `${of("weekday")} ${of("day")} ${of("month")} · ${of("hour")}:${of("minute")}`;
+  }
+  const COMPETITIONS = {
+    "laliga-es": "LaLiga", "premier-league-gb-eng": "Premier League", "bundesliga-de": "Bundesliga", "ligue-1-fr": "Ligue 1",
+    "serie-a-it": "Serie A", "uefa-champions-league": "Champions League", "uefa-europa-league": "Europa League",
+    "uefa-europa-conference-league": "Conference League", "uefa-nations-league": "Nations League",
+  };
+  /** A competition by its name; one not listed by its slug's words ("copa-del-rey" → "Copa Del Rey"). */
+  function competitionName(slug) {
+    if (typeof slug !== "string" || !slug) return "";
+    return COMPETITIONS[slug] || slug.split("-").filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+  }
+  /** Sorare's six score colours, worst sixth first: a game stat's place among the week's games (plans/overlay-v2.md 7). */
+  const SIXTHS = ["#ff5a5a", "#ff7e34", "#f0ce1d", "#b6ff1a", "#25ed36", "#00f3eb"];
+
   root.__sofixCore = {
+    crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
     chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,

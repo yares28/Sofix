@@ -47,8 +47,9 @@ export interface SideOutlook {
   opponent: string;
   win: number | null;
   cleanSheet: number | null;
-  /** The goals the model expects his side to score in the game. */
+  /** The goals the model expects his side to score in the game, and to concede. */
   xgFor: number | null;
+  xgAgainst?: number | null;
   /** The board's result difficulty, 0–100 and 1 (easiest) to 5, with its plain-language label. */
   difficulty: number | null;
   bucket: Bucket | null;
@@ -74,6 +75,7 @@ export function sideOutlook(grid: FixtureGrid): Map<string, SideOutlook> {
           win: cell.prediction?.probabilities.win ?? null,
           cleanSheet: cell.prediction?.clean_sheet ?? null,
           xgFor: cell.prediction?.xg_for ?? null,
+          xgAgainst: cell.prediction?.xg_against ?? null,
           difficulty: cell.prediction?.difficulty ?? null,
           bucket: cell.prediction?.bucket ?? null,
           label: cell.prediction?.label ?? null,

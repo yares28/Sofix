@@ -1011,7 +1011,7 @@ colour for that score. Under it is one thing that drives the score, chosen by po
   has none (an Arcade common of the next round). A page whose address names a gameweek still shows that week only. A Pro or
   Arcade card plays one game, so on a lineup page and a Pro builder its xScore is that game's; Classic gameweek builders and every
   other page keep the week's (two games: the better of the two counts).
-- **The opponent's crest on each card** (extension 0.4.34, 3 Nov 2026): centred on the card's top edge, half outside (40 px, 26 on a
+- **The opponent's crest on each card** (extension 0.4.34, 3 Nov 2026): centred on the card's top edge, half outside (28 px, 20 on a
   small card); two games, both crests; his game on, a dark pill with a red live dot ("Live": no source gives the real minute yet);
   sure not to play (Futbol Fantasy says out), the same pill with "Out"; no crest from Sorare, a shield in the club's colour with its
   letters; no game, nothing. Hover or focus it: the island opens above the card with both sides, the day and time (Madrid), the

@@ -490,7 +490,7 @@ test.describe("the sorare.com overlay", () => {
     expect(big).toMatchObject({ imgs: 1, text: "" });
     expect(Math.abs(big!.cx)).toBeLessThan(2); // centred on the card
     expect(Math.abs(big!.cy)).toBeLessThan(2); // on its top edge: half outside
-    expect(big!.width).toBeCloseTo(40, 0);
+    expect(big!.width).toBeCloseTo(28, 0); // smaller than the canvas's 40 (the owner, 3 Nov 2026)
     await page.locator("#abroad").scrollIntoViewIfNeeded();
     expect(await crestOf("abroad")).toMatchObject({ imgs: 2 }); // two games, two crests
     await page.locator("#noxg").scrollIntoViewIfNeeded();

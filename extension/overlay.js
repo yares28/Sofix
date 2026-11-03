@@ -1135,8 +1135,8 @@
 
   let crestLayer = null;
   let island = null; // the one open island: { record, el, timer }
-  const CREST_SIZE = { full: [40, 30], compact: [26, 22] }; // one game, two games
-  const PILL_CREST = { full: 26, compact: 20 };
+  const CREST_SIZE = { full: [28, 22], compact: [20, 18] }; // one game, two games (the owner, 3 Nov 2026: smaller than the canvas's 40)
+  const PILL_CREST = { full: 20, compact: 16 };
 
   function crestHome() {
     if (crestLayer && crestLayer.isConnected) return crestLayer;

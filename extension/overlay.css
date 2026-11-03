@@ -472,13 +472,13 @@
 .sfx-crest:focus-visible { outline: 2px solid #7c5cff; outline-offset: 3px; border-radius: 999px; }
 .sfx-crest-img { display: block; object-fit: contain; }
 .sfx-shield {
-  display: grid; place-items: center; width: var(--sfx-size); height: calc(var(--sfx-size) * 1.06); border-radius: 22% 22% 50% 50%;
+  display: grid; place-items: center; min-width: var(--sfx-size); padding: 0 2px; height: calc(var(--sfx-size) * 1.06); border-radius: 22% 22% 50% 50%;
   background: var(--sfx-club); color: #fff; font: 800 11px/1 Inter, system-ui, sans-serif; letter-spacing: .02em;
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / .18); text-shadow: 0 1px 2px rgb(0 0 0 / .5);
 }
 .sfx-crest--compact .sfx-shield { letter-spacing: 0; }
 .sfx-crest--live, .sfx-crest--out {
-  padding: 3px 9px 3px 3px; border-radius: 999px; background: #0b0a10; filter: none;
+  padding: 2px 8px 2px 2px; border-radius: 999px; background: #0b0a10; filter: none;
   box-shadow: 0 6px 16px rgb(0 0 0 / .55), 0 0 0 1px rgb(255 255 255 / .08);
 }
 .sfx-crest--compact.sfx-crest--live, .sfx-crest--compact.sfx-crest--out { padding: 2px 7px 2px 2px; gap: 4px; font-size: 11px; }

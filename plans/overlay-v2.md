@@ -259,8 +259,8 @@ reduced-motion snapshot.
 minute (a clock from kick-off is wrong by half-time and stoppages). The sixths are worked out by the app from the boards it already
 loads (each rated side-game of the gameweek, the season's below 12), not stored by the refresh: a few thousand cells per call, no new
 block. Hover tilt is not followed (the crest sits on the card's resting edge). The substitution icon is found by what lies on the card's
-top centre (a round 14-40 px element); not yet seen on a real Sorare card. Edge case 8 (a card at the top of a scrolling list) waits on
-the owner's look at the screenshots.
+top centre (a round 14-40 px element); not yet seen on a real Sorare card. Edge case 8 decided (3 Nov): the crest stays half outside on a
+top-row card too, and it is smaller everywhere: 28 px on a full card (22 each for two games), 20 on a small one (18), 20 in the pill.
 
 ### Step 3. Tile, start %, captain C, price per point
 

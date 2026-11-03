@@ -1208,5 +1208,7 @@ def test_a_market_row_carries_his_game_of_the_week_being_played_while_it_is_stil
         },
     }
     assert "now" not in out[1]  # his game this week is played
+    on = publish.with_now([{"slug": "played-tuesday"}], record, datetime(2026, 11, 3, 13, 30, tzinfo=UTC))
+    assert on[0]["now"]["fixture"]["id"] == "Game:tue"  # on: still his game until the final whistle
     assert out[2] == {"slug": "nobody", "x": 1.0}
     assert publish.with_now(rows, None, at) == rows

@@ -400,10 +400,15 @@ function shownGame(games: PlayerGame[], now: Date, pick: Pick = {}): PlayerGame 
   const counted = pick.leagues ? games.filter((game) => pick.leagues!.includes(game.competition)) : games;
   if (!counted.length) return null;
   const ordered = [...counted].sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff));
-  return ordered.find((game) => Date.parse(game.kickoff) > now.getTime()) ?? ordered[ordered.length - 1]!;
+  return ordered.find((game) => Date.parse(game.kickoff) + GAME_MS > now.getTime()) ?? ordered[ordered.length - 1]!;
 }
 
-const ahead = (game: { kickoff?: string | null } | null | undefined, now: Date) => Boolean(game?.kickoff) && Date.parse(game!.kickoff!) > now.getTime();
+/**
+ * A game stays a card's game until its final whistle (plans/overlay-v2.md edge case 4), so the crest turns into the live pill while it
+ * is on: 115 minutes after kick-off, the extension's own rule for a game being over (overlay.js NEED_GAME_MS).
+ */
+const GAME_MS = 115 * 60_000;
+const ahead = (game: { kickoff?: string | null } | null | undefined, now: Date) => Boolean(game?.kickoff) && Date.parse(game!.kickoff!) + GAME_MS > now.getTime();
 
 function matchOf(game: PlayerGame | MarketFixture, club: string | null): OverlayMatch {
   return {

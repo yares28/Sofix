@@ -2141,6 +2141,10 @@ def market_out(
     return out
 
 
+GAME_LENGTH = timedelta(minutes=115)
+"""A game is his game until its final whistle: the app's and the extension's rule for a game being over."""
+
+
 def with_now(rows: list[dict[str, Any]], record: dict[str, Any] | None, at: datetime) -> list[dict[str, Any]]:
     """Each market row with `now`, his first game of the week being played that is still ahead, from that week's frozen record
     (`score_record:<slug>`): only what the overlay draws (his chance to play and to start, his score if he starts, his xScore, the
@@ -2151,7 +2155,7 @@ def with_now(rows: list[dict[str, Any]], record: dict[str, Any] | None, at: date
     for row in rows:
         his = players.get(row.get("slug"))
         game = (
-            next((g for g in his.get("games") or [] if g.get("kickoff") and _dt(g["kickoff"]) > at), None)
+            next((g for g in his.get("games") or [] if g.get("kickoff") and _dt(g["kickoff"]) + GAME_LENGTH > at), None)
             if his and his.get("pPlay") is not None and his.get("mu") is not None
             else None
         )

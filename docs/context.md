@@ -875,15 +875,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "market rows gain now, the week being played's game still ahead from its frozen record (publish.with_now; plans/overlay-v2.md 1.7.3); no change to plan selection, forecasts or rewards",
+        "note": "a game stays a card's game until 115 min after kick-off (with_now, overlay ahead); no change to selection, forecasts or rewards",
         "files": {
-          "backend/app/sorare/publish.py": "408063bbeabeef6ce9bd35af323c543a11d7bdf1d09da1e6167e6be803d5ec23",
+          "backend/app/sorare/publish.py": "5a5cf748782359b88d8520c12cfaa20df82b8789cb46ac2252241cbea93d2e36",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
           "backend/app/jobs/sorare.py": "ae6598e9a0cca2649be47386ce6ee71f1c7a783987bfa3b4a6c3230a72435ca2",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
-          "backend/tests/test_sorare_publish.py": "8f4140ccab478238952fa3083e92019a15cfd534c760631d0fed209669d43219"
+          "backend/tests/test_sorare_publish.py": "d02896735b378fe251e387cb6d36ebacc126a08647be5a73608f10362e028ab2"
         }
       }
     },
@@ -997,12 +997,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "market rows gain now, the week being played's game still ahead from its frozen record (publish.with_now; plans/overlay-v2.md 1.7.3); no change to plan selection, forecasts or rewards",
+        "note": "a game stays a card's game until 115 min after kick-off (with_now, overlay ahead); no change to selection, forecasts or rewards",
         "files": {
-          "backend/app/sorare/publish.py": "408063bbeabeef6ce9bd35af323c543a11d7bdf1d09da1e6167e6be803d5ec23",
+          "backend/app/sorare/publish.py": "5a5cf748782359b88d8520c12cfaa20df82b8789cb46ac2252241cbea93d2e36",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
-          "backend/tests/test_sorare_publish.py": "8f4140ccab478238952fa3083e92019a15cfd534c760631d0fed209669d43219"
+          "backend/tests/test_sorare_publish.py": "d02896735b378fe251e387cb6d36ebacc126a08647be5a73608f10362e028ab2"
         }
       }
     },

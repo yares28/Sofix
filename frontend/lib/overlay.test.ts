@@ -197,6 +197,7 @@ describe("overlayNumbers", () => {
         overlayNumbers(data, grid, ask({ players: ["unai-simon"], ...over }), new Date(at), null, { market: [], grids: [], playing }).players["unai-simon"]!;
       expect(on("2026-10-08T12:00:00Z")).toMatchObject({ x: 64.7, match: { id: "g-ucl", opponent: "AEK Athens" } });
       // Once it has kicked off, the planned week's game takes over; a page naming the planned week keeps to it.
+      expect(on("2026-10-08T19:30:00Z").match!.id).toBe("g-ucl"); // on: kept until the final whistle, so the crest says Live
       expect(on("2026-10-08T21:00:00Z").match!.id).toBe("g-liga");
       expect(on("2026-10-08T12:00:00Z", { week: data.weeks[0]!.gameweek.id }).match!.id).toBe("g-liga");
     });

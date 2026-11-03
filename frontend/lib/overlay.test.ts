@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clubKey } from "./home";
-import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan, overlayProfile, overlayWorth, proPlan, toneOf, weekCuts } from "./overlay";
+import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, priceOf, overlayPlan, overlayProfile, overlayWorth, proPlan, toneOf, weekCuts } from "./overlay";
 import { prices } from "./prices";
 import type { MissionPlan, Suggestion } from "./missions";
 import type { GameOdds, GameweekPlan, Lineup, MarketPlayer, PlayCard, PlayerGame, PlayingPlayer, Plan, Sorare } from "./play";
@@ -139,6 +139,44 @@ describe("overlayNumbers", () => {
     expect(answer.players.nobody).toBeUndefined();
     // The plan's own numbers win for a player it holds.
     expect(overlayNumbers(sorare([player()]), null, ask({ players: ["unai-simon"] }), NOW, null, { market: [{ ...row, slug: "unai-simon", x: 1 }], grids: [] }).players["unai-simon"]!.x).toBe(54.5);
+  });
+
+  describe("price per point against similar players (plans/overlay-v2.md 1.2)", () => {
+    const like = (slug: string, eur: number | null, x: number, more: Partial<MarketPlayer> = {}): MarketPlayer =>
+      ({ slug, name: slug, pos: "FWD", club: null, crest: null, average: 50, projection: null, eur, pic: "", x, ...more }) as MarketPlayer;
+    // Nine forwards averaging 50: €0.10 to €0.90 a point.
+    const field = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => like(`f${n}`, n * 10, 100));
+
+    it("is his Limited price over his xScore, in the cheapest or dearest third of his position within 5 of his average", () => {
+      expect(priceOf(like("me", 12, 100), 100, field)).toEqual({ eur: 12, perPoint: 0.12, third: "cheap", similar: 9 });
+      expect(priceOf(like("me", 50, 100), 100, field)).toMatchObject({ perPoint: 0.5, third: "mid" });
+      expect(priceOf(like("me", 85, 100), 100, field)).toMatchObject({ third: "dear" });
+      // The points are those of the game his tile shows, not his row's.
+      expect(priceOf(like("me", 50, 100), 25, field)).toMatchObject({ perPoint: 2, third: "dear" });
+    });
+
+    it("compares only his position within 5 of his average, each player once, and says nothing of a group too small", () => {
+      const others = [...field.map((f) => ({ ...f, pos: "DEF" as const })), ...field.map((f) => ({ ...f, average: 56 }))];
+      expect(priceOf(like("me", 12, 100), 100, others)).toMatchObject({ third: null, similar: 0 });
+      expect(priceOf(like("me", 12, 100), 100, [...field.slice(0, 4), ...field.slice(0, 4)])).toMatchObject({ third: null, similar: 4 });
+      expect(priceOf(like("f1", 10, 100), 100, field)).toMatchObject({ similar: 8 }); // not counted against himself
+    });
+
+    it("has no price without one, or without points", () => {
+      expect(priceOf(like("me", null, 100), 100, field)).toBeNull();
+      expect(priceOf(like("me", 30, 100), 0, field)).toBeNull();
+      expect(priceOf(like("me", 30, 100, { average: null }), 100, field)).toMatchObject({ third: null });
+    });
+
+    it("rides on every answer whose player has a market row with a price", () => {
+      const row = like("kaoru-mitoma", 5, 52.4, {
+        p: 0.88, average: 48,
+        fixture: { team: "Athletic Club", opponent: "Getafe CF", opponentCrest: null, venue: "H", kickoff: "2026-10-10T19:00:00Z", competition: "premier-league-gb-eng" } as MarketPlayer["fixture"],
+      });
+      const answer = overlayNumbers(sorare([player()]), null, ask({ players: ["kaoru-mitoma"] }), NOW, null, { market: [row, ...field], grids: [] });
+      expect(answer.players["kaoru-mitoma"]!.price).toMatchObject({ eur: 5, third: "cheap" });
+      expect(answer.players["kaoru-mitoma"]!.price!.perPoint).toBeCloseTo(5 / 52.4);
+    });
   });
 
   describe("each card answers for its own game (plans/overlay-v2.md section 1.7)", () => {

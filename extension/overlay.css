@@ -458,17 +458,37 @@
   z-index: 4;
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
-  box-sizing: border-box;
-  border: 1.5px solid rgba(124, 92, 255, 0.55);
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: rgba(14, 14, 14, 0.72);
-  color: rgba(167, 146, 255, 0.9);
-  font: 700 11px/1 var(--sfx-font);
+  background: rgba(124, 92, 255, 0.55);
+  color: #fff;
+  font: 800 11px/1 var(--sfx-font);
   pointer-events: auto;
   cursor: help;
   user-select: none;
   animation: sfx-fade 0.2s ease-out both;
 }
 .sfx-captain[data-pending] { visibility: hidden; }
+
+/* What a point of his costs, on the market and your gallery (1.2): green in the cheapest third of similar players, red in the dearest. */
+.sfx-price {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #0b0a10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  color: var(--sfx-white);
+  font: 800 12px/14px var(--sfx-font);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: help;
+  animation: sfx-fade 0.2s ease-out both;
+}
+.sfx-price[data-pending] { visibility: hidden; }
+.sfx-price[data-third="cheap"] { color: #25ed36; }
+.sfx-price[data-third="dear"] { color: #ff5a5a; }

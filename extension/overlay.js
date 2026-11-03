@@ -667,6 +667,8 @@
     record.start = null;
     if (record.captain) record.captain.remove();
     record.captain = null;
+    if (record.price) record.price.remove();
+    record.price = null;
     dropCrest(record);
     removeOdds(record);
   }
@@ -1452,6 +1454,7 @@
         if (placeNeed(read)) again = true;
         if (placeStart(read)) again = true;
         if (placeCaptain(read, read === captain)) again = true;
+        if (placePrice(read)) again = true;
         placeCrest(read);
         placeWorth(read);
       } catch {
@@ -1785,6 +1788,49 @@
     }
     if (fresh) return true; // measured on the next pass
     return moveTo(mark, rect.right - INSET.full.x, rect.bottom - INSET.full.y - mark.getBoundingClientRect().height);
+  }
+
+  // -- price per point (plans/overlay-v2.md 1.2) ------------------------------------------------------------------------
+  // On Sorare's market and your gallery, a Limited card says what a point of his costs: his Limited price over his xScore, from the
+  // app (lib/overlay.ts, priceOf), green in the cheapest third of similar players, red in the dearest, plain between. Centred near
+  // the card's bottom. Another rarity's card says nothing: the price is a Limited one.
+  const THIRD_WORDS = { cheap: "the cheapest third", mid: "the middle third", dear: "the dearest third" };
+  const pricePage = () => /^\/football\/market(?:\/|$)/.test(location.pathname) || myGallery();
+  const limitedCard = (record) => /-limited-\d+$/.test(record.cardSlug || "") || /\s-\slimited$/i.test(record.media.getAttribute("alt") || "");
+
+  function placePrice(read) {
+    const { record, rect, tier } = read;
+    const held = tier === "full" && !read.covered && pricePage() && limitedCard(record) ? entryOf(record) : null;
+    const entry = held && held.entry;
+    const price = entry && entry.price && !core.staleness(entry, now()) ? entry.price : null;
+    let pill = record.price && record.price.isConnected ? record.price : null;
+    if (!price) {
+      if (pill) pill.remove();
+      record.price = null;
+      return false;
+    }
+    let fresh = false;
+    if (!pill) {
+      pill = node("span", "sfx-price");
+      pill.setAttribute("data-sfx", "");
+      pill.setAttribute("data-pending", "");
+      hostOf(record).append(pill);
+      record.price = pill;
+      fresh = true;
+    }
+    const text = `€${price.perPoint.toFixed(2)}/pt`;
+    const where = price.third ? `in ${THIRD_WORDS[price.third]} of ${price.similar} ${entry.pos}s with a Sorare average within 5 of his` : `too few ${entry.pos}s with a Sorare average within 5 of his to compare (${price.similar})`;
+    const title = `€${price.eur.toFixed(2)} Limited price for an xScore of ${Math.round(entry.x)}: ${where}`;
+    if (pill.textContent !== text || pill.title !== title) {
+      pill.textContent = text;
+      pill.title = title;
+      pill.setAttribute("aria-label", `${text}. ${title}`);
+      if (price.third) pill.dataset.third = price.third;
+      else delete pill.dataset.third;
+    }
+    if (fresh) return true; // measured on the next pass
+    const box = pill.getBoundingClientRect();
+    return moveTo(pill, rect.left + (rect.width + box.width) / 2, rect.bottom - 10 - box.height);
   }
 
   function placeNeed(read) {

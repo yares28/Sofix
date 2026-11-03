@@ -127,6 +127,7 @@ const NUMBERS = {
       shape: { p: 0.28, dec: 84, plain: 51, sdDec: 9, sdPlain: 15, low: 41, high: 80, why: [["Form", 7], ["Attack", 5], ["Home", 1]] },
       onShape: { p: 0.07, dec: 70, plain: 43, sdDec: 8, sdPlain: 7, low: 33, high: 62, why: [["Minutes", -19]] },
       startSource: "sofix", sources: { sofix: 0.82 },
+      price: { eur: 40, perPoint: 0.65, third: "mid", similar: 40 }, // a Limited price: his rare card says nothing of it
       game: { win: 0.65, cleanSheet: 0.29, difficulty: 30.4, bucket: 1, label: "Very favourite", source: "sorare" },
       island: [
         islandGame({ id: "Game:arg1", competition: "fifa-world-cup-qualifiers", team: "Argentina", opponent: "Brazil", venue: "A" }),
@@ -150,6 +151,10 @@ const NUMBERS = {
           // The last of them is out, as Futbol Fantasy says: a red row on his tile.
           ...(p.n === 6 ? { pStart: 0.05, startSource: "futbolfantasy", startAt: "2026-10-09T14:56:00Z", ffStatus: { kind: "out" }, sources: { futbolfantasy: 0 }, island: [islandGame()] } : {}),
           ...(p.n === 2 ? { inPlan: { [p.card]: { lineup: "All Star", captain: false } } } : {}),
+          // What a point costs (lib/overlay.ts, priceOf): the first cheap, the second dear, the third with too few like him to say.
+          ...(p.n === 1 ? { price: { eur: 9.8, perPoint: 0.14, third: "cheap", similar: 120 } } : {}),
+          ...(p.n === 2 ? { price: { eur: 74.1, perPoint: 1.14, third: "dear", similar: 120 } } : {}),
+          ...(p.n === 3 ? { price: { eur: 30, perPoint: 0.5, third: null, similar: 3 } } : {}),
           ...(p.n === 4 ? { inPlan: { [p.card]: { lineup: "All Star", captain: true } } } : {}),
         },
       ]),
@@ -1583,6 +1588,39 @@ test.describe("the sorare.com overlay", () => {
     await expect(page.locator("[data-sfx-dock]")).toContainText("vs plan");
     await page.evaluate(() => history.pushState({}, "", "/football/play"));
     await expect(page.getByLabel(/points expected from/)).toHaveCount(0); // gone with the lineup page
+  });
+
+  test("on Sorare's market, a Limited card says what a point of his costs, green in the cheapest third of similar players, red in the dearest", async ({ page }, testInfo) => {
+    await openPage(page, { url: "https://sorare.com/football/market" });
+    await settled(page);
+    const price = (id: string) => page.locator(`#${id} .sfx-price`);
+    await page.locator("#pick-1").scrollIntoViewIfNeeded();
+    await expect(price("pick-1")).toHaveText("€0.14/pt");
+    await expect(price("pick-1")).toHaveAttribute("data-third", "cheap");
+    await expect(price("pick-1")).toHaveAttribute("title", "€9.80 Limited price for an xScore of 70: in the cheapest third of 120 DEFs with a Sorare average within 5 of his");
+    await expect(price("pick-2")).toHaveText("€1.14/pt");
+    await expect(price("pick-2")).toHaveAttribute("data-third", "dear");
+    await expect(price("pick-3")).toHaveText("€0.50/pt");
+    await expect(price("pick-3")).not.toHaveAttribute("data-third", /./); // too few like him: plain
+    const [green, red] = [await price("pick-1").evaluate((el) => getComputedStyle(el).color), await price("pick-2").evaluate((el) => getComputedStyle(el).color)];
+    expect(green).not.toBe(red);
+    expect(await price("pick-1").evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(11);
+    // Centred on the card, near its bottom, inside it.
+    const [card, pill] = [await box(page, "#pick-1 img"), await box(page, "#pick-1 .sfx-price")];
+    expect(Math.abs((pill.left + pill.right) / 2 - (card.left + card.right) / 2)).toBeLessThan(2);
+    expect(pill.bottom).toBeLessThanOrEqual(card.bottom);
+    expect(card.bottom - pill.bottom).toBeLessThan(16);
+    await expect(page.locator("#abroad .sfx-price")).toHaveCount(0); // his rare card: the price is a Limited one
+    await page.locator("#pick-1").screenshot({ path: testInfo.outputPath("overlay-price.png") });
+  });
+
+  test("away from the market and your gallery, no card says a price", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await page.locator("#pick-1").scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+    await expect(page.locator("#pick-1 .sfx-tile, #pick-1 .sfx-ribs").first()).toBeVisible();
+    await expect(page.locator(".sfx-price")).toHaveCount(0);
   });
 
   test("on Sorare's builder, a faint purple C marks the card on the pitch Sofix would captain, until Sorare has him as captain", async ({ page }, testInfo) => {

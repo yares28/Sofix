@@ -153,7 +153,34 @@ export type OverlayEntry = {
    * the tile says "2 games" and the panel lists them. Absent for a single game. The tile's own numbers are about the next one.
    */
   fixtures?: OverlayFixture[];
+  /** What a point of his costs, from his market row's Limited price (absent without one): the overlay's "€0.14/pt" on Limited cards. */
+  price?: OverlayPrice;
 };
+
+/**
+ * His Limited price over the xScore his tile shows, and where that falls among similar players (plans/overlay-v2.md 1.2): his
+ * position, a Sorare average within 5 of his, each with a price and an xScore. `third` is null with fewer than 5 of them.
+ */
+export type OverlayPrice = { eur: number; perPoint: number; third: "cheap" | "mid" | "dear" | null; similar: number };
+const PRICE_NEAR = 5;
+const PRICE_GROUP_MIN = 5;
+
+export function priceOf(row: MarketPlayer, x: number, market: MarketPlayer[]): OverlayPrice | null {
+  if (!(row.eur && row.eur > 0) || !(x > 0)) return null;
+  const perPoint = row.eur / x;
+  const seen = new Set([row.slug]);
+  const others: number[] = [];
+  const average = row.average;
+  // ponytail: one scan of every league's rows per answer (about 10,000); index by position if the route grows slow.
+  for (const o of average === null ? [] : market) {
+    if (seen.has(o.slug) || o.pos !== row.pos || o.average === null || Math.abs(o.average - average!) > PRICE_NEAR || !(o.eur && o.eur > 0) || !(o.x && o.x > 0)) continue;
+    seen.add(o.slug);
+    others.push(o.eur / o.x);
+  }
+  if (others.length < PRICE_GROUP_MIN) return { eur: row.eur, perPoint, third: null, similar: others.length };
+  const below = others.filter((v) => v < perPoint).length / others.length;
+  return { eur: row.eur, perPoint, third: below < 1 / 3 ? "cheap" : below >= 2 / 3 ? "dear" : "mid", similar: others.length };
+}
 
 export type OverlayFixture = { opponent: string; venue: "H" | "A"; kickoff: string; competition: string };
 
@@ -754,10 +781,17 @@ export function overlayNumbers(
   };
 
   const entries = new Map<string, OverlayEntry | null>();
+  const rowOf = new Map<string, MarketPlayer>();
+  for (const row of others.market) if (!rowOf.has(row.slug)) rowOf.set(row.slug, row);
   const forPlayer = (playerSlug: string | undefined, hint: string | undefined): OverlayEntry | null => {
     if (!playerSlug) return null;
     const key = `${playerSlug}|${hint ?? ""}`;
-    if (!entries.has(key)) entries.set(key, answer(playerSlug, hint));
+    if (!entries.has(key)) {
+      const entry = answer(playerSlug, hint);
+      const row = rowOf.get(playerSlug);
+      const price = entry && row ? priceOf(row, entry.x, others.market) : null;
+      entries.set(key, entry && price ? { ...entry, price } : entry);
+    }
     return entries.get(key) ?? null;
   };
 

@@ -308,7 +308,13 @@ were empty on 3 Nov and none of his GW28/29 lineups was entered); it needs a fil
 Captain C built (0.4.45): a filled Classic builder (Spain arena draft, 3 Nov) draws a 32 px round `div[title="Captain"]` "C"
 centred on each pitch card's top-left corner, white, pink with the class `active` on the captain; a 16 px one sits in the "Select
 Captain" line. On a builder page (`composeBoard`, or an Arcade step's `compose-team`) the cards with such a mark are the pitch;
-`core.captainPick` takes the highest fresh xScore and nothing once it is Sorare's captain. Price per point is left in step 3.
+`core.captainPick` takes the highest fresh xScore and nothing once it is Sorare's captain.
+Price per point built (0.4.47): the app adds `price` {eur, perPoint, third, similar} to every answer whose player has a priced
+market row (`lib/overlay.ts`, `priceOf`): his `eur` over the answer's own xScore, ranked against the other leagues' rows (each
+player once) of his position within 5 of his average, by their row's `eur / x`; under 5 of them, no third. Measured on 3 Nov's
+blocks: 5,722 priced rows, a FWD averaging 49 has 644 like him, median €0.17/pt. The overlay draws it on Limited cards only
+(card slug or alt), on `/football/market…` and your own gallery, as the canvas's dark pill near the bottom; the captain C took the
+canvas's filled purple disc. Step 3 is done.
 
 ### Step 3b. A light overlay (owner, 3 Nov: "the page lags, it's unbearable"; next after step 3)
 

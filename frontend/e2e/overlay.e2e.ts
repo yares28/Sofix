@@ -609,6 +609,65 @@ test.describe("the sorare.com overlay", () => {
     expect((await probe(page)).sent.some((m) => m.type === "need-data")).toBe(true); // it did look: none of them is in play
   });
 
+  test("a scroll moves only the crests: a pass at most every 400 ms while it lasts, each crest on its card's top edge, none over a sticky header", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+    type Perf = { passes: number; discovers: number; moves: number; slowest: number; slowestMove: number };
+    const perf = () => page.evaluate(() => ({ ...(globalThis as unknown as { __sofixPerf: Perf }).__sofixPerf }));
+    const crestOffset = () =>
+      page.evaluate(() => {
+        const art = document.querySelector("#big img")!.getBoundingClientRect();
+        const crest = [...document.querySelectorAll<HTMLElement>(".sfx-crests .sfx-crest")].find((c) => {
+          const r = c.getBoundingClientRect();
+          return r.left < art.right && r.right > art.left && Math.abs(r.top + r.height / 2 - art.top) < 40;
+        });
+        if (!crest) return null;
+        const r = crest.getBoundingClientRect();
+        return { dy: r.top + r.height / 2 - art.top, hidden: getComputedStyle(crest).visibility === "hidden" };
+      });
+    expect(await crestOffset()).toMatchObject({ hidden: false });
+    const before = await perf();
+    // Twenty scroll frames, down then up: the crests follow on each frame, and nothing else runs.
+    const during = await page.evaluate(async () => {
+      const passes: number[] = [];
+      for (let i = 0; i < 20; i += 1) {
+        window.scrollBy(0, i < 10 ? 6 : -6);
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        passes.push((globalThis as unknown as { __sofixPerf: { passes: number } }).__sofixPerf.passes);
+      }
+      return passes;
+    });
+    expect(during.at(-1)! - before.passes).toBeLessThanOrEqual(2); // twenty frames (about a third of a second): at most two passes
+    const after = await perf();
+    expect(after.moves).toBeGreaterThanOrEqual(before.moves + 10);
+    expect(after.discovers).toBe(before.discovers);
+    expect(Math.abs((await crestOffset())!.dy)).toBeLessThan(2); // still on its card's top edge
+    await page.waitForTimeout(400);
+    expect((await perf()).passes).toBeGreaterThan(before.passes); // one pass once the scroll has stopped
+
+    // A sticky bar of the page's over the card's top edge: the crest hides rather than ride over it, and comes back after.
+    await page.evaluate(() => {
+      const art = document.querySelector("#big img")!.getBoundingClientRect();
+      const bar = document.createElement("div");
+      bar.id = "stickybar";
+      bar.style.cssText = `position:fixed;left:0;right:0;top:${art.top - 30}px;height:60px;background:#222;z-index:5`;
+      document.body.append(bar);
+      window.scrollBy(0, 1);
+    });
+    await expect.poll(async () => (await crestOffset())?.hidden).toBe(true);
+    await page.evaluate(() => {
+      document.getElementById("stickybar")!.remove();
+      window.scrollBy(0, -1);
+    });
+    await expect.poll(async () => (await crestOffset())?.hidden).toBe(false);
+    // The budget, loosely on a test machine: a pass well under 50 ms, a crest move under 8.
+    const end = await perf();
+    expect(end.slowest).toBeLessThan(50);
+    expect(end.slowestMove).toBeLessThan(8);
+  });
+
   test("puts the opponent's crest on each card's top edge, half outside, in each of its states", async ({ page }) => {
     await openPage(page);
     await settled(page);
@@ -623,9 +682,9 @@ test.describe("the sorare.com overlay", () => {
         const r = near.getBoundingClientRect();
         return { cx: r.left + r.width / 2 - (art.left + art.width / 2), cy: r.top + r.height / 2 - art.top, kind: near.className, text: near.textContent, imgs: near.querySelectorAll("img").length, width: r.width };
       }, id);
-    // The crests follow their cards on the next frame after a scroll.
+    // The crests follow their cards on each frame of a scroll; one drawn for a card scrolled in comes with the pass after it.
     const crestOf = async (id: string) => {
-      await page.waitForTimeout(150);
+      await expect.poll(() => read(id)).not.toBeNull();
       return read(id);
     };
     await page.locator("#big").scrollIntoViewIfNeeded();
@@ -644,23 +703,26 @@ test.describe("the sorare.com overlay", () => {
     expect((await crestOf("pick-6"))!.text).toBe("Out");
     // A card Sofix has no game for draws no crest at all.
     await page.locator("#over").scrollIntoViewIfNeeded();
-    expect(await crestOf("over")).toBeNull();
+    await page.waitForTimeout(600); // past the pass that follows the scroll
+    expect(await read("over")).toBeNull();
   });
 
   test("opens the island from the crest, above the card, by pointer or keyboard, and closes it on Escape", async ({ page }) => {
     await openPage(page);
     await settled(page);
     await page.locator("#big").scrollIntoViewIfNeeded();
-    await page.waitForTimeout(150); // the crests follow their cards on the next frame
-    // The crest on this card's top edge (other copies of the same player have crests of their own).
-    const index = await page.evaluate(() => {
-      const art = document.querySelector("#big img")!.getBoundingClientRect();
-      return [...document.querySelectorAll(".sfx-crest")].findIndex((c) => {
-        const r = c.getBoundingClientRect();
-        return Math.abs(r.top + r.height / 2 - art.top) < 3 && Math.abs(r.left + r.width / 2 - (art.left + art.width / 2)) < 3;
+    // The crest on this card's top edge (other copies of the same player have crests of their own), once the scroll's pass has run.
+    const find = () =>
+      page.evaluate(() => {
+        const art = document.querySelector("#big img")!.getBoundingClientRect();
+        return [...document.querySelectorAll(".sfx-crest")].findIndex((c) => {
+          const r = c.getBoundingClientRect();
+          return Math.abs(r.top + r.height / 2 - art.top) < 3 && Math.abs(r.left + r.width / 2 - (art.left + art.width / 2)) < 3;
+        });
       });
-    });
-    expect(index).toBeGreaterThanOrEqual(0);
+    await expect.poll(find).toBeGreaterThanOrEqual(0);
+    await page.waitForTimeout(300); // and settled where it is
+    const index = await find();
     const crest = page.locator(".sfx-crest").nth(index);
     await expect(crest).toHaveAccessibleName(/Sofix: next game v Getafe CF/);
     await page.mouse.move(5, 5);
@@ -693,7 +755,8 @@ test.describe("the sorare.com overlay", () => {
     await openPage(page);
     await settled(page);
     await page.locator("#doubtful").scrollIntoViewIfNeeded();
-    await expect(page.locator(".sfx-live-dot").first()).toHaveCSS("animation-name", "none");
+    // the pulse is the dot's ring
+    await expect.poll(() => page.locator(".sfx-live-dot").first().evaluate((el) => getComputedStyle(el, "::after").animationName)).toBe("none");
     await page.evaluate(() => (window as unknown as { __sfx: { setOverlay: (v: boolean) => void } }).__sfx.setOverlay(false));
     await expect(page.locator(".sfx-crests, .sfx-crest, .sfx-island")).toHaveCount(0);
   });

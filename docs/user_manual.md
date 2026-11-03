@@ -1070,6 +1070,8 @@ it writes to Sorare.
   doubt is never cyan, a player who will not start always red; none on a greyed number or a thumbnail.
 - **Captain** (0.4.45, 3 Nov 2026): on Sorare's builder (Classic, Pro and Arcade), a faint purple "C" at the bottom right of the card
   on the pitch with the highest xScore; it goes once Sorare has that card as captain. The hover gives that expected score, his chance of starting counted (the chip shows his score if he starts).
+- **Light on the page** (0.4.49, 4 Nov 2026): scrolling moves only the crests (a pass at most every 400 ms while it lasts, one
+  when it stops); a crest hides under a sticky bar of Sorare's; the popup's cards line says the slowest pass of the last minute.
 - **Price per point** (0.4.47, 3 Nov 2026): on Sorare's market and your gallery, a Limited card says what a point of his costs,
   "€0.14/pt" (his Limited price over his xScore), at the card's right above the line with his position (his name runs across the bottom): green in the cheapest third of the players of his
   position whose Sorare average is within 5 of his, red in the dearest, plain between or with fewer than 5 like him. The hover gives

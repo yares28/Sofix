@@ -423,9 +423,11 @@
   box-shadow: 0 6px 16px rgb(0 0 0 / .55), 0 0 0 1px rgb(255 255 255 / .08);
 }
 .sfx-crest--compact.sfx-crest--live, .sfx-crest--compact.sfx-crest--out { padding: 2px 7px 2px 2px; gap: 4px; font-size: 11px; }
-.sfx-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #ff3b5c; box-shadow: 0 0 0 3px rgb(255 59 92 / .25); animation: sfx-live 1.6s ease-in-out infinite; }
+.sfx-live-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #ff3b5c; }
+/* The pulse is a ring scaled and faded (compositor only, 3b.7), not a shadow repainted every frame. */
+.sfx-live-dot::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; background: rgb(255 59 92 / .25); animation: sfx-live 1.6s ease-in-out infinite; }
 .sfx-out { color: #ff3b5c; }
-@keyframes sfx-live { 0%, 100% { box-shadow: 0 0 0 3px rgb(255 59 92 / .25); } 50% { box-shadow: 0 0 0 6px rgb(255 59 92 / .05); } }
+@keyframes sfx-live { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.2; } }
 
 .sfx-island {
   position: fixed; width: 286px; display: grid; gap: 12px; padding: 10px 14px 12px; border-radius: 22px; background: #0b0a10;
@@ -448,7 +450,7 @@
   0% { opacity: .4; clip-path: inset(calc(100% - 40px) calc(50% - 20px) 0 calc(50% - 20px) round 20px); }
   100% { opacity: 1; clip-path: inset(0 0 0 0 round 22px); }
 }
-@media (prefers-reduced-motion: reduce) { .sfx-island, .sfx-live-dot { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .sfx-island, .sfx-live-dot::after { animation: none; } }
 
 /* Sofix's captain pick on Sorare's builder (1.2): a faint purple C at the card's bottom right, never glowing. */
 .sfx-captain {

@@ -548,14 +548,30 @@
     return top;
   }
 
-  /** `clearOf`, remembered until the card moves or the page around it changes: it is the one costly thing a pass does. */
+  /**
+   * `clearOf`, the costly probe, once per card size, tile size and page change (plans/overlay-v2.md 3b.2): kept as an offset from
+   * the card's top, so a scroll reuses it. Probed only with the card wholly on screen (the probe cannot see past the edges).
+   */
+  // The probes' share of a pass (3b.8): past it, a card not probed yet waits for the next frame (its tile stays hidden till then),
+  // so a page that shows forty new cards at once spreads their probes over a few frames instead of freezing one.
+  const PROBE_BUDGET_MS = 8;
+  let passStarted = 0;
+  let budgetHit = false;
+  function overBudget() {
+    if (performance.now() - passStarted < PROBE_BUDGET_MS) return false;
+    budgetHit = true;
+    return true;
+  }
+
   function clearOfCached(record, rect, size, width, height) {
-    const key = [rect.left, rect.top, rect.width, rect.height, size, Math.round(width), Math.round(height), pageEpoch].map((n) => (typeof n === "number" ? Math.round(n) : n)).join("|");
-    if (record.bandKey !== key) {
-      record.bandKey = key;
-      record.bandTop = clearOf(record.media, rect, size, width, height, tileStart(record, size));
+    const key = `${[rect.width, rect.height, width, height].map(Math.round).join("|")}|${size}|${pageEpoch}`;
+    const whole = rect.top >= 0 && rect.left >= 0 && rect.bottom <= innerHeight && rect.right <= innerWidth;
+    if (record.bandKey !== key && (whole || record.bandOffset === undefined)) {
+      if (overBudget()) return record.bandOffset === undefined ? null : rect.top + record.bandOffset; // the next pass probes it
+      record.bandKey = whole ? key : "";
+      record.bandOffset = clearOf(record.media, rect, size, width, height, tileStart(record, size)) - rect.top;
     }
-    return record.bandTop;
+    return rect.top + record.bandOffset;
   }
 
   // -- Sorare's odds bar, and our row under it --------------------------------------------------------------------
@@ -599,7 +615,7 @@
   }
 
   function barFor(record, rect) {
-    const key = [Math.round(rect.left), Math.round(rect.bottom), Math.round(rect.width), pageEpoch].join("|");
+    const key = [Math.round(rect.width), Math.round(rect.height), pageEpoch].join("|");
     if (record.barKey !== key || (record.bar && !record.bar.isConnected)) {
       record.barKey = key;
       record.bar = locateBar(record.media, rect);
@@ -611,6 +627,19 @@
    * Is the room under their bar really free? After it is made, nothing of theirs (their kickoff line) may sit in it:
    * if something does, the margin did not move it, and drawing there would cover it, so the row is not drawn at all.
    */
+  /** `roomIsFree`, asked again only when the card's size or the page changes (3b.3). */
+  function roomFree(record, bar, barRect, mediaRect) {
+    const key = `${Math.round(mediaRect.width)}|${pageEpoch}`;
+    if (record.roomKey !== key || record.roomFor !== bar) {
+      // kept only when the place it looks at is on screen: off it, the probe sees nothing and would call the room free
+      const seen = barRect.left >= 0 && barRect.right <= innerWidth && barRect.bottom + ODDS_GAP + 12 <= innerHeight && barRect.top >= 0;
+      record.roomKey = seen ? key : "";
+      record.roomFor = bar;
+      record.roomOk = roomIsFree(bar, barRect, mediaRect);
+    }
+    return record.roomOk;
+  }
+
   function roomIsFree(bar, barRect, mediaRect) {
     const y = barRect.bottom + ODDS_GAP + 11;
     const REPLACED = /^(IMG|SVG|VIDEO|CANVAS|BUTTON|INPUT)$/;
@@ -1155,18 +1184,73 @@
   function placeCrest(read) {
     const { record, rect, tier } = read;
     const held = entryOf(record);
-    const shown = !read.covered && (tier === "full" || tier === "compact") && held && held.entry && rect.bottom > 0 && rect.top < innerHeight && rect.width > 0;
+    // Drawn for every card near the screen (the visibility margin), so one scrolled in already has its crest.
+    const shown = !read.covered && (tier === "full" || tier === "compact") && held && held.entry && rect.width > 0;
     const button = shown ? buildCrest(record, held.entry, tier) : null;
     if (!button) {
       dropCrest(record);
       return;
     }
     const icon = subIconOf(record, rect);
-    const left = icon ? icon.getBoundingClientRect().right + 4 : rect.left + rect.width / 2;
+    record.crestDx = (icon ? icon.getBoundingClientRect().right + 4 : rect.left + rect.width / 2) - rect.left;
     button.classList.toggle("sfx-crest--beside", Boolean(icon));
-    button.style.left = `${Math.round(left)}px`;
+    setCrest(record, rect, read.crestHidden);
+  }
+
+  function setCrest(record, rect, hidden) {
+    const button = record.crest;
+    button.style.left = `${Math.round(rect.left + record.crestDx)}px`;
     button.style.top = `${Math.round(rect.top)}px`;
+    button.style.visibility = hidden ? "hidden" : "";
     if (island && island.record === record) positionIsland();
+  }
+
+  /**
+   * The card's own box (the picture's ancestors not much bigger than it), found once: what sits at the card's top edge belongs to
+   * it unless something of the page's lies over it there.
+   */
+  function blockOf(record, rect) {
+    if (record.block && record.block.isConnected && record.block.contains(record.media)) return record.block;
+    let block = record.media;
+    for (let el = record.media.parentElement, depth = 0; el && el !== document.body && depth < 8; el = el.parentElement, depth += 1) {
+      const r = el.getBoundingClientRect();
+      if (r.width > rect.width * 1.3 + 8 || r.height > rect.height * 1.6 + 8) break;
+      block = el;
+    }
+    record.block = block;
+    return block;
+  }
+
+  /**
+   * Whether the card's top edge is under something of the page's, a sticky search bar or header (3b.6): the crest, which lives
+   * above the page, then hides rather than ride over it. One hit test, at the crest's place.
+   */
+  function crestCovered(record, rect) {
+    const x = rect.left + (record.crestDx === undefined ? rect.width / 2 : record.crestDx);
+    const y = rect.top + 3;
+    if (x < 0 || x >= innerWidth || y < 0 || y >= innerHeight) return false;
+    const block = blockOf(record, rect);
+    for (const el of document.elementsFromPoint(x, y)) {
+      if (el.closest("[data-sfx]")) continue;
+      return !(block.contains(el) || el.contains(record.media));
+    }
+    return false;
+  }
+
+  /** A scroll moves the crests and nothing else (3b.1): every card's box is read first, then every crest is written. */
+  function moveCrests() {
+    moving = 0;
+    if (!enabled) return;
+    const started = performance.now();
+    const reads = [];
+    for (const record of live) {
+      if (!record.crest || !record.crest.isConnected) continue;
+      const rect = record.media.getBoundingClientRect();
+      reads.push([record, rect, crestCovered(record, rect)]);
+    }
+    for (const [record, rect, hidden] of reads) setCrest(record, rect, hidden);
+    perf.moves += 1;
+    perf.slowestMove = Math.max(perf.slowestMove, performance.now() - started);
   }
 
   function statCell(label, value, background, title) {
@@ -1320,6 +1404,7 @@
       wire(record, drawn);
       created = true; // a new tile is measured on the next pass, the same as a new wrapper
     }
+    if (top === null) return true; // its place is probed on a later pass: hidden till then
     if (box && at && !created) {
       // Sorare's layout decides where an absolutely placed box starts, so the tile is moved by how far it is from
       // where it should be, rather than worked out from their styles.
@@ -1404,7 +1489,8 @@
       .filter(({ r }) => r.width > 0 && r.height > 0);
     const underSheet = (media, rect) => {
       const x = rect.left + rect.width / 2;
-      return sheets.some(({ el, r }) => !el.contains(media) && x >= r.left && x <= r.right && rect.top >= r.top && rect.top <= r.bottom);
+      // a sheet as tall as the screen covers the cards above and below it too (their crests are drawn just off the screen)
+      return sheets.some(({ el, r }) => !el.contains(media) && x >= r.left && x <= r.right && ((rect.top >= r.top && rect.top <= r.bottom) || (r.top <= 0 && r.bottom >= innerHeight)));
     };
 
     // Read every measurement first, then write every change: alternating the two makes a page of 200 cards stutter.
@@ -1425,6 +1511,7 @@
         at: ribs ? { left: parseFloat(ribs.style.left) || 0, top: parseFloat(ribs.style.top) || 0 } : null,
         top: tier === "skip" || !box ? rect.top + INSET.full.y : clearOfCached(record, rect, size, box.width, box.height),
         odds: null,
+        crestHidden: record.crest && record.crest.isConnected ? crestCovered(record, rect) : false,
       };
       const held = entryOf(record);
       if (tier === "full" && held && held.entry && held.entry.game && record.crowded !== pageEpoch) {
@@ -1438,7 +1525,7 @@
             row,
             box: row ? row.getBoundingClientRect() : null,
             at: row ? { left: parseFloat(row.style.left) || 0, top: parseFloat(row.style.top) || 0 } : null,
-            crowded: Boolean(row) && record.roomBar === bar && !roomIsFree(bar, barRect, rect),
+            crowded: Boolean(row) && record.roomBar === bar && !roomFree(record, bar, barRect, rect),
           };
         }
       }
@@ -1607,6 +1694,7 @@
     const key = `${Math.round(rect.width)}|${Math.round(rect.height)}|${pageEpoch}`;
     if (record.cornerKey === key) return record.corner;
     if (rect.top < 0 || rect.bottom > innerHeight || rect.left < 0 || rect.right > innerWidth) return record.corner || null; // probed only in full view
+    if (overBudget()) return record.corner || null; // the next pass probes it
     record.cornerKey = key;
     record.hangs = undefined; // asked again with the corner: a re-rendered card may sit in another box
     record.host = null;
@@ -2103,6 +2191,7 @@
   }
 
   const onGuidePress = guard((event) => {
+    setTimeout(guard(schedule), 300); // a press may change the page by a class alone (Sorare's captain), which is not watched
     const guide = globalThis.__sofixGuide;
     if (!guide || typeof guide.advance !== "function") return;
     for (const record of live) {
@@ -2117,11 +2206,42 @@
 
   // -- the loop --------------------------------------------------------------------------------------------------
 
+  /**
+   * One pass on the next frame. While a scroll is on, at most one every 400 ms (cards scrolled into view still get their tiles on
+   * a long scroll), and the one its end runs; the frames between only move the crests (3b.1).
+   */
   function schedule() {
-    if (!enabled || frame) return;
+    if (!enabled || frame || (settleTimer && performance.now() - passStarted < SCROLL_PASS_MS)) return;
     frame = requestAnimationFrame(guard(pass));
   }
-  const onMove = () => schedule();
+
+  // What a pass costs (3b.8): the slowest of the last minute goes to the popup; the counters are what the tests read.
+  const perf = { passes: 0, discovers: 0, moves: 0, slowest: 0, slowestMove: 0, minute: 0 };
+  globalThis.__sofixPerf = perf;
+  let moving = 0;
+  let settleTimer = 0;
+  let soonTimer = 0;
+  const SETTLE_MS = 150;
+  const SCROLL_PASS_MS = 400;
+  const SOON_MS = 250;
+  /** Scrolling moves only the crests; the full pass (new cards, crests for cards come into view) waits until it stops. */
+  const onMove = () => {
+    if (!enabled) return;
+    if (!moving) moving = requestAnimationFrame(guard(moveCrests));
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(guard(() => {
+      settleTimer = 0;
+      schedule();
+    }), SETTLE_MS);
+  };
+  /** The page changed: one pass at most every 250 ms, however often it changes (3b.5). */
+  const scheduleSoon = () => {
+    if (soonTimer) return;
+    soonTimer = setTimeout(guard(() => {
+      soonTimer = 0;
+      schedule();
+    }), SOON_MS);
+  };
 
   /** A page that moves to another gameweek (Sorare changes the address without a reload) must not keep the last one's numbers. */
   function watchFixture() {
@@ -2142,6 +2262,24 @@
   function pass() {
     frame = 0;
     if (!enabled) return;
+    const started = performance.now();
+    passStarted = started;
+    budgetHit = false;
+    try {
+      passOnce();
+      if (budgetHit) schedule();
+    } finally {
+      const minute = Math.floor(Date.now() / 60000);
+      if (minute !== perf.minute) {
+        perf.minute = minute;
+        perf.slowest = 0;
+      }
+      perf.passes += 1;
+      perf.slowest = Math.max(perf.slowest, performance.now() - started);
+    }
+  }
+
+  function passOnce() {
     if (!alive()) {
       dead = true;
       stop();
@@ -2151,6 +2289,7 @@
     watchFixture();
     if (scan) {
       scan = false;
+      perf.discovers += 1;
       discover();
     }
     identify().catch(() => {}); // asks the bridge; its answer draws on a later pass
@@ -2178,11 +2317,11 @@
           seen += 1;
           if (record.ident === "done") matched += 1;
         }
-        const text = `${seen}/${matched}/${fixtureNow || ""}`;
+        const text = `${seen}/${matched}/${fixtureNow || ""}/${Math.round(perf.slowest)}`;
         if (text === lastReport) return;
         lastReport = text;
         try {
-          chrome.runtime.sendMessage({ type: "overlay-stats", seen, matched, fixture: fixtureNow }, () => void chrome.runtime.lastError);
+          chrome.runtime.sendMessage({ type: "overlay-stats", seen, matched, fixture: fixtureNow, slowest: Math.round(perf.slowest) }, () => void chrome.runtime.lastError);
         } catch {
           dead = true;
         }
@@ -2212,13 +2351,13 @@
     const theirs = (change) =>
       change.type === "attributes"
         ? !ours(change.target)
-        : !ours(change.target) && [...change.addedNodes, ...change.removedNodes].some((node) => !ours(node));
+        : !ours(change.target) && [...change.addedNodes, ...change.removedNodes].some((node) => node.nodeType === 1 && !ours(node)); // a timer's text ticking is not news
     mutations = new MutationObserver(
       guard((list) => {
         if (!list.some(theirs)) return;
         pageEpoch += 1;
         if (list.some((change) => change.type === "attributes" || change.addedNodes.length)) scan = true;
-        schedule();
+        scheduleSoon();
       }),
     );
     mutations.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset", "poster", "alt"] });
@@ -2249,6 +2388,11 @@
     document.removeEventListener("pointerup", onGuidePress, true);
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
+    if (moving) cancelAnimationFrame(moving);
+    moving = 0;
+    clearTimeout(settleTimer);
+    clearTimeout(soonTimer);
+    settleTimer = soonTimer = 0;
     clearTimeout(askTimer);
     askTimer = 0;
     clearInterval(liveTimer);

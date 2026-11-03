@@ -452,7 +452,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (message?.type === "overlay-stats") {
     const seen = Number(message.seen) || 0;
     const matched = Number(message.matched) || 0;
-    chrome.storage.local.set({ overlayStats: { seen, matched, fixture: fixtureOf(message.fixture), at: Date.now() } });
+    const slowest = Math.min(60000, Math.max(0, Math.round(Number(message.slowest) || 0)));
+    chrome.storage.local.set({ overlayStats: { seen, matched, fixture: fixtureOf(message.fixture), slowest, at: Date.now() } });
     return;
   }
   if (message?.type === "open-app") {

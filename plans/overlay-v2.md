@@ -318,6 +318,18 @@ canvas's filled purple disc. Step 3 is done.
 
 ### Step 3b. A light overlay (owner, 3 Nov: "the page lags, it's unbearable"; next after step 3)
 
+**Built (4 Nov, 0.4.49).** Measured first on his gallery (20 cards, 0.4.48, a scripted scroll with no screenshots): every frame
+about 1 s. In the e2e page a pass took 115 ms, 94 of them in 57 `clearOf` probes (about 1.6 ms each). Done: (1) a scroll moves only
+the crests (`moveCrests`, read then write), with a pass at most every 400 ms while it lasts (so cards scrolled in still get their
+tiles; strict "no pass" left them bare on a long scroll) and one 150 ms after it stops; `schedule()` itself defers, so every caller
+does; crests are drawn for cards in the 300 px visibility margin so one scrolled in has its crest. (2) `clearOf`, `topRightOf`,
+`barFor` and the room check are kept per card size and page change, as offsets, probed only with the card wholly on screen.
+(5) Sorare's text-only changes (auction timers) are not news; page changes run a pass at most every 250 ms; a press looks again
+after 300 ms (the captain is a class). (6) a crest under a sticky bar of the page hides (one hit test at its place). (7) the live
+dot pulses with transform and opacity. (8) each pass is timed; probes stop at 8 ms a pass and the rest wait a frame (their tile
+stays hidden); the slowest pass of the minute reaches the popup. Not done: (4) skipping unchanged cards (tiles compare a
+signature already; the probes were the cost) and per-node `contain` (it would clip the focus ring).
+
 **Measured (3 Nov, his Chrome, 0.4.37, Hot Streaks builder, 34 cards, overlay on):** scrolling five ticks down and up gave frames
 of 170-640 ms, almost all inside animation-frame callbacks with no page script named (Long Animation Frames API; content scripts
 are not attributed), while Sorare's own named script took 6 ms. The overlay's redraw runs in an animation frame, so it is the

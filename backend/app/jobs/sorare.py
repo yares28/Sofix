@@ -602,7 +602,9 @@ def run(
                 put(
                     db,
                     f"league_squads:{code}",
-                    foreign_coverage.compact_index(index) if code in {"CL", "EL", "CONF"} else index,
+                    foreign_coverage.compact_index(index)
+                    if code in {"CL", "EL", "CONF"}
+                    else foreign_coverage.stored(index),
                     started,
                 )
             db.rollback()

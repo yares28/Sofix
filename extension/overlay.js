@@ -56,6 +56,7 @@
   let sending = false;
   let downUntil = 0;
   let fixtureNow = core.fixtureOf(location.href); // the gameweek the page is about, from its address; null when it names none
+  let boardNow = core.composeBoard(location.pathname); // the leaderboard of the lineup builder the page is, else null
 
   const now = () => Date.now();
   // Reloading the extension leaves this script running in an open tab with nothing to talk to, and the worker puts a fresh copy
@@ -188,8 +189,15 @@
 
   // -- the numbers -----------------------------------------------------------------------------------------------
 
-  /** Numbers belong to the player, so his own slug is asked for when it is known; otherwise the card's. */
-  const slugOf = (record) => (record.playerSlug ? `p:${record.playerSlug}` : record.cardSlug ? `c:${record.cardSlug}` : null);
+  /**
+   * Numbers belong to the player, so his own slug is asked for when it is known; otherwise the card's. On a lineup page a card is
+   * about the game Sorare put in that lineup (plans/overlay-v2.md 1.7), so its game goes with it: "p:slug@Game:id".
+   */
+  const slugOf = (record) => {
+    const base = record.playerSlug ? `p:${record.playerSlug}` : record.cardSlug ? `c:${record.cardSlug}` : null;
+    const game = base && gameHint(record);
+    return game ? `${base}@${game}` : base;
+  };
 
   function entryOf(record) {
     const slug = slugOf(record);
@@ -264,15 +272,26 @@
 
   function sendAsking() {
     askTimer = 0;
-    const batch = [...asking].slice(0, 120);
-    const cards = batch.filter((s) => s.startsWith("c:")).map((s) => s.slice(2));
-    const players = batch.filter((s) => s.startsWith("p:")).map((s) => s.slice(2));
+    // One game per player in a call (a player in two lineups of different games is asked twice, one call after the other).
+    const batch = [];
+    const bases = new Set();
+    const baseOf = (key) => key.split("@")[0];
+    for (const key of asking) {
+      if (bases.has(baseOf(key))) continue;
+      bases.add(baseOf(key));
+      batch.push(key);
+      if (batch.length >= 120) break;
+    }
+    const cards = batch.filter((s) => s.startsWith("c:")).map((s) => baseOf(s).slice(2));
+    const players = batch.filter((s) => s.startsWith("p:")).map((s) => baseOf(s).slice(2));
+    const games = Object.fromEntries(batch.filter((s) => s.includes("@")).map((s) => [baseOf(s), s.slice(s.indexOf("@") + 1)]));
     sending = true;
     const askedFor = fixtureNow;
+    const askedBoard = boardNow;
     try {
-      chrome.runtime.sendMessage({ type: "overlay-numbers", cards, players, fixture: askedFor }, (reply) => {
+      chrome.runtime.sendMessage({ type: "overlay-numbers", cards, players, fixture: askedFor, games, board: askedBoard }, (reply) => {
         sending = false;
-        if (askedFor !== fixtureNow) {
+        if (askedFor !== fixtureNow || askedBoard !== boardNow) {
           schedule(); // the page moved to another gameweek while this was out: its answer is about the last one
           return;
         }
@@ -289,7 +308,7 @@
             setTimeout(guard(schedule), 30500);
           } else {
             appState = "ok";
-            for (const slug of batch) numbers.set(slug, { at: now(), entry: (slug[0] === "c" ? reply.cards : reply.players)[slug.slice(2)] || null });
+            for (const key of batch) numbers.set(key, { at: now(), entry: (key[0] === "c" ? reply.cards : reply.players)[baseOf(key).slice(2)] || null });
           }
           for (const slug of batch) asking.delete(slug);
           schedule();
@@ -1374,7 +1393,11 @@
         return { multiplier: c.bonus, unknown: "Sorare gave no bonus for this card", state, raw: c.score === null || !c.bonus ? null : c.score / c.bonus };
       });
       const result = core.pointsNeeded(target, cards);
-      return { slugs: new Set(lineup.cards.map((c) => c.slug)), pills: new Map(lineup.cards.map((c, i) => [c.slug, core.needBadge(result, i, target, c.captain)])) };
+      return {
+        slugs: new Set(lineup.cards.map((c) => c.slug)),
+        pills: new Map(lineup.cards.map((c, i) => [c.slug, core.needBadge(result, i, target, c.captain)])),
+        games: new Map(lineup.cards.filter((c) => c.game).map((c) => [c.slug, c.game])),
+      };
     });
     needCache = { key, lineups };
     return lineups;
@@ -1399,13 +1422,24 @@
     return null;
   }
 
-  /** This card's pill: only on a lineup page, only when its team block is one of your lineups still in play. */
-  function needFor(record) {
+  /** The lineup of yours still in play whose team block this card is drawn in, on a lineup page; else null. */
+  function lineupOf(record) {
     if (!needPage() || !record.cardSlug) return null;
     const team = teamOf(record);
     if (!team) return null;
-    const lineup = needLineups().find((l) => l.slugs.size === team.size && [...l.slugs].every((slug) => team.has(slug)));
+    return needLineups().find((l) => l.slugs.size === team.size && [...l.slugs].every((slug) => team.has(slug))) || null;
+  }
+
+  /** This card's pill: only on a lineup page, only when its team block is one of your lineups still in play. */
+  function needFor(record) {
+    const lineup = lineupOf(record);
     return lineup ? lineup.pills.get(record.cardSlug) || null : null;
+  }
+
+  /** The game Sorare put this card in, when it sits in one of your lineups on a lineup page. */
+  function gameHint(record) {
+    const lineup = lineupOf(record);
+    return lineup ? lineup.games.get(record.cardSlug) || null : null;
   }
 
   /** The pill for one card: drawn, moved to the art's top right, or taken off. */
@@ -1702,8 +1736,10 @@
   /** A page that moves to another gameweek (Sorare changes the address without a reload) must not keep the last one's numbers. */
   function watchFixture() {
     const here = core.fixtureOf(location.href);
-    if (here === fixtureNow) return;
+    const board = core.composeBoard(location.pathname); // another competition's builder counts other games
+    if (here === fixtureNow && board === boardNow) return;
     fixtureNow = here;
+    boardNow = board;
     numbers.clear();
     asking.clear();
     liveByMatch.clear(); // another gameweek's matches are not these

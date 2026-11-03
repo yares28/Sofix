@@ -42,7 +42,14 @@ export async function POST(request: NextRequest) {
     ? dockMissions(await missionsToday(sorare, await loadMissions(), undefined, now, await loadMissionPool()))
     : undefined;
   // Every LaLiga, Premier League, Bundesliga and Ligue 1 player Sofix rates, so Arcade commons and players you do not hold get numbers too.
-  const others = { market: [...(sorare.market ?? []), ...plPlayers, ...blPlayers, ...flPlayers, ...clPlayers, ...elPlayers, ...confPlayers], grids: [loaded.grid, pl.grid, bl.grid, fl.grid, cl.grid, el.grid, conf.grid] };
+  // A lineup page names each card's game: one of the week being played is found in that week's plan (read only then).
+  const played = parsed.data.games ? scoringWeek(sorare) : null;
+  const playedPlan = played ? (weekPlan(sorare, played.id) ?? await loadFrozenPlan(played.slug, sorare)) : null;
+  const others = {
+    market: [...(sorare.market ?? []), ...plPlayers, ...blPlayers, ...flPlayers, ...clPlayers, ...elPlayers, ...confPlayers],
+    grids: [loaded.grid, pl.grid, bl.grid, fl.grid, cl.grid, el.grid, conf.grid],
+    weeks: playedPlan ? [playedPlan] : [],
+  };
   const numbers = overlayNumbers(data, loaded.grid, parsed.data, now, archived, others);
   // The dock, on a page naming no gameweek or the one being played: while that week has Pro lineups before their first kickoff,
   // those come first (they are the only lineups still open); else the week asked for, or the one being planned.

@@ -242,6 +242,9 @@ export type PlayerGame = {
   teamCrest?: string | null;
   opponent: string;
   opponentCrest: string | null;
+  /** The opponent's three letters and colour, for a crest Sorare does not have (payloads from 3 Nov 2026). */
+  opponentCode?: string | null;
+  opponentColor?: string | null;
   venue: "H" | "A";
   odds?: GameOdds;
   /**
@@ -356,6 +359,8 @@ export type GameweekPlan = {
   source: "sorare" | "form";
   playing: { cards: number; players: PlayingPlayer[] };
   playable: Option[];
+  /** Each leaderboard's leagues (payloads from 3 Nov 2026), so a page about one shows the game that counts there. */
+  boards?: Record<string, string[]>;
   blocked: Blocked[];
   notWorth: AlsoOpen[];
   plans: Plan[];
@@ -501,7 +506,22 @@ export type MarketPlayer = {
   xd?: number;
   start?: number;
   x?: number;
-  fixture?: { team?: string | null; teamCrest?: string | null; competition?: string; opponent: string | null; opponentCrest: string | null; venue: "H" | "A" | null; kickoff: string | null };
+  fixture?: MarketFixture;
+  /** His first game of the week after, when there is one (payloads from 3 Nov 2026): what the sorare.com overlay draws for it. */
+  next?: { p: number; pStart?: number; startSource?: StartSource; start?: number; x: number; fixture: MarketFixture };
+};
+
+export type MarketFixture = {
+  id?: string;
+  team?: string | null;
+  teamCrest?: string | null;
+  competition?: string;
+  opponent: string | null;
+  opponentCrest: string | null;
+  opponentCode?: string | null;
+  opponentColor?: string | null;
+  venue: "H" | "A" | null;
+  kickoff: string | null;
 };
 
 export type Sorare = {

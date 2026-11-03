@@ -8,7 +8,7 @@ clear; "comes on" is rebuilt from real minutes.
   panel, a small card), Edge states, On Sorare's builder, On Sorare's Arcade lineups, Captain and price per point (with the
   team gauge and panel), Comes on and start % hover. Every number on it is real data from 2-3 Nov 2026; a bracket marks a
   number that only exists after step 1.
-- **Status:** step 0 shipped 3 Nov 2026 (extension 0.4.30); step 1 next. Section 9 keeps the decision log.
+- **Status:** steps 0 and 1 shipped 3 Nov 2026 (extensions 0.4.30, 0.4.31); step 2 next. Section 9 keeps the decision log.
 - **Reads before building:** AGENTS.md (Sorare safety, Pages, Limits), [overlay.md](overlay.md),
   [overlay-bridge.md](overlay-bridge.md), [points-needed.md](points-needed.md), `docs/context.md` contract EXTENSION-ACTIONS-001.
 
@@ -228,6 +228,15 @@ five tiles).
 
 Accept on real data: the owner's Hot Streak lineup shows all five tiles (Valverde, Ezzalzouli GW28; Nicolas, Laporte, Brassier
 GW29), and Ezzalzouli's Pro Spain builder shows Elche (Sun), not Dortmund.
+
+**Result (3 Nov):** squads are read with a second alias (`a0`, the week after) and each team's `code` and `styleGuideColor`
+(checked against Sorare's schema and one live read: Atlético `ATM`, `#ce3524`); every market row gains `next` (the week after's
+first game: p, pStart, start, x, fixture) and each fixture `id`, `opponentCode`, `opponentColor`; each week gains `boards`
+(leaderboard → leagues). The kept domestic squad indexes drop `a0` (`foreign_coverage.stored`: a PL index would grow from ~1.0
+to ~1.5 MB of a 1.6 MB block), so a quick run that reuses one gives that league no next-week game. The app answers per game
+(`match` on each entry); the worker keys its cache `ov:<week>:<board>:<game>:<slug>`. Not built: the "game with no number"
+answer (no published game lacks an xScore today) and the per-competition xScore on a builder (the number stays the week's;
+only the game and its FDR follow the board). Block sizes and refresh time measured on the first refresh after the push.
 
 ### Step 2. Crest, island and states
 

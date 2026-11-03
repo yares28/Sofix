@@ -221,7 +221,7 @@ describe("the overlay's numbers", () => {
   it("asks again once what it kept is older than fifteen minutes", async () => {
     worker.respondWith(known(["unai-simon"]));
     await worker.send({ type: "overlay-numbers", cards: [], players: ["unai-simon"] });
-    const key = "ov:now:p:unai-simon";
+    const key = "ov:now:-:-:p:unai-simon";
     worker.session.set(key, { at: Date.now() - 14 * 60_000, entry: { x: 50 } });
     await worker.send({ type: "overlay-numbers", cards: [], players: ["unai-simon"] });
     expect(worker.calls).toHaveLength(1);
@@ -242,6 +242,22 @@ describe("the overlay's numbers", () => {
     await ask();
     await ask("football-18-22-sep-2026");
     expect(worker.calls).toHaveLength(2);
+  });
+
+  it("keeps a lineup's card per game and per builder, and sends only well-formed hints", async () => {
+    worker.respondWith(known(["unai-simon"]));
+    const ask = (games?: unknown, board?: unknown) => worker.send({ type: "overlay-numbers", cards: [], players: ["unai-simon"], games, board });
+    await ask({ "p:unai-simon": "Game:0b0c1f2e-aaaa-4bbb-8ccc-000000000001" });
+    await ask({ "p:unai-simon": "Game:0b0c1f2e-aaaa-4bbb-8ccc-000000000002" }); // the same player in a lineup of another game is another question
+    await ask({ "p:unai-simon": "Game:0b0c1f2e-aaaa-4bbb-8ccc-000000000001" });
+    expect(worker.calls).toHaveLength(2);
+    expect(worker.body(worker.calls[0]!)).toEqual({ cards: [], players: ["unai-simon"], games: { "p:unai-simon": "Game:0b0c1f2e-aaaa-4bbb-8ccc-000000000001" } });
+    await ask(undefined, "football-6-10-nov-2026-seasonal-spain-in_season_spain_limited");
+    expect(worker.body(worker.calls[2]!)).toEqual({ cards: [], players: ["unai-simon"], board: "football-6-10-nov-2026-seasonal-spain-in_season_spain_limited" });
+    // A hint for a slug not asked about, or not shaped like a game, and a board not shaped like one, go nowhere.
+    await ask({ "p:someone-else": "Game:cccc", "p:unai-simon": "<script>" }, "../x");
+    expect(worker.calls).toHaveLength(4);
+    expect(worker.body(worker.calls[3]!)).toEqual({ cards: [], players: ["unai-simon"] });
   });
 
   it("ignores a gameweek that is not shaped like one", async () => {

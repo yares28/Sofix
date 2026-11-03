@@ -13,7 +13,7 @@ def test_european_cold_start_uses_exact_36_main_stage_clubs_and_reuses_shared_sq
     clubs = [f"main-{i}" for i in range(36)]
     calls = []
 
-    def squad(client, club, fixture, strict=False):
+    def squad(client, club, fixture, strict=False, ahead=None):
         calls.append(club)
         return [{"slug": club, "position": "Defender", "activeClub": {"slug": club}, "plan": [{"id": "selected"}]}]
 
@@ -38,7 +38,7 @@ def test_cold_start_covers_every_club_and_deduplicates_transfers(monkeypatch, co
     clubs = [{"slug": f"club-{i}"} for i in range(size)]
     client = SimpleNamespace(query=lambda *args: {"football": {"competition": {"teams": {"nodes": clubs}}}})
 
-    def squad(client, club, fixture, strict=False):
+    def squad(client, club, fixture, strict=False, ahead=None):
         assert strict
         return [
             {
@@ -79,7 +79,7 @@ def test_partial_failure_keeps_identity_but_expires_old_game_and_projection(monk
         }
     }
 
-    def squad(client, club, fixture, strict=False):
+    def squad(client, club, fixture, strict=False, ahead=None):
         if club == "club-0":
             raise SorareError("unavailable")
         return [{"slug": club, "activeClub": {"slug": club}, "position": "Defender"}]
@@ -104,7 +104,9 @@ def test_unknown_football_role_keeps_identity_without_inventing_role_or_forecast
     monkeypatch.setattr(
         f.sync,
         "_squad",
-        lambda client, club, fixture, strict: [{"slug": club, "position": "Unknown", "activeClub": {"slug": club}}],
+        lambda client, club, fixture, strict, ahead=None: [
+            {"slug": club, "position": "Unknown", "activeClub": {"slug": club}}
+        ],
     )
     result = f.collect_index(None, "EL", "gw", NOW, clubs=clubs)
     assert result["complete"] and len(f.rows(result)) == 36
@@ -137,7 +139,7 @@ def test_squad_coaches_are_not_indexed_as_unknown_position_players(monkeypatch):
     clubs = [{"slug": f"club-{i}"} for i in range(20)]
     client = SimpleNamespace(query=lambda *args: {"football": {"competition": {"teams": {"nodes": clubs}}}})
 
-    def squad(client, club, fixture, strict=False):
+    def squad(client, club, fixture, strict=False, ahead=None):
         return [
             {"slug": club, "position": "Defender", "activeClub": {"slug": club}},
             {"slug": club + "-coach", "position": "Coach", "activeClub": {"slug": club}},
@@ -148,3 +150,29 @@ def test_squad_coaches_are_not_indexed_as_unknown_position_players(monkeypatch):
     assert index["complete"]
     assert len(f.rows(index)) == 20
     assert all(row["pos"] == "DEF" for row in f.rows(index))
+
+
+def test_a_squad_asks_for_the_week_after_too_and_the_kept_index_leaves_it_out():
+    asked = []
+
+    def query(text, variables):
+        asked.append((text, variables))
+        page = {"nodes": [{"slug": "one", "plan": [], "a0": [{"id": "next"}]}], "pageInfo": {"hasNextPage": False}}
+        return {"football": {"club": {"activePlayers": page}}}
+
+    players = f.sync._squad(SimpleNamespace(query=query), "club", "gw-29", ahead="gw-30")
+    text, variables = asked[0]
+    assert "$plan:String!" in text and "$a0:String!" in text and "a0: anyGamesForFixture(so5FixtureSlug: $a0)" in text
+    assert "code styleGuideColor" in text  # the opponent's three letters and colour, for a crest Sorare does not have
+    assert (variables["plan"], variables["a0"]) == ("gw-29", "gw-30")
+    assert players[0]["a0"] == [{"id": "next"}]
+    f.sync._squad(SimpleNamespace(query=query), "club", "gw-29")
+    assert "$a0" not in asked[-1][0] and "a0" not in asked[-1][1]
+
+    index = {
+        "competition": "PL",
+        "clubs": {"club": [{"slug": "one", "player": {"slug": "one", "plan": [1], "a0": [2]}}]},
+    }
+    kept = f.stored(index)
+    assert kept["clubs"]["club"][0]["player"] == {"slug": "one", "plan": [1]}
+    assert index["clubs"]["club"][0]["player"]["a0"] == [2]  # the run itself still has it

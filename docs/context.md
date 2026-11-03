@@ -462,7 +462,7 @@ Coverage is all 36 main-stage clubs and their current players/calendar; qualifie
 
 **Guard:** EXT: bearer EXTENSION_TOKEN, configured length >=32, timing-safe comparison. Deployment protection is additional.
 
-**Input:** OverlayRequest schema in overlay.ts: selected week/fixture and bounded requested cards/features.
+**Input:** OverlayRequest schema in overlay.ts: selected week/fixture, bounded requested cards/features, optional per-card Sorare game ids (a lineup page's games, <=120) and a builder leaderboard slug. Without a named week each card is answered for its next game (planned week, else the week after); a named game reads the week being played too.
 
 **Response/cache:** 200 ok plus requested numbers/plan/missions/worth/profile; 400 invalid, 401 auth, 503 Sorare unsynced; no-store.
 
@@ -875,15 +875,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: plan games carry the board's own read (source model) where a board rates the game, Sorare's odds elsewhere (publish.with_board, jobs/sorare.board_games/board_of); selection logic unchanged apart from the favourites contender now reading that block.",
+        "note": "3 Nov 2026: market rows gain the week after's first game (next) and weeks gain boards (leaderboard leagues); selection and plans unchanged.",
         "files": {
-          "backend/app/sorare/publish.py": "3d229106445c9e900f64a4c0c9679313aa00fb6614c0dedfcf6aa98fe0cc334b",
+          "backend/app/sorare/publish.py": "6a2934104b82f7b7e6998611558c8806786c9ad9105d38e9250dfe00b6ae1959",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "707587b2faa749b9fa14c6cf0dd002841dc51ebc8dcb969a28eaf84b8400f387",
+          "backend/app/jobs/sorare.py": "501f72b18aad3fb23ff099048ba2bdefc59c5456c1e76d996f92a7e9367b91b6",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
-          "backend/tests/test_sorare_publish.py": "2ae4429ef5326f1c38e8ed0294c41934f7e7783cc6fe50535bbd0067ce279067"
+          "backend/tests/test_sorare_publish.py": "22fa2c83b848f4422f4bbb5ed67d07aca3537edf78f50f6634f98edcaf7d9c2a"
         }
       }
     },
@@ -997,12 +997,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: build_payload gains an optional board read for the games' odds block; forecasts, xScore and raw numbers unchanged.",
+        "note": "3 Nov 2026: league players also forecast for the week after (use_sorare=False, as the cards' weeks ahead); raw numbers unchanged.",
         "files": {
-          "backend/app/sorare/publish.py": "3d229106445c9e900f64a4c0c9679313aa00fb6614c0dedfcf6aa98fe0cc334b",
+          "backend/app/sorare/publish.py": "6a2934104b82f7b7e6998611558c8806786c9ad9105d38e9250dfe00b6ae1959",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
-          "backend/tests/test_sorare_publish.py": "2ae4429ef5326f1c38e8ed0294c41934f7e7783cc6fe50535bbd0067ce279067"
+          "backend/tests/test_sorare_publish.py": "22fa2c83b848f4422f4bbb5ed67d07aca3537edf78f50f6634f98edcaf7d9c2a"
         }
       }
     },
@@ -1052,11 +1052,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-02",
-        "note": "2 Nov 2026: the Pro board payload's captainBonus field (added earlier today for pills) removed again; nothing else changed.",
+        "date": "2026-11-03",
+        "note": "3 Nov 2026: play.ts types only (MarketFixture, next, boards, opponentCode/Color); rewards logic untouched.",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "c42c60f67795485d31ddaea7b08a4c9fc2cdb509ccdabd649a4ab8f9e7798c28",
+          "frontend/lib/play.ts": "3900cb9ea1b8510db4323a79a56fa73510cb3df935fcd7ce9751d2df1fbb486f",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1573,15 +1573,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: manifest version 0.4.30 only; no new actions or permissions.",
+        "note": "3 Nov 2026: overlay-numbers carries game ids (Game:uuid, existing GAME_ID) and the builder board; cache keyed per week, board and game; no new actions or permissions.",
         "files": {
-          "extension/background.js": "bcd51b9230d765563617ab977034fe0494823d52a5d1cd25841a5be0b8b7d4f2",
+          "extension/background.js": "27807ad064f2508793285270965bbb7d4eeadb6225e385c8f143f09a18985696",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
           "extension/manifest.template.json": "3725c3e298a19a52e60542fe221de753cd720f833cc253036ecbb41c71e5c38f",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "cf3b5cc7abf1723add98bd67ee2bc80298c726606f56ee6defa2a83bc191a7bc"
+          "frontend/lib/extensionBackground.test.ts": "c40a3dd282c313ba5165002813a9f4b2a41572d745c449016f8be3cfc7941c35"
         }
       }
     },
@@ -2317,10 +2317,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-29",
-        "note": "Route source inspected; schema helpers remain authoritative. No endpoint invocation or live authorization test.",
+        "date": "2026-11-03",
+        "note": "3 Nov 2026: games/board inputs; answers per game across planned week, week after and (for a named game) the week being played; one extra frozen-plan read only when games are sent.",
         "files": {
-          "frontend/app/api/ext/overlay/route.ts": "959652a28186f2cb4a731936bf4b30332549c0a4481b88c8d17af0e9ca53a513",
+          "frontend/app/api/ext/overlay/route.ts": "c41987849188d727ace62ca421636b8ab3a2cc65152e690189b4f2ee9d7464a9",
           "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c",
           "frontend/app/api/ext/overlay/route.test.ts": "f9e172e280b60a33f62aa4e3a7380fe13bad0e9826c3da82c75255ec7c560509"
         }

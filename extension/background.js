@@ -392,7 +392,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return;
   }
   if (message?.type === "overlay-numbers") {
-    overlayNumbers(message.cards, message.players, fixtureOf(message.fixture)).then(reply);
+    overlayNumbers(message.cards, message.players, fixtureOf(message.fixture), message.games, boardOf(message.board)).then(reply);
     return true;
   }
   if (message?.type === "overlay-worth") {
@@ -456,6 +456,8 @@ const OVERLAY_BATCH = 120; // the app's cap per call
 const SLUG = /^[a-z0-9][a-z0-9_-]{0,119}$/;
 const FIXTURE = /^football-[a-z0-9-]{1,80}-\d{4}$/; // the gameweek a page's address names (core.fixtureOf), or nothing
 const fixtureOf = (value) => (typeof value === "string" && FIXTURE.test(value) ? value : null);
+const BOARD = /^[a-z0-9][a-z0-9_-]{0,160}$/; // a lineup builder's leaderboard (core.composeBoard)
+const boardOf = (value) => (typeof value === "string" && BOARD.test(value) ? value : null);
 let overlayDown = { until: 0, state: "unreachable" }; // after a failure, do not ask again for a moment
 
 const slugs = (value) => [...new Set(Array.isArray(value) ? value.filter((slug) => typeof slug === "string" && SLUG.test(slug)) : [])];
@@ -488,17 +490,21 @@ async function askApp(payload) {
   return { state: overlayDown.state };
 }
 
-async function overlayNumbers(cards, players, fixture = null) {
+async function overlayNumbers(cards, players, fixture = null, games = {}, board = null) {
   const wanted = [...slugs(cards).map((slug) => `c:${slug}`), ...slugs(players).map((slug) => `p:${slug}`)].slice(0, 400);
   if (!wanted.length) return { state: "ok", cards: {}, players: {} };
-  // What is kept is kept per gameweek: the numbers of one week are never the answer for a page about another.
-  const scope = `ov:${fixture || "now"}:`;
-  const cached = await chrome.storage.session.get(wanted.map((key) => `${scope}${key}`));
+  // A card a page puts in a game (a lineup's) is answered for that game: kept per game, never another game's numbers.
+  const gameOf = Object.fromEntries(
+    Object.entries(games && typeof games === "object" ? games : {}).filter(([key, id]) => wanted.includes(key) && typeof id === "string" && GAME_ID.test(id)),
+  );
+  // What is kept is kept per gameweek, builder and game: the numbers of one are never the answer for a page about another.
+  const keyOf = (key) => `ov:${fixture || "now"}:${board || "-"}:${gameOf[key] || "-"}:${key}`;
+  const cached = await chrome.storage.session.get(wanted.map(keyOf));
   const now = Date.now();
   const answers = {};
   const missing = [];
   for (const key of wanted) {
-    const hit = cached[`${scope}${key}`];
+    const hit = cached[keyOf(key)];
     if (hit && now - hit.at < OVERLAY_TTL_MS) answers[key] = hit.entry;
     else missing.push(key);
   }
@@ -508,13 +514,14 @@ async function overlayNumbers(cards, players, fixture = null) {
       cards: batch.filter((key) => key.startsWith("c:")).map((key) => key.slice(2)),
       players: batch.filter((key) => key.startsWith("p:")).map((key) => key.slice(2)),
     };
-    const answer = await askApp(fixture ? { ...asked, fixture } : asked);
+    const hints = Object.fromEntries(batch.filter((key) => gameOf[key]).map((key) => [key, gameOf[key]]));
+    const answer = await askApp({ ...asked, ...(fixture ? { fixture } : {}), ...(board ? { board } : {}), ...(Object.keys(hints).length ? { games: hints } : {}) });
     if (!answer.body) return { state: answer.state };
     const fresh = {};
     for (const slug of asked.cards) fresh[`c:${slug}`] = answer.body.cards?.[slug] ?? null;
     for (const slug of asked.players) fresh[`p:${slug}`] = answer.body.players?.[slug] ?? null;
     Object.assign(answers, fresh);
-    await chrome.storage.session.set(Object.fromEntries(Object.entries(fresh).map(([key, entry]) => [`${scope}${key}`, { at: Date.now(), entry }])));
+    await chrome.storage.session.set(Object.fromEntries(Object.entries(fresh).map(([key, entry]) => [keyOf(key), { at: Date.now(), entry }])));
   }
   const out = { state: "ok", cards: {}, players: {} };
   for (const [key, entry] of Object.entries(answers)) if (entry) out[key.startsWith("c:") ? "cards" : "players"][key.slice(2)] = entry;
@@ -699,7 +706,8 @@ const NEED_ENTRY_MS = 15 * 1000; // opening a lineup page reads them afresh, unl
 const NEED_GAME_MS = 2.5 * 60 * 60 * 1000; // a game this long after its kick-off may still be scoring
 const num = (value) => (typeof value === "number" && Number.isFinite(value) ? value : null);
 const appearancesOf = (lineup) => (Array.isArray(lineup?.taskAppearances) ? lineup.taskAppearances : []).flatMap((a) => (a?.anyCard?.slug
-  ? [{ slug: String(a.anyCard.slug), score: num(a.score), bonus: num(a.bonus), captain: a.captain === true, kickoff: typeof a.game?.date === "string" ? a.game.date : null }] : []));
+  ? [{ slug: String(a.anyCard.slug), score: num(a.score), bonus: num(a.bonus), captain: a.captain === true, kickoff: typeof a.game?.date === "string" ? a.game.date : null,
+    game: typeof a.game?.id === "string" && GAME_ID.test(a.game.id) ? a.game.id : null }] : []));
 const openLineup = (l) => l && l.__typename === "TaskLineup" && !l.draft && !l.cancelledAt && !["SUCCESSFUL", "FAILED"].includes(l.aasmState);
 
 /** What one read through here adds to the copy. */

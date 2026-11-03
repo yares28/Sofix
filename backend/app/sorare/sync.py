@@ -66,8 +66,8 @@ query($s:String!){ so5 { so5Leaderboard(slug:$s){
 _GAME_ODDS = "winOddsBasisPoints drawOddsBasisPoints loseOddsBasisPoints cleanSheetOdds"
 GAMES_FOR = (
     "{alias}: anyGamesForFixture(so5FixtureSlug: ${alias}) {{ id date competition {{ slug }} "
-    "homeTeam {{ slug name pictureUrl ... on Club {{ shortName }} }} "
-    "awayTeam {{ slug name pictureUrl ... on Club {{ shortName }} }} "
+    "homeTeam {{ slug name code styleGuideColor pictureUrl ... on Club {{ shortName }} }} "
+    "awayTeam {{ slug name code styleGuideColor pictureUrl ... on Club {{ shortName }} }} "
     "homeStats {{ ... on FootballTeamGameStats {{ " + _GAME_ODDS + " }} }} "
     "awayStats {{ ... on FootballTeamGameStats {{ " + _GAME_ODDS + " }} }} }}"
 )
@@ -170,18 +170,20 @@ def _market_price(node: dict[str, Any]) -> float | None:
 
 
 def _squad(
-    client: SorareClient, club: str, fixture: str | None = None, *, strict: bool = False
+    client: SorareClient, club: str, fixture: str | None = None, *, strict: bool = False, ahead: str | None = None
 ) -> list[dict[str, Any]]:
-    """One club's active players, paged. A club Sorare will not read is skipped, not fatal."""
-    query = SQUAD.replace("$ARGS", ",$plan:String!" if fixture else "").replace(
-        "$GAMES", GAMES_FOR.format(alias="plan") if fixture else ""
+    """One club's active players, paged. A club Sorare will not read is skipped, not fatal. With `ahead` (the gameweek after the
+    one being planned) each player also keeps his games of that week, as `a0` like the cards, so every card has its next game."""
+    weeks = {"plan": fixture, **({"a0": ahead} if fixture and ahead else {})} if fixture else {}
+    query = SQUAD.replace("$ARGS", "".join(f",${alias}:String!" for alias in weeks)).replace(
+        "$GAMES", " ".join(GAMES_FOR.format(alias=alias) for alias in weeks)
     )
     players: list[dict[str, Any]] = []
     after: str | None = None
     cursors: set[str] = set()
     complete = False
     for _ in range(4):  # 50 a page: a squad fits in one, the cap is only a runaway guard
-        variables = {"s": club, "a": after, **({"plan": fixture} if fixture else {})}
+        variables = {"s": club, "a": after, **weeks}
         page = client.query(query, variables)["football"]["club"]["activePlayers"]
         players.extend(page.get("nodes") or [])
         info = page.get("pageInfo") or {}
@@ -200,7 +202,7 @@ def _squad(
 
 
 def laliga_index(
-    client: SorareClient, competition: str = "laliga-es", fixture: str | None = None
+    client: SorareClient, competition: str = "laliga-es", fixture: str | None = None, ahead: str | None = None
 ) -> list[dict[str, Any]]:
     """Every LaLiga player, one row per player, with his Limited price when Sorare quotes one (else `eur` is None).
 
@@ -222,7 +224,7 @@ def laliga_index(
         if not club_slug:
             continue
         try:
-            players = _squad(client, club_slug, fixture)
+            players = _squad(client, club_slug, fixture, ahead=ahead)
         except (SorareError, KeyError, TypeError) as error:
             logger.warning("laliga index skipped %s: %s", club_slug, error)
             continue
@@ -1074,7 +1076,10 @@ def snapshot(
 
     gaps = past_gaps(past_comps, my_cards, scores, unanswered) if replaying else []
     # Every LaLiga player with his odds and games this week (S5, and his start chance and xScore); empty if the fetch fails
-    market = laliga_index(client, fixture=plan_gw["slug"])
+    next_slug = (
+        ahead_gws[0]["slug"] if ahead_gws else None
+    )  # every player's games of the week after too (his next game)
+    market = laliga_index(client, fixture=plan_gw["slug"], ahead=next_slug)
     lap("laliga index")
     foreign = {}
     if foreign_codes:
@@ -1094,6 +1099,7 @@ def snapshot(
                 kept or None,
                 clubs=(foreign_clubs or {}).get(code),
                 squads=squads,
+                ahead=next_slug,
             )
 
         foreign = {code: index_of(code) for code in foreign_codes}

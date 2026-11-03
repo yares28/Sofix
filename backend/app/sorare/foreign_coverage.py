@@ -19,7 +19,7 @@ SIZES = {"PL": 20, "BL1": 18, "FL1": 18, "CL": 36, "EL": 36, "CONF": 36}
 
 def expired(row: dict[str, Any]) -> dict[str, Any]:
     player = dict(row.get("player") or {})
-    for key in ("plan", "ahead0", "ahead1"):
+    for key in ("plan", "a0", "ahead0", "ahead1"):
         player[key] = []
     player.update(nextClassicFixtureProjectedScore=None, nextClassicFixturePlayingStatusOdds=None)
     return {**row, "projection": None, "player": player, "fresh": False}
@@ -63,6 +63,7 @@ def collect_index(
     *,
     clubs: list[str] | None = None,
     squads: dict[str, list[dict[str, Any]]] | None = None,
+    ahead: str | None = None,
 ) -> dict[str, Any]:
     if code not in COMPETITIONS:
         raise ValueError("Only the requested leagues are allowed")
@@ -93,7 +94,7 @@ def collect_index(
         try:
             players = (squads or {}).get(club)
             if players is None:
-                players = sync._squad(client, club, fixture, strict=True)
+                players = sync._squad(client, club, fixture, strict=True, ahead=ahead)
                 if squads is not None:
                     squads[club] = players
             if not players:
@@ -134,6 +135,16 @@ def collect_index(
         "clubs": kept,
         "errors": errors,
     }
+
+
+def stored(index: dict[str, Any]) -> dict[str, Any]:
+    """A domestic index as it is kept between runs: without the week after's games (half its size again, and a 1.6 MB block),
+    which only the published market rows need. A quick run that reuses it gives that league's players no next-week game."""
+    clubs = {
+        club: [{**row, "player": {k: v for k, v in (row.get("player") or {}).items() if k != "a0"}} for row in people]
+        for club, people in (index.get("clubs") or {}).items()
+    }
+    return {**index, "clubs": clubs}
 
 
 def compact_index(index: dict[str, Any]) -> dict[str, Any]:

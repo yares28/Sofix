@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NATIONAL_COMPETITION, clubKey, nextFive, sideOutlook, type NextGameCell, type SideOutlook } from "./home";
 import { squadBar, verdict, type Verdict } from "./cards";
-import { cardScore, likelyResult, nextWeek, proOpen, resultLabel, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type MarketPlayer, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
+import { cardScore, likelyResult, nextWeek, proOpen, resultLabel, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type MarketFixture, type MarketPlayer, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
 import { appearances, type Appearance } from "./apply";
 import type { MissionPlan } from "./missions";
 import type { MissionsStatus } from "./missionsToday";
@@ -45,8 +45,16 @@ export const OverlayRequest = z
       .string()
       .regex(/^football-[a-z0-9-]{1,80}-\d{4}$/)
       .optional(),
+    /**
+     * The game a card is about where the page says so ("c:<card>" or "p:<player>" to Sorare's game id): a lineup's own game on Sorare's
+     * lineup pages. That card is answered for that game, and with nothing when Sofix has no numbers for it.
+     */
+    games: z.record(z.string().regex(/^[cp]:[a-z0-9][a-z0-9_-]{0,119}$/), z.string().regex(/^[A-Za-z0-9:_-]{1,80}$/)).optional(),
+    /** The leaderboard of the lineup builder the page is ("football-6-10-nov-2026-seasonal-spain-in_season_spain_limited"): each card's game that counts there. */
+    board: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,160}$/).optional(),
   })
-  .refine((body) => body.cards.length + body.players.length <= OVERLAY_CAP, { message: `At most ${OVERLAY_CAP} slugs per call.` });
+  .refine((body) => body.cards.length + body.players.length <= OVERLAY_CAP, { message: `At most ${OVERLAY_CAP} slugs per call.` })
+  .refine((body) => Object.keys(body.games ?? {}).length <= OVERLAY_CAP, { message: `At most ${OVERLAY_CAP} games per call.` });
 export type OverlayRequest = z.infer<typeof OverlayRequest>;
 
 /**
@@ -65,7 +73,24 @@ export type OverlayGame = {
   source: "model" | "sorare";
 };
 
+/** The game an answer is about, as Sorare names it: the side actually playing (a national team too) and its opponent. */
+export type OverlayMatch = {
+  id: string | null;
+  kickoff: string;
+  venue: "H" | "A" | null;
+  competition: string;
+  team: string | null;
+  teamCrest: string | null;
+  opponent: string;
+  opponentCrest: string | null;
+  /** The opponent's three letters and colour, for a crest Sorare does not have; null on payloads before 3 Nov 2026. */
+  opponentCode: string | null;
+  opponentColor: string | null;
+};
+
 export type OverlayEntry = {
+  /** The game these numbers are about (plans/overlay-v2.md 1.7): his next one, a lineup's own, or the one counting on a builder. */
+  match?: OverlayMatch;
   /** What he is expected to score, the chance he plays (a substitute appearance counts), and the average every cap counts. */
   x: number;
   p: number;
@@ -356,11 +381,33 @@ export function dockMissions(today: { status: MissionsStatus; seenAt: string | n
 /** The board only models LaLiga. Sorare names it "laliga-es"; "laliga-2" and every cup are other competitions. */
 const LALIGA = /^laliga(-es)?$/i;
 
-/** The game to show: the next one still to be played, or the last when they are all done. */
-function shownGame(games: PlayerGame[], now: Date): PlayerGame | null {
-  if (!games.length) return null;
-  const ordered = [...games].sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff));
+/** Which game an answer is about: a named one (a lineup's), else one of these leagues (a builder's), else any. */
+type Pick = { id?: string; leagues?: string[] | null };
+
+/** The game to show: the one named, else the next one still to be played (of the leagues asked for), or the last when they are all done. */
+function shownGame(games: PlayerGame[], now: Date, pick: Pick = {}): PlayerGame | null {
+  if (pick.id) return games.find((game) => game.id === pick.id) ?? null;
+  const counted = pick.leagues ? games.filter((game) => pick.leagues!.includes(game.competition)) : games;
+  if (!counted.length) return null;
+  const ordered = [...counted].sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff));
   return ordered.find((game) => Date.parse(game.kickoff) > now.getTime()) ?? ordered[ordered.length - 1]!;
+}
+
+const ahead = (game: { kickoff?: string | null } | null | undefined, now: Date) => Boolean(game?.kickoff) && Date.parse(game!.kickoff!) > now.getTime();
+
+function matchOf(game: PlayerGame | MarketFixture, club: string | null): OverlayMatch {
+  return {
+    id: game.id ?? null,
+    kickoff: game.kickoff ?? "",
+    venue: game.venue ?? null,
+    competition: game.competition ?? "",
+    team: game.team ?? club,
+    teamCrest: game.teamCrest ?? null,
+    opponent: game.opponent ?? "",
+    opponentCrest: game.opponentCrest ?? null,
+    opponentCode: game.opponentCode ?? null,
+    opponentColor: game.opponentColor ?? null,
+  };
 }
 
 /**
@@ -395,8 +442,7 @@ function boardFor(
   return matches.length === 1 ? matches[0] : undefined;
 }
 
-function gameFor(player: PlayingPlayer, outlook: Map<string, SideOutlook> | null, now: Date, grids: (FixtureGrid | null)[]): OverlayGame | null {
-  const game = shownGame(player.games, now);
+function gameFor(player: PlayingPlayer, game: PlayerGame | null, outlook: Map<string, SideOutlook> | null, grids: (FixtureGrid | null)[]): OverlayGame | null {
   if (!game) return null;
   const side = game.team ?? player.club;
   const board = (outlook && side && LALIGA.test(game.competition) ? outlook.get(`${clubKey(side)}|${game.venue}|${clubKey(game.opponent)}`) : undefined) ?? boardFor(game,player.club,grids);
@@ -415,10 +461,9 @@ function gameFor(player: PlayingPlayer, outlook: Map<string, SideOutlook> | null
  * plus his penalty part. A national-team game is his own rate as it is: a club average is no yardstick for a country's
  * goals. No game, or no goals for it, is his own rate as well. Nothing at all when Understat has no numbers on him.
  */
-function xgFor(player: PlayingPlayer, game: OverlayGame | null, now: Date): number | undefined {
+function xgFor(player: PlayingPlayer, game: OverlayGame | null, shown: PlayerGame | null): number | undefined {
   const base = player.xg;
   if (!base) return undefined;
-  const shown = shownGame(player.games, now);
   const scaled = shown && !NATIONAL_COMPETITION.test(shown.competition) && game?.goalsFor && base.team;
   const factor = scaled ? Math.min(2, Math.max(0.5, game.goalsFor! / base.team!)) : 1;
   return Math.round((base.np * factor + base.pen) * 100) / 100;
@@ -431,10 +476,10 @@ function entryFor(
   at: string,
   inPlan: OverlayEntry["inPlan"],
   grids: (FixtureGrid | null)[] = [],
+  shown: PlayerGame | null = shownGame(player.games, now),
 ): OverlayEntry {
-  const game = gameFor(player, outlook, now, grids);
-  const xg = xgFor(player, game, now);
-  const shown = shownGame(player.games, now);
+  const game = gameFor(player, shown, outlook, grids);
+  const xg = xgFor(player, game, shown);
   const over = shown !== null && Date.parse(shown.kickoff) <= now.getTime();
   // The chance of the game the tile shows: its own when the job told it game by game (Futbol Fantasy spoke about one of his
   // games), else the one for the week, as before. Either is used only with the two scores it splits.
@@ -459,6 +504,7 @@ function entryFor(
     ...(player.benchedOn !== undefined ? { benchedOn: player.benchedOn } : {}),
   };
   return {
+    ...(shown ? { match: matchOf(shown, player.club) } : {}),
     x: player.x,
     p: player.p,
     average: player.average,
@@ -477,10 +523,11 @@ function entryFor(
 
 /** A player Sofix rates but your plan does not hold: his market row (xScore, chance to play) and his league's board for the game. */
 function marketEntry(row: MarketPlayer, boards: (FixtureGrid | null)[], now: Date, at: string): OverlayEntry | null {
-  const f = row.fixture as (MarketPlayer["fixture"] & { team?: string | null; competition?: string | null }) | undefined;
+  const f = row.fixture;
   if (row.pos === "UNK" || row.x === undefined || row.p === undefined || !f?.kickoff) return null;
   const board = boardFor(f,row.club,boards);
   return {
+    match: matchOf(f, row.club),
     x: row.x,
     p: row.p,
     average: row.average,
@@ -507,8 +554,11 @@ export function overlayNumbers(
   request: OverlayRequest,
   now: Date,
   archived: GameweekPlan | null = null,
-  /** Every LaLiga, Premier League and Bundesliga player Sofix rates (not only yours) and those leagues' boards. */
-  others: { market: MarketPlayer[]; grids: (FixtureGrid | null)[] } = { market: [], grids: [] },
+  /**
+   * Every player Sofix rates (not only yours) and the leagues' boards; `weeks` are other weeks a lineup's game may sit in (the one
+   * being played), read only for a game a page names.
+   */
+  others: { market: MarketPlayer[]; grids: (FixtureGrid | null)[]; weeks?: GameweekPlan[] } = { market: [], grids: [] },
 ): OverlayAnswer {
   const named = request.fixture ? sorare.timeline.find((item) => item.slug === request.fixture) : undefined;
   const kept = named && archived && archived.gameweek.slug === named.slug ? archived : null;
@@ -528,40 +578,89 @@ export function overlayNumbers(
   const madeAt = plan.builtAt ?? (plan === kept ? plan.gameweek.end : sorare.generatedAt);
 
   const owners = new Map((sorare.collection ?? []).map((card) => [card.slug, card.player]));
-  const playing = new Map<string, PlayingPlayer>();
-  for (const player of plan.playing.players) if (player.player) playing.set(player.player, player);
-
-  // The best plan's cards, by the player each belongs to, with the lineup each is in and whether he captains it.
-  const inPlan = new Map<string, NonNullable<OverlayEntry["inPlan"]>>();
-  for (const lineup of (plan === kept ? [] : (plan.plans ?? [])[0]?.lineups) ?? []) {
-    for (const card of [...(lineup.starters ?? []), ...(lineup.subs ?? [])]) {
-      const owner = owners.get(card.slug);
-      if (owner) inPlan.set(owner, { ...inPlan.get(owner), [card.slug]: { lineup: lineup.comp, captain: card.captain === true } });
+  // The week after the one being planned: a card whose game this week is played (or who has none) is answered for his next one there
+  // (plans/overlay-v2.md 1.7), unless the page names its week. Other weeks (the one being played) only answer a game a page names.
+  const planned = nextWeek(sorare);
+  const afterPlanned = sorare.weeks[sorare.weeks.indexOf(planned) + 1] ?? null;
+  const following = plan === planned ? afterPlanned : null;
+  const roll = !request.fixture && !request.week;
+  const weeks = [plan, following, ...(others.weeks ?? [])].filter((week): week is GameweekPlan => Boolean(week));
+  const read = new Map<GameweekPlan, { playing: Map<string, PlayingPlayer>; inPlan: Map<string, NonNullable<OverlayEntry["inPlan"]>>; at: string }>();
+  const weekOf = (week: GameweekPlan) => {
+    if (!read.has(week)) {
+      const playing = new Map<string, PlayingPlayer>();
+      for (const player of week.playing.players) if (player.player) playing.set(player.player, player);
+      // The best plan's cards, by the player each belongs to, with the lineup each is in and whether he captains it.
+      const inPlan = new Map<string, NonNullable<OverlayEntry["inPlan"]>>();
+      for (const lineup of (week === kept ? [] : (week.plans ?? [])[0]?.lineups) ?? []) {
+        for (const card of [...(lineup.starters ?? []), ...(lineup.subs ?? [])]) {
+          const owner = owners.get(card.slug);
+          if (owner) inPlan.set(owner, { ...inPlan.get(owner), [card.slug]: { lineup: lineup.comp, captain: card.captain === true } });
+        }
+      }
+      read.set(week, { playing, inPlan, at: week === plan ? madeAt : (week.builtAt ?? sorare.generatedAt) });
     }
-  }
+    return read.get(week)!;
+  };
 
-  // Anyone else in the three leagues (an Arcade common, a player you do not hold): Sofix's market numbers for the week being planned.
-  const market = plan === nextWeek(sorare) ? new Map(others.market.map((row) => [row.slug, row])) : new Map<string, MarketPlayer>();
+  // Anyone else Sofix rates (an Arcade common, a player you do not hold): his market row for the week being planned, and the one after.
+  const market = plan === planned || plan === afterPlanned ? new Map(others.market.map((row) => [row.slug, row])) : new Map<string, MarketPlayer>();
+  const nextOf = (row: MarketPlayer): MarketPlayer | null => (row.next ? { ...row, ...row.next, fixture: row.next.fixture } : null);
   const boards = [...new Map([grid, ...others.grids].flatMap(g => g ? [[g.competition ?? "PD", g] as const] : [])).values()];
-  const entries = new Map<string, OverlayEntry | null>();
-  const forPlayer = (playerSlug: string | undefined): OverlayEntry | null => {
-    const player = playerSlug ? playing.get(playerSlug) : undefined;
-    if (!playerSlug) return null;
-    if (!entries.has(playerSlug)) {
-      const row = market.get(playerSlug);
-      entries.set(playerSlug, player ? entryFor(player, outlook, now, madeAt, inPlan.get(playerSlug), boards) : row ? marketEntry(row, boards, now, sorare.generatedAt) : null);
+  const leaguesOf = (week: GameweekPlan) => (request.board ? (week.boards?.[request.board] ?? null) : null);
+  const counted = (row: MarketPlayer | null, week: GameweekPlan) => {
+    const leagues = leaguesOf(week);
+    return row?.fixture && (!leagues || leagues.includes(row.fixture.competition ?? "")) ? row : null;
+  };
+  const priced = (row: MarketPlayer | null) => (row ? marketEntry(row, boards, now, sorare.generatedAt) : null);
+
+  const ownedFor = (playerSlug: string, week: GameweekPlan, pick: Pick): { entry: OverlayEntry; ahead: boolean } | null => {
+    const known = weekOf(week);
+    const player = known.playing.get(playerSlug);
+    const shown = player ? shownGame(player.games, now, pick) : null;
+    if (!player || !shown) return null;
+    return { entry: entryFor(player, outlook, now, known.at, known.inPlan.get(playerSlug), boards, shown), ahead: ahead(shown, now) };
+  };
+
+  const answer = (playerSlug: string, hint: string | undefined): OverlayEntry | null => {
+    const row = market.get(playerSlug) ?? null;
+    if (hint) {
+      for (const week of weeks) {
+        const found = ownedFor(playerSlug, week, { id: hint });
+        if (found) return found.entry;
+      }
+      return priced([row, row && nextOf(row)].find((one) => one?.fixture?.id === hint) ?? null);
     }
-    return entries.get(playerSlug) ?? null;
+    // Yours: this week's game while it is ahead (or the page is about this week), else his next one in the week after.
+    const here = ownedFor(playerSlug, plan, { leagues: leaguesOf(plan) });
+    if (here && (here.ahead || !roll || !following)) return here.entry;
+    const later = roll && following ? ownedFor(playerSlug, following, { leagues: leaguesOf(following) }) : null;
+    if (later?.ahead) return later.entry;
+    if (here) return here.entry;
+    // Anyone else, the same from his market row; a page about the week after reads that row's next game.
+    if (!row) return null;
+    if (plan === afterPlanned) return priced(counted(nextOf(row), plan));
+    const current = counted(row, plan);
+    if (current && (ahead(current.fixture, now) || !roll)) return priced(current);
+    return priced((roll && following ? counted(nextOf(row), following) : null) ?? current);
+  };
+
+  const entries = new Map<string, OverlayEntry | null>();
+  const forPlayer = (playerSlug: string | undefined, hint: string | undefined): OverlayEntry | null => {
+    if (!playerSlug) return null;
+    const key = `${playerSlug}|${hint ?? ""}`;
+    if (!entries.has(key)) entries.set(key, answer(playerSlug, hint));
+    return entries.get(key) ?? null;
   };
 
   const cards: Record<string, OverlayEntry> = {};
   for (const cardSlug of request.cards) {
-    const entry = forPlayer(owners.get(cardSlug));
+    const entry = forPlayer(owners.get(cardSlug), request.games?.[`c:${cardSlug}`]);
     if (entry) cards[cardSlug] = entry;
   }
   const players: Record<string, OverlayEntry> = {};
   for (const playerSlug of request.players) {
-    const entry = forPlayer(playerSlug);
+    const entry = forPlayer(playerSlug, request.games?.[`p:${playerSlug}`]);
     if (entry) players[playerSlug] = entry;
   }
   return { week: plan.gameweek.number, cards, players, ...(request.plan ? { plan: overlayPlan(plan, now) } : {}) };

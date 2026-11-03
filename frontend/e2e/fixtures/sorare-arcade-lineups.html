@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hot Streak lineups • Sorare</title>
+<style>
+/* A stand-in for an Arcade step's lineups page (/football/series/<step>/lineups): one lineup of five cards in its own block. Its
+   cards were drawn in games of two gameweeks (the owner's Hot Streak lineup, 2 Nov 2026: two GW28 games, three GW29). */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; background: #0e0e0e; color: #fff; font: 14px/1.4 -apple-system, "Segoe UI", sans-serif; }
+.lineup { display: flex; gap: 12px; padding: 12px; border: 1px solid #333; border-radius: 12px; width: max-content; }
+.card { position: relative; overflow: hidden; width: 160px; border-radius: 8px; background: #000; }
+.card img { display: block; width: 100%; height: auto; aspect-ratio: 320 / 452; object-fit: cover; }
+</style>
+</head>
+<body>
+<h1>Hot Streak</h1>
+<div class="lineup" id="lineup">
+  <div class="card" id="l-simon"><img alt="Unai Simón - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-l1.png"></div>
+  <div class="card" id="l-cubarsi"><img alt="Pau Cubarsí - rare" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000002/picture/tinified-l2.png"></div>
+  <div class="card" id="l-messi"><img alt="Lionel Messi - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000003/picture/tinified-l3.png"></div>
+  <div class="card" id="l-havertz"><img alt="Kai Havertz - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000008/picture/tinified-l8.png"></div>
+  <div class="card" id="l-pick"><img alt="Pick 1 - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-0000000000011/picture/tinified-l11.png"></div>
+</div>
+<script>
+  // The page's own question to Sorare, which the bridge learns the cards from.
+  fetch("https://api.sorare.com/graphql", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ operationName: "LineupQuery", query: "query LineupQuery { cards { slug } }" }),
+  });
+</script>
+</body>
+</html>

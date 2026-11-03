@@ -141,6 +141,77 @@ describe("overlayNumbers", () => {
     expect(overlayNumbers(sorare([player()]), null, ask({ players: ["unai-simon"] }), NOW, null, { market: [{ ...row, slug: "unai-simon", x: 1 }], grids: [] }).players["unai-simon"]!.x).toBe(54.5);
   });
 
+  describe("each card answers for its own game (plans/overlay-v2.md section 1.7)", () => {
+    const PAST = "2026-10-07T19:00:00Z"; // before NOW: played
+    const withNext = (thisWeek: PlayerGame[], nextWeek: PlayerGame[], extra: Partial<Sorare> = {}) => {
+      const data = sorare([player({ games: thisWeek })], extra);
+      data.weeks[1]!.playing.players = [player({ x: 61.5, p: 0.9, games: nextWeek })];
+      return data;
+    };
+
+    it("names the game it is about, the opponent of the side actually playing included", () => {
+      const abroad = game({ id: "g-tur", competition: "uefa-nations-league", team: "Türkiye", teamCrest: "t.png", opponent: "Belgium", opponentCrest: "b.png", opponentCode: "BEL", opponentColor: "#e30613", venue: "A" });
+      const entry = overlayNumbers(sorare([player({ games: [abroad] })]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
+      expect(entry.match).toEqual({
+        id: "g-tur", kickoff: abroad.kickoff, venue: "A", competition: "uefa-nations-league", team: "Türkiye", teamCrest: "t.png",
+        opponent: "Belgium", opponentCrest: "b.png", opponentCode: "BEL", opponentColor: "#e30613",
+      });
+    });
+
+    it("moves on to his next game once this week's is played, with that week's numbers", () => {
+      const data = withNext([game({ id: "g17", kickoff: PAST })], [game({ id: "g18", kickoff: "2026-10-17T19:00:00Z", opponent: "Elche CF" })]);
+      const entry = overlayNumbers(data, grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
+      expect(entry).toMatchObject({ x: 61.5, p: 0.9, match: { id: "g18", opponent: "Elche CF" } });
+      expect(entry.over).toBeUndefined();
+      // A page about this week (its address names it) still answers for this week only.
+      const named = { ...data, timeline: [{ id: "17", slug: "gw-17", number: 17, start: "", end: "", lock: "", status: "next" as const }] };
+      expect(overlayNumbers(named, grid, ask({ players: ["unai-simon"], fixture: undefined, week: "17" }), NOW).players["unai-simon"]).toMatchObject({ x: 54.5, over: true });
+    });
+
+    it("answers a lineup's card for the game Sorare put in that lineup, even a played one", () => {
+      const data = withNext([game({ id: "g17", kickoff: PAST })], [game({ id: "g18", kickoff: "2026-10-17T19:00:00Z" })]);
+      const asked = (id: string) => overlayNumbers(data, grid, ask({ cards: ["unai-simon-2026-limited-12"], games: { "c:unai-simon-2026-limited-12": id } }), NOW).cards["unai-simon-2026-limited-12"];
+      expect(asked("g17")).toMatchObject({ x: 54.5, match: { id: "g17" }, over: true });
+      expect(asked("g18")).toMatchObject({ x: 61.5, match: { id: "g18" } });
+      expect(asked("g-unknown")).toBeUndefined(); // never another game's numbers under this one
+    });
+
+    it("on a competition's builder, shows the game that counts there", () => {
+      const cup = game({ id: "g-ucl", kickoff: "2026-10-09T19:00:00Z", competition: "uefa-champions-league", opponent: "Borussia Dortmund" });
+      const league = game({ id: "g-liga", kickoff: "2026-10-11T19:00:00Z", opponent: "Elche CF" });
+      const data = sorare([player({ games: [cup, league] })]);
+      data.weeks[0]!.boards = { "pro-spain": ["laliga-es"] };
+      const shown = (board?: string) => overlayNumbers(data, grid, ask({ players: ["unai-simon"], ...(board ? { board } : {}) }), NOW).players["unai-simon"]!.match!.id;
+      expect(shown("pro-spain")).toBe("g-liga");
+      expect(shown()).toBe("g-ucl"); // elsewhere: his next game, whatever it is
+      expect(shown("a-board-sofix-does-not-know")).toBe("g-ucl");
+    });
+
+    it("gives a player Sofix does not hold his next game from the week after when this week has none for him", () => {
+      const fixture = (id: string, kickoff: string) => ({ id, team: "Athletic Club", opponent: "Getafe CF", opponentCrest: null, venue: "H" as const, kickoff, competition: "laliga-es" });
+      const resting: MarketPlayer = {
+        slug: "resting", name: "Resting", pos: "DEF", club: "Athletic Club", crest: null, average: 40, projection: null, eur: null, pic: "",
+        next: { p: 0.7, x: 38.2, start: 45, fixture: fixture("n18", "2026-10-17T19:00:00Z") },
+      };
+      const played: MarketPlayer = { ...resting, slug: "played", x: 50, p: 0.9, fixture: fixture("n17", PAST) };
+      const answer = overlayNumbers(sorare([player()]), grid, ask({ players: ["resting", "played"] }), NOW, null, { market: [resting, played], grids: [] });
+      expect(answer.players.resting).toMatchObject({ x: 38.2, p: 0.7, average: 40, match: { id: "n18" } });
+      expect(answer.players.played).toMatchObject({ x: 38.2, match: { id: "n18" } }); // his week's game is played: the next one
+      // A page about the week after (its address names it) has it too.
+      const data = { ...sorare([player()]), timeline: [{ id: "18", slug: "gw-18", number: 18, start: "", end: "", lock: "", status: "later" as const }] };
+      expect(overlayNumbers(data, grid, ask({ players: ["resting"], fixture: "football-17-18-oct-2026" }), NOW, null, { market: [resting], grids: [] }).players.resting).toBeUndefined();
+      const gw18 = { ...data, timeline: [{ ...data.timeline[0]!, slug: "football-17-18-oct-2026" }] };
+      expect(overlayNumbers(gw18, grid, ask({ players: ["resting"], fixture: "football-17-18-oct-2026" }), NOW, null, { market: [resting], grids: [] }).players.resting).toMatchObject({ x: 38.2 });
+    });
+
+    it("takes game hints and a board only in their own shapes", () => {
+      expect(OverlayRequest.safeParse({ cards: ["a-1"], players: [], games: { "c:a-1": "Game:0b0c1f2e-aaaa-4bbb-8ccc-000000000001" }, board: "football-6-10-nov-2026-seasonal-spain-in_season_spain_limited" }).success).toBe(true);
+      expect(OverlayRequest.safeParse({ cards: [], players: [], games: { "x:a": "g" } }).success).toBe(false);
+      expect(OverlayRequest.safeParse({ cards: [], players: [], games: { "c:a": "<script>" } }).success).toBe(false);
+      expect(OverlayRequest.safeParse({ cards: [], players: [], board: "../x" }).success).toBe(false);
+    });
+  });
+
   it("never lends a domestic board to a European fixture between the same sides", () => {
     const row: MarketPlayer={slug:"european",name:"European",pos:"DEF",club:"Athletic Club",crest:null,average:50,projection:null,eur:null,pic:"",x:50,p:.8,fixture:{team:"Athletic Club",opponent:"Getafe CF",opponentCrest:null,venue:"H",kickoff:"2026-10-10T19:00:00Z",competition:"uefa-champions-league"}};
     const answer=overlayNumbers(sorare([player()]),null,ask({players:[row.slug]}),NOW,null,{market:[row],grids:[grid]});
@@ -162,7 +233,10 @@ describe("overlayNumbers", () => {
     const unpriced = player({ games: [game({ competition: "mls", team: "Inter Miami CF", opponent: "Orlando City", venue: "A" })] });
     const entry = overlayNumbers(sorare([unpriced]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
     // the game is not LaLiga's: Futbol Fantasy covers none of it, which the panel says when it has no number
-    expect(entry).toEqual({ x: 54.5, p: 0.94, average: 55, pos: "GK", laliga: false, at: "2026-10-08T00:00:00Z", game: null });
+    expect(entry).toEqual({
+      match: expect.objectContaining({ competition: "mls", team: "Inter Miami CF", opponent: "Orlando City", venue: "A" }),
+      x: 54.5, p: 0.94, average: 55, pos: "GK", laliga: false, at: "2026-10-08T00:00:00Z", game: null,
+    });
   });
 
   it("says whether the game the tile shows is a LaLiga one", () => {
@@ -428,9 +502,9 @@ describe("overlayNumbers", () => {
     expect(answer.players).toEqual({});
   });
 
-  it("does not answer a card whose player has no game this week", () => {
-    const answer = overlayNumbers(sorare([]), grid, ask({ cards: ["unai-simon-2026-limited-12"] }), NOW);
-    expect(answer.cards).toEqual({});
+  it("answers a card whose player has no game this week for his next one, and not on a page about this week", () => {
+    expect(overlayNumbers(sorare([]), grid, ask({ cards: ["unai-simon-2026-limited-12"] }), NOW).cards["unai-simon-2026-limited-12"]!.x).toBe(11);
+    expect(overlayNumbers(sorare([]), grid, ask({ cards: ["unai-simon-2026-limited-12"], week: "17" }), NOW).cards).toEqual({});
   });
 
   it("reads the week asked for, and falls back to the one being planned when it is unknown", () => {
@@ -493,7 +567,7 @@ describe("overlayNumbers", () => {
   it("copes with a payload the job published before players carried their slug", () => {
     const old = player();
     delete (old as { player?: string }).player;
-    expect(overlayNumbers(sorare([old]), grid, ask({ players: ["unai-simon"] }), NOW).players).toEqual({});
+    expect(overlayNumbers(sorare([old]), grid, ask({ players: ["unai-simon"], week: "17" }), NOW).players).toEqual({});
   });
 });
 

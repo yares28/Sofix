@@ -270,6 +270,9 @@ def card_games(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str,
                     "teamCrest": team.get("pictureUrl"),
                     "opponent": other.get("shortName") or other["name"],
                     "opponentCrest": other.get("pictureUrl"),
+                    # what stands in for a crest Sorare does not have: the club's three letters on its colour
+                    "opponentCode": other.get("code"),
+                    "opponentColor": other.get("styleGuideColor"),
                     "venue": "H" if at_home else "A",
                     **({"odds": odds} if odds else {}),
                 }
@@ -1168,6 +1171,8 @@ def gameweek_payload(
         "source": source,
         "playing": {"cards": sum(1 for c in cards if games.get(c.player)), "players": players},
         "playable": sorted(playable, key=lambda o: (o["group"] != "In-season", o["group"] != "Classic", o["name"])),
+        # Each leaderboard's leagues, so a page about one (Sorare's lineup builder) shows each card's game that counts there
+        "boards": {comp.slug: sorted(comp.leagues) for comp in comps if comp.slug and comp.leagues},
         "blocked": blocked,
         "notWorth": not_worth,
         "plans": [
@@ -1391,6 +1396,28 @@ def build_payload(
         seen=snapshot.get("sorareStarts"),
     )
     league_forecasts = build_forecasts(league_weeks)
+    # The week after, for every league player too, so each card has its next game when the week planned holds none for him (an
+    # Arcade common of the next round; plans/overlay-v2.md step 1). Planned like the cards' weeks ahead: Sorare's odds and projection
+    # are for his next game only, so they are left out.
+    ahead_weeks = snapshot.get("aheadGameweeks") or []
+    league_next_games = with_board(card_games(league_rows, "a0"), board) if ahead_weeks else {}
+    league_next = (
+        build_forecasts(
+            player_weeks(
+                league_rows,
+                league_next_games,
+                {**league_history, **snapshot["history"]},
+                _dt(ahead_weeks[0]["lock"]),
+                None,
+                use_sorare=False,
+                ff=league_ff or ff,
+                scores=scores,
+            )
+        )
+        if league_next_games
+        else {}
+    )
+    laps("league next week")
     record = score_record(
         plan_week,
         {**league_weeks, **plan_weeks},
@@ -1626,7 +1653,9 @@ def build_payload(
         },
         # S5: the whole collection card by card, and the LaLiga players priced right now.
         "collection": collection_out(cards, snapshot.get("prices") or {}),
-        "market": market_out(snapshot.get("market") or [], league_forecasts, league_games),
+        "market": market_out(
+            snapshot.get("market") or [], league_forecasts, league_games, (league_next, league_next_games)
+        ),
         "essenceOrder": list(order),
         "_foreignMarkets": {
             code: {
@@ -1637,7 +1666,7 @@ def build_payload(
                 "complete": (snapshot.get("foreign") or {})[code].get("complete", False),
                 "modelVersion": (snapshot.get("scoreModels") or {}).get(code),
                 "note": CONFERENCE_NOTE if code == "CONF" else None,
-                "market": market_out(rows, league_forecasts, league_games),
+                "market": market_out(rows, league_forecasts, league_games, (league_next, league_next_games)),
             }
             for code, rows in foreign_rows.items()
         },
@@ -2000,15 +2029,37 @@ def with_card_art(market: list[dict[str, Any]], urls: Mapping[str, str]) -> list
     return [{**row, "pic": urls.get(row["slug"]) or row.get("pic") or ""} for row in market]
 
 
+FIXTURE_KEYS = (
+    "id",
+    "team",
+    "teamCrest",
+    "competition",
+    "opponent",
+    "opponentCrest",
+    "opponentCode",
+    "opponentColor",
+    "venue",
+    "kickoff",
+)
+
+
+def _fixture(game: dict[str, Any]) -> dict[str, Any]:
+    return {k: game.get(k) for k in FIXTURE_KEYS}
+
+
 def market_out(
     rows: list[dict[str, Any]],
     forecasts: dict[str, Forecast] | None = None,
     games: dict[str, list[dict[str, Any]]] | None = None,
+    after: tuple[dict[str, Forecast], dict[str, list[dict[str, Any]]]] | None = None,
 ) -> list[dict[str, Any]]:
     """Every LaLiga player for the Players page (S5), keyed the app's way: his price when Sorare quotes one (else None), and for
     the gameweek being planned his chance of playing and of starting (with whose number it is), his score if he plays, his
     xScore and his first game. A player without a game this week has no xScore. `sources` holds every source's chance of starting
-    and `ffMatch`/`ffPlayer` his Futbol Fantasy match and id, so the Lineups page can show Sofix's and Sorare's chance for anyone."""
+    and `ffMatch`/`ffPlayer` his Futbol Fantasy match and id, so the Lineups page can show Sofix's and Sorare's chance for anyone.
+
+    `after` is the week after's forecasts and games: `next` is then that week's first game for him, with only what the overlay draws
+    (his chance to play and to start, his score if he starts, his xScore, the game), so a card with no game this week has its next."""
     out: list[dict[str, Any]] = []
     for row in rows:
         eur = row.get("eur")
@@ -2036,10 +2087,18 @@ def market_out(
                 **({"waiting": "board"} if forecast.waiting else {}),
                 **({"start": round(forecast.start, 1)} if forecast.start is not None else {}),
                 "x": round(_expected(forecast), 1),
-                "fixture": {
-                    k: game.get(k)
-                    for k in ("team", "teamCrest", "competition", "opponent", "opponentCrest", "venue", "kickoff")
-                },
+                "fixture": _fixture(game),
+            }
+        soon = after[0].get(row["slug"]) if after else None
+        coming = (after[1].get(row["slug"]) or []) if after else []
+        if soon and coming and row.get("pos") != "UNK":
+            first = coming[0]
+            week["next"] = {
+                "p": round(soon.p_play, 3),
+                **{k: v for k, v in _start_of(soon).items() if k != "ffKind"},
+                **({"start": round(soon.start, 1)} if soon.start is not None else {}),
+                "x": round(_expected(soon), 1),
+                "fixture": _fixture(first),
             }
         out.append(
             {

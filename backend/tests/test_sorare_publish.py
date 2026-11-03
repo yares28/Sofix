@@ -1042,3 +1042,75 @@ def test_five_yellows_ban_only_the_next_laliga_game_and_reset_each_season() -> N
     assert not publish._banned(rows, {**first, "competition": "uefa-champions-league"})
     assert not publish._banned(rows, {**first, "kickoff": "2027-08-15T18:00:00Z"})
     assert publish._banned([{**rows[-1], "seasonYellows": 5}], first), "recent form carries the season total"
+
+
+def test_a_player_with_no_game_this_week_has_his_next_one_from_the_week_after() -> None:
+    """An Arcade common of the next round (Nicolas, Laporte, Brassier on 2 Nov 2026) drew nothing: the rows held the planned week only."""
+    resting = card("resting", "DEF")  # nobody's card, no game in the week planned, one in the week after
+    resting["player"]["plan"] = []
+    next_game = resting["player"]["a0"][0]
+    next_game["awayTeam"] = {**next_game["awayTeam"], "code": "CLZ", "styleGuideColor": "#123456"}
+    busy = card("busy", "FWD")  # a game in both weeks: this week's stays his, the next one comes with it
+    snap = snapshot()
+    snap["market"] = [
+        {
+            "slug": c["player"]["slug"],
+            "name": c["player"]["displayName"],
+            "pos": pos,
+            "club": "CLA",
+            "crest": None,
+            "average": 48.0,
+            "projection": 55.0,
+            "eur": None,
+            "pic": "",
+            "player": c["player"],
+        }
+        for c, pos in ((resting, "DEF"), (busy, "FWD"))
+    ]
+    market = {p["slug"]: p for p in publish.build_payload(snap, runs=2, draws=100)["market"]}
+
+    him = market["resting"]
+    assert "x" not in him and "fixture" not in him  # nothing this week, as before
+    later = him["next"]
+    assert later["x"] > 0 and 0 < later["p"] <= 1
+    assert later["fixture"] == {
+        "id": "ahead-resting",
+        "team": "Club A",
+        "teamCrest": "https://assets.sorare.com/a.png",
+        "competition": "laliga-es",
+        "opponent": "Club Z",
+        "opponentCrest": "https://assets.sorare.com/z.png",
+        "opponentCode": "CLZ",
+        "opponentColor": "#123456",
+        "venue": "H",
+        "kickoff": "2026-10-17T14:00:00Z",
+    }
+    assert market["busy"]["fixture"]["id"] == "game-busy" and market["busy"]["next"]["fixture"]["id"] == "ahead-busy"
+    assert "ffKind" not in later and "sources" not in later  # only what the overlay draws
+
+
+def test_without_the_week_after_a_row_has_no_next_game() -> None:
+    snap = snapshot()
+    snap["aheadGameweeks"] = []
+    row = card("lonely", "MID")
+    snap["market"] = [
+        {
+            "slug": "lonely",
+            "name": "Lonely",
+            "pos": "MID",
+            "club": "CLA",
+            "crest": None,
+            "average": 40.0,
+            "projection": None,
+            "eur": None,
+            "pic": "",
+            "player": row["player"],
+        }
+    ]
+    assert "next" not in publish.build_payload(snap, runs=2, draws=100)["market"][0]
+
+
+def test_each_week_names_the_leagues_of_its_leaderboards() -> None:
+    week = publish.week_of(publish.build_payload(snapshot(), runs=2, draws=100))
+    # the LaLiga leaderboard of the snapshot; All Star and Under 23 name no league, so they are not there
+    assert week["boards"] == {"laliga-ea-sports-limited": ["laliga-es"]}

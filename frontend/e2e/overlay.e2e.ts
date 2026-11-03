@@ -83,6 +83,10 @@ const IDENTITY = {
   },
 };
 
+const LINEUPS = readFileSync(path.join(__dirname, "fixtures", "sorare-arcade-lineups.html"), "utf8");
+const LINEUPS_URL = "https://sorare.com/football/series/hot-streak-step-2/lineups";
+const gameId = (n: number) => `Game:22222222-bbbb-4bbb-8bbb-0000000000${String(n).padStart(2, "0")}`;
+
 const ELEVEN_HOURS_AGO = new Date(Date.now() - 11 * 3600_000).toISOString();
 const FORTY_HOURS_AGO = new Date(Date.now() - 40 * 3600_000).toISOString();
 
@@ -197,7 +201,7 @@ const OLD_WEEK = "football-18-22-sep-2026";
 
 async function openPage(
   page: Page,
-  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; url?: string; html?: string } = {},
+  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; url?: string; html?: string; need?: unknown } = {},
 ) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
@@ -250,6 +254,7 @@ async function openPage(
         }
         if (message.type === "overlay-worth") return config.mode === "ok" ? { state: "ok", worth: config.worth } : { state: config.mode };
         if (message.type === "dock-step") return config.steps[(message as unknown as { step: string }).step];
+        if (message.type === "need-data") return config.need;
         if (message.type === "pro-rebuild") return { success: true, data: { games: 2, starters: 4, bench: 1 }, error: null };
         if (message.type !== "overlay-numbers") return undefined;
         if (config.mode !== "ok") return { state: config.mode };
@@ -277,7 +282,7 @@ async function openPage(
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "dock.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
@@ -393,6 +398,27 @@ test.describe("the sorare.com overlay", () => {
     for (const message of asked) expect((message.players?.length ?? 0) + (message.cards?.length ?? 0)).toBeLessThanOrEqual(120);
     // Nothing but slugs leaves the page: no picture addresses, no names, no prices.
     expect(JSON.stringify(asked)).not.toMatch(/https?:|Unai|assets\.sorare/);
+  });
+
+  test("answers each card of a lineup for the game Sorare put it in, games of two gameweeks in one lineup", async ({ page }) => {
+    // The owner's Hot Streak lineup (2 Nov 2026): two cards drawn in GW28 games, three in GW29. Each is asked about with its own game.
+    const soon = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
+    const cards = [
+      ["unai-simon-2026-limited-12", 1, 1], ["pau-cubarsi-2026-rare-3", 2, 1], ["lionel-messi-2026-limited-9", 3, 4],
+      ["kai-havertz-2026-limited-2", 4, 4], ["pick-1-2026-limited-1", 5, 4],
+    ] as const;
+    const need = {
+      arcade: { steps: { s2: { target: 300 } } },
+      arcadeLineups: [{ id: "l1", kind: "arcade", step: "s2", cards: cards.map(([slug, n, days]) => ({ slug, score: null, bonus: 1, captain: false, kickoff: soon(days), game: gameId(n) })) }],
+    };
+    await openPage(page, { url: LINEUPS_URL, html: LINEUPS, need });
+    for (const id of ["l-simon", "l-cubarsi", "l-messi", "l-havertz", "l-pick"]) await expect(tileOf(page, id)).toHaveCount(1);
+    const games = async () =>
+      Object.assign({}, ...((await probe(page)).sent.filter((m) => m.type === "overlay-numbers") as { games?: Record<string, string> }[]).map((m) => m.games ?? {}));
+    await expect.poll(games).toEqual({
+      "p:unai-simon": gameId(1), "p:pau-cubarsi": gameId(2), "p:lionel-messi": gameId(3), "p:kai-havertz": gameId(4), "p:pick-1": gameId(5),
+    });
+    for (const id of ["l-simon", "l-cubarsi", "l-messi", "l-havertz", "l-pick"]) await expect(tileOf(page, id)).toHaveCount(1); // and drawn from those answers
   });
 
   test("keeps the tiles when the extension is reloaded under an open page", async ({ page }) => {

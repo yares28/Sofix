@@ -1601,6 +1601,7 @@
     if (record.cornerKey === key) return record.corner;
     if (rect.top < 0 || rect.bottom > innerHeight || rect.left < 0 || rect.right > innerWidth) return record.corner || null; // probed only in full view
     record.cornerKey = key;
+    record.hangs = undefined; // asked again with the corner: a re-rendered card may sit in another box
     const media = record.media;
     const reach = rect.top + rect.height * 0.35;
     let box = null;
@@ -1610,7 +1611,7 @@
         for (const el of document.elementsFromPoint(x, y)) {
           if (el === media || el.contains(media) || media.contains(el) || el.closest("[data-sfx],[data-sfx-dock]")) continue;
           const r = el.getBoundingClientRect();
-          if (r.width * r.height > rect.width * rect.height * 0.25 || r.width > rect.width * 0.6 || r.right < rect.right - 40 || r.top > reach) continue;
+          if (r.width * r.height > rect.width * rect.height * 0.25 || r.width > rect.width * 0.6 || r.right < rect.right - 40 || r.top > reach || r.top < rect.top - 2) continue; // not the captain button on the card's corner
           box = box
             ? { top: Math.min(box.top, r.top), bottom: Math.max(box.bottom, r.bottom), left: Math.min(box.left, r.left), right: Math.max(box.right, r.right) }
             : { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
@@ -1619,6 +1620,16 @@
     }
     record.corner = box && { top: box.top - rect.top, bottom: box.bottom - rect.top, left: box.left - rect.left, right: box.right - rect.left };
     return record.corner;
+  }
+
+  /**
+   * Where Sorare puts its start badge on a card it lets show past its edge (measured 3 Nov 2026, the builder's pitch): 4 px out
+   * past the right edge, 8 px down. A card whose own box clips keeps ours inside.
+   */
+  const BADGE = { out: 4, down: 8, gap: 4 };
+  function hangs(record) {
+    if (record.hangs === undefined) record.hangs = getComputedStyle(record.media.parentElement).overflow === "visible";
+    return record.hangs;
   }
 
   /** Moves one of ours (absolutely placed in the card's box) so its top-right corner lands on (right, top). */
@@ -1672,13 +1683,14 @@
     if (fresh) return true; // measured on the next pass
     const inset = INSET[tier];
     const corner = topRightOf(record, rect);
+    const edge = corner ? rect.left + corner.right : hangs(record) ? rect.right + BADGE.out : rect.right - inset.x; // right-aligned with Sorare's own
     const pill = record.need && record.need.isConnected && !record.need.hasAttribute("data-pending") ? record.need.getBoundingClientRect() : null;
-    let top = corner ? rect.top + corner.bottom + 3 : rect.top + inset.y;
+    let top = corner ? rect.top + corner.bottom + BADGE.gap : rect.top + (hangs(record) ? BADGE.down : inset.y);
     if (pill && pill.right > rect.right - 40 && pill.bottom + 3 > top && pill.top < top + 16) top = pill.bottom + 3; // never under the pill
     const tile = record.ribs && record.ribs.isConnected && !record.ribs.hasAttribute("data-pending") ? record.ribs.getBoundingClientRect() : null;
     const width = chip.getBoundingClientRect().width;
-    if (tile && tile.right + 3 > rect.right - inset.x - width && tile.bottom + 3 > top && tile.top < top + 18) top = tile.bottom + 3; // never over the tile
-    return moveTo(chip, rect.right - inset.x, top);
+    if (tile && tile.right + 3 > edge - width && tile.bottom + 3 > top && tile.top < top + 18) top = tile.bottom + 3; // never over the tile
+    return moveTo(chip, edge, top);
   }
 
   function placeNeed(read) {
@@ -1711,9 +1723,9 @@
     if (fresh) return true; // measured on the next pass
     const inset = INSET[tier === "full" ? "full" : "compact"];
     const corner = topRightOf(record, rect);
-    if (!corner) return moveTo(pill, rect.right - inset.x, rect.top + inset.y);
+    if (!corner) return hangs(record) ? moveTo(pill, rect.right + BADGE.out, rect.top + BADGE.down) : moveTo(pill, rect.right - inset.x, rect.top + inset.y);
     const height = pill.getBoundingClientRect().height;
-    if (corner.top - 3 - height >= 1) return moveTo(pill, rect.left + Math.min(corner.right, rect.width - inset.x), rect.top + corner.top - 3 - height); // above Sorare's start badge
+    if (corner.top - BADGE.gap - height >= 1) return moveTo(pill, rect.left + corner.right, rect.top + corner.top - BADGE.gap - height); // above Sorare's start badge
     return moveTo(pill, rect.left + corner.left - 4, rect.top + Math.max(corner.top, inset.y)); // no room above it: beside it
   }
 

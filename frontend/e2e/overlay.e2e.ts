@@ -460,6 +460,41 @@ test.describe("the sorare.com overlay", () => {
     }
   });
 
+  test("on a card that lets things show past its edge, the start % hangs out like Sorare's badge, in one column with it", async ({ page }) => {
+    // 3 Nov 2026, the builder's pitch (the owner's screenshot): Sorare's start badge 4 px past the card's right edge, 8 px down, its
+    // grade under it, the captain's round button on the corner. Sofix's start % joins that column, under the grade.
+    await openPage(page);
+    await settled(page);
+    await page.evaluate(() => {
+      const card = document.querySelector<HTMLElement>("#graded")!;
+      card.style.overflow = "visible";
+      card.style.margin = "0 24px";
+      Object.assign(document.querySelector<HTMLElement>("#sostart")!.style, { right: "-4px", top: "8px", height: "16px", padding: "2px 4px" });
+      Object.assign(document.querySelector<HTMLElement>("#grade")!.style, { right: "-4px", top: "28px" });
+      const cap = Object.assign(document.createElement("button"), { id: "socap", textContent: "C" });
+      cap.style.cssText = "position:absolute;z-index:2;right:-16px;top:-16px;width:32px;height:32px;border-radius:50%";
+      card.append(cap);
+      card.dispatchEvent(new Event("resize"));
+    });
+    await page.evaluate(() => window.dispatchEvent(new Event("resize")));
+    await page.locator("#graded").scrollIntoViewIfNeeded();
+    await expect
+      .poll(async () => {
+        const [chip, so, grade] = [await box(page, "#graded .sfx-start"), await box(page, "#sostart"), await box(page, "#grade")];
+        return [Math.round(chip.right - so.right) || 0, Math.round(chip.top - grade.bottom) || 0];
+      })
+      .toEqual([0, 4]);
+    // With no badge of Sorare's, it takes the badge's own place: 4 px out, 8 px down.
+    await page.evaluate(() => ["#sostart", "#grade", "#socap"].forEach((id) => document.querySelector(id)!.remove()));
+    await page.evaluate(() => document.querySelector("#graded")!.append(document.createElement("i"))); // a page change: look again
+    await expect
+      .poll(async () => {
+        const [chip, card] = [await box(page, "#graded .sfx-start"), await art(page, "graded")];
+        return [Math.round(chip.right - card.right) || 0, Math.round(chip.top - card.top) || 0];
+      })
+      .toEqual([4, 8]);
+  });
+
   test("on a narrow full card the chips are tighter, and the start % never lies over the tile", async ({ page }) => {
     // 3 Nov 2026, Sorare's builder list: 118 x 191 px cards, a badge of theirs pushing the tile down into the start % row.
     await openPage(page);

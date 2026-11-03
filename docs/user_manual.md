@@ -1060,7 +1060,7 @@ it writes to Sorare.
   (0.4.40), black on Sorare's colours; a small card has the xScore chip only. No plan tick, captain star, rank or "×2" any more. A number that no longer
   holds (his game started, or over a day old) goes grey; the hover says why.
 - **His chance of starting** is a badge at the top right, under Sorare's own start badge and grade (in their place when the card has
-  none), drawn like Sorare's (0.4.40): its colours for the chance (red under 50%, yellow under 80%, cyan above), with a mark where
+  none), drawn like Sorare's (0.4.40) and in one column with its badge, past the card's edge where Sorare's hangs (0.4.41): its colours for the chance (red under 50%, yellow under 80%, cyan above), with a mark where
   Sorare has its shirt for whose number it is: FF's expected lineup where it has him, else Sorare's odds, else the app's own. An FF
   doubt is never cyan, a player who will not start always red; none on a greyed number or a thumbnail.
   Hover it: "Sofix 83% · Sorare 80%" on a full card, its own source on a small one ("FF 90%"). **An amber ring** means Sofix and

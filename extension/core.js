@@ -741,17 +741,24 @@
       for (const o of open) out[o.i] = { kind: "unreachable" };
       return { state: "unreachable", current, remaining, room, cards: out };
     }
-    let left = remaining;
-    const sorted = [...open].sort((a, b) => a.room - b.room);
-    sorted.forEach((o, k) => {
-      const share = Math.min(o.room, left / (sorted.length - k));
-      left -= share;
+    // One level for every card still able to score, counting what it has already (the owner, 3 Nov 2026); frontend/lib/pointsNeeded.ts.
+    const goal = target - cards.reduce((sum, c) => sum + (c.state === "finished" ? contribution(c) : 0), 0);
+    const end = (o, level) => Math.max(contribution(o.c), Math.min(level, contribution(o.c) + o.room));
+    let low = 0;
+    let high = Math.max(...open.map((o) => contribution(o.c) + (Number.isFinite(o.room) ? o.room : goal)), goal);
+    for (let step = 0; step < 100; step += 1) {
+      const level = (low + high) / 2;
+      if (open.reduce((sum, o) => sum + end(o, level), 0) < goal) low = level;
+      else high = level;
+    }
+    for (const o of open) {
       out[o.i] = o.c.multiplier === null ? { kind: "unknown", reason: o.c.unknown || "score bonus unknown" }
-        : { kind: "need", raw: share / o.c.multiplier, share, live: o.c.state === "live", multiplier: o.c.multiplier };
-    });
+        : { kind: "need", raw: Math.min(high, contribution(o.c) + o.room) / o.c.multiplier, share: end(o, high), live: o.c.state === "live", multiplier: o.c.multiplier, ...(o.c.state === "live" ? { now: raw(o.c) } : {}) };
+    }
     return { state: "open", current, remaining, room, cards: out };
   }
   const needRoundUp = (x) => Math.ceil(x * 10 - 1e-6) / 10;
+  const needRoundDown = (x) => Math.floor(x * 10 + 1e-6) / 10;
   const needOne = (x) => String(Math.round(x * 10) / 10);
   function needBadge(result, i, target, captain = false) {
     const c = result.cards[i];
@@ -762,8 +769,14 @@
     if (c.kind === "settled") return { label: "✓", detail: `Finished: contributed ${needOne(c.contribution)} toward ${goal}.`, tone: "settled" };
     if (c.kind === "unreachable") return { label: "Unreachable", detail: `Even 100 from every card still able to score adds ${needOne(result.room || 0)}, short of the ${needOne(result.remaining || 0)} still needed for ${goal}.`, tone: "unreachable" };
     const sofar = result.current ? ` (${needOne(result.current)} so far)` : "";
+    if (c.live && c.now !== undefined) {
+      const gap = c.raw - c.now; // playing: "-7" short of the score he should end on, "+3" past it (the owner, 3 Nov 2026)
+      return gap > NEED_EPS
+        ? { label: `-${needRoundUp(gap)}`, detail: `${needOne(c.now)} so far: ${needRoundUp(gap)} short of the ${needRoundUp(c.raw)} he should end on, to contribute ${needOne(c.share)} toward ${goal}${sofar}. ${bonus(c.multiplier)}`, tone: "live" }
+        : { label: `+${needRoundDown(-gap)}`, detail: `${needOne(c.now)} so far: ${needRoundDown(-gap)} past the ${needRoundUp(c.raw)} he should end on; the others need less. ${bonus(c.multiplier)}`, tone: "ahead" };
+    }
     return c.live
-      ? { label: `+${needRoundUp(c.raw)}`, detail: `Needs ${needRoundUp(c.raw)} additional raw points to contribute ${needOne(c.share)} more toward ${goal}${sofar}. ${bonus(c.multiplier)}`, tone: "live" }
+      ? { label: `-${needRoundUp(c.raw)}`, detail: `Needs ${needRoundUp(c.raw)} raw points toward ${goal}${sofar}. ${bonus(c.multiplier)}`, tone: "live" }
       : { label: String(needRoundUp(c.raw)), detail: `Needs ${needRoundUp(c.raw)} raw points to contribute ${needOne(c.share)} toward ${goal}${sofar}. ${bonus(c.multiplier)}`, tone: "need" };
   }
 

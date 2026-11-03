@@ -398,6 +398,7 @@
 .sfx-need { min-width: 22px; justify-content: center; background: #f4f4f6; }
 .sfx-need[data-tone="live"] { background: var(--c-yellow-400, #ffd914); }
 .sfx-need[data-tone="settled"], .sfx-need[data-tone="reached"] { background: var(--c-onBase-success, #00f3eb); }
+.sfx-need[data-tone="ahead"] { background: var(--c-score-mediumHigh, #25ed36); }
 .sfx-need[data-tone="unreachable"] { background: var(--c-score-veryLow, #ff5a5a); }
 @media (prefers-reduced-motion: reduce) { .sfx-need { animation: none; } }
 

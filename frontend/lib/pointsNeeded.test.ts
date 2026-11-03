@@ -51,18 +51,25 @@ describe("points needed during the games", () => {
     expect(need(r, 1).raw).toBe(77.5);
   });
 
-  it("a live card shows the extra points needed from now, its score counted once", () => {
-    // live 20 raw ×1 counts 20; 380 left over five cards: 76 more each, the live card included.
+  it("a live card aims at the same score as the others, counting what he has, and says how far he is from it", () => {
+    // The owner, 3 Nov 2026 (Hot Streak: Hakimi at 62 read "+37.6"): 400 over five cards is 80 each to end on; at 20 he is 60 short.
     const r = pointsNeeded(400, five(plain(1, { state: "live", raw: 20 })));
     expect(r.current).toBe(20);
-    expect(need(r, 0)).toMatchObject({ raw: 76, live: true });
-    expect(need(r, 1)).toMatchObject({ raw: 76, live: false });
+    expect(need(r, 0)).toMatchObject({ raw: 80, now: 20, live: true });
+    expect(need(r, 1)).toMatchObject({ raw: 80, live: false });
+    expect(needBadge(r, 0, 400)).toMatchObject({ label: "-60", tone: "live" });
   });
 
-  it("a live score that falls raises the requirement", () => {
-    const up = pointsNeeded(400, five(plain(1, { state: "live", raw: 30 })));
-    const down = pointsNeeded(400, five(plain(1, { state: "live", raw: 22 })));
-    expect(need(down, 1).raw).toBeGreaterThan(need(up, 1).raw);
+  it("a live card past his score keeps it, shows how far past, and the others need less", () => {
+    // At 95: he keeps 95, the four others share 305 (76.25 each), and he is 18.75 past it.
+    const r = pointsNeeded(400, five(plain(1, { state: "live", raw: 95 })));
+    expect(need(r, 1).raw).toBeCloseTo(76.25);
+    expect(needBadge(r, 0, 400)).toMatchObject({ label: "+18.7", tone: "ahead" });
+    expect(needBadge(r, 1, 400).label).toBe("76.3");
+    // Below his score, what he has does not move the others: their score is the same at 22 and at 30.
+    const low = pointsNeeded(400, five(plain(1, { state: "live", raw: 22 })));
+    const higher = pointsNeeded(400, five(plain(1, { state: "live", raw: 30 })));
+    expect(need(low, 1).raw).toBeCloseTo(need(higher, 1).raw);
   });
 
   it("a confirmed DNP is a finished zero and leaves the share-out", () => {
@@ -100,7 +107,7 @@ describe("the 100-point ceiling", () => {
     // With bonuses the room is there: four cards at ×1.2 give up to 120 each. He takes his 5, they share 410.
     const ok = pointsNeeded(510, five(plain(1, { state: "live", raw: 95 }), plain(1.2), plain(1.2), plain(1.2), plain(1.2)));
     expect(ok.state).toBe("open");
-    expect(need(ok, 0).raw).toBeCloseTo(5);
+    expect(need(ok, 0).raw).toBeCloseTo(100); // his 100, 5 more than he has
     expect(need(ok, 1).raw).toBeCloseTo(410 / 4 / 1.2);
   });
 
@@ -108,7 +115,9 @@ describe("the 100-point ceiling", () => {
     // 460 left: card 0 has 10 raw of room, the four others share 450 → 112.5 bonus-adjusted each at ×1.5 = 75 raw.
     const r = pointsNeeded(550, [plain(1, { state: "live", raw: 90 }), plain(1.5), plain(1.5), plain(1.5), plain(1.5)]);
     expect(r.remaining).toBe(460);
-    expect(need(r, 0).raw).toBe(10);
+    expect(need(r, 0)).toMatchObject({ now: 90 });
+    expect(need(r, 0).raw).toBeCloseTo(100);
+    expect(needBadge(r, 0, 550).label).toBe("-10");
     expect(need(r, 1).raw).toBeCloseTo(75);
   });
 
@@ -142,9 +151,9 @@ describe("the badge's words", () => {
     expect(needBadge(pointsNeeded(400, five(plain(1.6))), 0, 400).label).toBe("50");
   });
 
-  it("says additional raw points for a live card", () => {
+  it("says how far a live card is from the score he should end on", () => {
     const r = pointsNeeded(400, five(plain(1, { state: "live", raw: 20 })));
-    expect(needBadge(r, 0, 400).detail).toMatch(/^Needs 76 additional raw points/);
+    expect(needBadge(r, 0, 400).detail).toBe("20 so far: 60 short of the 80 he should end on, to contribute 80 toward the 400-point target (20 so far). Score bonus: none.");
   });
 
   it("a finished card is settled with its contribution in the detail", () => {

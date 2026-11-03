@@ -840,7 +840,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   on Play's entered Pro lineups. A dark pill at each card's upper right: the raw score it still needs, from the lineup's score so far
   (a lineup at 260 of 360 with one player left: he needs 100, less with his bonus or the captaincy). Since extension 0.4.33 (3 Nov 2026)
   a card whose game is over shows nothing (no tile, no pill), and a lineup no longer in play shows no tiles at all: only the cards
-  still to play or playing are drawn.
+  still to play or playing are drawn. Since 0.4.44 every card still able to score aims at the same score, counting what it has: a
+  card still to play shows that score, a card playing how far he is from his ("-7" short, "+3" in green past it, which lowers what
+  the others need).
   Not on plans or on Sofix's Arcade sections.
 - A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga, Ligue 1, Champions League, Europa League or Conference League
   game (the Conference League's still provisional; else Sorare's projection, else his average when he

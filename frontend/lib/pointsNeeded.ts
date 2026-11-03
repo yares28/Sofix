@@ -1,7 +1,8 @@
 /**
  * Points needed (plans/points-needed.md): the raw Sorare score each card of a complete Arcade or Pro lineup needs for the lineup to
- * reach its step's target. The target is shared equally in bonus-adjusted points among the cards still able to score, each share
- * divided by the card's multiplier; a card that cannot take its share under the 100-point ceiling gives the rest to the others.
+ * reach its step's target. Every card still able to score aims at the same bonus-adjusted end score, counting what it has already;
+ * divided by the card's multiplier it is his raw score to end on. A card already past it keeps what it has, a card that cannot reach
+ * it under the 100-point ceiling takes its 100, and the others share the rest. A playing card shows how far he is from his.
  * One balanced way to the target, not five minimums. Arcade and Pro have no substitutes, so a DNP is a finished 0 and no captain moves.
  */
 
@@ -20,7 +21,9 @@ export type NeedCard = {
 };
 
 export type NeedCardResult =
-  | { kind: "need"; raw: number; share: number; live: boolean; multiplier: number }
+  /** `raw`: the raw score this card should end on (a card already past it: the one it aimed at); `share`: what it brings, bonus-adjusted.
+   * A live card also says what it has (`now`, raw). */
+  | { kind: "need"; raw: number; share: number; live: boolean; multiplier: number; now?: number }
   | { kind: "settled"; contribution: number }
   | { kind: "reached"; contribution: number | null }
   | { kind: "unreachable" }
@@ -67,25 +70,34 @@ export function pointsNeeded(target: number | null | undefined, cards: NeedCard[
     return { state: "unreachable", current, remaining, room, cards: out };
   }
 
-  // Equal shares, smallest room first: a card short of his share takes his room and the rest is shared again.
-  let left = remaining;
-  const sorted = [...open].sort((a, b) => a.room - b.room);
-  sorted.forEach((o, k) => {
-    const share = Math.min(o.room, left / (sorted.length - k));
-    left -= share;
+  // One level for every card still able to score, counting what it has already (the owner, 3 Nov 2026): each ends on the same
+  // bonus-adjusted score, a card already above it keeps what it has and a card that cannot reach it takes its 100. The level is the
+  // one where the cards' ends add up to what the finished cards leave of the target.
+  const goal = target - cards.reduce((sum, c) => sum + (c.state === "finished" ? contribution(c) : 0), 0);
+  const end = (o: (typeof open)[number], level: number) => Math.max(contribution(o.c), Math.min(level, contribution(o.c) + o.room));
+  let low = 0;
+  let high = Math.max(...open.map((o) => contribution(o.c) + (Number.isFinite(o.room) ? o.room : goal)), goal);
+  for (let step = 0; step < 100; step += 1) {
+    const level = (low + high) / 2;
+    if (open.reduce((sum, o) => sum + end(o, level), 0) < goal) low = level;
+    else high = level;
+  }
+  for (const o of open) {
     out[o.i] = o.c.multiplier === null
       ? { kind: "unknown", reason: o.c.unknown ?? "score bonus unknown" }
-      : { kind: "need", raw: share / o.c.multiplier, share, live: o.c.state === "live", multiplier: o.c.multiplier };
-  });
+      : { kind: "need", raw: Math.min(high, contribution(o.c) + o.room) / o.c.multiplier, share: end(o, high), live: o.c.state === "live", multiplier: o.c.multiplier, ...(o.c.state === "live" ? { now: raw(o.c) } : {}) };
+  }
   return { state: "open", current, remaining, room, cards: out };
 }
 
 /** Up to one decimal, rounded up so the badge never says less than needed; "50", not "50.0". */
 export const roundUp = (x: number) => Math.ceil(x * 10 - 1e-6) / 10;
+/** Down to one decimal, so the badge never says he is further past it than he is. */
+const roundDown = (x: number) => Math.floor(x * 10 + 1e-6) / 10;
 const oneDecimal = (x: number) => String(Math.round(x * 10) / 10);
 const bonusWords = (m: number, captain: boolean) => `Score bonus: ${m > 1 + EPS ? `+${Math.round((m - 1) * 100)}%` : "none"}${captain ? " (captain included)" : ""}.`;
 
-export type NeedBadge = { label: string; detail: string; tone: "need" | "live" | "settled" | "reached" | "unreachable" | "unknown" };
+export type NeedBadge = { label: string; detail: string; tone: "need" | "live" | "ahead" | "settled" | "reached" | "unreachable" | "unknown" };
 
 /** The pill's text and its explanation for card `i`. */
 export function needBadge(result: NeedResult, i: number, target: number | null | undefined, captain = false): NeedBadge {
@@ -96,8 +108,15 @@ export function needBadge(result: NeedResult, i: number, target: number | null |
   if (c.kind === "settled") return { label: "✓", detail: `Finished: contributed ${oneDecimal(c.contribution)} toward ${goal}.`, tone: "settled" };
   if (c.kind === "unreachable") return { label: "Unreachable", detail: `Even 100 from every card still able to score adds ${oneDecimal(result.room ?? 0)}, short of the ${oneDecimal(result.remaining ?? 0)} still needed for ${goal}.`, tone: "unreachable" };
   const sofar = result.current ? ` (${oneDecimal(result.current)} so far)` : "";
+  if (c.live && c.now !== undefined) {
+    // Playing: how far he is from the score he should end on, "-7" short of it, "+3" past it (the owner, 3 Nov 2026).
+    const gap = c.raw - c.now;
+    return gap > EPS
+      ? { label: `-${roundUp(gap)}`, detail: `${oneDecimal(c.now)} so far: ${roundUp(gap)} short of the ${roundUp(c.raw)} he should end on, to contribute ${oneDecimal(c.share)} toward ${goal}${sofar}. ${bonusWords(c.multiplier, captain)}`, tone: "live" }
+      : { label: `+${roundDown(-gap)}`, detail: `${oneDecimal(c.now)} so far: ${roundDown(-gap)} past the ${roundUp(c.raw)} he should end on; the others need less. ${bonusWords(c.multiplier, captain)}`, tone: "ahead" };
+  }
   return c.live
-    ? { label: `+${roundUp(c.raw)}`, detail: `Needs ${roundUp(c.raw)} additional raw points to contribute ${oneDecimal(c.share)} more toward ${goal}${sofar}. ${bonusWords(c.multiplier, captain)}`, tone: "live" }
+    ? { label: `-${roundUp(c.raw)}`, detail: `Needs ${roundUp(c.raw)} raw points toward ${goal}${sofar}. ${bonusWords(c.multiplier, captain)}`, tone: "live" }
     : { label: String(roundUp(c.raw)), detail: `Needs ${roundUp(c.raw)} raw points to contribute ${oneDecimal(c.share)} toward ${goal}${sofar}. ${bonusWords(c.multiplier, captain)}`, tone: "need" };
 }
 

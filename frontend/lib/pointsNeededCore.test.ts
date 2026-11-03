@@ -7,6 +7,7 @@ const core = createRequire(import.meta.url)("../../extension/core.js") as { poin
 const plain = (multiplier: number | null = 1, extra: Partial<NeedCard> = {}): NeedCard => ({ multiplier, state: "to play", raw: null, ...extra });
 const cases: [string, number | null, NeedCard[]][] = [
   ["the owner's examples", 400, [plain(1.1), plain(1.5), plain(1.6), plain(), plain()]],
+  ["a live card past his score", 400, [plain(1, { state: "live", raw: 95 }), plain(1.2), plain(), plain(1.5), plain()]],
   ["live and finished", 400, [plain(1.5, { state: "finished", raw: 60 }), plain(1, { state: "live", raw: 20 }), plain(), plain(1.05), plain()]],
   ["the ceiling", 550, [plain(1, { state: "live", raw: 90 }), plain(1.5), plain(1.5), plain(1.5), plain(1.5)]],
   ["unreachable", 600, [plain(1, { state: "finished", raw: 10 }), plain(), plain(), plain(), plain()]],

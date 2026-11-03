@@ -15,8 +15,11 @@ needs for the lineup to reach its step's target. It is a target calculation, apa
   card (`bonus`, captain included). Pro: in-season + level + rarity (the card's `mult`, published by `Competition.multiplier`)
   + the board's captain bonus. Reward bonuses (Pro's Rare Reward Bonus, `boost`) never count.
 - **While the games are on:** `remaining = max(0, target − current bonus-adjusted score)`. Finished cards (a confirmed DNP is a
-  finished 0; Arcade and Pro have no substitutes, so no captain moves) keep their contribution and leave the share-out. Live cards
-  show the *additional* raw points from now; unstarted cards start at 0.
+  finished 0; Arcade and Pro have no substitutes, so no captain moves) keep their contribution and leave the share-out. Every card
+  still able to score aims at **the same bonus-adjusted end score, counting what it has already** (owner, 3 Nov 2026: Hakimi at 62
+  read "+37.6", the extra points on top of what he had, which nobody could read). A live card shows how far he is from his:
+  **"-7"** short of it, **"+3"** (green) past it; a card past it keeps what it has and the others share the rest, so they need less.
+  Until 3 Nov live cards showed the additional raw points from now, a fresh equal share of what was left on top of their score.
 - **Ceiling 100 raw:** a card that cannot take its equal share takes its maximum and the rest is shared among the others. When
   every card still able to score cannot cover `remaining` even at 100, the lineup is **Unreachable**.
 - **Reached:** `remaining = 0` on provisional scores says "Target reached", never "cleared"; only Sorare's result says cleared.

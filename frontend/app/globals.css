@@ -1058,7 +1058,7 @@ thead th .tbc-mark { font-weight: 600; }
 /* Points needed (lib/pointsNeeded.ts): a dark glass pill at a lineup card's bottom right, readable over any card art. */
 .need-pill { appearance: none; border: 0; margin: 0; font-family: inherit; position: absolute; right: 6px; bottom: 6px; z-index: 3; display: inline-flex; align-items: center; min-width: 26px; justify-content: center; padding: 3px 7px; border-radius: 999px; background: rgb(14 14 16 / .78); color: #fff; box-shadow: 0 0 0 1px rgb(255 255 255 / .2), 0 2px 8px rgb(0 0 0 / .28); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); font-size: 12px; font-weight: 650; line-height: 1.2; font-variant-numeric: tabular-nums; letter-spacing: -.01em; white-space: nowrap; cursor: help; outline: none; }
 .need-pill[data-tone="live"] { box-shadow: 0 0 0 1.5px #ffc46b, 0 2px 8px rgb(0 0 0 / .28); }
-.need-pill:is([data-tone="settled"], [data-tone="reached"]) { color: #8fe0a0; }
+.need-pill:is([data-tone="settled"], [data-tone="reached"], [data-tone="ahead"]) { color: #8fe0a0; }
 .need-pill[data-tone="reached"] { box-shadow: 0 0 0 1.5px #46c05a, 0 2px 8px rgb(0 0 0 / .28); }
 .need-pill[data-tone="unreachable"] { color: #ffb3ae; font-size: 11px; }
 .need-pill[data-tone="unknown"] { color: rgb(255 255 255 / .72); }

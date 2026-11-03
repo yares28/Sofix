@@ -247,6 +247,9 @@ export type PlayerGame = {
   opponentColor?: string | null;
   venue: "H" | "A";
   odds?: GameOdds;
+  /** This game on its own (payloads from 3 Nov 2026): what he is expected to score in it and if he starts it. A Pro or Arcade card plays one game. */
+  x?: number;
+  start?: number;
   /**
    * His chance of starting this game and of coming on in it, once Futbol Fantasy speaks about one of his games
    * (plans/futbolfantasy.md): every game of such a player carries them, each with the source of its number. Absent
@@ -361,6 +364,8 @@ export type GameweekPlan = {
   playable: Option[];
   /** Each leaderboard's leagues (payloads from 3 Nov 2026), so a page about one shows the game that counts there. */
   boards?: Record<string, string[]>;
+  /** The Pro leaderboards among them: a card there plays one game, so its number is that game's. */
+  perGame?: string[];
   blocked: Blocked[];
   notWorth: AlsoOpen[];
   plans: Plan[];
@@ -522,6 +527,9 @@ export type MarketFixture = {
   opponentColor?: string | null;
   venue: "H" | "A" | null;
   kickoff: string | null;
+  /** This game on its own, as on `PlayerGame` (payloads from 3 Nov 2026). */
+  x?: number;
+  start?: number;
 };
 
 export type Sorare = {

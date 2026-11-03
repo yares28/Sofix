@@ -191,6 +191,7 @@ def _with_chances(games: list[dict[str, Any]], forecast: Forecast | None) -> lis
     the rest (`startAt`, `ffStatus`, `ffMatch`, `ffPlayer`, `ffChanged`) what Futbol Fantasy said and when. A player it
     has nothing on keeps his games as they were: one chance for the week, as before.
     """
+    games = [{**game, **_game_numbers(games, forecast).get(game["id"], {})} for game in games]
     if not forecast or not forecast.per_game:
         return games
     told = {chance.game: chance for chance in forecast.per_game}
@@ -200,6 +201,19 @@ def _with_chances(games: list[dict[str, Any]], forecast: Forecast | None) -> lis
         else game
         for game in games
     ]
+
+
+def _game_numbers(games: list[dict[str, Any]], forecast: Forecast | None) -> dict[str, dict[str, float]]:
+    """Each game's own numbers by game id: `x` what he is expected to score in it, `start` if he starts it (the forecast holds them in
+    kickoff order). A Pro or Arcade card plays one game, so the overlay shows that game's; the week's numbers stay for the rest."""
+    if not forecast or len(forecast.game_x) != len(games) or len(forecast.game_start) != len(games):
+        return {}
+    ordered = sorted(games, key=lambda g: g.get("kickoff") or "")
+    return {
+        g["id"]: {"x": x, "start": start}
+        for g, x, start in zip(ordered, forecast.game_x, forecast.game_start, strict=True)
+        if g.get("id")
+    }
 
 
 def _shape_out(shape: Any) -> dict[str, Any] | None:
@@ -1173,6 +1187,8 @@ def gameweek_payload(
         "playable": sorted(playable, key=lambda o: (o["group"] != "In-season", o["group"] != "Classic", o["name"])),
         # Each leaderboard's leagues, so a page about one (Sorare's lineup builder) shows each card's game that counts there
         "boards": {comp.slug: sorted(comp.leagues) for comp in comps if comp.slug and comp.leagues},
+        # the Pro leaderboards: a card there plays one game, so its number is that game's
+        "perGame": sorted(comp.slug for comp in comps if comp.slug and comp.pro_steps),
         "blocked": blocked,
         "notWorth": not_worth,
         "plans": [
@@ -2087,7 +2103,7 @@ def market_out(
                 **({"waiting": "board"} if forecast.waiting else {}),
                 **({"start": round(forecast.start, 1)} if forecast.start is not None else {}),
                 "x": round(_expected(forecast), 1),
-                "fixture": _fixture(game),
+                "fixture": {**_fixture(game), **_game_numbers(listed, forecast).get(game.get("id") or "", {})},
             }
         soon = after[0].get(row["slug"]) if after else None
         coming = (after[1].get(row["slug"]) or []) if after else []
@@ -2098,7 +2114,7 @@ def market_out(
                 **{k: v for k, v in _start_of(soon).items() if k != "ffKind"},
                 **({"start": round(soon.start, 1)} if soon.start is not None else {}),
                 "x": round(_expected(soon), 1),
-                "fixture": _fixture(first),
+                "fixture": {**_fixture(first), **_game_numbers(coming, soon).get(first.get("id") or "", {})},
             }
         out.append(
             {

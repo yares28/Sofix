@@ -204,6 +204,22 @@ describe("overlayNumbers", () => {
       expect(overlayNumbers(gw18, grid, ask({ players: ["resting"], fixture: "football-17-18-oct-2026" }), NOW, null, { market: [resting], grids: [] }).players.resting).toMatchObject({ x: 38.2 });
     });
 
+    it("gives a Pro or Arcade card its game's own number, and a Classic one the week's (the owner, 3 Nov 2026)", () => {
+      const cup = game({ id: "g-ucl", kickoff: "2026-10-09T19:00:00Z", competition: "uefa-champions-league", x: 30.1, start: 40 });
+      const league = game({ id: "g-liga", kickoff: "2026-10-11T19:00:00Z", x: 48.2, start: 52 });
+      const data = sorare([player({ x: 58.7, start: 55, games: [cup, league] })]);
+      data.weeks[0]!.boards = { "pro-spain": ["laliga-es"], "laliga-limited": ["laliga-es"] };
+      data.weeks[0]!.perGame = ["pro-spain"];
+      const on = (over: Record<string, unknown>) => overlayNumbers(data, grid, ask({ players: ["unai-simon"], ...over }), NOW).players["unai-simon"]!;
+      expect(on({ board: "pro-spain" })).toMatchObject({ x: 48.2, match: { id: "g-liga" } }); // Pro: one game, its number
+      expect(on({ board: "laliga-limited" })).toMatchObject({ x: 58.7, match: { id: "g-liga" } }); // Classic: the week counts
+      expect(on({ games: { "p:unai-simon": "g-ucl" } })).toMatchObject({ x: 30.1, match: { id: "g-ucl" } }); // a lineup page's card
+      expect(on({}).x).toBe(58.7); // galleries and the market: the week's
+      // A game published before it carried its own number keeps the week's.
+      const old = sorare([player({ x: 58.7, games: [game({ id: "g-old" })] })]);
+      expect(overlayNumbers(old, grid, ask({ players: ["unai-simon"], games: { "p:unai-simon": "g-old" } }), NOW).players["unai-simon"]!.x).toBe(58.7);
+    });
+
     it("takes game hints and a board only in their own shapes", () => {
       expect(OverlayRequest.safeParse({ cards: ["a-1"], players: [], games: { "c:a-1": "Game:0b0c1f2e-aaaa-4bbb-8ccc-000000000001" }, board: "football-6-10-nov-2026-seasonal-spain-in_season_spain_limited" }).success).toBe(true);
       expect(OverlayRequest.safeParse({ cards: [], players: [], games: { "x:a": "g" } }).success).toBe(false);

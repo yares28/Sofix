@@ -64,7 +64,7 @@ The planner weights essence by the share of its leagues the owner plays, searche
 
 Conditional score, chance of starting, chance of coming on, chance of any appearance, and unconditional expectation are different quantities. When `game_scores` exists, the own-score branch in `forecast` removes Sorare’s projection from its score calculation. Without own game scores, the generic forecast path can still use Sorare projection/form; do not claim all paths are independent just because the LaLiga model is. The alternative Sorare-projection strategy stays separately identified.
 
-**Exceptions/limits:** in a double GW, per-game chances preserve each source and game; chance of any appearance combines misses, while the week-level start display follows the first game. The score includes a best-of-two adjustment, not a sum of two scores. No eligible game means no forecast. No known game IDs uses the legacy week-level path; do not imply equivalent per-game evidence.
+**Exceptions/limits:** in a double GW, per-game chances preserve each source and game; chance of any appearance combines misses, while the week-level start display follows the first game. The score includes a best-of-two adjustment, not a sum of two scores. Each game also carries its own expectation and start score (`game_x`, `game_start`, published as game `x`/`start`) with no best-of-two lift: the overlay shows them for one-game cards (Pro, Arcade); plans and Classic keep the week number. No eligible game means no forecast. No known game IDs uses the legacy week-level path; do not imply equivalent per-game evidence.
 
 **Why/examples:** FF start `0` must beat Sorare start `0.7`, whereas absent FF may use Sorare. With game-appearance chances `0.5` and `0.5`, the combination is `0.75`; this formula for a player’s appearances is not the formula for a whole plan’s reward probability. Existing FF tests cover zero, unavailable FF, out players, double games and source retention. They do not establish that a live source is calibrated.
 
@@ -875,15 +875,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: market rows gain the week after's first game (next) and weeks gain boards (leaderboard leagues); selection and plans unchanged.",
+        "note": "3 Nov 2026: per-game x/start (forecast.game_x/game_start) published on games and market fixtures, weeks list perGame (Pro leaderboards); overlay shows them for Pro/Arcade cards; plans, rewards and selection unchanged.",
         "files": {
-          "backend/app/sorare/publish.py": "6a2934104b82f7b7e6998611558c8806786c9ad9105d38e9250dfe00b6ae1959",
+          "backend/app/sorare/publish.py": "467bef3ebb122f81523e979e6dc9e97c204f5fa8c1ddd8c79f7591f111e1ec1c",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
           "backend/app/jobs/sorare.py": "501f72b18aad3fb23ff099048ba2bdefc59c5456c1e76d996f92a7e9367b91b6",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
-          "backend/tests/test_sorare_publish.py": "22fa2c83b848f4422f4bbb5ed67d07aca3537edf78f50f6634f98edcaf7d9c2a"
+          "backend/tests/test_sorare_publish.py": "89afdc0d5c64dbc191509db3bc03cad72e84c37088b3ba629135c485959ead7e"
         }
       }
     },
@@ -930,11 +930,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-02",
-        "note": "Per-game sources: unmodelled game takes Sorare's number for his next game else form; waiting flag for stale European boards (B5, B7).",
+        "date": "2026-11-03",
+        "note": "3 Nov 2026: per-game x/start (forecast.game_x/game_start) published on games and market fixtures, weeks list perGame (Pro leaderboards); overlay shows them for Pro/Arcade cards; plans, rewards and selection unchanged.",
         "files": {
-          "backend/app/sorare/forecast.py": "a4359bd169539516f7e164fca348972bf765360eb999ce77049a3f0e77d8a23f",
-          "backend/tests/test_sorare_ff_forecast.py": "c9db49a267f8b4d41a6a431b5fb5e0b1e749aef24a3e75e1f7e0adaf150667b7"
+          "backend/app/sorare/forecast.py": "daec9267c057ef3e8dd1cf6d187d23a0491b54ee3695a478ef3c59ef2f375e5b",
+          "backend/tests/test_sorare_ff_forecast.py": "cbc230010a5956ec2250c97434b7357451d11abbfa1200dc6f510f3f44b1f12a"
         }
       }
     },
@@ -997,12 +997,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: league players also forecast for the week after (use_sorare=False, as the cards' weeks ahead); raw numbers unchanged.",
+        "note": "3 Nov 2026: per-game x/start (forecast.game_x/game_start) published on games and market fixtures, weeks list perGame (Pro leaderboards); overlay shows them for Pro/Arcade cards; plans, rewards and selection unchanged.",
         "files": {
-          "backend/app/sorare/publish.py": "6a2934104b82f7b7e6998611558c8806786c9ad9105d38e9250dfe00b6ae1959",
+          "backend/app/sorare/publish.py": "467bef3ebb122f81523e979e6dc9e97c204f5fa8c1ddd8c79f7591f111e1ec1c",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
-          "backend/tests/test_sorare_publish.py": "22fa2c83b848f4422f4bbb5ed67d07aca3537edf78f50f6634f98edcaf7d9c2a"
+          "backend/tests/test_sorare_publish.py": "89afdc0d5c64dbc191509db3bc03cad72e84c37088b3ba629135c485959ead7e"
         }
       }
     },
@@ -1053,10 +1053,10 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: play.ts types only (MarketFixture, next, boards, opponentCode/Color); rewards logic untouched.",
+        "note": "3 Nov 2026: per-game x/start (forecast.game_x/game_start) published on games and market fixtures, weeks list perGame (Pro leaderboards); overlay shows them for Pro/Arcade cards; plans, rewards and selection unchanged.",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "3900cb9ea1b8510db4323a79a56fa73510cb3df935fcd7ce9751d2df1fbb486f",
+          "frontend/lib/play.ts": "a1db9023fde7ef3eaa29141db010bd726d5fdf93ffbacc4c14a97bee6924c660",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1573,11 +1573,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: overlay-numbers carries game ids (Game:uuid, existing GAME_ID) and the builder board; cache keyed per week, board and game; no new actions or permissions.",
+        "note": "3 Nov 2026: per-game x/start (forecast.game_x/game_start) published on games and market fixtures, weeks list perGame (Pro leaderboards); overlay shows them for Pro/Arcade cards; plans, rewards and selection unchanged.",
         "files": {
           "extension/background.js": "27807ad064f2508793285270965bbb7d4eeadb6225e385c8f143f09a18985696",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "3725c3e298a19a52e60542fe221de753cd720f833cc253036ecbb41c71e5c38f",
+          "extension/manifest.template.json": "7be85629a4db9583552131b56c0cf5f40cc0a7bc321a7df5fb5211a2f74f3f28",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

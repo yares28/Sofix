@@ -1004,7 +1004,9 @@ colour for that score. Under it is one thing that drives the score, chosen by po
 - **Every card answers for its own game** (extension 0.4.31, 3 Nov 2026): on a lineup page, the game Sorare put that card in
   (a lineup mixing two gameweeks shows all five); on a competition's builder, his next game that counts there (Ezzalzouli on Pro
   Spain: Elche, not Dortmund); anywhere else, his next game, moving on to the week after once this week's is played or when he
-  has none (an Arcade common of the next round). A page whose address names a gameweek still shows that week only.
+  has none (an Arcade common of the next round). A page whose address names a gameweek still shows that week only. A Pro or
+  Arcade card plays one game, so on a lineup page and a Pro builder its xScore is that game's; Classic gameweek builders and every
+  other page keep the week's (two games: the better of the two counts).
 **A goalkeeper's number follows his game.** It is no longer his last five games: those are mostly luck (a clean sheet is worth about 75, a game without
 one about 40), so Sofix works out how likely his side is to keep a clean sheet (its own numbers, adjusted by the bookmakers' goals line), what he scores if it does
 and if it does not. Since 26 Oct 2026 it no longer uses Sorare's projection: Sofix's number stands on its own data, with Sorare's beside it to compare. Two keepers' numbers sit closer together than before and move with the opponent. In a test on

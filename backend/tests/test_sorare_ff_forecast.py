@@ -241,3 +241,26 @@ def test_a_bundesliga_regular_is_not_left_at_the_40_percent_prior():
     assert forecast(replace(week, cups=frozenset(h["date"] for h in past))).p_start == pytest.approx(0.4), (
         "the old answer"
     )
+
+
+# ---------------------------------------------------------------------------------------------------- game by game
+def test_each_game_has_its_own_expected_score_and_the_week_keeps_the_lift_for_the_better_of_two() -> None:
+    """A Pro or Arcade card plays one game: its number is that game's, not the week's (the owner, 3 Nov 2026)."""
+    sorare = dict(projection=50.0, plays_odds=0.9, start_odds=0.9)
+    made = forecast(week(games=2, game_scores=(70.0, 40.0), game_starts=[ff("g1", 0.95), ff("g2", 0.5)], **sorare))
+    plays = [c.p_start + c.p_on for c in made.per_game]
+    assert made.game_start == (70.0, 40.0)
+    assert made.game_x == (round(round(plays[0], 4) * 70.0, 1), round(round(plays[1], 4) * 40.0, 1))
+    assert made.mu > 55.0  # the week's number: the average of the two and the lift for keeping the better one
+
+
+def test_with_one_game_the_games_number_is_the_weeks() -> None:
+    made = forecast(week(projection=50.0, plays_odds=0.8, start_odds=0.7))
+    assert made.game_x == (round(made.p_play * made.mu, 1),)
+    assert made.game_start == (made.start,)
+
+
+def test_two_games_without_a_number_for_each_share_the_weeks_score_and_chance() -> None:
+    made = forecast(week(games=2, projection=50.0, plays_odds=0.8, start_odds=0.7))
+    assert made.game_start == (made.start, made.start)
+    assert made.game_x == (40.0, 40.0)  # 80% to play times 50 each, no lift: one game alone has no better of two

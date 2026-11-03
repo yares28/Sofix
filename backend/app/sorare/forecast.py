@@ -257,8 +257,14 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         ]
         game_sources = tuple(source for _, source in filled)
         made = sum(score for score, _ in filled) / len(filled)
-        mu = made if week.pos == "GK" or share >= REGULAR_STARTER else own_mu + share * (made - own_split.start)
+        regular = week.pos == "GK" or share >= REGULAR_STARTER
+        mu = made if regular else own_mu + share * (made - own_split.start)
         start = made
+        game_mu = [score if regular else own_mu + share * (score - own_split.start) for score, _ in filled]
+        game_start = [score for score, _ in filled]
+    else:
+        game_mu = [mu] * week.games
+        game_start = [start] * week.games
     shape = week.shape if week.game_scores else None
     on_shape = None
     if week.sub is not None and split.on > 0:
@@ -289,6 +295,9 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         available = week.games - int(week.banned and not has_odds)
         p_any = 1 - (1 - plays) ** available
         both = plays * plays if available > 1 else 0.0
+        played = [
+            0.0 if i == 0 and available < week.games else plays for i in range(week.games)
+        ]  # a ban takes his first game
     # A double gameweek: he has to miss both to score nothing, and the better of the two games counts.
     if week.games > 1 and p_any > 0:
         mu += 0.56 * sd * both / p_any
@@ -320,6 +329,10 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         on_shape=on_shape,
         score_source="sofix" if week.game_scores else ("sorare" if week.projection is not None else "form"),
         game_sources=game_sources,
+        game_x=tuple(
+            round(round(p, 4) * round(min(max(m, 0.0), 100.0), 2), 1) for p, m in zip(played, game_mu, strict=False)
+        ),
+        game_start=tuple(round(s, 1) for s in game_start),
         waiting=bool(week.waiting),
         sorare=week.projection,
     )

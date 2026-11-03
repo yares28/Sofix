@@ -1073,7 +1073,8 @@ def test_a_player_with_no_game_this_week_has_his_next_one_from_the_week_after() 
     assert "x" not in him and "fixture" not in him  # nothing this week, as before
     later = him["next"]
     assert later["x"] > 0 and 0 < later["p"] <= 1
-    assert later["fixture"] == {
+    assert later["fixture"]["x"] == later["x"]  # one game: its own number is the week's
+    assert {k: v for k, v in later["fixture"].items() if k not in ("x", "start")} == {
         "id": "ahead-resting",
         "team": "Club A",
         "teamCrest": "https://assets.sorare.com/a.png",
@@ -1114,3 +1115,38 @@ def test_each_week_names_the_leagues_of_its_leaderboards() -> None:
     week = publish.week_of(publish.build_payload(snapshot(), runs=2, draws=100))
     # the LaLiga leaderboard of the snapshot; All Star and Under 23 name no league, so they are not there
     assert week["boards"] == {"laliga-ea-sports-limited": ["laliga-es"]}
+
+
+def test_each_game_carries_its_own_numbers_beside_the_weeks() -> None:
+    snap = snapshot()
+    double = card("double-one", "MID", games=2)  # two games this week, the same day here: one forecast each
+    snap["cards"].append(double)
+    week = publish.week_of(publish.build_payload(snap, runs=2, draws=100))
+    him = next(p for p in week["playing"]["players"] if p["player"] == "double-one")
+    assert [set(g) >= {"x", "start"} for g in him["games"]] == [True, True]
+    assert all(g["x"] <= him["x"] for g in him["games"])  # the week keeps the lift for the better of two
+    single = next(p for p in week["playing"]["players"] if p["player"] == "mid-one")
+    assert single["games"][0]["x"] == single["x"] and single["games"][0]["start"] == single["start"]
+    assert week["perGame"] == []  # no Pro board in this snapshot
+
+
+def test_a_market_row_says_what_its_game_is_worth_on_its_own() -> None:
+    snap = snapshot()
+    row = card("stranger", "FWD")
+    snap["market"] = [
+        {
+            "slug": "stranger",
+            "name": "Stranger",
+            "pos": "FWD",
+            "club": "CLA",
+            "crest": None,
+            "average": 48.0,
+            "projection": 55.0,
+            "eur": None,
+            "pic": "",
+            "player": row["player"],
+        }
+    ]
+    him = publish.build_payload(snap, runs=2, draws=100)["market"][0]
+    assert him["fixture"]["x"] == him["x"] and him["fixture"]["start"] == him["start"]
+    assert him["next"]["fixture"]["x"] == him["next"]["x"]

@@ -477,7 +477,10 @@ function entryFor(
   inPlan: OverlayEntry["inPlan"],
   grids: (FixtureGrid | null)[] = [],
   shown: PlayerGame | null = shownGame(player.games, now),
+  /** A Pro or Arcade card plays one game: its own numbers, when the job published them, instead of the week's. */
+  oneGame = false,
 ): OverlayEntry {
+  if (oneGame && shown?.x !== undefined) player = { ...player, x: shown.x, ...(shown.start !== undefined ? { start: shown.start } : {}) };
   const game = gameFor(player, shown, outlook, grids);
   const xg = xgFor(player, game, shown);
   const over = shown !== null && Date.parse(shown.kickoff) <= now.getTime();
@@ -522,8 +525,9 @@ function entryFor(
 }
 
 /** A player Sofix rates but your plan does not hold: his market row (xScore, chance to play) and his league's board for the game. */
-function marketEntry(row: MarketPlayer, boards: (FixtureGrid | null)[], now: Date, at: string): OverlayEntry | null {
+function marketEntry(row: MarketPlayer, boards: (FixtureGrid | null)[], now: Date, at: string, oneGame = false): OverlayEntry | null {
   const f = row.fixture;
+  if (oneGame && f?.x !== undefined) row = { ...row, x: f.x, ...(f.start !== undefined ? { start: f.start } : {}) };
   if (row.pos === "UNK" || row.x === undefined || row.p === undefined || !f?.kickoff) return null;
   const board = boardFor(f,row.club,boards);
   return {
@@ -612,14 +616,17 @@ export function overlayNumbers(
     const leagues = leaguesOf(week);
     return row?.fixture && (!leagues || leagues.includes(row.fixture.competition ?? "")) ? row : null;
   };
-  const priced = (row: MarketPlayer | null) => (row ? marketEntry(row, boards, now, sorare.generatedAt) : null);
+  // Pro and Arcade cards play one game: a lineup page's card (it names its game) and a Pro board's builder. Classic counts the week.
+  const oneGame = (week: GameweekPlan, hint: string | undefined) => Boolean(hint) || Boolean(request.board && week.perGame?.includes(request.board));
+  const priced = (row: MarketPlayer | null, one: boolean) => (row ? marketEntry(row, boards, now, sorare.generatedAt, one) : null);
 
   const ownedFor = (playerSlug: string, week: GameweekPlan, pick: Pick): { entry: OverlayEntry; ahead: boolean } | null => {
     const known = weekOf(week);
     const player = known.playing.get(playerSlug);
     const shown = player ? shownGame(player.games, now, pick) : null;
     if (!player || !shown) return null;
-    return { entry: entryFor(player, outlook, now, known.at, known.inPlan.get(playerSlug), boards, shown), ahead: ahead(shown, now) };
+    const entry = entryFor(player, outlook, now, known.at, known.inPlan.get(playerSlug), boards, shown, oneGame(week, pick.id));
+    return { entry, ahead: ahead(shown, now) };
   };
 
   const answer = (playerSlug: string, hint: string | undefined): OverlayEntry | null => {
@@ -629,7 +636,7 @@ export function overlayNumbers(
         const found = ownedFor(playerSlug, week, { id: hint });
         if (found) return found.entry;
       }
-      return priced([row, row && nextOf(row)].find((one) => one?.fixture?.id === hint) ?? null);
+      return priced([row, row && nextOf(row)].find((one) => one?.fixture?.id === hint) ?? null, true);
     }
     // Yours: this week's game while it is ahead (or the page is about this week), else his next one in the week after.
     const here = ownedFor(playerSlug, plan, { leagues: leaguesOf(plan) });
@@ -639,10 +646,11 @@ export function overlayNumbers(
     if (here) return here.entry;
     // Anyone else, the same from his market row; a page about the week after reads that row's next game.
     if (!row) return null;
-    if (plan === afterPlanned) return priced(counted(nextOf(row), plan));
+    if (plan === afterPlanned) return priced(counted(nextOf(row), plan), oneGame(plan, undefined));
     const current = counted(row, plan);
-    if (current && (ahead(current.fixture, now) || !roll)) return priced(current);
-    return priced((roll && following ? counted(nextOf(row), following) : null) ?? current);
+    if (current && (ahead(current.fixture, now) || !roll)) return priced(current, oneGame(plan, undefined));
+    const next = roll && following ? counted(nextOf(row), following) : null;
+    return next ? priced(next, oneGame(following!, undefined)) : priced(current, oneGame(plan, undefined));
   };
 
   const entries = new Map<string, OverlayEntry | null>();

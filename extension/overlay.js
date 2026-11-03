@@ -1173,6 +1173,8 @@
     return found;
   }
 
+  const crestPage = () => builderPage() || needPage();
+
   function dropCrest(record) {
     if (island && island.record === record) closeIsland(false);
     if (record.crest) record.crest.remove();
@@ -1184,8 +1186,9 @@
   function placeCrest(read) {
     const { record, rect, tier } = read;
     const held = entryOf(record);
-    // Drawn for every card near the screen (the visibility margin), so one scrolled in already has its crest.
-    const shown = !read.covered && (tier === "full" || tier === "compact") && held && held.entry && rect.width > 0;
+    // Only on Sorare's lineup builders and lineup pages (owner, 4 Nov 2026: on the gallery and the other lists it misbehaved), for
+    // every card near the screen there (the visibility margin), so one scrolled in already has its crest.
+    const shown = crestPage() && !read.covered && (tier === "full" || tier === "compact") && held && held.entry && rect.width > 0;
     const button = shown ? buildCrest(record, held.entry, tier) : null;
     if (!button) {
       dropCrest(record);

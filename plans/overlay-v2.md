@@ -318,6 +318,8 @@ canvas's filled purple disc. Step 3 is done.
 
 ### Step 3b. A light overlay (owner, 3 Nov: "the page lags, it's unbearable"; next after step 3)
 
+**Crests on builders and lineup pages only (owner, 4 Nov, 0.4.50):** "it bugs out a lot" on the gallery and lists, "works better in lineup builder"; `crestPage()` = `builderPage() || needPage()`.
+
 **Built (4 Nov, 0.4.49).** Measured first on his gallery (20 cards, 0.4.48, a scripted scroll with no screenshots): every frame
 about 1 s. In the e2e page a pass took 115 ms, 94 of them in 57 `clearOf` probes (about 1.6 ms each). Done: (1) a scroll moves only
 the crests (`moveCrests`, read then write), with a pass at most every 400 ms while it lasts (so cards scrolled in still get their

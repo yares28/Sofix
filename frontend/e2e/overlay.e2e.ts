@@ -85,6 +85,8 @@ const IDENTITY = {
 
 const LINEUPS = readFileSync(path.join(__dirname, "fixtures", "sorare-arcade-lineups.html"), "utf8");
 const LINEUPS_URL = "https://sorare.com/football/series/hot-streak-step-2/lineups";
+/** A lineup builder: crests are drawn there and on lineup pages only (owner, 4 Nov 2026). */
+const BUILDER_URL = "https://sorare.com/football/play/classic/compose/all-star";
 const gameId = (n: number) => `Game:22222222-bbbb-4bbb-8bbb-0000000000${String(n).padStart(2, "0")}`;
 
 // The crest's island (plans/overlay-v2.md step 2): each game as the app answers it, with both sides and the week's tones.
@@ -609,8 +611,20 @@ test.describe("the sorare.com overlay", () => {
     expect((await probe(page)).sent.some((m) => m.type === "need-data")).toBe(true); // it did look: none of them is in play
   });
 
+  test("draws no crest on the gallery, the market or any other list, only on a lineup builder or lineup page", async ({ page }) => {
+    for (const url of [PAGE_URL, MY_GALLERY, "https://sorare.com/football/market"]) {
+      await openPage(page, { url, ...(url === MY_GALLERY ? { html: GALLERY } : {}) });
+      await expect(page.locator(".sfx-tile").first()).toBeVisible();
+      await page.waitForTimeout(600);
+      await expect(page.locator(".sfx-crest")).toHaveCount(0);
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+    }
+    await openPage(page, { url: BUILDER_URL });
+    await expect(page.locator(".sfx-crest").first()).toBeAttached();
+  });
+
   test("a scroll moves only the crests: a pass at most every 400 ms while it lasts, each crest on its card's top edge, none over a sticky header", async ({ page }) => {
-    await openPage(page);
+    await openPage(page, { url: BUILDER_URL });
     await settled(page);
     await page.locator("#big").scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
@@ -669,7 +683,7 @@ test.describe("the sorare.com overlay", () => {
   });
 
   test("puts the opponent's crest on each card's top edge, half outside, in each of its states", async ({ page }) => {
-    await openPage(page);
+    await openPage(page, { url: BUILDER_URL });
     await settled(page);
     const read = (id: string) =>
       page.evaluate((cardId) => {
@@ -708,7 +722,7 @@ test.describe("the sorare.com overlay", () => {
   });
 
   test("opens the island from the crest, above the card, by pointer or keyboard, and closes it on Escape", async ({ page }) => {
-    await openPage(page);
+    await openPage(page, { url: BUILDER_URL });
     await settled(page);
     await page.locator("#big").scrollIntoViewIfNeeded();
     // The crest on this card's top edge (other copies of the same player have crests of their own), once the scroll's pass has run.
@@ -752,7 +766,7 @@ test.describe("the sorare.com overlay", () => {
 
   test("the crest disappears with the switch and its motion stops under reduced motion", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await openPage(page);
+    await openPage(page, { url: BUILDER_URL });
     await settled(page);
     await page.locator("#doubtful").scrollIntoViewIfNeeded();
     // the pulse is the dot's ring
@@ -764,7 +778,7 @@ test.describe("the sorare.com overlay", () => {
   test("takes the crests away when Sorare hides the cards for another page", async ({ page }) => {
     // 3 Nov 2026: opening a player from the gallery, Sorare hid the gallery's cards without removing them, and their crests stayed
     // over the player's page where the cards had been.
-    await openPage(page);
+    await openPage(page, { url: BUILDER_URL });
     await settled(page);
     await page.locator("#big").scrollIntoViewIfNeeded();
     await expect(page.locator(".sfx-crest").first()).toBeVisible();
@@ -774,7 +788,7 @@ test.describe("the sorare.com overlay", () => {
 
   test("takes the crests away from cards under a player's page laid over them, and keeps the one on his card", async ({ page }) => {
     // 3 Nov 2026, the gallery: Sorare opens a player as a full-screen dialog over the gallery, whose cards stay where they were.
-    await openPage(page);
+    await openPage(page, { url: BUILDER_URL });
     await settled(page);
     await page.locator("#big").scrollIntoViewIfNeeded();
     await expect(page.locator(".sfx-crest").first()).toBeVisible();
@@ -794,7 +808,7 @@ test.describe("the sorare.com overlay", () => {
   test("keeps the tiles when the extension is reloaded under an open page", async ({ page }) => {
     // 2 Nov 2026, GW29 builder: after a Reload the worker puts a fresh overlay in the open tab (its own isolated world, as
     // Chrome does), and the old one, left with nothing to talk to, took every tile on the page with it minutes later.
-    await openPage(page);
+    await openPage(page, { url: BUILDER_URL });
     await settled(page);
     await page.locator("#big").scrollIntoViewIfNeeded();
     const cdp = await page.context().newCDPSession(page);

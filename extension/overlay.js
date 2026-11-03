@@ -1778,7 +1778,7 @@
       record.captain = mark;
       fresh = true;
     }
-    const title = `Sofix's captain: the highest xScore on the pitch (${Math.round(entryOf(record).entry.x)})`;
+    const title = `Sofix's captain: the best expected score on the pitch, ${Math.round(entryOf(record).entry.x)} with his chance of starting counted`;
     if (mark.title !== title) {
       mark.title = title;
       mark.setAttribute("aria-label", title);

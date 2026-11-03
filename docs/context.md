@@ -1573,11 +1573,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "points needed: every card still able to score aims at one end score counting what it has; a live card shows its gap (-7 / +3); both copies changed together",
+        "note": "manifest version bump to 0.4.46 for the captain C on Sorare's builder; no action, permission or allowlist changed",
         "files": {
           "extension/background.js": "9bd5b360dfd64eced25762f151f64e618637a298113c95871d96d9f886e7cfed",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "e5b1ec537649ae070f7f9cd5e146f72b8664448a4e571cd33e5c643b83c566fd",
+          "extension/manifest.template.json": "ab010a54cdfc1be50d2a10cd48a4dc26982ac0e66a1565091c91f96ed8697a92",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

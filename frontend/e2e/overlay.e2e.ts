@@ -1610,7 +1610,7 @@ test.describe("the sorare.com overlay", () => {
     const c = page.locator(".sfx-captain");
     await expect(c).toHaveCount(1);
     await expect(c).toHaveText("C");
-    await expect(c).toHaveAttribute("title", /^Sofix's captain: the highest xScore on the pitch \(70\)/);
+    await expect(c).toHaveAttribute("title", /^Sofix's captain: the best expected score on the pitch, 70 with his chance of starting counted$/);
     const [card, ours] = [await box(page, "#pick-1 img"), await box(page, ".sfx-captain")];
     expect(Math.abs(ours.right - card.right)).toBeLessThan(10); // at the card's bottom right
     expect(Math.abs(ours.bottom - card.bottom)).toBeLessThan(10);

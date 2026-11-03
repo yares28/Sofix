@@ -1682,7 +1682,14 @@ def build_payload(
                 "complete": (snapshot.get("foreign") or {})[code].get("complete", False),
                 "modelVersion": (snapshot.get("scoreModels") or {}).get(code),
                 "note": CONFERENCE_NOTE if code == "CONF" else None,
-                "market": market_out(rows, league_forecasts, league_games, (league_next, league_next_games)),
+                # A European week's players get their next (domestic) game from their own league's rows: with it here the
+                # Champions League block passed its 1.6 MB budget (3 Nov 2026) and stopped the whole Sorare step.
+                "market": market_out(
+                    rows,
+                    league_forecasts,
+                    league_games,
+                    None if code in {"CL", "EL", "CONF"} else (league_next, league_next_games),
+                ),
             }
             for code, rows in foreign_rows.items()
         },

@@ -236,7 +236,9 @@ first game: p, pStart, start, x, fixture) and each fixture `id`, `opponentCode`,
 to ~1.5 MB of a 1.6 MB block), so a quick run that reuses one gives that league no next-week game. The app answers per game
 (`match` on each entry); the worker keys its cache `ov:<week>:<board>:<game>:<slug>`. Not built: the "game with no number"
 answer (no published game lacks an xScore today) and the per-competition xScore on a builder (the number stays the week's;
-only the game and its FDR follow the board). Block sizes and refresh time measured on the first refresh after the push.
+only the game and its FDR follow the board). The first refresh after it failed (3 Nov 12:07 UTC): `players:CL` passed the 1.6 MB
+block budget with `next` on its 1,113 rows; the European markets now leave `next` out (their players' next game is domestic, in
+their own league's rows).
 
 ### Step 2. Crest, island and states
 

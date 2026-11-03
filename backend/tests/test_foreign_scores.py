@@ -359,3 +359,34 @@ def test_ligue_1_has_an_independent_complete_validated_artifact():
     assert f.version("FL1").startswith("FL1:xscore-v3+")
     assert f.version("PL").startswith("PL:xscore-v2+")
     assert f.version("BL1").startswith("BL1:xscore-v2+")
+
+
+def test_a_european_market_has_no_next_week_game_and_a_domestic_one_does():
+    """3 Nov 2026: with the week after's game the Champions League block passed its 1.6 MB budget and stopped the whole Sorare
+    step. A European week's players have their next, domestic, game in their own league's rows; the European rows leave it out."""
+    from app.sorare import publish
+    from tests.test_sorare_publish import snapshot
+
+    snap = snapshot()
+    held = snap["cards"][0]["player"]
+    club = held["activeClub"]["slug"]
+
+    def row(code: str) -> dict:
+        p = deepcopy(held)
+        p["slug"] = f"{code.lower()}-player"
+        return {
+            "slug": p["slug"],
+            "name": p["slug"],
+            "pos": "GK",
+            "club": "Arsenal",
+            "average": 0,
+            "projection": 50.0,
+            "eur": None,
+            "player": p,
+        }
+
+    snap["foreign"] = {code: {"complete": True, "clubs": {club: [row(code)]}} for code in ("PL", "CL", "EL", "CONF")}
+    markets = publish.build_payload(snap, runs=1, draws=100)["_foreignMarkets"]
+    assert "next" in markets["PL"]["market"][0]
+    for code in ("CL", "EL", "CONF"):
+        assert "next" not in markets[code]["market"][0], code

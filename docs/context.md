@@ -1573,11 +1573,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: self-update alarm (1 min) reads its own manifest.json via runtime.getURL and calls runtime.reload when newer; no new permission or action.",
+        "note": "3 Nov 2026: version 0.4.33 only (overlay draws nothing for settled lineup cards); no actions or permissions changed.",
         "files": {
           "extension/background.js": "9bd5b360dfd64eced25762f151f64e618637a298113c95871d96d9f886e7cfed",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "609efd15f45c142c7ba2a04c624dae6f4e29977c4416ff99ff512457f9b26a28",
+          "extension/manifest.template.json": "a93538606c9baa589e43ea1bf11cba645912f94c5d507f334d024642d251722a",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

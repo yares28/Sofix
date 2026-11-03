@@ -421,6 +421,34 @@ test.describe("the sorare.com overlay", () => {
     for (const id of ["l-simon", "l-cubarsi", "l-messi", "l-havertz", "l-pick"]) await expect(tileOf(page, id)).toHaveCount(1); // and drawn from those answers
   });
 
+  test("on a lineup page, draws only the cards still to play or playing, and nothing on a lineup no longer in play", async ({ page }) => {
+    // The owner, 3 Nov 2026: a settled score needs nothing from Sofix; with four cards finished, only the last one's pill matters.
+    const at = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
+    const cards = [
+      ["unai-simon-2026-limited-12", 1, -5, 60], ["pau-cubarsi-2026-rare-3", 2, -5, 55], ["lionel-messi-2026-limited-9", 3, -4, 70],
+      ["kai-havertz-2026-limited-2", 4, -4, 45], ["pick-1-2026-limited-1", 5, 20, null],
+    ] as const;
+    const need = {
+      arcade: { steps: { s2: { target: 300 } } },
+      arcadeLineups: [{ id: "l1", kind: "arcade", step: "s2", cards: cards.map(([slug, n, hours, score]) => ({ slug, score, bonus: 1, captain: false, kickoff: at(hours), game: gameId(n) })) }],
+    };
+    await openPage(page, { url: LINEUPS_URL, html: LINEUPS, need });
+    await expect(tileOf(page, "l-pick")).toHaveCount(1);
+    await expect(page.locator("#l-pick .sfx-need")).toHaveText("70"); // 300 - 230 already scored: the one card left needs 70
+    await page.waitForTimeout(800);
+    for (const id of ["l-simon", "l-cubarsi", "l-messi", "l-havertz"]) {
+      await expect(tileOf(page, id)).toHaveCount(0);
+      await expect(page.locator(`#${id} .sfx-need`)).toHaveCount(0);
+    }
+  });
+
+  test("on a lineup page, a lineup no longer in play shows no tiles", async ({ page }) => {
+    await openPage(page, { url: LINEUPS_URL, html: LINEUPS, need: { arcade: { steps: {} }, arcadeLineups: [] } });
+    await page.waitForTimeout(2500);
+    await expect(page.locator("#lineup [data-sfx] .sfx-tile")).toHaveCount(0);
+    expect((await probe(page)).sent.some((m) => m.type === "need-data")).toBe(true); // it did look: none of them is in play
+  });
+
   test("keeps the tiles when the extension is reloaded under an open page", async ({ page }) => {
     // 2 Nov 2026, GW29 builder: after a Reload the worker puts a fresh overlay in the open tab (its own isolated world, as
     // Chrome does), and the old one, left with nothing to talk to, took every tile on the page with it minutes later.

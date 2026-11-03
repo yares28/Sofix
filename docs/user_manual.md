@@ -838,7 +838,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
 - **Points needed** (2 Nov 2026, [plans/points-needed.md](../plans/points-needed.md)): only on lineups you entered and that are still in
   play, on Sorare's lineup pages (extension 0.4.29: the Pro lineups page and every Pro and Arcade step's lineups page; read afresh each time you open one, then every 10 minutes, every 2 while a game is live) and
   on Play's entered Pro lineups. A dark pill at each card's upper right: the raw score it still needs, from the lineup's score so far
-  (a lineup at 260 of 360 with one player left: he needs 100, less with his bonus or the captaincy); played cards show ✓.
+  (a lineup at 260 of 360 with one player left: he needs 100, less with his bonus or the captaincy). Since extension 0.4.33 (3 Nov 2026)
+  a card whose game is over shows nothing (no tile, no pill), and a lineup no longer in play shows no tiles at all: only the cards
+  still to play or playing are drawn.
   Not on plans or on Sofix's Arcade sections.
 - A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga, Ligue 1, Champions League, Europa League or Conference League
   game (the Conference League's still provisional; else Sorare's projection, else his average when he

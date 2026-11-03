@@ -1267,7 +1267,9 @@
         forget(record);
         continue;
       }
-      if (record.ident === "done" && record.visible) drawing.push(record);
+      if (record.ident !== "done" || !record.visible) continue;
+      if (onLineupPage(record)) drawing.push(record);
+      else if (record.ribs || record.need) clearDrawn(record);
     }
 
     // Read every measurement first, then write every change: alternating the two makes a page of 200 cards stutter.
@@ -1397,6 +1399,7 @@
         slugs: new Set(lineup.cards.map((c) => c.slug)),
         pills: new Map(lineup.cards.map((c, i) => [c.slug, core.needBadge(result, i, target, c.captain)])),
         games: new Map(lineup.cards.filter((c) => c.game).map((c) => [c.slug, c.game])),
+        states: new Map(lineup.cards.map((c, i) => [c.slug, cards[i].state])),
       };
     });
     needCache = { key, lineups };
@@ -1430,10 +1433,21 @@
     return needLineups().find((l) => l.slugs.size === team.size && [...l.slugs].every((slug) => team.has(slug))) || null;
   }
 
-  /** This card's pill: only on a lineup page, only when its team block is one of your lineups still in play. */
+  /** This card's pill: only on a lineup page, only when its team block is one of your lineups still in play, and not once its game is over. */
   function needFor(record) {
     const lineup = lineupOf(record);
-    return lineup ? lineup.pills.get(record.cardSlug) || null : null;
+    if (!lineup || lineup.states.get(record.cardSlug) === "finished") return null;
+    return lineup.pills.get(record.cardSlug) || null;
+  }
+
+  /**
+   * Whether a card is drawn at all: anywhere but Sorare's lineup pages, yes; there only in your lineups still in play, and only while
+   * its game is to play or being played (the owner, 3 Nov 2026: a settled score needs nothing from Sofix).
+   */
+  function onLineupPage(record) {
+    if (!needPage()) return true;
+    const lineup = lineupOf(record);
+    return Boolean(lineup) && lineup.states.get(record.cardSlug) !== "finished";
   }
 
   /** The game Sorare put this card in, when it sits in one of your lineups on a lineup page. */

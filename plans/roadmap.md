@@ -73,7 +73,6 @@ L2. **Audit xScore: a fair yardstick** ([lineups-and-xscore.md](lineups-and-xsco
    Lineups. Then tick the plan's acceptance boxes from the saved rows, and feed the number to the plans and the Audit.
 0. **Found 7 Oct in past sessions** (TODO.md "Forgotten"): **G**, the grey countdown on Play (your call). R, the form
    fallback's red-card ban, is fixed by data-keeping step 1. L, the daily league history, is done (Results).
-1. **9.7 · The extension updates itself** (TODO.md A): no more Reload by hand after the release that brings it (one last Reload).
 3. **9.6 · The tile's big number follows his start chance** (TODO.md B): under 40% the "comes on" score, with his chance of coming on.
 4. **9.10 · The overlay answers only for your account; an old extension says "Reload"** (TODO.md F).
 5. **Play deep dive, what is left** (TODO.md "Play deep dive"): the frozen plans scored against the real cut-offs, the 439 KB `market`

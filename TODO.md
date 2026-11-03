@@ -289,7 +289,7 @@ Items 4 to 9 of my list of 3 Oct. The three faults the live pass found (items 1 
 plans of their own: [plans/overlay.md](plans/overlay.md) O12 to O14 and [plans/xscore.md](plans/xscore.md) P7 and P8. The order is the
 roadmap's batch 9.
 
-### A · The extension updates itself, so you never press Reload again (item 4)
+### A · The extension updates itself, so you never press Reload again (item 4) · **done 3 Nov 2026, extension 0.4.32**
 - **The issue.** Every new version waits for you to press Reload on Sofix in `chrome://extensions`. The Chrome tool I use only opens web
   pages: it turns `chrome://extensions` into `https://chrome//extensions`, and Chrome blocks automation on its own pages anyway.
 - **The fix.** The extension looks at its own version file in your folder once a minute and reloads itself when the one on disk is newer

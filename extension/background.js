@@ -86,7 +86,31 @@ chrome.runtime.onStartup.addListener(() => {
 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "checkin") checkIn();
+  if (alarm.name === "self-update") selfUpdate();
 });
+
+// It updates itself (TODO.md A, roadmap 9.7): once a minute it reads the manifest in its own folder, which `configure.mjs` rewrites
+// with each release, and reloads when the version there is newer than the one running. Nothing is downloaded: Chrome loads the
+// new files from the same folder, as a Reload in chrome://extensions does. Open sorare.com tabs get the new scripts on install.
+chrome.alarms.create("self-update", { periodInMinutes: 1 });
+const VERSION_PARTS = /^\d+(\.\d+){0,3}$/;
+const newerThan = (disk, running) => {
+  if (!VERSION_PARTS.test(disk) || !VERSION_PARTS.test(running)) return false;
+  const a = disk.split(".").map(Number);
+  const b = running.split(".").map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0);
+  }
+  return false;
+};
+async function selfUpdate() {
+  try {
+    const disk = await (await fetch(chrome.runtime.getURL("manifest.json"), { cache: "no-store" })).json();
+    if (typeof disk?.version === "string" && newerThan(disk.version, VERSION)) chrome.runtime.reload();
+  } catch {
+    // the folder is being rewritten: look again next minute
+  }
+}
 
 // The daily missions of one rarity, sent to the app only when they changed (the app ranks your cards for them). `force` sends them
 // anyway, so the app learns they were read today even when they are yesterday's again. True when the app has them.

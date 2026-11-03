@@ -1573,15 +1573,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-03",
-        "note": "3 Nov 2026: per-game x/start (forecast.game_x/game_start) published on games and market fixtures, weeks list perGame (Pro leaderboards); overlay shows them for Pro/Arcade cards; plans, rewards and selection unchanged.",
+        "note": "3 Nov 2026: self-update alarm (1 min) reads its own manifest.json via runtime.getURL and calls runtime.reload when newer; no new permission or action.",
         "files": {
-          "extension/background.js": "27807ad064f2508793285270965bbb7d4eeadb6225e385c8f143f09a18985696",
+          "extension/background.js": "9bd5b360dfd64eced25762f151f64e618637a298113c95871d96d9f886e7cfed",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "7be85629a4db9583552131b56c0cf5f40cc0a7bc321a7df5fb5211a2f74f3f28",
+          "extension/manifest.template.json": "609efd15f45c142c7ba2a04c624dae6f4e29977c4416ff99ff512457f9b26a28",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "c40a3dd282c313ba5165002813a9f4b2a41572d745c449016f8be3cfc7941c35"
+          "frontend/lib/extensionBackground.test.ts": "6698cb32089ac0ee9611e960534e59fdc462f83a61425ef2218c0cbba921d3bb"
         }
       }
     },

@@ -983,7 +983,9 @@ is rebuilt, press **Reload** on Sofix in `chrome://extensions`, reload your Sora
 `manifest.json` and `config.js` are generated and git-ignored because the latter holds secrets. Re-run configure and
 reload the extension after changing the app origin or token.
 
-**A new version.** Reload only picks up what is on disk in the folder Chrome loaded. When Control says "update" next to the
+**A new version.** Since extension 0.4.32 (3 Nov 2026) the extension reloads itself within a minute when the version in its folder
+is newer than the one running, and puts its scripts back in your open sorare.com tabs: after `configure.mjs` there is nothing to press.
+For an older version, Reload only picks up what is on disk in the folder Chrome loaded. When Control says "update" next to the
 extension, first bring that checkout up to `main` (`git switch main`, `git pull`; set aside uncommitted work first with
 `git stash push -u`), then run `node extension/scripts/configure.mjs` again, because `manifest.json` is rebuilt from the template,
 and only then press **Reload** and reload the `sorare.com` tab.

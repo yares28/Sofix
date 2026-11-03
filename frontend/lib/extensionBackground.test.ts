@@ -20,7 +20,7 @@ type Message = Record<string, unknown>;
 type Handler = (message: Message, sender: unknown, reply: (answer: unknown) => void) => unknown;
 type Call = { url: string; init: { headers: Record<string, string>; body: string; credentials?: string; referrerPolicy?: string } };
 
-function load(options: { sorareTab?: boolean; tabs?: { id: number; active: boolean }[]; tabResult?: (tab: number) => unknown; missionData?: unknown; operationData?: (operation: string, variables: Record<string, unknown>) => unknown } = {}) {
+function load(options: { disk?: string | null; sorareTab?: boolean; tabs?: { id: number; active: boolean }[]; tabResult?: (tab: number) => unknown; missionData?: unknown; operationData?: (operation: string, variables: Record<string, unknown>) => unknown } = {}) {
   const session = new Map<string, unknown>();
   const local = new Map<string, unknown>();
   const created: { url: string; active?: boolean }[] = [];
@@ -36,6 +36,9 @@ function load(options: { sorareTab?: boolean; tabs?: { id: number; active: boole
   });
   const handlers: Handler[] = [];
   const outside: Handler[] = [];
+  const alarms: { name: string; periodInMinutes?: number }[] = [];
+  const onAlarm: ((alarm: { name: string }) => void)[] = [];
+  let reloads = 0;
   const nothing = { addListener() {}, create() {} };
   // The page bridge in a sorare.com tab: it answers its ping and records each question it is given for Sorare.
   const bridge = (_tab: number, message: Message, answer?: (response: unknown) => void) => {
@@ -51,12 +54,17 @@ function load(options: { sorareTab?: boolean; tabs?: { id: number; active: boole
     runtime: {
       id: "sofix",
       getManifest: () => ({ version: "0.2.0" }),
+      getURL: (path: string) => `chrome-extension://sofix/${path}`,
+      reload: () => void (reloads += 1),
       onInstalled: nothing,
       onStartup: nothing,
       onMessage: { addListener: (fn: Handler) => handlers.push(fn) },
       onMessageExternal: { addListener: (fn: Handler) => outside.push(fn) },
     },
-    alarms: { create() {}, onAlarm: nothing },
+    alarms: {
+      create: (name: string, info: { periodInMinutes?: number }) => void alarms.push({ name, ...info }),
+      onAlarm: { addListener: (fn: (alarm: { name: string }) => void) => onAlarm.push(fn) },
+    },
     storage: { session: store(session), local: store(local) },
     tabs: {
       // Answers like Chrome does: the new tab, numbered from 101.
@@ -70,6 +78,11 @@ function load(options: { sorareTab?: boolean; tabs?: { id: number; active: boole
     scripting: { executeScript: async () => [], insertCSS: async () => undefined },
   };
   const fetch = async (url: string, init: Call["init"]) => {
+    // The extension's own folder: the manifest on disk, which `configure.mjs` rewrites with each release.
+    if (url === "chrome-extension://sofix/manifest.json") {
+      if (options.disk === null) throw new TypeError("unreadable");
+      return { ok: true, status: 200, json: async () => ({ version: options.disk ?? "0.2.0" }) };
+    }
     const call = { url, init };
     calls.push(call);
     const answer = respond(call);
@@ -92,6 +105,13 @@ function load(options: { sorareTab?: boolean; tabs?: { id: number; active: boole
     asked,
     tabMessages,
     respondWith: (fn: typeof respond) => void (respond = fn),
+    alarms,
+    reloads: () => reloads,
+    /** One tick of an alarm, as Chrome would fire it, and the work it started. */
+    fire: async (name: string) => {
+      onAlarm.forEach((fn) => fn({ name }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    },
     /** A message to the worker, and what it answered (null when it stayed silent). */
     send: (message: Message, sender: unknown = SORARE) =>
       new Promise<unknown>((resolve) => {
@@ -112,6 +132,28 @@ let worker: ReturnType<typeof load>;
 beforeEach(() => {
   vi.useRealTimers();
   worker = load();
+});
+
+describe("updating itself", () => {
+  it("looks at its folder once a minute and reloads when the version there is newer than the one running", async () => {
+    const w = load({ disk: "0.2.1" });
+    expect(w.alarms).toContainEqual({ name: "self-update", periodInMinutes: 1 });
+    await w.fire("self-update");
+    expect(w.reloads()).toBe(1);
+    await w.fire("checkin");
+    expect(w.reloads()).toBe(1); // only its own alarm
+  });
+
+  it("stays as it is when the folder holds the same, an older or an unreadable version", async () => {
+    for (const disk of ["0.2.0", "0.1.9", "0.10.0-x", null]) {
+      const w = load({ disk });
+      await w.fire("self-update");
+      expect(w.reloads(), String(disk)).toBe(0);
+    }
+    const tenth = load({ disk: "0.10.0" }); // compared as numbers: 0.10.0 is after 0.2.0
+    await tenth.fire("self-update");
+    expect(tenth.reloads()).toBe(1);
+  });
 });
 
 describe("mission import completeness", () => {

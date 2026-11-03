@@ -337,6 +337,46 @@ def test_a_game_carries_sorares_odds_for_the_side_the_player_is_on() -> None:
     assert (away["odds"]["label"], away["odds"]["bucket"]) == ("Big underdog", 5)
 
 
+BOARD = {
+    "win": 0.48,
+    "draw": 0.27,
+    "loss": 0.25,
+    "cleanSheet": 0.33,
+    "goalsFor": 1.3,
+    "goalsAgainst": 1.0,
+    "difficulty": 62.0,
+    "label": "Even",
+    "bucket": 3,
+    "source": "model",
+}
+
+
+def test_the_boards_own_read_of_a_game_wins_over_sorares_odds_wherever_it_rates_it() -> None:
+    """Oblak's GW29 game (2 Nov 2026): his tile said FDR 62 (the board), the plan stored 65.3 (Sorare's odds). One source now."""
+    snap = snapshot()
+    for row in snap["cards"]:
+        for game in [*row["player"]["plan"], *row["player"]["a0"]]:
+            game.update(homeStats=SLOVENIA, awayStats=MACEDONIA)
+
+    def rated(game: dict[str, Any]) -> dict[str, Any] | None:
+        return BOARD if game["competition"] == "laliga-es" else None
+
+    payload = publish.build_payload(snap, runs=2, draws=100, board=rated)
+    games = [g for p in publish.week_of(payload)["playing"]["players"] for g in p["games"]]
+    assert games and all(g["odds"] == BOARD for g in games)
+    # Without the board's read the plan is what it was: Sorare's odds.
+    before = publish.build_payload(snap, runs=2, draws=100)
+    assert all(
+        g["odds"]["source"] == "sorare" for p in publish.week_of(before)["playing"]["players"] for g in p["games"]
+    )
+
+    # A game the board does not rate (an Arena week's national-team game) keeps Sorare's odds, and one nobody prices has none.
+    national = publish.with_board(publish.card_games([national_row("home", SLOVENIA, MACEDONIA)], "plan"), rated)
+    assert national["keeper-national"][0]["odds"]["source"] == "sorare"
+    unpriced = publish.with_board(publish.card_games([national_row("home", None, None)], "plan"), rated)
+    assert "odds" not in unpriced["keeper-national"][0]
+
+
 def test_the_same_difficulty_reads_differently_home_and_away() -> None:
     """The board's venue cut points apply: 30 is a top-band game at home and only a favourite away."""
     even = {"winOddsBasisPoints": 6000, "drawOddsBasisPoints": 2500, "loseOddsBasisPoints": 1500, "cleanSheetOdds": 2.0}

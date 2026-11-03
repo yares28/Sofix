@@ -747,6 +747,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/neon-quota-recurrence.md` | [open](../plans/neon-quota-recurrence.md) |
 | document (check authority) | `plans/neon-write-mostly.md` | [open](../plans/neon-write-mostly.md) |
 | document (check authority) | `plans/overlay-bridge.md` | [open](../plans/overlay-bridge.md) |
+| document (check authority) | `plans/overlay-v2.md` | [open](../plans/overlay-v2.md) |
 | document (check authority) | `plans/overlay.md` | [open](../plans/overlay.md) |
 | document (check authority) | `plans/performance-ten-users.md` | [open](../plans/performance-ten-users.md) |
 | document (check authority) | `plans/pl-bundesliga-fdr.md` | [open](../plans/pl-bundesliga-fdr.md) |
@@ -873,16 +874,16 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-02",
-        "note": "2 Nov 2026: the Pro board payload's captainBonus field (added earlier today for pills) removed again; nothing else changed.",
+        "date": "2026-11-03",
+        "note": "3 Nov 2026: plan games carry the board's own read (source model) where a board rates the game, Sorare's odds elsewhere (publish.with_board, jobs/sorare.board_games/board_of); selection logic unchanged apart from the favourites contender now reading that block.",
         "files": {
-          "backend/app/sorare/publish.py": "7ec8c0b03bd1049401c7b582786a3f7a9cebff67169e04bff89c2cc6e268775d",
+          "backend/app/sorare/publish.py": "3d229106445c9e900f64a4c0c9679313aa00fb6614c0dedfcf6aa98fe0cc334b",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "a78f6e923328cf728327fe01f65752d768451d4a977e592901fdb4f762b3b6f3",
+          "backend/app/jobs/sorare.py": "707587b2faa749b9fa14c6cf0dd002841dc51ebc8dcb969a28eaf84b8400f387",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
-          "backend/tests/test_sorare_publish.py": "379c852e39c43e7d694fd8c1635ea837161f1ca09ea15b1b1300134f8c38d7fe"
+          "backend/tests/test_sorare_publish.py": "2ae4429ef5326f1c38e8ed0294c41934f7e7783cc6fe50535bbd0067ce279067"
         }
       }
     },
@@ -995,13 +996,13 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-02",
-        "note": "2 Nov 2026: the Pro board payload's captainBonus field (added earlier today for pills) removed again; nothing else changed.",
+        "date": "2026-11-03",
+        "note": "3 Nov 2026: build_payload gains an optional board read for the games' odds block; forecasts, xScore and raw numbers unchanged.",
         "files": {
-          "backend/app/sorare/publish.py": "7ec8c0b03bd1049401c7b582786a3f7a9cebff67169e04bff89c2cc6e268775d",
+          "backend/app/sorare/publish.py": "3d229106445c9e900f64a4c0c9679313aa00fb6614c0dedfcf6aa98fe0cc334b",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
-          "backend/tests/test_sorare_publish.py": "379c852e39c43e7d694fd8c1635ea837161f1ca09ea15b1b1300134f8c38d7fe"
+          "backend/tests/test_sorare_publish.py": "2ae4429ef5326f1c38e8ed0294c41934f7e7783cc6fe50535bbd0067ce279067"
         }
       }
     },
@@ -1571,12 +1572,12 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-02",
-        "note": "2 Nov 2026 (0.4.29): the points-needed pill sits at the card's top right; drawn on every Pro step's lineups page (/football/play/boards/pro/<board>/<step>/lineups) and every Arcade step's; opening such a page reads your lineups afresh (not twice in 15 s). 0.4.28: copy saved one read at a time. Reads only.",
+        "date": "2026-11-03",
+        "note": "3 Nov 2026: manifest version 0.4.30 only; no new actions or permissions.",
         "files": {
           "extension/background.js": "bcd51b9230d765563617ab977034fe0494823d52a5d1cd25841a5be0b8b7d4f2",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "ae98fb76abc6c72da8bb76d4e497acf29f29141163ea35bbe048e6427fded7f6",
+          "extension/manifest.template.json": "3725c3e298a19a52e60542fe221de753cd720f833cc253036ecbb41c71e5c38f",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

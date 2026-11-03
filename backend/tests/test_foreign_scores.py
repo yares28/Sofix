@@ -55,6 +55,46 @@ def test_fixture_join_requires_both_playing_sides_venue_timestamp_and_matching_m
     assert f.find_numbers("PL", grid, game) is None
 
 
+def test_the_boards_read_of_a_foreign_game_is_its_cell_from_his_side():
+    grid, game = fixture()
+    cell = grid["teams"][0]["cells"][0][0]
+    cell["prediction"].update(
+        probabilities={"win": 0.55, "draw": 0.25, "loss": 0.2}, difficulty=40.2, label="Favourite", bucket=2
+    )
+    cell["forecast_at"] = None  # the board shows it whether or not it was made before the lock
+    assert f.board_read({"PL": grid}, game) == {
+        "win": 0.55,
+        "draw": 0.25,
+        "loss": 0.2,
+        "cleanSheet": 0.4,
+        "goalsFor": 1.5,
+        "goalsAgainst": 0.9,
+        "difficulty": 40.2,
+        "label": "Favourite",
+        "bucket": 2,
+        "source": "model",
+    }
+    assert f.board_read({"PL": grid}, {**game, "opponentName": "Fulham FC"}) is None
+    assert f.board_read({}, game) is None
+
+    # The refresh's reader: a LaLiga game from the predictions (Sorare's short name when the full one is unknown), others from the grids.
+    from app.jobs.sorare import board_of
+
+    oblak = {
+        "competition": "laliga-es",
+        "teamName": "Club Atlético de Madrid",
+        "team": "Atlético",
+        "kickoff": "2026-11-08T15:15:00Z",
+    }
+    said = {"difficulty": 62.0, "source": "model"}
+    known = {"Atlético": said}
+    read = board_of(lambda club, kickoff: known.get(club), {"PL": grid})
+    assert read(oblak) == said
+    assert read({**oblak, "team": "Getafe"}) is None
+    assert read(game)["difficulty"] == 40.2
+    assert board_of(None, {})(oblak) is None
+
+
 def test_mixed_domestic_european_week_selects_each_game_model_and_scores_each_game_on_its_own():
     domestic, first = fixture()
     european = deepcopy(domestic)

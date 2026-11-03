@@ -395,6 +395,56 @@ test.describe("the sorare.com overlay", () => {
     expect(JSON.stringify(asked)).not.toMatch(/https?:|Unai|assets\.sorare/);
   });
 
+  test("keeps the tiles when the extension is reloaded under an open page", async ({ page }) => {
+    // 2 Nov 2026, GW29 builder: after a Reload the worker puts a fresh overlay in the open tab (its own isolated world, as
+    // Chrome does), and the old one, left with nothing to talk to, took every tile on the page with it minutes later.
+    await openPage(page);
+    await settled(page);
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    const cdp = await page.context().newCDPSession(page);
+    const { frameTree } = await cdp.send("Page.getFrameTree");
+    const { executionContextId } = await cdp.send("Page.createIsolatedWorld", { frameId: frameTree.frame.id, worldName: "sofix-reloaded" });
+    const stub = `(() => {
+      const numbers = ${JSON.stringify(NUMBERS)};
+      const answer = (m) => m.type === "ff-live" ? { state: "ok", live: {} }
+        : m.type !== "overlay-numbers" ? undefined
+        : { state: "ok", cards: Object.fromEntries((m.cards || []).filter((s) => s in numbers.cards).map((s) => [s, numbers.cards[s]])),
+            players: Object.fromEntries((m.players || []).filter((s) => s in numbers.players).map((s) => [s, numbers.players[s]])) };
+      globalThis.chrome = {
+        runtime: { id: "e2e-reloaded", lastError: undefined, onMessage: { addListener() {} }, sendMessage(m, reply) { if (reply) setTimeout(() => reply(answer(m)), 15); } },
+        storage: { sync: { get: async (d) => ({ ...d, overlay: true }) }, onChanged: { addListener() {} } },
+      };
+    })();`;
+    for (const source of [stub, ...["core.js", "content.js", "overlay.js"].map((file) => readFileSync(path.join(EXTENSION, file), "utf8"))]) {
+      const result = await cdp.send("Runtime.evaluate", { expression: source, contextId: executionContextId });
+      expect(result.exceptionDetails).toBeUndefined();
+    }
+    await expect(tileOf(page, "big")).toHaveCount(2); // both copies draw until the old one notices
+
+    // The old copy loses its extension, and its numbers have aged past the ten minutes it keeps them. The page is watched for any
+    // moment with no tile on the card: here the new copy happens to redraw at once, on Sorare's builder nothing woke it.
+    await page.evaluate(() => {
+      const w = window as unknown as { __fewest: number };
+      w.__fewest = 2;
+      new MutationObserver(() => {
+        w.__fewest = Math.min(w.__fewest, document.querySelectorAll("#big [data-sfx] .sfx-tile").length);
+      }).observe(document.body, { childList: true, subtree: true });
+      const runtime = (window as unknown as { chrome: { runtime: { id?: string; sendMessage: () => void } } }).chrome.runtime;
+      runtime.id = undefined;
+      runtime.sendMessage = () => {
+        throw new Error("Extension context invalidated.");
+      };
+      const real = Date.now;
+      Date.now = () => real() + 11 * 60_000;
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await expect(tileOf(page, "big")).toHaveCount(1);
+    await page.waitForTimeout(1500);
+    await expect(tileOf(page, "big")).toHaveCount(1);
+    expect(await page.evaluate(() => (window as unknown as { __fewest: number }).__fewest)).toBe(1);
+    expect(await text(page, "big")).toEqual(["53", "FDR", "45", "88%"]);
+  });
+
   test("never doubles a tile when the page re-renders, and follows an element that is given another card", async ({ page }) => {
     await openPage(page);
     await settled(page);

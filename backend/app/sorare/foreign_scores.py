@@ -92,6 +92,60 @@ def load(code: str, root: Path = ROOT) -> Models | None:
         return None
 
 
+def _cell(code: str, grid: dict[str, Any], game: dict[str, Any]) -> dict[str, Any] | None:
+    """His side's cell for this game on the board: both playing sides, the venue and the kick-off (2 hours either way)."""
+    teams = grid["teams"]
+    if code in {"CL", "EL", "CONF"}:
+        own, other = game.get("teamSlug"), game.get("opponentSlug")
+        me = [t for t in teams if t.get("sorare_slug") == own and own]
+        opponent = [t for t in teams if t.get("sorare_slug") == other and other]
+    else:
+        known = {t["history_name"] for t in teams if t.get("history_name")}
+        own = club_name({"name": game["teamName"]}, known)
+        other = club_name({"name": game["opponentName"]}, known)
+        me = [t for t in teams if t.get("history_name") == own]
+        opponent = [t for t in teams if t.get("history_name") == other]
+    if len(me) != 1 or len(opponent) != 1 or own == other:
+        return None
+    kickoff = when(game["kickoff"])
+    cells = [
+        c
+        for column in me[0]["cells"]
+        for c in column
+        if c.get("opponent_code") == opponent[0]["code"]
+        and c.get("venue") == game.get("venue")
+        and abs(when(c["kickoff_utc"]) - kickoff) <= timedelta(hours=2)
+    ]
+    return cells[0] if len(cells) == 1 else None
+
+
+def board_read(grids: dict[str, dict[str, Any]], game: dict[str, Any]) -> dict[str, Any] | None:
+    """The game as its competition's board shows it, his side's view, in the shape the plan's games carry; None off the boards."""
+    code = next((c for c, slug in COMPETITIONS.items() if slug == game.get("competition")), None)
+    grid = grids.get(code or "") or {}
+    if not code or grid.get("competition") != code:
+        return None
+    try:
+        cell = _cell(code, grid, game)
+        p = cell.get("prediction") if cell else None
+        if not p or p.get("difficulty") is None or not p.get("label") or not p.get("probabilities"):
+            return None
+        return {
+            "win": p["probabilities"]["win"],
+            "draw": p["probabilities"]["draw"],
+            "loss": p["probabilities"]["loss"],
+            "cleanSheet": p.get("clean_sheet"),
+            "goalsFor": p.get("xg_for"),
+            "goalsAgainst": p.get("xg_against"),
+            "difficulty": p["difficulty"],
+            "label": p["label"],
+            "bucket": p["bucket"],
+            "source": "model",
+        }
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
 def find_numbers(code: str, grid: dict[str, Any], game: dict[str, Any]) -> keeper.GameNumbers | None:
     if (
         grid.get("competition") != code
@@ -102,30 +156,10 @@ def find_numbers(code: str, grid: dict[str, Any], game: dict[str, Any]) -> keepe
         return None
     try:
         lock, kickoff = when(game["forecastBefore"]), when(game["kickoff"])
-        teams = grid["teams"]
-        if code in {"CL", "EL", "CONF"}:
-            own, other = game.get("teamSlug"), game.get("opponentSlug")
-            me = [t for t in teams if t.get("sorare_slug") == own and own]
-            opponent = [t for t in teams if t.get("sorare_slug") == other and other]
-        else:
-            known = {t["history_name"] for t in teams if t.get("history_name")}
-            own = club_name({"name": game["teamName"]}, known)
-            other = club_name({"name": game["opponentName"]}, known)
-            me = [t for t in teams if t.get("history_name") == own]
-            opponent = [t for t in teams if t.get("history_name") == other]
-        if len(me) != 1 or len(opponent) != 1 or own == other or lock >= kickoff:
+        found = _cell(code, grid, game)
+        if found is None or lock >= kickoff:
             return None
-        cells = [
-            c
-            for column in me[0]["cells"]
-            for c in column
-            if c.get("opponent_code") == opponent[0]["code"]
-            and c.get("venue") == game.get("venue")
-            and abs(when(c["kickoff_utc"]) - kickoff) <= timedelta(hours=2)
-        ]
-        if len(cells) != 1:
-            return None
-        cell = cells[0]
+        cell = found
         if code in {"CL", "EL", "CONF"} and (
             cell.get("phase") not in {"league", "knockout"} or type(cell.get("neutral")) is not bool
         ):

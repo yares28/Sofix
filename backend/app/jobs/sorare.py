@@ -26,16 +26,17 @@ from datetime import UTC, datetime, timedelta
 from functools import partial
 from typing import Any, TypeVar
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import SessionLocal
 from app.logging_config import configure_logging
-from app.models import ReadModel
-from app.services import board_checks, kept_blocks
+from app.models import Fixture, Prediction, ReadModel, Team
+from app.services import board_checks, kept_blocks, team_registry
 from app.services.publish import notify_app, put, put_times
-from app.services.timeutil import Laps
+from app.services.scoring import LABELS, difficulty_label, label_bucket
+from app.services.timeutil import Laps, as_utc
 from app.sorare import (
     audit,
     card_art,
@@ -376,6 +377,89 @@ def lineups_summary(feed: ff_feed.Feed | None, lineups: ff_use.Lineups | None, w
     return out
 
 
+LaLigaBoard = Callable[[str, str], dict[str, Any] | None]
+
+
+def board_games(db: Session, since: datetime) -> LaLigaBoard:
+    """Each LaLiga game from `since` on as the board's tile shows it (`fixture_grid.cell_prediction`), his side's view, in the
+    shape the plan's games carry. Asked for a club (any spelling the registry knows) and Sorare's kick-off, as `keeper.numbers_for`."""
+    rows = db.execute(
+        select(
+            Fixture.kickoff_utc,
+            Fixture.home_team_id,
+            Team.code,
+            Prediction.perspective_team_id,
+            Prediction.p_win,
+            Prediction.p_draw,
+            Prediction.p_loss,
+            Prediction.difficulty_score,
+            Prediction.difficulty_label,
+            Prediction.p_clean_sheet,
+            Prediction.xg_for,
+            Prediction.xg_against,
+        )
+        .join(Prediction, Prediction.fixture_id == Fixture.id)
+        .join(Team, Team.id == Prediction.perspective_team_id)
+        .where(Fixture.kickoff_utc >= since - timedelta(days=1))
+        .order_by(Prediction.prediction_ts)
+    ).all()
+    by_team: dict[str, dict[datetime, dict[str, Any]]] = {}
+    for (
+        kickoff,
+        home,
+        code,
+        side,
+        win,
+        draw,
+        loss,
+        score,
+        label,
+        cs,
+        xgf,
+        xga,
+    ) in rows:  # a later forecast replaces an earlier
+        venue = "H" if side == home else "A"
+        word = label if label in LABELS else difficulty_label(score, venue)  # an old word, said again as the board does
+        by_team.setdefault(code, {})[as_utc(kickoff)] = {
+            "win": round(win, 3),
+            "draw": round(draw, 3),
+            "loss": round(loss, 3),
+            "cleanSheet": None if cs is None else round(cs, 3),
+            "goalsFor": None if xgf is None else round(xgf, 2),
+            "goalsAgainst": None if xga is None else round(xga, 2),
+            "difficulty": round(score, 1),
+            "label": word,
+            "bucket": label_bucket(word),
+            "source": "model",
+        }
+
+    def find(club: str, kickoff: str) -> dict[str, Any] | None:
+        team = team_registry.by_odds_name(club)
+        games = by_team.get(team.code, {}) if team else {}
+        when = datetime.fromisoformat(kickoff.replace("Z", "+00:00")).astimezone(UTC)
+        best = min(games, key=lambda at: abs(at - when), default=None)
+        return games[best] if best is not None and abs(best - when) <= keeper.SAME_GAME else None
+
+    return find
+
+
+def board_of(laliga: LaLigaBoard | None, grids: dict[str, dict[str, Any]]) -> sorare_publish.Board:
+    """The board's own read of a game: LaLiga's from the forecasts the board shows, the other boards' from their grids."""
+
+    def read(game: dict[str, Any]) -> dict[str, Any] | None:
+        if game.get("competition") != keeper.LALIGA:
+            return foreign_scores.board_read(grids, game)
+        if laliga is None:
+            return None
+        for name in (game.get("teamName"), game.get("team")):
+            found = laliga(name, game["kickoff"]) if name else None
+            if found is not None:
+                return found
+        return None
+
+    return read
+
+
 def foreign_inputs(kept: dict[str, Any], now: datetime) -> tuple[dict[str, Any], dict[str, Any], dict[str, list[str]]]:
     grids, models, clubs = {}, {}, {}
     for code in foreign_scores.COMPETITIONS:
@@ -621,6 +705,9 @@ def run(
     )
     db.rollback()
     laps("game scores")
+    # The board's own read of each LaLiga game, so the plan's games say what /difficulty and the overlay say. None: Sorare's odds stay.
+    laliga_board = optional(db, failed, "board games", lambda: board_games(db, fetched), None)
+    db.rollback()
     # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds. A
     # run plans only the few that are missing or stale, so it stays well inside its time; the rest keep their last plan.
     # If planning fails the page keeps the list of early weeks it had.
@@ -656,6 +743,7 @@ def run(
         league_ff=league_lineups.starts if league_lineups else None,
         contenders=contenders,
         score_fix=score_fix,
+        board=board_of(laliga_board, foreign_grids),
     )
     # Sofix's plan against what happened, beside its forecast on Play (plans/plan-algorithm-v2.md step 8)
     payload["trackRecord"] = sorare_strategy_audit.track_record(

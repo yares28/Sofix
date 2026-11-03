@@ -840,7 +840,8 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   on Play's entered Pro lineups. A dark pill at each card's upper right: the raw score it still needs, from the lineup's score so far
   (a lineup at 260 of 360 with one player left: he needs 100, less with his bonus or the captaincy); played cards show ✓.
   Not on plans or on Sofix's Arcade sections.
-- A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga or Ligue 1 game (else Sorare's projection, else his average when he
+- A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga, Ligue 1, Champions League, Europa League or Conference League
+  game (the Conference League's still provisional; else Sorare's projection, else his average when he
   plays) × his start % (Sofix's in those leagues) × Sorare's bonuses (edition + club + captain),
   shown below FDR (0–100, lower is easier) at the upper right of the card art. Lineup and Players cards share the same layout: large start percentage, fixture crests and xD below the art, with the edition bonus on the art. The selected lineup game stays fixed; its kickoff and source are available in the fixture label and forecast titles. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or
   Ligue 1 game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
@@ -996,7 +997,10 @@ The big number is the score he is expected to score **if he starts** (a small sh
 colour for that score. Under it is one thing that drives the score, chosen by position:
 
 - **Goalkeepers and defenders: FDR**, Sofix's difficulty of his game (0 to 100), in Sorare's five colours from cyan
-  (very favourite) to red (big underdog). It is the same number as the difficulty page.
+  (very favourite) to red (big underdog). It is the same number as the difficulty page, and since 3 Nov 2026 the same in
+  Sofix's plans: wherever a Sofix board rates the game its number wins, Sorare's odds only where none does.
+  Tiles no longer vanish minutes after you press Reload on the extension (extension 0.4.30): the old copy left in an open tab
+  now takes only its own drawings with it.
 **A goalkeeper's number follows his game.** It is no longer his last five games: those are mostly luck (a clean sheet is worth about 75, a game without
 one about 40), so Sofix works out how likely his side is to keep a clean sheet (its own numbers, adjusted by the bookmakers' goals line), what he scores if it does
 and if it does not. Since 26 Oct 2026 it no longer uses Sorare's projection: Sofix's number stands on its own data, with Sorare's beside it to compare. Two keepers' numbers sit closer together than before and move with the opponent. In a test on

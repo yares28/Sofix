@@ -278,6 +278,20 @@ def card_games(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str,
     return out
 
 
+Board = Callable[[dict[str, Any]], dict[str, Any] | None]
+
+
+def with_board(games: dict[str, list[dict[str, Any]]], board: Board | None) -> dict[str, list[dict[str, Any]]]:
+    """One read of each game everywhere: the board's own, where it rates the game, over Sorare's odds (what the overlay and
+    /difficulty show; plans/overlay-v2.md finding 3). A game off the boards keeps Sorare's odds, or none."""
+    if board is None:
+        return games
+    out: dict[str, list[dict[str, Any]]] = {}
+    for slug, listed in games.items():
+        out[slug] = [{**game, "odds": rated} if (rated := board(game)) else game for game in listed]
+    return out
+
+
 def _banned(rows: list[dict[str, Any]], first: dict[str, Any] | None) -> bool:
     """A red or a completed five-yellow cycle bans the next LaLiga game; an intervening game serves it."""
     if first is None or first.get("competition") != expected.LALIGA or not first.get("kickoff"):
@@ -1297,8 +1311,11 @@ def build_payload(
     league_ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
     contenders: tuple[str, ...] | None = None,
     score_fix: ScoreFix | None = None,
+    board: Board | None = None,
 ) -> dict[str, Any]:
     """The whole `sorare` read model, from one snapshot.
+
+    `board` is the board's own read of a game it rates (`with_board`); the games keep Sorare's odds without it.
 
     `contenders` are the strategies that each build a whole plan beside Sofix's own (`strategies.contenders`); the one whose plan wins
     most on average, every plan priced on Sofix's numbers, is the recommended plan (`contest`).
@@ -1320,7 +1337,7 @@ def build_payload(
     plan_week = snapshot["planGameweek"]
     past_week = snapshot.get("pastGameweek")
 
-    plan_games = card_games(snapshot["cards"], "plan")
+    plan_games = with_board(card_games(snapshot["cards"], "plan"), board)
     # Understat's numbers (when the job could read them) turned into each midfielder's and forward's xG for a game he starts
     xg_rates = xg.build(snapshot["cards"], snapshot["history"], snapshot.get("understat") or {})
     reference_for = snapshot.get("referenceFor") or {}
@@ -1358,7 +1375,7 @@ def build_payload(
         for row in [*(snapshot.get("market") or []), *(p for players in foreign_rows.values() for p in players)]
         if row.get("player")
     ]
-    league_games = card_games(league_rows, "plan")
+    league_games = with_board(card_games(league_rows, "plan"), board)
     # Past games: what the job has built up for every LaLiga player (`sorare_sync.league_history`), yours read in full this run
     league_history = {slug: entry.get("games") or [] for slug, entry in (snapshot.get("leagueHistory") or {}).items()}
     league_weeks = player_weeks(
@@ -1506,7 +1523,7 @@ def build_payload(
             ),
             week,
         )
-        games = card_games(snapshot["cards"], f"a{i}")
+        games = with_board(card_games(snapshot["cards"], f"a{i}"), board)
         # Futbol Fantasy has each club's next game, which can sit in a week Sorare has opened but is not planning yet (the weekend
         # round during an international break): it speaks for those games and for no other.
         forecasts = build_forecasts(

@@ -58,6 +58,22 @@
   let fixtureNow = core.fixtureOf(location.href); // the gameweek the page is about, from its address; null when it names none
 
   const now = () => Date.now();
+  // Reloading the extension leaves this script running in an open tab with nothing to talk to, and the worker puts a fresh copy
+  // beside it. The page names the copy that started last, so an old one leaving takes only its own drawings with it (2 Nov 2026:
+  // the old copy's sweep took the new one's tiles off the GW29 builder minutes after a release).
+  const ME = Math.random().toString(36).slice(2);
+  const alive = () => {
+    try {
+      return Boolean(chrome.runtime && chrome.runtime.id);
+    } catch {
+      return false;
+    }
+  };
+  /** Names this copy as the page's overlay: always when it starts, and on a pass only if the page had no root to name it on then. */
+  const claim = (always) => {
+    const root = document.documentElement;
+    if (root && (always || !root.hasAttribute("data-sfx-run"))) root.setAttribute("data-sfx-run", ME);
+  };
 
   // -- finding cards ---------------------------------------------------------------------------------------------
 
@@ -1700,6 +1716,12 @@
   function pass() {
     frame = 0;
     if (!enabled) return;
+    if (!alive()) {
+      dead = true;
+      stop();
+      return;
+    }
+    claim(false);
     watchFixture();
     if (scan) {
       scan = false;
@@ -1747,6 +1769,7 @@
     if (enabled || dead) return;
     enabled = true;
     scan = true;
+    claim(true);
     visibility = new IntersectionObserver(
       guard((entries) => {
         for (const entry of entries) {
@@ -1784,6 +1807,8 @@
   function stop() {
     if (!enabled) return;
     enabled = false;
+    const root = document.documentElement;
+    const mine = !root || !root.hasAttribute("data-sfx-run") || root.getAttribute("data-sfx-run") === ME; // else a newer copy draws this page now
     if (mutations) mutations.disconnect();
     if (visibility) visibility.disconnect();
     if (resizing) resizing.disconnect();
@@ -1792,7 +1817,6 @@
     window.removeEventListener("popstate", schedule);
     window.removeEventListener("sofix-guide", schedule);
     document.removeEventListener("pointerup", onGuidePress, true);
-    document.querySelectorAll("[data-sfx-guide]").forEach((el) => el.removeAttribute("data-sfx-guide"));
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
     clearTimeout(askTimer);
@@ -1802,16 +1826,23 @@
     liveAsking = false;
     liveKey = "";
     liveByMatch.clear();
-    for (const record of [...live]) forget(record);
+    for (const record of [...live]) {
+      removeWorth(record);
+      forget(record);
+    }
     live.clear();
     asking.clear();
     lastReport = "";
     clearTimeout(reportTimer);
     reportTimer = 0;
     pageOdds.clear();
+    if (worthBox) worthBox.remove();
+    if (strip) strip.remove();
     worthBox = null;
     strip = null;
     closePanel(false);
+    if (!mine) return;
+    document.querySelectorAll("[data-sfx-guide]").forEach((el) => el.removeAttribute("data-sfx-guide"));
     document.querySelectorAll("[data-sfx]").forEach((el) => el.remove());
     document.querySelectorAll(".sfx-room").forEach((el) => el.classList.remove("sfx-room"));
   }

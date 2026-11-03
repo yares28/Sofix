@@ -344,6 +344,38 @@ def test_a_game_is_found_by_the_club_and_the_day_and_comes_with_his_sides_number
     assert away is not None and (away.xga, away.xgf) == (1.6, 0.9)
 
 
+def test_a_game_comes_with_the_boards_own_read_of_it_from_his_side(db: Any) -> None:
+    """What /difficulty shows for the game, so the plan says what the board says (plans/overlay-v2.md finding 3)."""
+    from app.jobs.sorare import board_games
+    from app.services.scoring import difficulty_label, label_bucket
+
+    seed(db)
+    find = board_games(db, datetime(2026, 10, 1, tzinfo=UTC))
+    home = find("Real Betis Balompié", "2026-10-10T19:00:00Z")
+    away = find("Sevilla FC", "2026-10-10T19:00:00Z")
+    assert home == {
+        "win": 0.5,
+        "draw": 0.25,
+        "loss": 0.25,
+        "cleanSheet": 0.4,
+        "goalsFor": 1.6,
+        "goalsAgainst": 0.9,
+        "difficulty": 50.0,
+        "label": difficulty_label(
+            50.0, "H"
+        ),  # the stored word is an old one: said again in the board's words, at his venue
+        "bucket": label_bucket(difficulty_label(50.0, "H")),
+        "source": "model",
+    }
+    assert away is not None
+    assert (away["cleanSheet"], away["goalsFor"], away["label"]) == (
+        0.22,
+        0.9,
+        difficulty_label(50.0, "A"),
+    )
+    assert find("Sevilla FC", "2026-10-17T19:00:00Z") is None  # another week
+
+
 def test_a_game_a_day_off_is_still_the_same_game_but_another_week_is_not(db: Any) -> None:
     seed(db)
     find = keeper.numbers_for(db, datetime(2026, 10, 1, tzinfo=UTC))

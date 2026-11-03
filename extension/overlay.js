@@ -1305,7 +1305,7 @@
         target = document.createElement("span");
         target.setAttribute("data-sfx", "");
         target.setAttribute("data-pending", ""); // hidden until it has been placed, so it never flashes in the corner
-        record.media.parentElement.append(target);
+        hostOf(record).append(target);
         record.ribs = target;
         created = true;
       }
@@ -1602,6 +1602,7 @@
     if (rect.top < 0 || rect.bottom > innerHeight || rect.left < 0 || rect.right > innerWidth) return record.corner || null; // probed only in full view
     record.cornerKey = key;
     record.hangs = undefined; // asked again with the corner: a re-rendered card may sit in another box
+    record.host = null;
     const media = record.media;
     const reach = rect.top + rect.height * 0.35;
     let box = null;
@@ -1628,8 +1629,37 @@
    */
   const BADGE = { out: 4, down: 8, gap: 4 };
   function hangs(record) {
-    if (record.hangs === undefined) record.hangs = getComputedStyle(record.media.parentElement).overflow === "visible";
+    if (record.hangs === undefined) record.hangs = !clips(hostOf(record));
     return record.hangs;
+  }
+
+  /** Whether a box cuts what is drawn past its edge: overflow, paint containment (Sorare's list cards: `contain: content`) or a clip path. */
+  function clips(el) {
+    const style = getComputedStyle(el);
+    return style.overflow !== "visible" || /paint|content|strict/.test(style.contain) || style.clipPath !== "none";
+  }
+
+  /** Paint containment or a clip path: what cuts Sorare's list cards (an overflow cut is the card's own, and ours stay inside it). */
+  function contains(el) {
+    const style = getComputedStyle(el);
+    return /paint|content|strict/.test(style.contain) || style.clipPath !== "none";
+  }
+
+  /**
+   * The box ours go in: the card's own, or, when a wrapper of the card's size contains its paint, the one just above the outermost
+   * such wrapper (where Sorare puts its own start badge on a list card). Never a box wider than the card.
+   */
+  function hostOf(record) {
+    if (record.host && record.host.isConnected && record.host.contains(record.media)) return record.host;
+    const width = record.media.getBoundingClientRect().width;
+    let host = record.media.parentElement;
+    for (let el = host, depth = 0; el && el !== document.body && depth < 6; el = el.parentElement, depth += 1) {
+      if (Math.abs(el.getBoundingClientRect().width - width) > 4) break;
+      const above = el.parentElement;
+      if (contains(el) && above && Math.abs(above.getBoundingClientRect().width - width) <= 4) host = above;
+    }
+    record.host = host;
+    return host;
   }
 
   /** Where the tile's top-left corner goes, from the card's: Sorare's badge place mirrored (4 px out, 8 px down) where the card lets it show. */
@@ -1671,7 +1701,7 @@
       chip = node("span");
       chip.setAttribute("data-sfx", "");
       chip.setAttribute("data-pending", "");
-      record.media.parentElement.append(chip);
+      hostOf(record).append(chip);
       record.start = chip;
       fresh = true;
     }
@@ -1712,7 +1742,7 @@
       pill = document.createElement("span");
       pill.setAttribute("data-sfx", "");
       pill.setAttribute("data-pending", "");
-      record.media.parentElement.append(pill);
+      hostOf(record).append(pill);
       record.need = pill;
       fresh = true;
     }

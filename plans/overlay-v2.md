@@ -289,7 +289,9 @@ Sorare's own start badge, with its colour steps read from its script ([[49.5, "l
 0.4.41 (owner's pitch screenshot): Sorare's badge sits 4 px past the card's right edge, 8 px down, its grade under it, both
 right-aligned; ours joins that column 4 px under the grade (or takes the badge's place), inside the card only where the card's box
 clips. The captain's round button on the corner is left out of the probe. 0.4.42 (owner: "all pills"): the xScore and FDR chips take the same badge
-form, mirrored (square bottom-left corner), 4 px apart, 4 px past the left edge and 8 px down where the card lets it show.
+form, mirrored (square bottom-left corner), 4 px apart, 4 px past the left edge and 8 px down where the card lets it show. 0.4.43: Sorare's
+builder list wraps each card in a box with `contain: content`, which cut ours at the card's edge; ours now go one box up, where
+Sorare's own badge is (only for paint containment or a clip path; a card cut by its own overflow keeps ours inside).
 Crests on an Arcade builder (owner, 3 Nov): the app picked only between the week being planned (GW29) and the week after, so on
 the Hot Streaks builder Mbappé showed Valencia (Sat), not AEK (Wed, the week being played). A page naming no week now reads the week
 being played too (the same cached frozen plan a lineup page reads) and a card's game in it that is still ahead comes first (1.7.3);

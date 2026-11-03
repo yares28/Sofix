@@ -504,6 +504,34 @@ test.describe("the sorare.com overlay", () => {
     expect([Math.round(card.left - t.left), Math.round(t.top - card.top)]).toEqual([4, 8]);
   });
 
+  test("a card that cuts at its own edge inside a box of its size still has its pills hanging out (Sorare's builder list)", async ({ page }) => {
+    // 3 Nov 2026: Sorare's list cards sit in a wrapper with `contain: content`, which cut ours at the card's edge; Sorare's badge
+    // lives one box up. Ours go there too.
+    await openPage(page);
+    await settled(page);
+    await page.evaluate(() => {
+      const card = document.querySelector<HTMLElement>("#graded")!;
+      card.style.contain = "content";
+      const holder = document.createElement("div");
+      holder.style.cssText = "position:relative;width:163px;margin:0 24px";
+      card.before(holder);
+      holder.append(card);
+      ["#sostart", "#grade"].forEach((id) => document.querySelector(id)!.remove());
+    });
+    // Drawn afresh, as on a page that had the wrapper from the start.
+    await page.evaluate(() => (window as unknown as { __sfx: { setOverlay: (v: boolean) => void } }).__sfx.setOverlay(false));
+    await page.evaluate(() => (window as unknown as { __sfx: { setOverlay: (v: boolean) => void } }).__sfx.setOverlay(true));
+    await page.locator("#graded").scrollIntoViewIfNeeded();
+    await expect
+      .poll(async () => {
+        const [chip, card] = [await box(page, "#graded + .sfx-start, #graded ~ .sfx-start"), await art(page, "graded")];
+        return [Math.round(chip.right - card.right) || 0, Math.round(chip.top - card.top) || 0];
+      })
+      .toEqual([4, 8]);
+    const [t, card] = [await box(page, "#graded ~ .sfx-ribs"), await art(page, "graded")];
+    expect(Math.round(card.left - t.left)).toBe(4);
+  });
+
   test("on a narrow full card the chips are tighter, and the start % never lies over the tile", async ({ page }) => {
     // 3 Nov 2026, Sorare's builder list: 118 x 191 px cards, a badge of theirs pushing the tile down into the start % row.
     await openPage(page);

@@ -260,7 +260,8 @@ minute (a clock from kick-off is wrong by half-time and stoppages). The sixths a
 loads (each rated side-game of the gameweek, the season's below 12), not stored by the refresh: a few thousand cells per call, no new
 block. Hover tilt is not followed (the crest sits on the card's resting edge). The substitution icon is found by what lies on the card's
 top centre (a round 14-40 px element); not yet seen on a real Sorare card. Edge case 8 decided (3 Nov): the crest stays half outside on a
-top-row card too, and it is smaller everywhere: 28 px on a full card (22 each for two games), 20 on a small one (18), 20 in the pill.
+top-row card too, and it is smaller everywhere: 22 px on a full card (18 each for two games), 16 on a small one (14), 16 in the pill (second cut, 0.4.36). A card Sorare hides (opening a
+player from the gallery) takes its crest away, since the crest lives on the page, not in the card.
 
 ### Step 3. Tile, start %, captain C, price per point
 

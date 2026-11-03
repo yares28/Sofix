@@ -490,7 +490,7 @@ test.describe("the sorare.com overlay", () => {
     expect(big).toMatchObject({ imgs: 1, text: "" });
     expect(Math.abs(big!.cx)).toBeLessThan(2); // centred on the card
     expect(Math.abs(big!.cy)).toBeLessThan(2); // on its top edge: half outside
-    expect(big!.width).toBeCloseTo(28, 0); // smaller than the canvas's 40 (the owner, 3 Nov 2026)
+    expect(big!.width).toBeCloseTo(22, 0); // smaller than the canvas's 40 (the owner, 3 Nov 2026, twice)
     await page.locator("#abroad").scrollIntoViewIfNeeded();
     expect(await crestOf("abroad")).toMatchObject({ imgs: 2 }); // two games, two crests
     await page.locator("#noxg").scrollIntoViewIfNeeded();
@@ -553,6 +553,17 @@ test.describe("the sorare.com overlay", () => {
     await expect(page.locator(".sfx-live-dot").first()).toHaveCSS("animation-name", "none");
     await page.evaluate(() => (window as unknown as { __sfx: { setOverlay: (v: boolean) => void } }).__sfx.setOverlay(false));
     await expect(page.locator(".sfx-crests, .sfx-crest, .sfx-island")).toHaveCount(0);
+  });
+
+  test("takes the crests away when Sorare hides the cards for another page", async ({ page }) => {
+    // 3 Nov 2026: opening a player from the gallery, Sorare hid the gallery's cards without removing them, and their crests stayed
+    // over the player's page where the cards had been.
+    await openPage(page);
+    await settled(page);
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    await expect(page.locator(".sfx-crest").first()).toBeVisible();
+    await page.evaluate(() => document.querySelectorAll<HTMLElement>("body > :not([data-sfx])").forEach((el) => (el.style.display = "none")));
+    await expect(page.locator(".sfx-crest")).toHaveCount(0);
   });
 
   test("keeps the tiles when the extension is reloaded under an open page", async ({ page }) => {

@@ -741,10 +741,7 @@
     record.tile = null;
     if (record.need) record.need.remove();
     record.need = null;
-    if (island && island.record === record) closeIsland(false);
-    if (record.crest) record.crest.remove();
-    record.crest = null;
-    record.crestSig = "";
+    dropCrest(record);
     removeOdds(record);
   }
 
@@ -1135,8 +1132,8 @@
 
   let crestLayer = null;
   let island = null; // the one open island: { record, el, timer }
-  const CREST_SIZE = { full: [28, 22], compact: [20, 18] }; // one game, two games (the owner, 3 Nov 2026: smaller than the canvas's 40)
-  const PILL_CREST = { full: 20, compact: 16 };
+  const CREST_SIZE = { full: [22, 18], compact: [16, 14] }; // one game, two games (the owner, 3 Nov 2026, twice: smaller than the canvas's 40)
+  const PILL_CREST = { full: 16, compact: 14 };
 
   function crestHome() {
     if (crestLayer && crestLayer.isConnected) return crestLayer;
@@ -1219,6 +1216,13 @@
     return found;
   }
 
+  function dropCrest(record) {
+    if (island && island.record === record) closeIsland(false);
+    if (record.crest) record.crest.remove();
+    record.crest = null;
+    record.crestSig = "";
+  }
+
   /** Draws, moves or removes one card's crest. */
   function placeCrest(read) {
     const { record, rect, tier } = read;
@@ -1226,10 +1230,7 @@
     const shown = (tier === "full" || tier === "compact") && held && held.entry && rect.bottom > 0 && rect.top < innerHeight && rect.width > 0;
     const button = shown ? buildCrest(record, held.entry, tier) : null;
     if (!button) {
-      if (record.crest) record.crest.remove();
-      record.crest = null;
-      record.crestSig = "";
-      if (island && island.record === record) closeIsland(false);
+      dropCrest(record);
       return;
     }
     const icon = subIconOf(record, rect);
@@ -1505,9 +1506,12 @@
         forget(record);
         continue;
       }
-      if (record.ident !== "done" || !record.visible) continue;
+      if (record.ident !== "done" || !record.visible) {
+        dropCrest(record); // the crest lives on the page, not in the card: a card hidden or scrolled away must not leave it behind
+        continue;
+      }
       if (onLineupPage(record)) drawing.push(record);
-      else if (record.ribs || record.need) clearDrawn(record);
+      else if (record.ribs || record.need || record.crest) clearDrawn(record);
     }
 
     // Read every measurement first, then write every change: alternating the two makes a page of 200 cards stutter.

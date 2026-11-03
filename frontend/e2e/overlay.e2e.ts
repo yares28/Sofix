@@ -1605,11 +1605,10 @@ test.describe("the sorare.com overlay", () => {
     const [green, red] = [await price("pick-1").evaluate((el) => getComputedStyle(el).color), await price("pick-2").evaluate((el) => getComputedStyle(el).color)];
     expect(green).not.toBe(red);
     expect(await price("pick-1").evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(11);
-    // Centred on the card, near its bottom, inside it.
+    // At the card's right, its bottom at two thirds of the card: Sorare writes his name across the bottom.
     const [card, pill] = [await box(page, "#pick-1 img"), await box(page, "#pick-1 .sfx-price")];
-    expect(Math.abs((pill.left + pill.right) / 2 - (card.left + card.right) / 2)).toBeLessThan(2);
-    expect(pill.bottom).toBeLessThanOrEqual(card.bottom);
-    expect(card.bottom - pill.bottom).toBeLessThan(16);
+    expect(Math.abs(card.right - 6 - pill.right)).toBeLessThan(1.5);
+    expect(Math.abs(pill.bottom - (card.top + (card.bottom - card.top) * 0.66))).toBeLessThan(1.5);
     await expect(page.locator("#abroad .sfx-price")).toHaveCount(0); // his rare card: the price is a Limited one
     await page.locator("#pick-1").screenshot({ path: testInfo.outputPath("overlay-price.png") });
   });

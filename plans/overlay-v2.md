@@ -313,7 +313,7 @@ Price per point built (0.4.47): the app adds `price` {eur, perPoint, third, simi
 market row (`lib/overlay.ts`, `priceOf`): his `eur` over the answer's own xScore, ranked against the other leagues' rows (each
 player once) of his position within 5 of his average, by their row's `eur / x`; under 5 of them, no third. Measured on 3 Nov's
 blocks: 5,722 priced rows, a FWD averaging 49 has 644 like him, median €0.17/pt. The overlay draws it on Limited cards only
-(card slug or alt), on `/football/market…` and your own gallery, as the canvas's dark pill near the bottom; the captain C took the
+(card slug or alt), on `/football/market…` and your own gallery, as the canvas's dark pill, moved up to the right at two thirds of the card (on the market his name runs across the bottom, where the canvas had it); the captain C took the
 canvas's filled purple disc. Step 3 is done.
 
 ### Step 3b. A light overlay (owner, 3 Nov: "the page lags, it's unbearable"; next after step 3)

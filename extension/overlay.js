@@ -1792,8 +1792,9 @@
 
   // -- price per point (plans/overlay-v2.md 1.2) ------------------------------------------------------------------------
   // On Sorare's market and your gallery, a Limited card says what a point of his costs: his Limited price over his xScore, from the
-  // app (lib/overlay.ts, priceOf), green in the cheapest third of similar players, red in the dearest, plain between. Centred near
-  // the card's bottom. Another rarity's card says nothing: the price is a Limited one.
+  // app (lib/overlay.ts, priceOf), green in the cheapest third of similar players, red in the dearest, plain between. At the right,
+  // above the line with his position. Another rarity's card says nothing: the price is a Limited one.
+  const PRICE_AT = 0.66;
   const THIRD_WORDS = { cheap: "the cheapest third", mid: "the middle third", dear: "the dearest third" };
   const pricePage = () => /^\/football\/market(?:\/|$)/.test(location.pathname) || myGallery();
   const limitedCard = (record) => /-limited-\d+$/.test(record.cardSlug || "") || /\s-\slimited$/i.test(record.media.getAttribute("alt") || "");
@@ -1829,8 +1830,8 @@
       else delete pill.dataset.third;
     }
     if (fresh) return true; // measured on the next pass
-    const box = pill.getBoundingClientRect();
-    return moveTo(pill, rect.left + (rect.width + box.width) / 2, rect.bottom - 10 - box.height);
+    // At the right, its bottom at two thirds of the card: Sorare writes his name across the card's bottom (3 Nov 2026, the market).
+    return moveTo(pill, rect.right - INSET.full.x, rect.top + rect.height * PRICE_AT - pill.getBoundingClientRect().height);
   }
 
   function placeNeed(read) {

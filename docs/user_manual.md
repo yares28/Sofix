@@ -1071,7 +1071,7 @@ it writes to Sorare.
 - **Captain** (0.4.45, 3 Nov 2026): on Sorare's builder (Classic, Pro and Arcade), a faint purple "C" at the bottom right of the card
   on the pitch with the highest xScore; it goes once Sorare has that card as captain. The hover gives that expected score, his chance of starting counted (the chip shows his score if he starts).
 - **Price per point** (0.4.47, 3 Nov 2026): on Sorare's market and your gallery, a Limited card says what a point of his costs,
-  "€0.14/pt" (his Limited price over his xScore), centred near the card's bottom: green in the cheapest third of the players of his
+  "€0.14/pt" (his Limited price over his xScore), at the card's right above the line with his position (his name runs across the bottom): green in the cheapest third of the players of his
   position whose Sorare average is within 5 of his, red in the dearest, plain between or with fewer than 5 like him. The hover gives
   the price, the xScore and the group. Another rarity's card shows none (the price is a Limited one).
   Hover it: "Sofix 83% · Sorare 80%" on a full card, its own source on a small one ("FF 90%"). **An amber ring** means Sofix and

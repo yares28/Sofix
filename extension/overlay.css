@@ -232,15 +232,15 @@
 .sfx-panel[data-side="right"] .sfx-arrow { left: -5px; clip-path: polygon(0 0, 0 100%, 100% 100%); box-shadow: inset 1px -1px 0 rgba(255, 255, 255, 0.1); }
 .sfx-body { display: flex; flex-direction: column; gap: 11px; padding: 11px 14px 13px; }
 .sfx-head { display: flex; align-items: center; justify-content: space-between; }
-.sfx-brand { display: flex; align-items: center; gap: 7px; font: 700 10px/12px var(--sfx-font); letter-spacing: 0.16em; color: var(--sfx-white); }
+.sfx-brand { display: flex; align-items: center; gap: 7px; font: 700 11px/13px var(--sfx-font); letter-spacing: 0.16em; color: var(--sfx-white); }
 .sfx-brand .sfx-stripe { width: 12px; height: 12px; border-radius: 3px; overflow: hidden; }
 .sfx-brand .sfx-stripe > i { flex: 1 1 0; }
-.sfx-age { font: 500 10px/12px var(--sfx-font); color: #a3a3ab; }
+.sfx-age { font: 500 11px/13px var(--sfx-font); color: #a3a3ab; }
 .sfx-plan {
   display: flex; align-items: center; gap: 5px; height: 18px; padding: 0 7px; border-radius: 999px;
-  background: rgba(37, 237, 54, 0.14); color: #7dff8a; font: 700 10px/12px var(--sfx-font); white-space: nowrap;
+  background: rgba(37, 237, 54, 0.14); color: #7dff8a; font: 700 11px/13px var(--sfx-font); white-space: nowrap;
 }
-.sfx-plan-c { display: grid; place-items: center; width: 13px; height: 13px; border-radius: 50%; background: #7dff8a; color: #0e0e0e; font: 800 8.5px/13px var(--sfx-font); }
+.sfx-plan-c { display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; background: #7dff8a; color: #0e0e0e; font: 800 11px/14px var(--sfx-font); }
 
 .sfx-seg { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, 0.07); }
 .sfx-seg button {
@@ -277,7 +277,7 @@
 .sfx-chance-row .sfx-src--sorare { border-width: 1.4px; }
 .sfx-chance-row .sfx-src--sofix { border-width: 1.4px; }
 .sfx-chance b { font: 800 36px/32px var(--sfx-cond); color: var(--sfx-white); font-variant-numeric: tabular-nums; }
-.sfx-chance span { font: 600 10px/12px var(--sfx-font); letter-spacing: 0.04em; color: #8e8e93; }
+.sfx-chance span { font: 600 11px/13px var(--sfx-font); letter-spacing: 0.04em; color: #8e8e93; }
 .sfx-chance--doubt b, .sfx-chance--doubt .sfx-src { color: #f0ce1d; }
 .sfx-chance--out b, .sfx-chance--out .sfx-src { color: #ff7a7a; }
 
@@ -291,59 +291,34 @@
 /* The picture of his game: the bars, the two kinds of game under them, the range. */
 .sfx-pic { display: flex; flex-direction: column; gap: 11px; }
 .sfx-pic:empty { display: none; }
-.sfx-shape { display: flex; flex-direction: column; }
-.sfx-bars { display: flex; align-items: flex-end; gap: 1px; height: 56px; }
-.sfx-bars i { flex: 1 1 0; display: block; min-width: 0; border-radius: 1px 1px 0 0; background: rgba(255, 255, 255, 0.16); }
-.sfx-bars .sfx-bar--run { background: #4f9e78; }
-.sfx-bars .sfx-bar--dec { background: #86e3b0; }
-.sfx-bars .sfx-bar--me { background: #fff; }
-.sfx-marks { position: relative; height: 14px; margin-top: 4px; font: 600 10px/12px var(--sfx-font); color: #a3a3ab; font-variant-numeric: tabular-nums; }
-.sfx-marks span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
-.sfx-marks .sfx-mark--dec { color: #86e3b0; }
-.sfx-range { display: flex; justify-content: space-between; font: 600 10px/12px var(--sfx-font); color: #8e8e93; font-variant-numeric: tabular-nums; }
 
 /* What moves his number, in points. */
-.sfx-why { display: flex; flex-direction: column; gap: 6px; }
-.sfx-why-row { display: grid; grid-template-columns: 78px minmax(0, 1fr) 28px; gap: 8px; align-items: center; font: 500 12px/16px var(--sfx-font); color: #d4d4da; }
-.sfx-why-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sfx-why-axis { position: relative; height: 8px; }
-.sfx-why-axis::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255, 255, 255, 0.22); }
-.sfx-why-axis i { position: absolute; top: 1px; height: 6px; border-radius: 2px; }
-.sfx-why-axis i.is-up { left: 50%; background: #86e3b0; }
-.sfx-why-axis i.is-down { right: 50%; background: #ff8a7a; }
-.sfx-why-row b { text-align: right; font: 700 12px/16px var(--sfx-font); font-variant-numeric: tabular-nums; }
-.sfx-why-row b.is-up { color: #86e3b0; }
-.sfx-why-row b.is-down { color: #ff8a7a; }
 
 .sfx-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.sfx-stats--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sfx-stats--four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.sfx-stats--four .sfx-stat { padding: 6px 6px 5px; }
+.sfx-stats--four .sfx-stat span { letter-spacing: 0.02em; white-space: nowrap; }
+.sfx-side, .sfx-comes { display: flex; flex-direction: column; gap: 11px; }
+
+/* Comes on (1.3): Sofix's number today, struck; his minutes game by game; the bars rise in turn. */
+.sfx-was { text-align: right; display: grid; gap: 2px; }
+.sfx-was b { font: 800 18px/18px var(--sfx-cond); color: #8e8e93; text-decoration: line-through; text-decoration-color: rgba(142, 142, 147, 0.6); }
+.sfx-was span { font: 600 11px/13px var(--sfx-font); letter-spacing: 0.04em; color: #8e8e93; }
+.sfx-mins { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; align-items: end; height: 56px; }
+.sfx-mins i { display: block; min-height: 4px; border-radius: 4px 4px 2px 2px; transform-origin: bottom; animation: sfx-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.sfx-mins--started { background: #25ed36; }
+.sfx-mins--on { background: #f0ce1d; }
+.sfx-mins--unused { background: #3a3350; }
+.sfx-mins-axis { display: flex; justify-content: center; margin-top: -6px; font: 600 11px/13px var(--sfx-font); color: #8e8e93; }
+@keyframes sfx-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .sfx-mins i { animation: none; } }
 .sfx-stat { padding: 6px 7px 5px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); }
-.sfx-stat span { display: block; font: 700 8.5px/10px var(--sfx-font); letter-spacing: 0.08em; color: #8e8e93; }
+.sfx-stat span { display: block; font: 700 11px/13px var(--sfx-font); letter-spacing: 0.08em; color: #8e8e93; }
 .sfx-stat b { display: block; font: 700 17px/18px var(--sfx-cond); color: var(--sfx-white); font-variant-numeric: tabular-nums; }
 .sfx-stat b.sfx-stat--none { color: rgba(255, 255, 255, 0.45); }
 
 /* A gameweek with two games: both, soonest first, the next one lit. */
-.sfx-fixtures { border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; }
-.sfx-fixtures-cap { display: block; font: 600 8.5px/10px var(--sfx-font); letter-spacing: 0.08em; text-transform: uppercase; color: #a1a1a6; }
-.sfx-fixtures ul { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
-.sfx-fixtures li { font: 500 11.5px/14px var(--sfx-font); color: #a3a3ab; font-variant-numeric: tabular-nums; }
-.sfx-fixtures li.is-next { color: var(--sfx-white); font-weight: 650; }
-.sfx-sources { border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; }
-.sfx-sources-toggle {
-  display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 0; padding: 0; border: 0; background: transparent;
-  color: #a1a1a6; font: 700 10px/14px var(--sfx-font); letter-spacing: 0.08em; cursor: pointer; -webkit-appearance: none; appearance: none;
-}
-.sfx-sources-toggle svg { width: 10px; height: 10px; stroke: #a1a1a6; transition: transform 0.2s; }
-.sfx-sources-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-.sfx-sources-toggle:focus-visible { outline: 2px solid var(--sfx-white); outline-offset: 3px; border-radius: 4px; }
-.sfx-sources-list { display: flex; flex-direction: column; gap: 5px; margin: 8px 0 0; padding: 0; list-style: none; }
-.sfx-sources-list[hidden] { display: none; }
-.sfx-sources-list li { display: flex; align-items: center; gap: 7px; }
-.sfx-sources-list li.is-none { opacity: 0.55; }
-.sfx-sources-list .sfx-src { width: 6px; height: 6px; color: var(--sfx-white); }
-.sfx-source-name { flex: 1; font: 700 11px/14px var(--sfx-font); }
-.sfx-source-at { font: 500 10px/12px var(--sfx-font); color: #8e8e93; }
-.sfx-sources-list b { width: 34px; text-align: right; font: 700 14px/14px var(--sfx-cond); font-variant-numeric: tabular-nums; }
-.sfx-sources-list b.sfx-source-note { width: auto; font: 600 11px/14px var(--sfx-font); white-space: nowrap; color: #8e8e93; }
 .sfx-note { margin: 0; font: 500 11px/14px var(--sfx-font); color: #a3a3ab; }
 
 @keyframes sfx-fade { from { opacity: 0; } }
@@ -355,7 +330,6 @@
 @keyframes sfx-shimmer { from { background-position: -44px 0; } to { background-position: 44px 0; } }
 @media (prefers-reduced-motion: reduce) {
   .sfx-ribs, .sfx-odds, .sfx-tile, .sfx-panel, .sfx-big, .sfx-skel > i { animation: none !important; }
-  .sfx-sources-toggle svg { transition: none; }
 }
 
 /* Guide me (dock.js): the card to pick next, and one to take out of a mission. On the picture itself, so nothing moves. */

@@ -87,6 +87,9 @@ class PlayerWeek:
     cups: frozenset[str] = frozenset()
     banned: bool = False  # red card or five-yellow cycle: he misses his first LaLiga game
     waiting: tuple[int, ...] = ()  # games (kickoff order) whose European board is stale: they wait for it (B7)
+    bench_record: dict[str, Any] | None = (
+        None  # his last ten games' minutes (`bench_record`), for the overlay's "comes on"
+    )
 
 
 def cup_dates(past: list[dict[str, Any]], domestic: str | None = None) -> frozenset[str]:
@@ -102,6 +105,37 @@ def cup_dates(past: list[dict[str, Any]], domestic: str | None = None) -> frozen
         else ("laliga-es" if "laliga-es" in own else max(own, key=own.count, default=None))
     )
     return frozenset(h["date"] for h in past if h.get("competition") not in (None, home))
+
+
+BENCH_GAMES = 10
+
+
+def bench_record(past: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """His last ten finished games, newest first in `past` (any competition: a cup game is a game he could come on in), as the
+    overlay's "comes on" side draws them (plans/overlay-v2.md 1.6): how many he started, came on in (not started, minutes over
+    nought) and sat out (not started, no minutes), his average minutes when he came on, and each game oldest first as (S, O or U,
+    minutes). A game not played yet, or one whose role Sorare did not say, is left out; no game, no record."""
+    games: list[tuple[str, int]] = []
+    for h in past:
+        if h.get("status") == "PENDING" or h.get("started") is None:
+            continue
+        raw = h.get("mins")
+        mins = raw if isinstance(raw, (int, float)) else 0
+        kind = "S" if h["started"] else ("O" if h.get("played") and mins > 0 else "U")
+        games.append((kind, int(round(mins)) if kind != "U" else 0))
+        if len(games) == BENCH_GAMES:
+            break
+    if not games:
+        return None
+    on = [m for k, m in games if k == "O"]
+    return {
+        "started": sum(1 for k, _ in games if k == "S"),
+        "on": len(on),
+        "unused": sum(1 for k, _ in games if k == "U"),
+        "minsOn": round(sum(on) / len(on)) if on else None,
+        "games": "".join(k for k, _ in reversed(games)),
+        "mins": [m for _, m in reversed(games)],
+    }
 
 
 def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
@@ -335,6 +369,7 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         game_start=tuple(round(s, 1) for s in game_start),
         waiting=bool(week.waiting),
         sorare=week.projection,
+        bench_record=week.bench_record,
     )
 
 

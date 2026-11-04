@@ -1,10 +1,5 @@
-import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { gameFactors, shapeBars, sheetGroups, strips, sheetTotal, type Sheet, type Sheets } from "./playerSheet";
-
-const core = createRequire(import.meta.url)("../../extension/core.js") as {
-  shapeBars: (shape: unknown, score: number, count?: number) => { h: number; kind: string }[];
-};
 
 const keeper = (over: Partial<Sheet> = {}): Sheet => ({
   pos: "GK",
@@ -83,9 +78,13 @@ describe("how he compares", () => {
 });
 
 describe("the bars of a game", () => {
+  // The overlay's panel drew the same bars until 4 Nov 2026 (plans/overlay-v2.md 1.3); the player sheet keeps them.
   const shape = { p: 0.057, dec: 74.9, plain: 43.5, sdDec: 10, sdPlain: 14, low: 28, high: 62 };
-  it("are the ones the panel draws", () => {
-    expect(shapeBars(shape, 45)).toEqual(core.shapeBars(shape, 45));
-    expect(shapeBars({ ...shape, p: 0.28, dec: 84, plain: 51 }, 60)).toEqual(core.shapeBars({ ...shape, p: 0.28, dec: 84, plain: 51 }, 60));
+  it("are forty, one of them his score's, the tallest where the likelier kind of game lands", () => {
+    const bars = shapeBars(shape, 45);
+    expect(bars).toHaveLength(40);
+    expect(bars.filter((b) => b.kind === "me")).toHaveLength(1);
+    const tallest = bars.reduce((best, b, i) => (b.h > bars[best]!.h ? i : best), 0);
+    expect(Math.abs(tallest - Math.round((43.5 / 100) * 40))).toBeLessThanOrEqual(2); // near his plain-game score
   });
 });

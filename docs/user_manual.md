@@ -1070,6 +1070,10 @@ it writes to Sorare.
   doubt is never cyan, a player who will not start always red; none on a greyed number or a thumbnail.
 - **Captain** (0.4.45, 3 Nov 2026): on Sorare's builder (Classic, Pro and Arcade), a faint purple "C" at the bottom right of the card
   on the pitch with the highest xScore; it goes once Sorare has that card as captain. The hover gives that expected score, his chance of starting counted (the chip shows his score if he starts).
+- **The tile's panel** (0.4.51, 4 Nov 2026): Starts / Comes on. Starts: his score if he starts, his start %, xD and his chance of a
+  decisive action. Comes on: how often he came on when he did not start, from his last ten games (any competition), what Sofix's
+  plans use today struck beside it, a bar of his minutes in each game (started green, came on yellow, unused grey) and the four
+  counts. During his game a player left on the bench opens on Comes on. The game's numbers, sources and score chart left the panel.
 - **Light on the page** (0.4.49, 4 Nov 2026): scrolling moves only the crests (a pass at most every 400 ms while it lasts, one
   when it stops); a crest hides under a sticky bar of Sorare's; the popup's cards line says the slowest pass of the last minute.
 - **Price per point** (0.4.47, 3 Nov 2026): on Sorare's market and your gallery, a Limited card says what a point of his costs,

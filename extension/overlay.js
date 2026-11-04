@@ -736,80 +736,73 @@
     return big;
   }
 
-  /** The picture of his game: how likely each score is, where he lands 8 times in 10, and the two kinds of game (with a decisive action or without). */
-  function shapeNode(shape, score) {
-    const box = node("div", "sfx-shape");
-    box.setAttribute("role", "img");
-    box.setAttribute(
-      "aria-label",
-      `Lands between ${Math.round(shape.low)} and ${Math.round(shape.high)}, 8 times in 10. A decisive action ${core.chanceLabel(shape.p)} of the time: ${Math.round(shape.dec)}; without: ${Math.round(shape.plain)}.`,
-    );
-    const bars = node("div", "sfx-bars");
-    for (const bar of core.shapeBars(shape, score)) {
-      const one = node("i", bar.kind === "out" ? "" : `sfx-bar--${bar.kind}`);
-      one.style.height = `${bar.h}%`;
-      bars.append(one);
-    }
-    const marks = node("div", "sfx-marks");
-    for (const label of core.shapeLabels(shape)) {
-      const mark = node("span", label.kind === "dec" ? "sfx-mark--dec" : "", label.text);
-      mark.style.left = `${Math.min(88, Math.max(12, label.at))}%`;
-      marks.append(mark);
-    }
-    const range = node("div", "sfx-range");
-    range.append(node("span", "", String(Math.round(shape.low))), node("span", "", String(Math.round(shape.high))));
-    box.append(bars, marks, range);
-    return box;
-  }
-
-  /** What moves his number in points: a bar left of the middle for a minus, right for a plus. Null when nothing moves it by a point. */
-  function whyNode(shape) {
-    const rows = core.whyRows(shape);
-    if (!rows.length) return null;
-    const list = node("div", "sfx-why");
-    for (const row of rows) {
-      const line = node("div", "sfx-why-row");
-      const axis = node("span", "sfx-why-axis");
-      const bar = node("i", row.points > 0 ? "is-up" : "is-down");
-      bar.style.width = `${Math.round(row.share * 50)}%`;
-      axis.append(bar);
-      line.append(node("span", "sfx-why-name", row.label), axis, node("b", row.points > 0 ? "is-up" : "is-down", `${row.points > 0 ? "+" : "−"}${Math.abs(Math.round(row.points))}`));
-      list.append(line);
-    }
-    return list;
-  }
-
-  /** The picture and the reasons of the tab he is on, in one box that is swapped when the tab changes (an empty box when the answer has none). */
-  function pictureNode(entry, mode) {
-    const box = node("div", "sfx-pic");
-    const f = facts(entry);
-    const shape = core.shapeOf(entry, f.split ? mode : "start");
-    if (!shape) return box;
-    const shown = mode === "start" || !f.split ? f.score : core.comesOnScore(entry).score;
-    box.append(shapeNode(shape, shown));
-    const why = whyNode(shape);
-    if (why) box.append(why);
-    return box;
-  }
-
-  /** The three numbers that matter about his game: his driver (xG, or a clean sheet), his side's win chance, and the difficulty. */
-  function statCells(entry) {
-    const f = facts(entry);
-    const cells = [];
-    if (f.driver === "xg") cells.push(["XG", f.xg !== null ? f.xg.toFixed(2) : "—", ""]);
-    else cells.push(["CS", f.game && typeof f.game.cleanSheet === "number" ? `${Math.round(f.game.cleanSheet * 100)}%` : "—", ""]);
-    cells.push(["WIN", f.game && typeof f.game.win === "number" ? `${Math.round(f.game.win * 100)}%` : "—", ""]);
-    const level = f.game ? core.fdrLevel(f.game.bucket) : null;
-    cells.push(["DIFF", f.game ? String(Math.round(f.game.difficulty)) : "—", level ? colour(level) : ""]);
-    const grid = node("div", "sfx-stats");
-    for (const [key, value, tint] of cells) {
+  /** The Starts side under its hero (1.3): his expected decisive actions and the chance of one if he starts. */
+  function startCells(entry) {
+    const grid = node("div", "sfx-stats sfx-stats--two");
+    const cells = [
+      ["XD", typeof entry.xd === "number" ? entry.xd.toFixed(2) : "—", "Expected decisive actions in his game"],
+      ["DECISIVE", typeof entry.decisive === "number" ? core.chanceLabel(entry.decisive) : "—", "The chance of a decisive action if he starts"],
+    ];
+    for (const [key, value, title] of cells) {
       const cell = node("div", "sfx-stat");
-      const number = node("b", value === "—" ? "sfx-stat--none" : "", value);
-      if (tint) number.style.color = tint;
-      cell.append(node("span", "", key), number);
+      cell.title = title;
+      cell.append(node("span", "", key), node("b", value === "—" ? "sfx-stat--none" : "", value));
       grid.append(cell);
     }
     return grid;
+  }
+
+  /**
+   * The Comes on side (1.3, 1.6): the chance he comes on from his last ten games as the hero, with what Sofix uses today beside it
+   * when that differs; a bar of his minutes in each game, oldest first (started green, came on yellow, unused grey); the four
+   * numbers. With no record, the old number and its words.
+   */
+  function comesNode(entry) {
+    const record = core.comesOnRecord(entry);
+    const box = node("div", "sfx-comes");
+    if (!record) {
+      box.append(panelBig(entry, "bench"));
+      return box;
+    }
+    const big = node("div", "sfx-big");
+    const line = node("div", "sfx-num");
+    line.append(node("strong", "", record.p === null ? "—" : core.chanceLabel(record.p)), node("span", "", record.p === null ? "never on the bench lately" : "comes on"));
+    big.append(line);
+    if (record.p !== null && typeof entry.benchedOn === "number" && Math.abs(entry.benchedOn - record.p) >= 0.01) {
+      const was = node("div", "sfx-was");
+      was.title = "The rate Sofix's plans use today, from his last five games and his position's norm";
+      was.append(node("b", "", core.chanceLabel(entry.benchedOn)), node("span", "", "SOFIX TODAY"));
+      big.append(was);
+    }
+    box.append(big);
+    const bars = node("div", "sfx-mins");
+    bars.setAttribute("role", "img");
+    bars.setAttribute("aria-label", `Minutes in his last ${record.bars.length} games, oldest first: ${record.bars.map((b) => (b.kind === "started" ? `${b.mins} started` : String(b.mins))).join(", ")}`);
+    record.bars.forEach((bar, i) => {
+      const one = node("i", `sfx-mins--${bar.kind}`);
+      one.style.height = `${bar.h}%`;
+      one.style.animationDelay = `${i * 40}ms`;
+      one.title = bar.kind === "unused" ? "Unused" : `${bar.mins}′ ${bar.kind === "started" ? "started" : "off the bench"}`;
+      bars.append(one);
+    });
+    const axis = node("div", "sfx-mins-axis");
+    axis.append(node("span", "", `last ${record.bars.length} games`));
+    const four = node("div", "sfx-stats sfx-stats--four");
+    for (const [key, value] of [["STARTED", record.started], ["CAME ON", record.on], ["UNUSED", record.unused], ["MIN ON", record.minsOn === null ? "—" : `${record.minsOn}′`]]) {
+      const cell = node("div", "sfx-stat");
+      cell.append(node("span", "", key), node("b", value === "—" ? "sfx-stat--none" : "", String(value)));
+      four.append(cell);
+    }
+    box.append(bars, axis, four);
+    return box;
+  }
+
+  /** The side the switch is on, in one box swapped when it changes. */
+  function sideNode(entry, mode) {
+    const box = node("div", "sfx-side");
+    if (mode === "bench") box.append(comesNode(entry));
+    else box.append(panelBig(entry, "start"), startCells(entry));
+    return box;
   }
 
   /** What the site says is wrong with him, only when it says so: an amber line for a doubt, a red one for an injury or a ban. */
@@ -833,58 +826,6 @@
     icon.append(disc, glyph);
     alert.append(icon, node("span", "", note.text));
     return alert;
-  }
-
-  /** Both games of a gameweek with two, soonest first, the next one marked: the tile reads the next one. Null for a single game. */
-  function fixturesNode(entry) {
-    const rows = (Array.isArray(entry.fixtures) ? entry.fixtures : []).map((one) => ({ one, text: core.fixtureLine(one) })).filter((row) => row.text);
-    if (rows.length < 2) return null;
-    const box = node("div", "sfx-fixtures");
-    box.append(node("span", "sfx-fixtures-cap", `${rows.length} games · best score chosen`));
-    const list = node("ul");
-    const next = rows.findIndex((row) => Date.parse(row.one.kickoff) > now());
-    rows.forEach((row, index) => list.append(node("li", index === next ? "is-next" : "", row.text)));
-    box.append(list);
-    return box;
-  }
-
-  /** Who says it, hidden until asked for: FF, SO and SF with what each says and, for FF, when it was read. */
-  function sourcesNode(entry, onResize) {
-    const box = node("div", "sfx-sources");
-    const toggle = node("button", "sfx-sources-toggle");
-    toggle.type = "button";
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.append("SOURCES");
-    const chevron = document.createElementNS(SVG_NS, "svg");
-    chevron.setAttribute("viewBox", "0 0 10 10");
-    chevron.setAttribute("aria-hidden", "true");
-    const arrow = document.createElementNS(SVG_NS, "path");
-    arrow.setAttribute("d", "M2 3.5l3 3 3-3");
-    arrow.setAttribute("fill", "none");
-    arrow.setAttribute("stroke-width", "1.5");
-    arrow.setAttribute("stroke-linecap", "round");
-    arrow.setAttribute("stroke-linejoin", "round");
-    chevron.append(arrow);
-    toggle.append(chevron);
-    const list = node("ul", "sfx-sources-list");
-    list.hidden = true;
-    for (const row of core.sourceRows(entry)) {
-      const item = node("li", row.shown ? "is-shown" : row.value === null ? "is-none" : "");
-      const value = node("b", row.note ? "sfx-source-note" : "", row.value === null ? row.note || "—" : core.chanceLabel(row.value));
-      if (row.note) value.title = "Futbol Fantasy covers LaLiga only";
-      item.append(sourceDot(row.source), node("span", "sfx-source-name", row.label), node("span", "sfx-source-at", row.at || ""), value);
-      list.append(item);
-    }
-    toggle.addEventListener("click", guard((event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const open = list.hidden;
-      list.hidden = !open;
-      toggle.setAttribute("aria-expanded", String(open));
-      onResize();
-    }));
-    box.append(toggle, list);
-    return box;
   }
 
   function panelNode(entry, mode, onPick, plan, onResize) {
@@ -913,11 +854,11 @@
     body.append(head);
     const stale = core.staleness(entry, now());
     if (stale) body.append(node("p", "sfx-note", stale.kind === "over" ? "His game has started." : `These numbers are ${stale.hours} h old.`));
-    if (f.split) {
+    if (f.split || entry.benchRecord) {
       const seg = node("div", "sfx-seg");
       seg.setAttribute("role", "group");
-      seg.setAttribute("aria-label", "Projected score when he");
-      for (const [key, text] of [["start", "Starts"], ["bench", core.comesOnScore(entry).tab]]) {
+      seg.setAttribute("aria-label", "Show him when he");
+      for (const [key, text] of [["start", "Starts"], ["bench", "Comes on"]]) {
         const button = node("button", "", text);
         button.type = "button";
         button.setAttribute("aria-pressed", String(key === mode));
@@ -931,14 +872,9 @@
       }
       body.append(seg);
     }
-    body.append(panelBig(entry, mode));
-    body.append(pictureNode(entry, mode));
+    body.append(sideNode(entry, mode));
     const alert = alertNode(entry);
     if (alert) body.append(alert);
-    body.append(statCells(entry));
-    const fixtures = fixturesNode(entry);
-    if (fixtures) body.append(fixtures);
-    body.append(sourcesNode(entry, onResize));
     el.append(stripe(), node("span", "sfx-arrow"), body);
     return el;
   }
@@ -1023,17 +959,18 @@
       return;
     }
     closePanel(false);
-    const state = { record, entry, mode: "start", el: null, timer: 0, overTile: true, overPanel: false };
+    // During his game, a player left on the bench opens on Comes on (1.6, "live for a benched player").
+    const benchedNow = core.crestState(entry, now()).kind === "live" && entry.live && typeof entry.pStart === "number" && entry.pStart < 0.05;
+    const first = benchedNow && (entry.benchRecord || facts(entry).split) ? "bench" : "start";
+    const state = { record, entry, mode: first, el: null, timer: 0, overTile: true, overPanel: false };
     const pick = (mode) => {
       if (!panel || panel !== state) return;
       state.mode = mode;
-      const fresh = panelBig(entry, mode);
-      state.el.querySelector(".sfx-big").replaceWith(fresh); // only the number and its picture change, so the buttons keep the focus
-      state.el.querySelector(".sfx-pic").replaceWith(pictureNode(entry, mode));
+      state.el.querySelector(".sfx-side").replaceWith(sideNode(entry, mode)); // only the side changes, so the buttons keep the focus
       positionPanel();
       for (const button of state.el.querySelectorAll(".sfx-seg button")) button.setAttribute("aria-pressed", String(button.getAttribute("data-mode") === mode));
     };
-    state.el = panelNode(entry, "start", pick, planFor(record, entry), () => { if (panel === state) positionPanel(); });
+    state.el = panelNode(entry, first, pick, planFor(record, entry), () => { if (panel === state) positionPanel(); });
     state.el.addEventListener("pointerenter", guard(() => { state.overPanel = true; clearTimeout(state.timer); }));
     state.el.addEventListener("pointerleave", guard(() => { state.overPanel = false; scheduleClose(); }));
     state.el.addEventListener("focusout", guard(() => scheduleClose()));

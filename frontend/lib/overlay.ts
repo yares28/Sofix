@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NATIONAL_COMPETITION, clubKey, nextFive, sideOutlook, type NextGameCell, type SideOutlook } from "./home";
 import { squadBar, verdict, type Verdict } from "./cards";
-import { cardScore, likelyResult, nextWeek, proOpen, resultLabel, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type MarketFixture, type MarketPlayer, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
+import { cardScore, likelyResult, nextWeek, proOpen, resultLabel, waitingFor, weekPlan, type BenchRecord, type FfStatus, type GameweekPlan, type Lineup, type MarketFixture, type MarketPlayer, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
 import { appearances, type Appearance } from "./apply";
 import type { MissionPlan } from "./missions";
 import type { MissionsStatus } from "./missionsToday";
@@ -153,6 +153,10 @@ export type OverlayEntry = {
    * the tile says "2 games" and the panel lists them. Absent for a single game. The tile's own numbers are about the next one.
    */
   fixtures?: OverlayFixture[];
+  /** His last ten games' minutes (the panel's "Comes on" side), his expected decisive actions and the chance of one if he starts. */
+  benchRecord?: BenchRecord;
+  xd?: number;
+  decisive?: number;
   /** What a point of his costs, from his market row's Limited price (absent without one): the overlay's "€0.14/pt" on Limited cards. */
   price?: OverlayPrice;
 };
@@ -608,6 +612,9 @@ function entryFor(
     ...(fixtures ? { fixtures } : {}),
     ...(inPlan ? { inPlan } : {}),
     ...(over ? { over: true as const } : {}),
+    ...(player.benchRecord ? { benchRecord: player.benchRecord } : {}),
+    ...(player.xd !== undefined ? { xd: player.xd } : {}),
+    ...(player.shape ? { decisive: player.shape.p } : {}),
   };
 }
 
@@ -627,6 +634,9 @@ function marketEntry(row: MarketPlayer, boards: (FixtureGrid | null)[], now: Dat
     at,
     game: board ? { win: board.win, cleanSheet: board.cleanSheet, goalsFor: board.xgFor, goalsAgainst: board.xgAgainst ?? null, difficulty: board.difficulty!, bucket: board.bucket!, label: board.label!, source: "model" } : null,
     ...(Date.parse(f.kickoff) <= now.getTime() ? { over: true as const } : {}),
+    ...(row.benchRecord ? { benchRecord: row.benchRecord } : {}),
+    ...(row.xd !== undefined ? { xd: row.xd } : {}),
+    ...(row.decisive !== undefined ? { decisive: row.decisive } : {}),
   };
 }
 

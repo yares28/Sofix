@@ -21,7 +21,7 @@ from app.services.european_fdr import CONFERENCE_NOTE
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
 from app.services.timeutil import Laps
 from app.sorare import expected, pro, projection, rules, strategies, xg
-from app.sorare.forecast import GameStart, PlayerWeek, cup_dates, own_start
+from app.sorare.forecast import GameStart, PlayerWeek, bench_record, cup_dates, own_start
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
 from app.sorare.planner import (
@@ -250,6 +250,7 @@ def _split_out(forecast: Forecast | None) -> dict[str, Any]:
         "startSource": forecast.start_source,
         "sources": forecast.by_source,
         **({"benchedOn": forecast.benched_on} if forecast.benched_on is not None else {}),
+        **({"benchRecord": forecast.bench_record} if forecast.bench_record else {}),
     }
 
 
@@ -449,6 +450,7 @@ def player_weeks(
             game_dec=tuple(o.p_decisive if o is not None else (own_decisive(past, pos) or 0.0) for o in made.outcomes),
             dec=own_decisive(past, pos),
             waiting=made.waiting,
+            bench_record=bench_record(past),
         )
     return weeks
 
@@ -2114,6 +2116,9 @@ def market_out(
             }
         soon = after[0].get(row["slug"]) if after else None
         coming = (after[1].get(row["slug"]) or []) if after else []
+        record = (forecast and forecast.bench_record) or (soon and soon.bench_record)
+        if record and row.get("pos") != "UNK":
+            week["benchRecord"] = record
         if soon and coming and row.get("pos") != "UNK":
             first = coming[0]
             week["next"] = {

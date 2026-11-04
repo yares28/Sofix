@@ -133,6 +133,8 @@ class Forecast:
     # a game of his waits for a European board not checked in six hours: his number is Sorare's or his average (B7)
     waiting: bool = False
     sorare: float | None = None
+    # his last ten games' minutes, for the overlay's "comes on" (forecast.bench_record); the planner never reads it
+    bench_record: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

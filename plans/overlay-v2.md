@@ -371,6 +371,16 @@ off as the baseline.
 
 ### Step 4. Panel and "comes on"
 
+**Built (4 Nov, 0.4.51).** `forecast.bench_record(past)`: the last ten finished games of any competition (a game whose role Sorare
+did not say is left out), published as `benchRecord` {started, on, unused, minsOn, games: "SOU…" oldest first, mins} on playing
+rows (`_split_out`) and market rows (`market_out`, also for a player whose only game is next week's); the app carries it with `xd`
+and `decisive` to the overlay. Panel per 1.3: Starts = hero + start %, then XD and DECISIVE; Comes on = came on ÷ (came on +
+unused) as the hero, `benchedOn` struck as "SOFIX TODAY" when it differs, ten bars (minutes / 90), the four counts; an answer
+without a record keeps the old score-if-he-comes-on side. A player whose game is live and whom FF's live read has at 0% opens on
+Comes on. The chart, reasons, sources list, games list and game cells went, with their core helpers and CSS; panel labels are
+11 px. Blocks: about +95 bytes a row, Europa League ~1.43 MB of 1.6. Not done: the planner switch (a separate decision after
+`lineup_backtest --pools 600`). Acceptance on real data after the refresh.
+
 - Backend: `forecast.py` gains the 10-game minutes record per player (from `player_games`: started, came on, unused, minutes
   when on) and publishes it with each market and playing row (`benchRecord: {started, on, unused, minsOn, games}`).
 - Panel per 1.3: Starts / Comes on; the minutes bar from the record; comes on % from one game.

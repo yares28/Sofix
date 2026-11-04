@@ -220,6 +220,26 @@
   }
 
   /**
+   * His last ten games for the panel's "Comes on" side (plans/overlay-v2.md 1.6), from the answer's `benchRecord`: the chance he
+   * comes on (came on / (came on + unused), shown from one such game; none, null), the four numbers and a bar per game, oldest
+   * first, its height his minutes out of 90. Null without a record.
+   */
+  function comesOnRecord(entry) {
+    const r = entry && entry.benchRecord;
+    if (!r || typeof r.games !== "string" || !Array.isArray(r.mins)) return null;
+    const benched = r.on + r.unused;
+    const KIND = { S: "started", O: "on", U: "unused" };
+    return {
+      p: benched > 0 ? r.on / benched : null,
+      started: r.started,
+      on: r.on,
+      unused: r.unused,
+      minsOn: typeof r.minsOn === "number" ? r.minsOn : null,
+      bars: [...r.games].map((k, i) => ({ kind: KIND[k] || "unused", mins: Number(r.mins[i]) || 0, h: Math.max(6, Math.min(100, Math.round(((Number(r.mins[i]) || 0) / 90) * 100))) })),
+    };
+  }
+
+  /**
    * The card on Sorare's builder pitch Sofix would make captain, from `{ x, captain }` per pitch card: the highest xScore (Sorare
    * adds bonuses together, so the captain's bonus is worth most on the best score whatever the card's own bonus), first on a tie.
    * -1 when no card has a number, or when Sorare already has that card as captain.
@@ -342,17 +362,6 @@
     return Array.isArray(list) && list.length > 1 ? list.length : 1;
   }
 
-  /**
-   * One of his games as a line of the panel: "Fri 18:45 · at Hungary" ("v" for a game at home), in the viewer's own time zone unless
-   * one is given. Null for a game it cannot read.
-   */
-  function fixtureLine(fixture, timeZone) {
-    const at = fixture && typeof fixture.kickoff === "string" ? new Date(fixture.kickoff) : null;
-    if (!at || Number.isNaN(at.getTime()) || !fixture.opponent) return null;
-    const parts = new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23", ...(timeZone ? { timeZone } : {}) }).formatToParts(at);
-    const of = (type) => (parts.find((part) => part.type === type) || {}).value || "";
-    return `${of("weekday")} ${of("hour")}:${of("minute")} · ${fixture.venue === "H" ? "v" : "at"} ${fixture.opponent}`;
-  }
 
   /** One of your picks for a mission, as Sorare lists it: the player, his game, the card's rarity and Sorare's verdict (READY, SUCCESS, FAILURE). */
   function missionPick(node) {
@@ -629,55 +638,11 @@
     return age + " (" + parts.replace(",", "") + ")";
   }
 
-  /**
-   * The picture of his game the answer carries for one tab: `shape` for a game he starts, `onShape` for one he comes on in. Null when the
-   * answer has none (a game the model cannot tell, an older answer): the panel then shows the number alone.
-   */
-  function shapeOf(entry, mode) {
-    const shape = mode === "bench" ? entry.onShape : entry.shape;
-    return shape && [shape.p, shape.dec, shape.plain, shape.sdDec, shape.sdPlain, shape.low, shape.high].every(Number.isFinite) ? shape : null;
-  }
 
   const bell = (x, mean, sd) => Math.exp(-0.5 * ((x - mean) / sd) ** 2) / sd;
 
-  /**
-   * The bars of the score picture: 40 steps of 2.5 points from 0 to 100, as tall as how likely a score there is, when a start is one of two
-   * bell curves (with a decisive action, chance `p`, or without). A bar is `me` where his expected score is, `dec` where the games with a
-   * decisive action are the likelier, `run` inside the range he lands in 8 times in 10, and `out` elsewhere.
-   */
-  function shapeBars(shape, score, count = 40) {
-    const spreadDec = Math.max(shape.sdDec, 1);
-    const spreadPlain = Math.max(shape.sdPlain, 1);
-    const nearest = Math.min(count - 1, Math.max(0, Math.floor((score / 100) * count)));
-    const xs = Array.from({ length: count }, (_, i) => (i + 0.5) * (100 / count));
-    const dec = xs.map((x) => shape.p * bell(x, shape.dec, spreadDec));
-    const plain = xs.map((x) => (1 - shape.p) * bell(x, shape.plain, spreadPlain));
-    const top = Math.max(...dec.map((d, i) => d + plain[i]));
-    return xs.map((x, i) => ({
-      h: Math.max(4, Math.round(((dec[i] + plain[i]) / top) * 100)),
-      kind: i === nearest ? "me" : dec[i] > plain[i] ? "dec" : x >= shape.low && x <= shape.high ? "run" : "out",
-    }));
-  }
 
-  /**
-   * The two labels under the bars: where a game with a decisive action lands and its chance ("75 · 6%"), and the same without one. When the two
-   * would sit on top of each other only the likelier is kept. `at` is the place on the 0-100 scale.
-   */
-  function shapeLabels(shape) {
-    const pct = (p) => Math.round(p * 100) + "%";
-    const labels = [
-      { kind: "dec", at: shape.dec, text: `${Math.round(shape.dec)} · ${pct(shape.p)}`, p: shape.p },
-      { kind: "plain", at: shape.plain, text: `${Math.round(shape.plain)} · ${pct(1 - shape.p)}`, p: 1 - shape.p },
-    ];
-    return Math.abs(shape.dec - shape.plain) < 16 ? [labels.sort((a, b) => b.p - a.p)[0]] : labels;
-  }
 
-  /** What moves his number in points, the biggest two with a point or more: `[["Barcelona", -8], ["Form", 4]]` -> rows with a sign and a bar length (0-1). */
-  function whyRows(shape, limit = 2) {
-    const rows = (Array.isArray(shape.why) ? shape.why : []).filter((row) => Array.isArray(row) && Number.isFinite(row[1]) && Math.abs(row[1]) >= 1).slice(0, limit);
-    const biggest = Math.max(8, ...rows.map((row) => Math.abs(row[1])));
-    return rows.map(([label, points]) => ({ label, points, share: Math.min(1, Math.abs(points) / biggest) }));
-  }
 
   /** "11 h ago": the age of an ISO time, or null when there is no time to read. */
   function agoLabel(iso, nowMs) {
@@ -835,8 +800,8 @@
   root.__sofixCore = {
     crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
-    isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;
 })(typeof globalThis !== "undefined" ? globalThis : this);

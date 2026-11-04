@@ -874,10 +874,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-03",
-        "note": "a game stays a card's game until 115 min after kick-off (with_now, overlay ahead); no change to selection, forecasts or rewards",
+        "date": "2026-11-04",
+        "note": "4 Nov 2026: added the overlay-only benchRecord (forecast.bench_record from past games, carried on Forecast and published on playing and market rows; play.ts types). The planner, raw record, chances and their sources are unchanged; the record is a separate quantity (came on / (came on + unused)), not the chance of coming on.",
         "files": {
-          "backend/app/sorare/publish.py": "5a5cf748782359b88d8520c12cfaa20df82b8789cb46ac2252241cbea93d2e36",
+          "backend/app/sorare/publish.py": "576e682287b00a1e34ae50b9f5292d2c32f2772ced677fc78ca3ceea2fa0b5cf",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
@@ -930,10 +930,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-03",
-        "note": "3 Nov 2026: per-game x/start (forecast.game_x/game_start) published on games and market fixtures, weeks list perGame (Pro leaderboards); overlay shows them for Pro/Arcade cards; plans, rewards and selection unchanged.",
+        "date": "2026-11-04",
+        "note": "4 Nov 2026: added the overlay-only benchRecord (forecast.bench_record from past games, carried on Forecast and published on playing and market rows; play.ts types). The planner, raw record, chances and their sources are unchanged; the record is a separate quantity (came on / (came on + unused)), not the chance of coming on.",
         "files": {
-          "backend/app/sorare/forecast.py": "daec9267c057ef3e8dd1cf6d187d23a0491b54ee3695a478ef3c59ef2f375e5b",
+          "backend/app/sorare/forecast.py": "fe92cd2509f03012c1e8608be877429995233601056b456608905538c6f521d3",
           "backend/tests/test_sorare_ff_forecast.py": "cbc230010a5956ec2250c97434b7357451d11abbfa1200dc6f510f3f44b1f12a"
         }
       }
@@ -996,10 +996,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-03",
-        "note": "a game stays a card's game until 115 min after kick-off (with_now, overlay ahead); no change to selection, forecasts or rewards",
+        "date": "2026-11-04",
+        "note": "4 Nov 2026: added the overlay-only benchRecord (forecast.bench_record from past games, carried on Forecast and published on playing and market rows; play.ts types). The planner, raw record, chances and their sources are unchanged; the record is a separate quantity (came on / (came on + unused)), not the chance of coming on.",
         "files": {
-          "backend/app/sorare/publish.py": "5a5cf748782359b88d8520c12cfaa20df82b8789cb46ac2252241cbea93d2e36",
+          "backend/app/sorare/publish.py": "576e682287b00a1e34ae50b9f5292d2c32f2772ced677fc78ca3ceea2fa0b5cf",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "d02896735b378fe251e387cb6d36ebacc126a08647be5a73608f10362e028ab2"
@@ -1052,11 +1052,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-03",
-        "note": "market rows gain now, the week being played's game still ahead from its frozen record (publish.with_now; plans/overlay-v2.md 1.7.3); no change to plan selection, forecasts or rewards",
+        "date": "2026-11-04",
+        "note": "4 Nov 2026: added the overlay-only benchRecord (forecast.bench_record from past games, carried on Forecast and published on playing and market rows; play.ts types). The planner, raw record, chances and their sources are unchanged; the record is a separate quantity (came on / (came on + unused)), not the chance of coming on.",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "18c89330a756e7592e5be98b7df64124e976d871898c839ae12db612db50d6ed",
+          "frontend/lib/play.ts": "a60d0d754696191664812423bf99406a1d4cbce03d861ecc38e6d437b877ae0f",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1572,12 +1572,12 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-03",
-        "note": "0.4.50: crests drawn on lineup builders and lineup pages only; no action, permission or allowlist changed",
+        "date": "2026-11-04",
+        "note": "0.4.51: the tile's panel rebuilt (Starts / Comes on with the ten-game minutes record); no action, permission or allowlist changed",
         "files": {
           "extension/background.js": "34f26c6dae2c75636b48be970327fb8b8c07cd55b504e173b8ea13e501d68356",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "7d40e0d8b6c8b37363bde4de944d1a7061fb2350830d4045847373143a1a6bcf",
+          "extension/manifest.template.json": "7811157a930c22738896309771d29bd014a80b6cfa07b8d45f290d18067bb384",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

@@ -338,6 +338,7 @@ export type PlayingPlayer = {
   sources?: Partial<Record<StartSource, number>>;
   /** Of the games he does not start, how often he still plays: what the extension splits a changed start chance with. */
   benchedOn?: number;
+  benchRecord?: BenchRecord;
   /** The picture behind his score if he starts, and if he comes on (plans/xscore.md, X5a): the chance of a decisive action, the score with and without one, where he lands 8 times in 10, what moves it. */
   shape?: Shape;
   onShape?: Shape;
@@ -479,6 +480,12 @@ export type CollectionCard = {
 };
 
 /** One indexed player, as the Players page draws him, including players you do not own. */
+/**
+ * His last ten finished games (any competition), for the overlay's "comes on" side (plans/overlay-v2.md 1.6): started, came on,
+ * unused, his average minutes when on, and each game oldest first: `games` is one letter a game (S, O or U), `mins` its minutes.
+ */
+export type BenchRecord = { started: number; on: number; unused: number; minsOn: number | null; games: string; mins: number[] };
+
 export type MarketPlayer = {
   by?: "sofix" | "sorare" | "form";
   waiting?: "board";
@@ -514,6 +521,7 @@ export type MarketPlayer = {
   fixture?: MarketFixture;
   /** His first game of the week after, when there is one (payloads from 3 Nov 2026): what the sorare.com overlay draws for it. */
   next?: { p: number; pStart?: number; startSource?: StartSource; start?: number; x: number; fixture: MarketFixture };
+  benchRecord?: BenchRecord;
   /** His first game of the week being played still ahead when the refresh ran, from that week's frozen record (plans/overlay-v2.md 1.7.3). */
   now?: { p: number; pStart?: number; startSource?: StartSource; start?: number; x: number; fixture: MarketFixture };
 };

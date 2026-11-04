@@ -5,7 +5,6 @@ import { scoreBand } from "./cards";
 import { contrastRatio } from "./contrast";
 import { chanceLabel } from "./play";
 
-type Shape = { p: number; dec: number; plain: number; sdDec: number; sdPlain: number; low: number; high: number; why?: [string, number][] };
 
 // extension/core.js is a plain script the browser loads before the overlay. It is required here as it is, not copied.
 type Core = {
@@ -80,10 +79,6 @@ type Core = {
   }[];
   missionsRarity: (pathname: unknown) => string | null;
   missionsAsked: (body: unknown) => string | null;
-  shapeOf: (entry: Record<string, unknown>, mode: string) => Shape | null;
-  shapeBars: (shape: Shape, score: number, count?: number) => { h: number; kind: "me" | "dec" | "run" | "out" }[];
-  shapeLabels: (shape: Shape) => { kind: "dec" | "plain"; at: number; text: string; p: number }[];
-  whyRows: (shape: Shape, limit?: number) => { label: string; points: number; share: number }[];
   agoLabel: (iso: unknown, nowMs: number) => string | null;
   freshLabel: (iso: unknown, nowMs: number) => string | null;
   STALE_HOURS: number;
@@ -92,7 +87,6 @@ type Core = {
   isPickHeading: (text: unknown) => boolean;
   fixtureOf: (url: unknown) => string | null;
   gamesCount: (entry: { fixtures?: unknown }) => number;
-  fixtureLine: (fixture: { kickoff?: string; venue?: string; opponent?: string }, timeZone?: string) => string | null;
   crestState: (entry: unknown, now: number) => { kind: "none" | "crests" | "live" | "out"; games: { opponent: string }[] };
   shieldCode: (game: { opponentCode?: string | null; opponent?: string | null }) => string;
   islandWhen: (kickoff: string | null | undefined) => string;
@@ -707,58 +701,6 @@ describe("games in the gameweek", () => {
     expect(core.gamesCount(undefined as never)).toBe(1);
   });
 
-  it("writes a game as a day, a time and an opponent, with 'v' at home and 'at' away", () => {
-    const away = { kickoff: "2026-10-02T16:45:00Z", venue: "A", opponent: "Hungary" };
-    expect(core.fixtureLine(away, "Europe/Madrid")).toBe("Fri 18:45 · at Hungary");
-    expect(core.fixtureLine({ ...away, kickoff: "2026-10-05T16:45:00Z", venue: "H", opponent: "Northern Ireland" }, "Europe/Madrid")).toBe("Mon 18:45 · v Northern Ireland");
-    expect(core.fixtureLine(away, "UTC")).toBe("Fri 16:45 · at Hungary");
-  });
-
-  it("says nothing for a game it cannot read", () => {
-    expect(core.fixtureLine({ venue: "H", opponent: "Spain" })).toBeNull();
-    expect(core.fixtureLine({ kickoff: "soon", venue: "H", opponent: "Spain" })).toBeNull();
-    expect(core.fixtureLine({ kickoff: "2026-10-02T16:45:00Z", venue: "H" })).toBeNull();
-  });
-});
-
-describe("the picture of his game", () => {
-  const shape: Shape = { p: 0.06, dec: 75, plain: 44, sdDec: 10, sdPlain: 12, low: 28, high: 62, why: [["Barcelona", -8], ["Sorare", 0.4], ["Form", 4]] };
-
-  it("is the one for the tab, and nothing when the answer has none", () => {
-    expect(core.shapeOf({ shape }, "start")).toBe(shape);
-    expect(core.shapeOf({ shape, onShape: { ...shape, p: 0.2 } }, "bench")?.p).toBe(0.2);
-    expect(core.shapeOf({ shape }, "bench")).toBeNull();
-    expect(core.shapeOf({}, "start")).toBeNull();
-    expect(core.shapeOf({ shape: { ...shape, low: Number.NaN } }, "start")).toBeNull();
-  });
-
-  it("draws forty bars, the tallest at the likelier kind of game, one white bar where his score is, the range green and the rest dim", () => {
-    const bars = core.shapeBars(shape, 45);
-    expect(bars).toHaveLength(40);
-    expect(Math.max(...bars.map((b) => b.h))).toBe(100);
-    expect(bars.filter((b) => b.kind === "me")).toHaveLength(1);
-    expect(bars[18]?.kind).toBe("me"); // 45 falls in the bar from 45 to 47.5
-    expect(bars[0]?.kind).toBe("out");
-    expect(bars[11]?.kind).toBe("run"); // 28 to 30 sits inside the range
-    expect(bars[30]?.kind).toBe("dec"); // around 75 only the games with a decisive action reach
-    expect(bars.every((b) => b.h >= 4)).toBe(true);
-  });
-
-  it("labels the two kinds of game with where they land and how often, and keeps one when they would overlap", () => {
-    expect(core.shapeLabels(shape).map((l) => l.text)).toEqual(["75 · 6%", "44 · 94%"]);
-    const close = core.shapeLabels({ ...shape, p: 0.7, dec: 50, plain: 44 });
-    expect(close).toHaveLength(1);
-    expect(close[0]?.text).toBe("50 · 70%");
-  });
-
-  it("lists what moves the number, the biggest first, dropping what is under a point", () => {
-    const rows = core.whyRows(shape);
-    expect(rows.map((r) => r.label)).toEqual(["Barcelona", "Form"]);
-    expect(rows[0]?.share).toBe(1);
-    expect(rows[1]?.share).toBeCloseTo(0.5);
-    expect(core.whyRows({ ...shape, why: undefined })).toEqual([]);
-    expect(core.whyRows(shape, 1)).toHaveLength(1);
-  });
 });
 
 describe("the daily missions", () => {

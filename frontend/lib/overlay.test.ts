@@ -141,6 +141,21 @@ describe("overlayNumbers", () => {
     expect(overlayNumbers(sorare([player()]), null, ask({ players: ["unai-simon"] }), NOW, null, { market: [{ ...row, slug: "unai-simon", x: 1 }], grids: [] }).players["unai-simon"]!.x).toBe(54.5);
   });
 
+  it("carries his last ten games' minutes, his xD and his decisive chance to the panel (plans/overlay-v2.md 1.3, 1.6)", () => {
+    const record = { started: 0, on: 7, unused: 3, minsOn: 22, games: "UOOOOOUUOO", mins: [0, 12, 8, 6, 24, 5, 0, 0, 31, 69] };
+    const row: MarketPlayer = {
+      slug: "abdul-mumin", name: "Abdul Mumin", pos: "DEF", club: "Girona FC", crest: null, average: 30, projection: null, eur: null, pic: "",
+      p: 0.6, x: 24, decisive: 0.04, xd: 0.02, benchRecord: record,
+      fixture: { team: "Girona FC", opponent: "UD Almería", opponentCrest: null, venue: "H", kickoff: "2026-10-10T19:00:00Z", competition: "laliga-es" } as MarketPlayer["fixture"],
+    };
+    const answer = overlayNumbers(sorare([player()]), null, ask({ players: ["abdul-mumin"] }), NOW, null, { market: [row], grids: [] });
+    expect(answer.players["abdul-mumin"]).toMatchObject({ benchRecord: record, xd: 0.02, decisive: 0.04 });
+    // A row with none says nothing of them.
+    const bare = overlayNumbers(sorare([player()]), null, ask({ players: ["abdul-mumin"] }), NOW, null, { market: [{ ...row, benchRecord: undefined, xd: undefined, decisive: undefined }], grids: [] });
+    expect(bare.players["abdul-mumin"]).not.toHaveProperty("benchRecord");
+    expect(bare.players["abdul-mumin"]).not.toHaveProperty("decisive");
+  });
+
   describe("price per point against similar players (plans/overlay-v2.md 1.2)", () => {
     const like = (slug: string, eur: number | null, x: number, more: Partial<MarketPlayer> = {}): MarketPlayer =>
       ({ slug, name: slug, pos: "FWD", club: null, crest: null, average: 50, projection: null, eur, pic: "", x, ...more }) as MarketPlayer;

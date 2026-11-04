@@ -1351,6 +1351,7 @@ test.describe("the sorare.com overlay", () => {
     // No text under 11 px in the panel.
     const smallest = await box.evaluate((el) => Math.min(...[...el.querySelectorAll("*")].filter((n) => n.childNodes.length && [...n.childNodes].some((c) => c.nodeType === 3 && c.textContent!.trim())).map((n) => parseFloat(getComputedStyle(n).fontSize))));
     expect(smallest).toBeGreaterThanOrEqual(11);
+    await page.waitForTimeout(1000); // the bars have risen
     await box.screenshot({ path: testInfo.outputPath("overlay-comes-on.png") });
   });
 

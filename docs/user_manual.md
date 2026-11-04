@@ -843,7 +843,8 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   still to play or playing are drawn. Since 0.4.44 every card still able to score aims at the same score, counting what it has: a
   card still to play shows that score, a card playing how far he is from his ("-7" short, "+3" in green past it, which lowers what
   the others need). Since 0.4.62 a player taken off, not on the sheet of a game under way, or whose game or score Sorare calls over
-  counts as finished at once: his points are locked and the rest of the target is shared among the others.
+  counts as finished at once: his points are locked and the rest of the target is shared among the others. (0.4.63 fixes 0.4.62,
+  which also read Sorare's "reviewing" as final and so drew nothing during the games.)
   Not on plans or on Sofix's Arcade sections.
 - A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga, Ligue 1, Champions League, Europa League or Conference League
   game (the Conference League's still provisional; else Sorare's projection, else his average when he
@@ -1019,7 +1020,8 @@ colour for that score. Under it is one thing that drives the score, chosen by po
 - **The opponent's crest on each card** (extension 0.4.34, 3 Nov 2026; since 0.4.50 on Sorare's lineup builders and lineup pages only, not the gallery, market or other lists): centred on the card's top edge, half outside (22 px, 16 on a
   small card; 0.4.36), gone as soon as Sorare hides its card or lays a player's page over it (0.4.37); two games, both crests; his game on, the crest alone with a small pulsing red dot on its corner (0.4.62; still under reduced motion);
   sure not to play (Futbol Fantasy says out), a dark pill with "Out"; no crest from Sorare, the club's UEFA crest from the European
-  boards (the Table page's) when it plays in Europe (4 Nov 2026), else a shield in the club's colour with its letters; no game, nothing. Hover or focus it: the island opens above the card with both sides, the day and time (Madrid), the
+  boards (the Table page's) when it plays in Europe (4 Nov 2026), else a shield in the club's colour with its letters; no game, nothing. A European game's FDR is found on its board by Sorare's club slugs (4 Nov 2026: "B. Dortmund" and
+  "Man City" never matched by name); Sofix's start % goes under Sorare's badge and grade even where they let clicks through (0.4.63). Hover or focus it: the island opens above the card with both sides, the day and time (Madrid), the
   competition, and five numbers for his side (win %, clean sheet %, xG, xG against, FDR), each coloured by its sixth among all the
   games Sofix rates that gameweek (the season's when fewer than 12), Sorare's colours from red to cyan; Escape closes it.
 **A goalkeeper's number follows his game.** It is no longer his last five games: those are mostly luck (a clean sheet is worth about 75, a game without

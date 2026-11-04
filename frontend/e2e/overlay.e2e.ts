@@ -580,6 +580,23 @@ test.describe("the sorare.com overlay", () => {
     expect(Math.round(card.left - t.left)).toBe(4);
   });
 
+  test("finds Sorare's start badge and grade even when they let clicks through, and goes under them (4 Nov 2026: ours covered its 100%)", async ({ page }) => {
+    await page.addInitScript(() => {
+      const style = document.createElement("style");
+      style.textContent = "#sostart, #grade { pointer-events: none; }";
+      document.addEventListener("DOMContentLoaded", () => document.head.append(style));
+    });
+    await openPage(page);
+    await settled(page);
+    await page.locator("#graded").scrollIntoViewIfNeeded();
+    await expect
+      .poll(async () => {
+        const [chip, so, grade] = [await box(page, "#graded .sfx-start"), await box(page, "#sostart"), await box(page, "#grade")];
+        return !meets(chip, so) && chip.top >= grade.bottom;
+      })
+      .toBe(true);
+  });
+
   test("on a narrow full card the chips are tighter, and the start % never lies over the tile", async ({ page }) => {
     // 3 Nov 2026, Sorare's builder list: 118 x 191 px cards, a badge of theirs pushing the tile down into the start % row.
     await openPage(page);

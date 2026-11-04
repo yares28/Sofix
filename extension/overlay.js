@@ -1652,19 +1652,24 @@
     const media = record.media;
     const reach = rect.top + rect.height * 0.35;
     let box = null;
+    const take = (el) => {
+      if (el === media || el.contains(media) || media.contains(el) || el.closest("[data-sfx],[data-sfx-dock]")) return;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height || r.left > rect.right + 8) return;
+      if (r.width * r.height > rect.width * rect.height * 0.25 || r.width > rect.width * 0.6 || r.right < rect.right - 40 || r.top > reach || r.top < rect.top - 2) return; // not the captain button on the card's corner
+      box = box
+        ? { top: Math.min(box.top, r.top), bottom: Math.max(box.bottom, r.bottom), left: Math.min(box.left, r.left), right: Math.max(box.right, r.right) }
+        : { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+    };
     for (let y = rect.top + 2; y < reach; y += 6) {
       for (const x of [rect.right + 4, rect.right - 4, rect.right - 12, rect.right - 20, rect.right - 28]) {
-        if (x < 0 || x >= innerWidth) continue;
-        for (const el of document.elementsFromPoint(x, y)) {
-          if (el === media || el.contains(media) || media.contains(el) || el.closest("[data-sfx],[data-sfx-dock]")) continue;
-          const r = el.getBoundingClientRect();
-          if (r.width * r.height > rect.width * rect.height * 0.25 || r.width > rect.width * 0.6 || r.right < rect.right - 40 || r.top > reach || r.top < rect.top - 2) continue; // not the captain button on the card's corner
-          box = box
-            ? { top: Math.min(box.top, r.top), bottom: Math.max(box.bottom, r.bottom), left: Math.min(box.left, r.left), right: Math.max(box.right, r.right) }
-            : { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
-        }
+        if (x >= 0 && x < innerWidth) for (const el of document.elementsFromPoint(x, y)) take(el);
       }
     }
+    // A hit test misses what lets clicks through (Sorare's start badge and grade on its builder list did, 4 Nov 2026, and ours covered
+    // them): the card's own box and the one around it are read too, at most 300 elements.
+    const around = hostOf(record).parentElement;
+    if (around && around !== document.body) [...around.querySelectorAll("*")].slice(0, 300).forEach(take);
     record.corner = box && { top: box.top - rect.top, bottom: box.bottom - rect.top, left: box.left - rect.left, right: box.right - rect.left };
     return record.corner;
   }

@@ -350,6 +350,21 @@ describe("overlayNumbers", () => {
     expect(answer.players[row.slug]?.game).toBeNull();
   });
 
+  it("finds a European game on its board by Sorare's club slugs, which the board names the UEFA way (4 Nov 2026: BVB v Betis had no FDR)", () => {
+    const base = grid.teams[0]!.cells.flat().find((c) => c.prediction)!;
+    const cell = { ...base, kickoff_utc: "2026-10-10T19:00:00Z", opponent_code: "BET", venue: "H" as const };
+    const cl: FixtureGrid = { ...grid, competition: "CL", teams: [
+      { ...grid.teams[0]!, code: "BVB", name: "B. Dortmund", sorare_slug: "borussia-dortmund-dortmund", cells: [[cell]] },
+      { ...grid.teams[1]!, code: "BET", name: "Real Betis", sorare_slug: "real-betis-sevilla", cells: [[]] },
+    ] };
+    const row: MarketPlayer = { slug: "svensson", name: "Svensson", pos: "DEF", club: "Borussia Dortmund", crest: null, average: 47, projection: null, eur: null, pic: "", x: 44, p: 0.8,
+      fixture: { team: "Borussia Dortmund", opponent: "Real Betis", teamSlug: "borussia-dortmund-dortmund", opponentSlug: "real-betis-sevilla", opponentCrest: null, venue: "H", kickoff: "2026-10-10T19:00:00Z", competition: "uefa-champions-league" } };
+    const answer = overlayNumbers(sorare([player()]), null, ask({ players: [row.slug] }), NOW, null, { market: [row], grids: [cl] });
+    expect(answer.players[row.slug]?.game).toMatchObject({ difficulty: base.prediction!.difficulty, source: "model" });
+    const unnamed = { ...row, fixture: { ...row.fixture!, teamSlug: undefined, opponentSlug: undefined } };
+    expect(overlayNumbers(sorare([player()]), null, ask({ players: [row.slug] }), NOW, null, { market: [unnamed], grids: [cl] }).players[row.slug]?.game).toBeNull(); // by name it never matched
+  });
+
   it("uses Sorare's odds for a national-team game, and never the club's board numbers for it", () => {
     const abroad = player({ games: [game({ competition: "uefa-nations-league", team: "Athletic Club", opponent: "Getafe CF", odds: SLOVENIA })] });
     const shown = overlayNumbers(sorare([abroad]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!.game!;

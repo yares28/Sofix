@@ -499,7 +499,7 @@ function matchOf(game: PlayerGame | MarketFixture, club: string | null): Overlay
  * forecast for) is Sorare's odds as the job published them, and no odds at all is `null`.
  */
 function boardFor(
-  game: { team?: string | null; opponent?: string | null; venue?: string | null; kickoff?: string | null; competition?: string | null },
+  game: { team?: string | null; opponent?: string | null; teamSlug?: string | null; opponentSlug?: string | null; venue?: string | null; kickoff?: string | null; competition?: string | null },
   club: string | null,
   grids: (FixtureGrid | null)[],
 ): SideOutlook | undefined {
@@ -509,12 +509,15 @@ function boardFor(
   const matches: SideOutlook[] = [];
   for (const grid of grids) {
     if (!grid || (grid.competition ?? "PD") !== code) continue;
+    // A European board names clubs the UEFA way ("B. Dortmund", "Man City") and keeps Sorare's slug: matched on it when the game has both.
+    const bySlug = isEuropean(code) && Boolean(game.teamSlug && game.opponentSlug);
+    const same = (team: FixtureGrid["teams"][number], name: string, slug: string | null | undefined) => (bySlug ? team.sorare_slug === slug : clubKey(team.name) === clubKey(name));
     for (const team of grid.teams) {
-      if (clubKey(team.name) !== clubKey(side)) continue;
+      if (!same(team, side, game.teamSlug)) continue;
       for (const cell of team.cells.flat()) {
         const opponent = grid.teams.find(t => t.code === cell.opponent_code);
         const p = cell.prediction;
-        if (!opponent || clubKey(opponent.name) !== clubKey(game.opponent) || cell.venue !== game.venue || !p) continue;
+        if (!opponent || !same(opponent, game.opponent, game.opponentSlug) || cell.venue !== game.venue || !p) continue;
         // A European pair can meet again in a knockout: the actual date identifies the leg.
         if (isEuropean(code) && (!game.kickoff || Math.abs(Date.parse(cell.kickoff_utc) - Date.parse(game.kickoff)) > 20 * 60_000)) continue;
         matches.push({ club: team.name, opponent: opponent.name, win: p.probabilities.win, cleanSheet: p.clean_sheet,

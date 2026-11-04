@@ -746,7 +746,8 @@ const num = (value) => (typeof value === "number" && Number.isFinite(value) ? va
 const doneScoring = (a) => {
   const field = a?.playerGameScore?.anyPlayerGameStats?.fieldStatus;
   const game = a?.game?.statusTyped;
-  return ["FINAL", "DID_NOT_PLAY", "REVIEWING"].includes(a?.scoreStatus) || ["played", "cancelled", "postponed"].includes(game)
+  // Not REVIEWING or DID_NOT_PLAY: Sorare gives every card REVIEWING while its game is under way (seen 4 Nov 2026), bench players too.
+  return a?.scoreStatus === "FINAL" || ["played", "cancelled", "postponed"].includes(game)
     || field === "SUBSTITUTED" || (game === "playing" && field === "NOT_ON_GAME_SHEET");
 };
 const appearancesOf = (lineup) => (Array.isArray(lineup?.taskAppearances) ? lineup.taskAppearances : []).flatMap((a) => (a?.anyCard?.slug

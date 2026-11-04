@@ -875,15 +875,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-04",
-        "note": "4 Nov 2026: the Sorare job fills a club picture Sorare leaves empty with the European boards' UEFA crest by Sorare slug, right after the sync; display only, no plan, forecast or selection input changes.",
+        "note": "4 Nov 2026: published fixtures (FIXTURE_KEYS and score-record games) also carry teamSlug/opponentSlug, read only by the overlay to find a European game on its board; earlier the same day the job filled empty club pictures from the European boards. No plan, forecast or selection input changes.",
         "files": {
-          "backend/app/sorare/publish.py": "8aa55e2cb599d31ac0f5293cf60da4653be7b78f618a55cbf03a2adf0bfe08d3",
+          "backend/app/sorare/publish.py": "05bf4c32fc63e0627e52a1cb5385e931ca5fd8cad1b0d7579a3b86c41be8bbfe",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
           "backend/app/jobs/sorare.py": "0b23337836defeb6abf0d3e58e2d3e5e3fbabfe843906ff4f311424b95f720b2",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
-          "backend/tests/test_sorare_publish.py": "f918b02fe13fb877fb683b7bb7355e3c6554586f0474f7ca78791539e221c9e0"
+          "backend/tests/test_sorare_publish.py": "9c16f7adaa8d0e932c9e913291b59639755c2d6672b1146fd36df1cb1a9e2fb6"
         }
       }
     },
@@ -997,12 +997,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-04",
-        "note": "4 Nov 2026: test file gained a crest-fill test only; no forecast behavior change.",
+        "note": "4 Nov 2026: publish.py fixtures gain teamSlug/opponentSlug (display lookup only); test expectations updated; no forecast change.",
         "files": {
-          "backend/app/sorare/publish.py": "8aa55e2cb599d31ac0f5293cf60da4653be7b78f618a55cbf03a2adf0bfe08d3",
+          "backend/app/sorare/publish.py": "05bf4c32fc63e0627e52a1cb5385e931ca5fd8cad1b0d7579a3b86c41be8bbfe",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
-          "backend/tests/test_sorare_publish.py": "f918b02fe13fb877fb683b7bb7355e3c6554586f0474f7ca78791539e221c9e0"
+          "backend/tests/test_sorare_publish.py": "9c16f7adaa8d0e932c9e913291b59639755c2d6672b1146fd36df1cb1a9e2fb6"
         }
       }
     },
@@ -1053,10 +1053,10 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-04",
-        "note": "4 Nov 2026: PlayingPlayer gains optional mu and sd (the builder gauge's inputs); reward types and plan maths unchanged.",
+        "note": "4 Nov 2026: play.ts types gain optional teamSlug/opponentSlug on PlayerGame and MarketFixture; no reward logic touched.",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "e61a3eb705ca8839672e3cd5ab6fff474d84ce41093e7ca115c0d76b644d1943",
+          "frontend/lib/play.ts": "b5b73fb9178e102dac2e1a6b03241e3f14092ff7cc605cada8a88dd827a0e0d7",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1573,15 +1573,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-04",
-        "note": "4 Nov 2026 (0.4.62): the read-only SofixArcadeLineups and SofixProLineups queries also read scoreStatus, game statusTyped and the player's fieldStatus to mark a card done (subbed off, game over, score final); no new operation, no write, no new permission.",
+        "note": "4 Nov 2026 (0.4.63): lineup reads also take scoreStatus, game statusTyped and fieldStatus; a card is done when subbed off, absent from a game under way, its game played/cancelled/postponed or its score FINAL (REVIEWING is Sorare's state during a game, so it is not used). Read-only, no new operation, no write, no new permission.",
         "files": {
-          "extension/background.js": "285db459a828ef8239e8d2d2724d34f99527699b472264fc8fb32fbba7fd3bcd",
+          "extension/background.js": "3e74c9522f3cf2192f2a0a8389459470fb7b48bb24b36da3561bf1ebc2e82a18",
           "extension/bridge.js": "d318a12d9854876efa1ef44e2cbce2b2884bf22fc0d0934777296945a305418d",
-          "extension/manifest.template.json": "d91e66198f3cc372c12582c180cc611a8a6363f975e7efbdd2191b593576924f",
+          "extension/manifest.template.json": "b97eacd9f2b1c55e828e016142c77da65ad71dcd233486113f81260da674b7c7",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "ed74d81a5a96398f1c9b62e65299436628b1058bebe1e562d3aa15591dff0c54"
+          "frontend/lib/extensionBackground.test.ts": "d369f28ac697f388d706166e9028038923ddbe4b88f73fed2a66d14beb2094e1"
         }
       }
     },

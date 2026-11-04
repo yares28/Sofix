@@ -245,6 +245,9 @@ export type PlayerGame = {
   /** The opponent's three letters and colour, for a crest Sorare does not have (payloads from 3 Nov 2026). */
   opponentCode?: string | null;
   opponentColor?: string | null;
+  /** Sorare's slugs of both sides: how a European game is found on its board, which names clubs the UEFA way. */
+  teamSlug?: string | null;
+  opponentSlug?: string | null;
   venue: "H" | "A";
   odds?: GameOdds;
   /** This game on its own (payloads from 3 Nov 2026): what he is expected to score in it and if he starts it. A Pro or Arcade card plays one game. */
@@ -538,6 +541,8 @@ export type MarketFixture = {
   opponentCrest: string | null;
   opponentCode?: string | null;
   opponentColor?: string | null;
+  teamSlug?: string | null;
+  opponentSlug?: string | null;
   venue: "H" | "A" | null;
   kickoff: string | null;
   /** This game on its own, as on `PlayerGame` (payloads from 3 Nov 2026). */

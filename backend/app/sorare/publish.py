@@ -1965,6 +1965,9 @@ def score_record(
                     "teamCrest": game.get("teamCrest"),
                     "opponent": game.get("opponent"),
                     "opponentCrest": game.get("opponentCrest"),
+                    # Sorare's own club slugs: how the overlay finds a European game on its board (named the UEFA way there)
+                    "teamSlug": game.get("teamSlug"),
+                    "opponentSlug": game.get("opponentSlug"),
                     "venue": game.get("venue"),
                     "home": game.get("team") if game.get("venue") == "H" else game.get("opponent"),
                     "away": game.get("opponent") if game.get("venue") == "H" else game.get("team"),
@@ -2067,6 +2070,8 @@ FIXTURE_KEYS = (
     "opponentCrest",
     "opponentCode",
     "opponentColor",
+    "teamSlug",
+    "opponentSlug",
     "venue",
     "kickoff",
 )

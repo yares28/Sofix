@@ -1083,6 +1083,8 @@ def test_a_player_with_no_game_this_week_has_his_next_one_from_the_week_after() 
         "opponentCrest": "https://assets.sorare.com/z.png",
         "opponentCode": "CLZ",
         "opponentColor": "#123456",
+        "teamSlug": "club-a",
+        "opponentSlug": "club-z",
         "venue": "H",
         "kickoff": "2026-10-17T14:00:00Z",
     }

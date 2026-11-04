@@ -720,7 +720,7 @@ describe("points needed on sorare.com", () => {
     expect(kept.proLineups[0]).toMatchObject({ target: 380, cards: [{ slug: "p1", score: 66, bonus: 1.1 }] });
   });
 
-  it("marks a card whose score can no longer move: taken off, his game over or Sorare's score final; not one on the bench of a live game", async () => {
+  it("marks a card whose score can no longer move: taken off, his game over or Sorare's score final; not one on the bench of a live game, nor REVIEWING (Sorare's state during a game)", async () => {
     const card = (slug: string, extra: Record<string, unknown>) => ({ captain: false, score: 30, bonus: 1, anyCard: { slug }, ...extra });
     const field = (fieldStatus: string) => ({ playerGameScore: { anyPlayerGameStats: { fieldStatus } } });
     const w = load({ sorareTab: true, operationData: (operation) => operation === "SofixArcadeLineups"
@@ -729,8 +729,9 @@ describe("points needed on sorare.com", () => {
           card("over", { game: { date: "2026-11-04T17:45:00Z", statusTyped: "played" }, scoreStatus: "PENDING" }),
           card("final", { game: { date: "2026-11-04T17:45:00Z" }, scoreStatus: "FINAL" }),
           card("absent", { game: { date: "2026-11-04T17:45:00Z", statusTyped: "playing" }, ...field("NOT_ON_GAME_SHEET") }),
-          card("bench", { game: { date: "2026-11-04T17:45:00Z", statusTyped: "playing" }, scoreStatus: "PENDING", ...field("ON_BENCH") }),
-          card("playing", { game: { date: "2026-11-04T17:45:00Z", statusTyped: "playing" }, scoreStatus: "PENDING", ...field("ON_FIELD") }),
+          card("bench", { game: { date: "2026-11-04T17:45:00Z", statusTyped: "playing" }, scoreStatus: "REVIEWING", ...field("ON_BENCH") }),
+          card("playing", { game: { date: "2026-11-04T17:45:00Z", statusTyped: "playing" }, scoreStatus: "REVIEWING", ...field("ON_FIELD") }),
+          card("waiting", { game: { date: "2026-11-05T20:00:00Z", statusTyped: "scheduled" }, scoreStatus: "REVIEWING" }),
         ] }] }] } } }
       : answers(operation) });
     await w.sendFrom(APP, { type: "sorare", step: "arcade-lineups" });

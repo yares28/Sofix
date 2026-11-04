@@ -54,6 +54,7 @@ type Core = {
   filterStart: (entries: (Record<string, unknown> | null)[], key: string) => number | string;
   compareRows: (a: Record<string, unknown>, b: Record<string, unknown>) => { label: string; a: string; b: string; better: "a" | "b" | null; chip: string | null }[];
   SORT_KEYS: string[];
+  lineupChance: (target: number | null, cards: { state: string; raw: number | null; multiplier: number | null; entry?: Record<string, unknown> | null }[]) => { p: number; now: number; open: number; target: number } | null;
   FILTER_KEYS: string[];
   teamRings: (tiers: { need: number; label: string; p: number }[]) => Record<"below" | "at" | "above", { label: string; need: number | null; p: number } | null> | null;
   START_COLOURS: Record<string, [string, string]>;
@@ -1007,5 +1008,34 @@ describe("sorting and filtering Sorare's builder list", () => {
       ["xG against", "1.10", "1.10", null],
       ["xD", "0.30", "—", null],
     ]);
+  });
+});
+
+describe("an Arcade lineup's chance to clear its step", () => {
+  const e = (x: number) => ({ x, p: 0.9, pos: "MID" });
+  const done = (raw: number) => ({ state: "finished", raw, multiplier: 1.1 });
+  const ahead = (x: number) => ({ state: "to play", raw: null, multiplier: 1.1, entry: e(x) });
+
+  it("banks what is finished and simulates the rest", () => {
+    // 4 x 50 x 1.1 = 220 banked; the last card needs 140 / 1.1 = 127 raw: more than a score can be (100)
+    expect(core.lineupChance(360, [done(50), done(50), done(50), done(50), ahead(60)])!.p).toBe(0);
+    const near = core.lineupChance(260, [done(50), done(50), done(50), done(50), ahead(60)])!; // needs 40 / 1.1 = 36 from a 60
+    expect(near.now).toBeCloseTo(220);
+    expect(near.open).toBe(1);
+    expect(near.p).toBeGreaterThan(0.75);
+    expect(near.p).toBeLessThan(0.95); // 10% he does not play at all
+  });
+
+  it("says 100% once the target is reached, and a live card keeps what it has", () => {
+    expect(core.lineupChance(200, [done(50), done(50), done(50), done(50)])!.p).toBe(1);
+    const live = core.lineupChance(240, [done(50), done(50), done(50), done(50), { state: "live", raw: 30, multiplier: 1.1, entry: e(10) }])!;
+    expect(live.now).toBeCloseTo(253);
+    expect(live.p).toBe(1);
+  });
+
+  it("says nothing without a target, a bonus, or an answer for a card still to score", () => {
+    expect(core.lineupChance(null, [ahead(60)])).toBeNull();
+    expect(core.lineupChance(300, [{ state: "to play", raw: null, multiplier: null, entry: e(60) }])).toBeNull();
+    expect(core.lineupChance(300, [{ state: "to play", raw: null, multiplier: 1, entry: null }])).toBeNull();
   });
 });

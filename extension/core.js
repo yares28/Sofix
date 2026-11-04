@@ -272,7 +272,8 @@
    * percentile, and each tier with the chance of reaching it; null with no card.
    */
   function teamChances(cards, team, runs = TEAM_RUNS, seed = 7) {
-    const list = (cards || []).filter((c) => c && Number.isFinite(c.mu) && Number.isFinite(c.p));
+    // a card with `fixed` has finished: its points are banked; `floor` is what a live card already has
+    const list = (cards || []).filter((c) => c && (Number.isFinite(c.fixed) || (Number.isFinite(c.mu) && Number.isFinite(c.p))));
     if (!list.length) return null;
     const n = list.length;
     const pos = list.map((c) => String(c.pos || "")); // GK, DEF, MID or FWD, as the answer gives it
@@ -317,9 +318,17 @@
         const c = list[i];
         let shock = 0;
         for (let k = 0; k <= i; k++) shock += low[i][k] * z[k];
-        if (next() >= c.p) continue;
+        if (Number.isFinite(c.fixed)) {
+          total += c.fixed;
+          continue;
+        }
+        const floor = Number.isFinite(c.floor) ? c.floor : 0;
+        if (next() >= c.p) {
+          total += floor;
+          continue;
+        }
         const score = Math.min(100, Math.max(0, c.mu + (Number.isFinite(c.sd) ? c.sd : TEAM_SD) * shock));
-        total += score * ((Number(c.mult) || 1) + bonus + (c.captain ? captainBonus : 0));
+        total += Math.max(floor, score * ((Number(c.mult) || 1) + bonus + (c.captain ? captainBonus : 0)));
       }
       totals[r] = total;
     }
@@ -341,6 +350,38 @@
     };
     const tiers = (t.tiers || []).filter((tier) => Number.isFinite(tier.need)).sort((x, y) => x.need - y.need).map((tier) => ({ ...tier, p: reach(tier.need) }));
     return { x: totals.reduce((s, v) => s + v, 0) / runs, lo: at(0.1), hi: at(0.9), n, bonus, tiers };
+  }
+
+  /**
+   * An Arcade lineup's chance to reach its step's target (plans/overlay-v2.md step 7): `cards` as { state ("to play" | "live" |
+   * "finished"), raw (Sorare's score before bonuses, null before his game), multiplier (Sorare's bonus, captain included), entry (Sofix's
+   * answer for his game) }. A finished card's score is banked, a live one keeps what it has and may add to it, the rest are simulated
+   * as the planner does. Null when there is no target, a card has no bonus, or a card still to score has no answer.
+   */
+  function lineupChance(target, cards) {
+    if (typeof target !== "number" || !(target > 0) || !Array.isArray(cards) || !cards.length) return null;
+    const list = [];
+    let now = 0;
+    let open = 0;
+    for (const c of cards) {
+      if (typeof c.multiplier !== "number") return null;
+      const has = typeof c.raw === "number" ? c.raw * c.multiplier : 0;
+      if (c.state === "finished") {
+        if (typeof c.raw !== "number") return null;
+        list.push({ fixed: has });
+        now += has;
+        continue;
+      }
+      const e = c.entry;
+      if (!e || !(e.p >= 0)) return null;
+      open += 1;
+      now += has;
+      list.push({ p: e.p, mu: typeof e.mu === "number" ? e.mu : e.p > 0 ? e.x / e.p : 0, sd: e.sd, mult: c.multiplier, pos: e.pos, game: e.match && e.match.id, venue: e.match && e.match.venue, floor: has });
+    }
+    if (now >= target) return { p: 1, now, open, target };
+    if (!open) return { p: 0, now, open, target };
+    const sim = teamChances(list, { tiers: [{ need: target, label: "" }] });
+    return { p: sim ? sim.tiers[0].p : 0, now, open, target };
   }
 
   // -- sort, filter and compare on Sorare's builder list (plans/overlay-v2.md 1.4, step 6) -------------------------------------
@@ -1013,7 +1054,7 @@
   root.__sofixCore = {
     crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

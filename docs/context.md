@@ -1573,11 +1573,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-04",
-        "note": "4 Nov 2026 (0.4.59): builder list sort/filter/compare changes only CSS order and classes on Sorare's grid items and stops its own clicks; no Sorare operation, no write, no new permission.",
+        "note": "4 Nov 2026 (0.4.61): a read-only % to clear pill on lineup pages from need-data and overlay answers; no Sorare operation, no write, no new permission.",
         "files": {
           "extension/background.js": "753ce4c30689712f22101fb91404e8be17c5ea87abe54e9a7e771d0d4c9b677e",
           "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "f3a060307cf40f392ebc892fd4d3ad035e8caace8629a80e0ce6e40546b5d4a1",
+          "extension/manifest.template.json": "1fee8ae737845521ecfe70df9daa4fbe30cbd4c4e124230d088cf7bc9d278b3c",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

@@ -591,3 +591,15 @@
 .sfx-cmp-chip.is-better { color: var(--sfx-ink); box-shadow: 0 0 0 2px #25ed36; }
 .sfx-cmp-close { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.08); color: var(--sfx-white); cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .sfx-faded { transition: none; } .sfx-lb-chip, .sfx-lb-menu, .sfx-compare { animation: none; } }
+
+/* % to clear (plans/overlay-v2.md 1.5): beside a lineup's ribbon, Sorare's own start colours for the chance. */
+.sfx-clear {
+  display: inline-flex; align-items: center; height: 20px; margin-left: 8px; padding: 0 8px; border-radius: 999px; vertical-align: middle;
+  background: rgba(12, 12, 14, 0.85); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); color: var(--sfx-white);
+  font: 700 11px/13px var(--sfx-font); letter-spacing: 0.02em; text-transform: none; white-space: nowrap; font-variant-numeric: tabular-nums; cursor: help;
+  animation: sfx-fade 0.25s ease-out both;
+}
+.sfx-clear::before { content: ""; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--sfx-clear, #ff5a5a); }
+.sfx-clear[data-level="mid"] { --sfx-clear: #f0ce1d; }
+.sfx-clear[data-level="high"] { --sfx-clear: #00e1ff; }
+@media (prefers-reduced-motion: reduce) { .sfx-clear { animation: none; } }

@@ -1496,6 +1496,7 @@
     try {
       placeTeam(pitch, column);
       placeList();
+      placeClear();
       placeWorthBox();
       placeStrip();
     } catch {
@@ -1567,6 +1568,9 @@
       });
       const result = core.pointsNeeded(target, cards);
       return {
+        key: lineup.id || lineup.cards.map((c) => c.slug).join(","),
+        target,
+        cards: lineup.cards.map((c, i) => ({ slug: c.slug, ...cards[i] })),
         slugs: new Set(lineup.cards.map((c) => c.slug)),
         pills: new Map(lineup.cards.map((c, i) => [c.slug, core.needBadge(result, i, target, c.captain)])),
         games: new Map(lineup.cards.filter((c) => c.game).map((c) => [c.slug, c.game])),
@@ -1590,7 +1594,7 @@
       if (inside.length < 5) continue;
       if (inside.some((other) => !other.cardSlug)) return null;
       const slugs = new Set(inside.map((other) => other.cardSlug));
-      record.needTeam = { epoch: pageEpoch, slugs };
+      record.needTeam = { epoch: pageEpoch, slugs, box };
       return slugs;
     }
     return null;
@@ -1989,6 +1993,67 @@
       team = { el, sig };
     }
     team.el.style.transform = `translate3d(${Math.round(rect.right - team.el.offsetWidth)}px, ${Math.round(rect.bottom + 16)}px, 0)`;
+  }
+
+  // -- % to clear on Sorare's lineup pages (plans/overlay-v2.md 1.5, step 7) ------------------------------------------------
+  // Each of your lineups still in play gets a pill beside its ribbon ("In progress", seen 4 Nov 2026 on an Arcade step's lineups
+  // page): the chance it reaches the step's target, its finished cards' real scores banked and the rest simulated as the planner
+  // does (core.lineupChance). A settled lineup, or one whose ribbon cannot be found, gets nothing.
+  const RIBBON = /^(in progress|upcoming|not started|live|successful|missed)$/i;
+  const clearPills = new Map(); // lineup key -> pill
+
+  /** The leaf holding a block's ribbon word, climbing from the block of cards (it sits above them), or null. */
+  function ribbonOf(box) {
+    let up = box;
+    for (let depth = 0; up && up !== document.body && depth < 6; depth += 1, up = up.parentElement) {
+      const found = [...up.querySelectorAll("div, span, p")].filter((el) => el.childElementCount === 0 && RIBBON.test(el.textContent.trim()) && !el.closest("[data-sfx]"));
+      if (found.length === 1) return found[0];
+      if (found.length > 1) return null; // climbed into the next lineup
+    }
+    return null;
+  }
+
+  function placeClear() {
+    const seen = new Set();
+    if (needPage()) {
+      const bySlug = new Map();
+      for (const record of live) if (record.cardSlug) bySlug.set(record.cardSlug, record);
+      for (const lineup of needLineups()) {
+        if (lineup.cards.every((c) => c.state === "finished")) continue;
+        const one = lineup.cards.map((c) => bySlug.get(c.slug)).find((r) => r && lineupOf(r) === lineup);
+        const box = one && one.needTeam && one.needTeam.box;
+        const ribbon = box && ribbonOf(box);
+        if (!ribbon) continue;
+        const result = core.lineupChance(lineup.target, lineup.cards.map((c) => {
+          const record = bySlug.get(c.slug);
+          const held = record && entryOf(record);
+          return { ...c, entry: held && held.entry && !core.staleness(held.entry, now()) ? held.entry : null };
+        }));
+        if (!result) continue;
+        seen.add(lineup.key);
+        const label = `${core.chanceLabel(result.p)} to clear`;
+        const title = `Sofix: a ${core.chanceLabel(result.p)} chance this lineup reaches ${Math.round(result.target)} (${Math.round(result.now)} so far, ${result.open} card${result.open === 1 ? "" : "s"} still to score)`;
+        let pill = clearPills.get(lineup.key);
+        if (!pill || !pill.isConnected || pill.previousElementSibling !== ribbon) {
+          if (pill) pill.remove();
+          pill = node("span", "sfx-clear");
+          pill.setAttribute("data-sfx", "");
+          ribbon.after(pill);
+          clearPills.set(lineup.key, pill);
+        }
+        if (pill.textContent !== label) pill.textContent = label;
+        if (pill.title !== title) {
+          pill.title = title;
+          pill.setAttribute("aria-label", title);
+        }
+        pill.dataset.level = result.p >= 0.795 ? "high" : result.p >= 0.495 ? "mid" : "low";
+      }
+    }
+    for (const [key, pill] of clearPills) {
+      if (seen.has(key)) continue;
+      pill.remove();
+      clearPills.delete(key);
+    }
   }
 
   // -- sort, filter, Sofix lineup and compare on the builder's card list (plans/overlay-v2.md 1.4, step 6) --------------

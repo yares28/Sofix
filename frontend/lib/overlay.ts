@@ -804,7 +804,8 @@ export function overlayNumbers(
         const found = ownedFor(playerSlug, week, { id: hint });
         if (found) return found.entry;
       }
-      return priced([row, row && nextOf(row)].find((one) => one?.fixture?.id === hint) ?? null, true);
+      // the game may be this week's, the next one's, or one of the week being played (a lineup drawn in tonight's game)
+      return priced([row, row && nextOf(row), row && nowOf(row)].find((one) => one?.fixture?.id === hint) ?? null, true);
     }
     // Yours: a game of the week being played while it is still ahead (3 Nov 2026: Mbappé's Wednesday Champions League game, not his
     // Saturday one), then this week's game while it is ahead (or the page is about this week), else his next one in the week after.

@@ -1086,6 +1086,10 @@ it writes to Sorare.
   them (their games, then xScore, FDR, win %, clean sheet %, xG against and xD, the better in green); Escape closes. Sorare's cards are
   never moved, a plain click still picks, the choices are kept in this browser, and "Clear" or switching the overlay off gives the
   list back.
+- **% to clear** (0.4.61, 4 Nov 2026): on Sorare's lineup pages (Arcade steps, Pro), each of your lineups still in play has a pill in
+  its ribbon row, "22% to clear": the chance it reaches the step's target, its finished cards' scores banked and the rest simulated as
+  Sofix's planner does; the hover gives the target, the points so far and the cards still to score. A settled lineup has none, nor
+  one with a card Sofix has no number for.
 - **Light on the page** (0.4.49, 4 Nov 2026): scrolling moves only the crests (a pass at most every 400 ms while it lasts, one
   when it stops); a crest hides under a sticky bar of Sorare's; the popup's cards line says the slowest pass of the last minute.
 - **Price per point** (0.4.47, 3 Nov 2026): on Sorare's market and your gallery, a Limited card says what a point of his costs,

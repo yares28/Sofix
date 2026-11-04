@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hot Streak lineups • Sorare</title>
+<style>
+/* A stand-in for an Arcade step's lineups page (/football/series/<step>/lineups): three lineups, each in its own block under Sorare's ribbon (one in progress, two missed; 4 Nov 2026). Its
+   cards were drawn in games of two gameweeks (the owner's Hot Streak lineup, 2 Nov 2026: two GW28 games, three GW29). */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; background: #0e0e0e; color: #fff; font: 14px/1.4 -apple-system, "Segoe UI", sans-serif; }
+.block { margin: 0 0 24px; padding: 12px; border: 1px solid #333; border-radius: 12px; width: max-content; }
+.ribbon { text-align: center; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+.lineup { display: flex; gap: 12px; padding: 12px; }
+.card { position: relative; overflow: hidden; width: 160px; border-radius: 8px; background: #000; }
+.card img { display: block; width: 100%; height: auto; aspect-ratio: 320 / 452; object-fit: cover; }
+</style>
+</head>
+<body>
+<h1>Hot Streak</h1>
+<div class="block" id="b-waiting">
+  <div class="ribbon"><span>In progress</span></div>
+  <div class="lineup">
+    <div class="card" id="w-simon"><img alt="Unai Simón - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-x.png"></div>
+    <div class="card" id="w-cubarsi"><img alt="Pau Cubarsí - rare" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000002/picture/tinified-x.png"></div>
+    <div class="card" id="w-messi"><img alt="Lionel Messi - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000003/picture/tinified-x.png"></div>
+    <div class="card" id="w-havertz"><img alt="Kai Havertz - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000008/picture/tinified-x.png"></div>
+    <div class="card" id="w-pick"><img alt="Pick 1 - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-0000000000011/picture/tinified-x.png"></div>
+  </div>
+  <div class="total">142.06 pts</div>
+</div>
+<div class="block" id="b-missed-1">
+  <div class="ribbon"><span>Missed</span></div>
+  <div class="lineup">
+    <div class="card" id="m1-2"><img alt="Pick 2 - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-0000000000012/picture/tinified-x.png"></div>
+    <div class="card" id="m1-3"><img alt="Pick 3 - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-0000000000013/picture/tinified-x.png"></div>
+    <div class="card" id="m1-4"><img alt="Pick 4 - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-0000000000014/picture/tinified-x.png"></div>
+    <div class="card" id="m1-5"><img alt="Pick 5 - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-0000000000015/picture/tinified-x.png"></div>
+    <div class="card" id="m1-6"><img alt="Pick 6 - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-0000000000016/picture/tinified-x.png"></div>
+  </div>
+  <div class="total">142.06 pts</div>
+</div>
+<div class="block" id="b-missed-2">
+  <div class="ribbon"><span>Missed</span></div>
+  <div class="lineup">
+    <div class="card" id="m2-1"><img alt="Fwd 1 - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-0000000000031/picture/tinified-x.png"></div>
+    <div class="card" id="m2-2"><img alt="Fwd 2 - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-0000000000032/picture/tinified-x.png"></div>
+    <div class="card" id="m2-3"><img alt="Fwd 3 - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-0000000000033/picture/tinified-x.png"></div>
+    <div class="card" id="m2-4"><img alt="Unai Simón - super_rare" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000004/picture/tinified-x.png"></div>
+    <div class="card" id="m2-5"><img alt="Lionel Messi - rare" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000007/picture/tinified-x.png"></div>
+  </div>
+  <div class="total">142.06 pts</div>
+</div>
+<script>
+  // The page's own question to Sorare, which the bridge learns the cards from.
+  fetch("https://api.sorare.com/graphql", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ operationName: "LineupQuery", query: "query LineupQuery { cards { slug } }" }),
+  });
+</script>
+</body>
+</html>

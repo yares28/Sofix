@@ -85,6 +85,7 @@ const IDENTITY = {
 
 const LINEUPS = readFileSync(path.join(__dirname, "fixtures", "sorare-arcade-lineups.html"), "utf8");
 const LINEUPS_URL = "https://sorare.com/football/series/hot-streak-step-2/lineups";
+const LINEUPS_THREE = readFileSync(path.join(__dirname, "fixtures", "sorare-arcade-lineups-three.html"), "utf8");
 /** A lineup builder: crests are drawn there and on lineup pages only (owner, 4 Nov 2026). */
 const BUILDER_URL = "https://sorare.com/football/play/classic/compose/all-star";
 const gameId = (n: number) => `Game:22222222-bbbb-4bbb-8bbb-0000000000${String(n).padStart(2, "0")}`;
@@ -481,6 +482,36 @@ test.describe("the sorare.com overlay", () => {
       await expect(tileOf(page, id)).toHaveCount(0);
       await expect(page.locator(`#${id} .sfx-need`)).toHaveCount(0);
     }
+  });
+
+  test("on an Arcade step's lineups page, the lineup in progress says its chance to clear the target; missed ones say nothing", async ({ page }, testInfo) => {
+    const at = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
+    const card = (slug: string, n: number, hours: number, score: number | null) => ({ slug, score, bonus: 1, captain: false, kickoff: at(hours), game: gameId(n) });
+    const need = {
+      arcade: { steps: { s2: { target: 300 } } },
+      arcadeLineups: [
+        // In progress: 60 + 55 banked, three cards still to play (Messi, Havertz, Pick 1).
+        { id: "w", kind: "arcade", step: "s2", cards: [card("unai-simon-2026-limited-12", 1, -5, 60), card("pau-cubarsi-2026-rare-3", 2, -5, 55), card("lionel-messi-2026-limited-9", 3, 20, null), card("kai-havertz-2026-limited-2", 4, 20, null), card("pick-1-2026-limited-1", 5, 20, null)] },
+        // Missed: every game over, under the target.
+        { id: "m1", kind: "arcade", step: "s2", cards: [2, 3, 4, 5, 6].map((n) => card(`pick-${n}-2026-limited-1`, 10 + n, -30, 40)) },
+        { id: "m2", kind: "arcade", step: "s2", cards: [card("fwd-1-2026-limited-1", 21, -30, 40), card("fwd-2-2026-limited-1", 22, -30, 40), card("fwd-3-2026-limited-1", 23, -30, 40), card("unai-simon-2023-super_rare-2", 24, -30, 40), card("lionel-messi-2026-rare-4", 25, -30, 40)] },
+      ],
+    };
+    await openPage(page, { url: LINEUPS_URL, html: LINEUPS_THREE, need });
+    const pill = page.locator("#b-waiting .sfx-clear");
+    await expect(pill).toHaveText(/^(\d+%|<1%|>99%) to clear$/);
+    await expect(pill).toHaveAttribute("title", /reaches 300 \(115 so far, 3 cards still to score\)/);
+    // Beside the ribbon's word, on its line.
+    const [word, ours] = [await box(page, "#b-waiting .ribbon span"), await box(page, "#b-waiting .sfx-clear")];
+    expect(ours.left).toBeGreaterThanOrEqual(word.right);
+    expect(Math.abs(ours.top + ours.height / 2 - (word.top + word.height / 2))).toBeLessThan(6);
+    await expect(page.locator("#b-missed-1 .sfx-clear, #b-missed-2 .sfx-clear")).toHaveCount(0);
+    await expect(page.locator(".sfx-clear")).toHaveCount(1);
+    expect(await pill.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(11);
+    await page.screenshot({ path: testInfo.outputPath("overlay-clear.png") });
+    // The overlay off: nothing of Sofix's on the page.
+    await page.evaluate(() => (window as unknown as { __sfx: { setOverlay: (v: boolean) => void } }).__sfx.setOverlay(false));
+    await expect(page.locator(".sfx-clear")).toHaveCount(0);
   });
 
   test("on a card that lets things show past its edge, the start % hangs out like Sorare's badge, in one column with it", async ({ page }) => {

@@ -272,6 +272,10 @@ describe("overlayNumbers", () => {
       const held = sorare([player({ player: "kylian-mbappe-lottin", games: [game({ id: "g-vcf", kickoff: "2026-10-11T19:00:00Z" })] })]);
       const mine = overlayNumbers(held, grid, ask({ players: ["kylian-mbappe-lottin"] }), new Date("2026-10-08T12:00:00Z"), null, { market: [mbappe], grids: [] });
       expect(mine.players["kylian-mbappe-lottin"]).toMatchObject({ x: 53.2, match: { id: "g-aek" } });
+      // A lineup page that names that game (an Arcade lineup drawn in it, 4 Nov 2026: Mbappé's Champions League game tonight) is
+      // answered for it, even from the week being played's row.
+      const named = overlayNumbers(sorare([player()]), grid, ask({ players: ["kylian-mbappe-lottin"], games: { "p:kylian-mbappe-lottin": "g-aek" } }), new Date("2026-10-08T12:00:00Z"), null, { market: [mbappe], grids: [] });
+      expect(named.players["kylian-mbappe-lottin"]).toMatchObject({ x: 53.2, match: { id: "g-aek" } });
     });
 
     it("gives a player Sofix does not hold his next game from the week after when this week has none for him", () => {

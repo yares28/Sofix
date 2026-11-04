@@ -435,6 +435,12 @@ Sorare's order, compare values and green winners), axe on menu and panel.
 
 ### Step 7. Arcade "% to clear"
 
+**Built (4 Nov, 0.4.61).** `core.lineupChance(target, cards)` on `teamChances` (a finished card's points banked as `fixed`, a live
+one's kept as a `floor`); the pill goes after the block's ribbon word ("In progress"), found by climbing from the team block (stops
+when two ribbons are in reach). Pro lineups get it too where their page has a ribbon. Found on the owner's 360-point step: a card
+drawn in a game of the week being played (tonight's Champions League) had no answer, because a named game was looked for in the
+row's this-week and next-week games only; `row.now` is now looked in too. Accepted there: 22% to clear (142 of 360, 3 cards left).
+
 - On Sorare's Arcade lineups pages (`/football/series/<step>/lineups`), each lineup still in play: its five cards' game
   entries (step 1) and its step's target (need-data copy) through `core.teamChances`; a pill beside the lineup's header.
 - Once a lineup's games start, the chance uses each finished card's real score and the rest simulated (same rule as the

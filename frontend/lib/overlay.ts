@@ -298,8 +298,9 @@ export type OverlayAnswer = {
 };
 
 export type OverlayTeam = {
-  /** Cards on the pitch, for the gauge's "n of 5". */
+  /** Cards on the pitch, for the gauge's "n of 5"; the plan's name for the competition (its cards' `inPlan` lineup). */
   size: number;
+  comp: string;
   captainBonus: number;
   clubBonus: [number, number] | null;
   averageBonus: [number, number] | null;
@@ -318,7 +319,7 @@ function teamOf(week: GameweekPlan, board: string): { team: OverlayTeam; bonuses
     ? lineup.pro.ladder.map((step) => ({ need: step.target, label: prizeOf(step) || `Level ${step.level}` }))
     : lineup.tiers.flatMap((tier) => (typeof tier.need === "number" && prizeOf(tier) ? [{ need: tier.need, label: prizeOf(tier) }] : []));
   return {
-    team: { size: lineup.size, captainBonus: lineup.captainBonus, clubBonus: lineup.clubBonus ?? null, averageBonus: lineup.averageBonus ?? null, tiers: tiers.sort((a, b) => a.need - b.need) },
+    team: { size: lineup.size, comp: lineup.comp, captainBonus: lineup.captainBonus, clubBonus: lineup.clubBonus ?? null, averageBonus: lineup.averageBonus ?? null, tiers: tiers.sort((a, b) => a.need - b.need) },
     bonuses: lineup.bonuses,
   };
 }

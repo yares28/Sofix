@@ -1079,6 +1079,13 @@ it writes to Sorare.
   bonuses counted). Hover it for the total and its likely range, the likeliest reward in the centre with the one below and above
   (each with its chance and the score it needs; Pro shows its steps) and the team's xD, win %, keepers' and defenders' clean sheet %
   and difficulty. Rewards show where Sofix has a lineup on that competition.
+- **Sort and filter on the builder** (0.4.59, 4 Nov 2026): in Sorare's "Select your …" row, a sort (xScore, his chance of starting
+  counted, by default; FDR, start %, clean sheet %, xG, comes on %, or Sorare's order) and "+ Filter" (xScore, clean sheet %, xG,
+  xG against, win %, start %, comes on %, kickoff day): each filter is a chip with a slider and ×, the cards that fail it fade and
+  "n of m" counts the rest. "Sofix lineup" outlines the cards Sofix's plan uses on that competition. Shift+click two cards to compare
+  them (their games, then xScore, FDR, win %, clean sheet %, xG against and xD, the better in green); Escape closes. Sorare's cards are
+  never moved, a plain click still picks, the choices are kept in this browser, and "Clear" or switching the overlay off gives the
+  list back.
 - **Light on the page** (0.4.49, 4 Nov 2026): scrolling moves only the crests (a pass at most every 400 ms while it lasts, one
   when it stops); a crest hides under a sticky bar of Sorare's; the popup's cards line says the slowest pass of the last minute.
 - **Price per point** (0.4.47, 3 Nov 2026): on Sorare's market and your gallery, a Limited card says what a point of his costs,

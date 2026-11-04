@@ -306,6 +306,12 @@ async function openPage(
         },
         storage: {
           sync: { get: async (defaults: Record<string, unknown>) => ({ ...defaults, overlay: probe.overlay }) },
+          local: {
+            get: async (key: string) => ({ [key]: JSON.parse(localStorage.getItem(`chrome:${key}`) ?? "null") ?? undefined }),
+            set: async (items: Record<string, unknown>) => {
+              for (const [key, value] of Object.entries(items)) localStorage.setItem(`chrome:${key}`, JSON.stringify(value));
+            },
+          },
           onChanged: { addListener: (listener: (changes: unknown, area: string) => void) => listeners.push(listener) },
         },
       };
@@ -1819,6 +1825,96 @@ test.describe("the sorare.com overlay", () => {
     await page.evaluate(() => history.pushState({}, "", "/football/my-club/cards"));
     await mark([], null);
     await expect(gauge).toHaveCount(0);
+  });
+
+  test("on Sorare's builder list: Sofix sorts and filters the cards, outlines its lineup and compares two, and gives the list back", async ({ page }, testInfo) => {
+    await openPage(page, { url: BUILDER_URL, team: { size: 5, comp: "All Star", captainBonus: 0.5, clubBonus: null, averageBonus: null, tiers: [] } });
+    await settled(page);
+    // Sorare lists Pick 1 (70) last today: Sofix's xScore sort puts him first without moving Sorare's nodes.
+    await page.evaluate(() => {
+      const list = document.getElementById("picks")!;
+      list.style.display = "flex";
+      list.append(document.getElementById("pick-1")!);
+      (window as unknown as { __sorarePicks: number }).__sorarePicks = 0;
+      list.addEventListener("click", () => (window as unknown as { __sorarePicks: number }).__sorarePicks++); // Sorare's own pick
+    });
+    await page.locator("#pick-1").scrollIntoViewIfNeeded();
+    const bar = page.locator("#pickhead .sfx-listbar");
+    await expect(bar).toBeVisible();
+    await expect(page.locator(".sfx-listbar")).toHaveCount(1); // one bar for the page's lists
+    await expect(bar.locator(".sfx-lb-count")).toHaveText("9 of 9");
+    const left = async (id: string) => (await box(page, `#${id}`)).left;
+    await expect.poll(() => page.locator("#pick-1").evaluate((el) => el.style.order)).toBe("0");
+    expect(await left("pick-1")).toBeLessThan(await left("pick-2"));
+    expect(await page.evaluate(() => document.getElementById("picks")!.lastElementChild!.id)).toBe("pick-1"); // Sorare's DOM untouched
+    await bar.getByRole("combobox").selectOption("sorare");
+    await expect.poll(async () => (await left("pick-1")) > (await left("pick-6"))).toBe(true);
+    await bar.getByRole("combobox").selectOption("xscore");
+
+    // + Filter: xScore at 60 leaves Picks 1-3; the others fade. The bar lives inside Sorare's page: its clicks never reach Sorare's own
+    // listeners (4 Nov 2026, a menu click picked the card under it).
+    await page.evaluate(() => document.addEventListener("click", () => ((window as unknown as { __pageClicks: number }).__pageClicks = ((window as unknown as { __pageClicks?: number }).__pageClicks ?? 0) + 1)));
+    await bar.getByRole("button", { name: "+ Filter" }).click();
+    const menu = page.getByRole("menu", { name: "Add a filter" });
+    await expect(menu).toBeVisible();
+    // On top of the cards it opens over (inside Sorare's row it opened under them, 4 Nov 2026).
+    expect(await menu.getByRole("menuitem").first().evaluate((el) => { const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)); })).toBe(true);
+    expect((await new AxeBuilder({ page }).include(".sfx-listbar").include(".sfx-lb-menu").analyze()).violations).toEqual([]);
+    await menu.getByRole("menuitem", { name: "xScore" }).click();
+    await expect(menu).toHaveCount(0);
+    expect(await page.evaluate(() => (window as unknown as { __pageClicks?: number }).__pageClicks ?? 0)).toBe(0);
+    const slider = bar.getByRole("slider", { name: "xScore threshold" });
+    await slider.fill("60");
+    await expect(bar.locator(".sfx-lb-chip-text")).toHaveText("xScore ≥ 60");
+    await expect(bar.locator(".sfx-lb-count")).toHaveText("3 of 9");
+    await expect(page.locator("#pick-4")).toHaveClass(/sfx-faded/);
+    await expect(page.locator("#fwd-1")).toHaveClass(/sfx-faded/);
+    await expect(page.locator("#pick-3")).not.toHaveClass(/sfx-faded/);
+
+    // The Sofix lineup switch: a faint outline on the cards the plan uses on this competition, nothing else.
+    await bar.getByRole("button", { name: "Sofix lineup" }).click();
+    await expect(page.locator(".sfx-inplan")).toHaveCount(2);
+    await expect(page.locator("#pick-2")).toHaveClass(/sfx-inplan/);
+    await expect(page.locator("#pick-4")).toHaveClass(/sfx-inplan/);
+    await page.screenshot({ path: testInfo.outputPath("overlay-list-bar.png") });
+
+    // Kept in this browser: a reload brings the same filter back.
+    await page.reload();
+    await page.addStyleTag({ path: path.join(EXTENSION, "overlay.css") });
+    await page.locator("#pick-1").scrollIntoViewIfNeeded();
+    await expect(page.locator("#pickhead .sfx-lb-chip-text")).toHaveText("xScore ≥ 60");
+    await expect(page.locator("#pickhead .sfx-lb-count")).toHaveText("3 of 9");
+    await page.locator("#pickhead").getByRole("button", { name: "Remove the xScore filter" }).click();
+    await expect(page.locator("#pickhead .sfx-lb-count")).toHaveText("9 of 9");
+    await expect(page.locator(".sfx-faded")).toHaveCount(0);
+
+    // Compare: Shift+click two cards (Sorare's own pick does not happen), the better value in each row in green; Escape closes.
+    await page.evaluate(() => {
+      (window as unknown as { __sorarePicks: number }).__sorarePicks = 0;
+      document.getElementById("picks")!.addEventListener("click", () => (window as unknown as { __sorarePicks: number }).__sorarePicks++);
+    });
+    await page.locator("#pick-1 img").click({ modifiers: ["Shift"] });
+    await expect(page.locator("#pick-1")).toHaveClass(/sfx-comparing/);
+    await page.locator("#pick-3 img").click({ modifiers: ["Shift"] });
+    const panel = page.getByRole("dialog", { name: "Pick 1 against Pick 3" });
+    await expect(panel).toBeVisible();
+    await expect(panel.locator(".sfx-cmp-row").first()).toContainText("70");
+    await expect(panel.locator(".sfx-cmp-row").first().locator(".is-better")).toHaveText("70");
+    await expect(panel.locator(".sfx-cmp-label")).toHaveText(["xScore", "FDR", "Win %", "Clean sheet %", "xG against", "xD"]);
+    expect(await page.evaluate(() => (window as unknown as { __sorarePicks: number }).__sorarePicks)).toBe(0);
+    for (const size of await panel.locator("b, span").evaluateAll((els) => els.map((el) => parseFloat(getComputedStyle(el).fontSize)))) expect(size).toBeGreaterThanOrEqual(11);
+    expect((await new AxeBuilder({ page }).include(".sfx-compare").analyze()).violations).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath("overlay-compare.png") });
+    await page.keyboard.press("Escape");
+    await expect(panel).toHaveCount(0);
+    await expect(page.locator(".sfx-comparing")).toHaveCount(0);
+    await page.locator("#pick-2 img").click();
+    expect(await page.evaluate(() => (window as unknown as { __sorarePicks: number }).__sorarePicks)).toBe(1); // a plain click still picks
+
+    // The overlay off: Sorare's list as it was.
+    await page.evaluate(() => (window as unknown as { __sfx: { setOverlay: (v: boolean) => void } }).__sfx.setOverlay(false));
+    await expect(page.locator(".sfx-listbar")).toHaveCount(0);
+    expect(await page.evaluate(() => [...document.querySelectorAll("#picks > *, #picks2 > *")].filter((el) => (el as HTMLElement).style.order || /sfx-/.test(el.className)).length)).toBe(0);
   });
 
   test("the Missions tab shows today's swap, and Swap guides it on Sorare's missions page", async ({ page }) => {

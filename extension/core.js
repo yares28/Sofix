@@ -343,6 +343,98 @@
     return { x: totals.reduce((s, v) => s + v, 0) / runs, lo: at(0.1), hi: at(0.9), n, bonus, tiers };
   }
 
+  // -- sort, filter and compare on Sorare's builder list (plans/overlay-v2.md 1.4, step 6) -------------------------------------
+  // Each measure reads one card's answer; `low` is a measure where less is better (difficulty, goals against). A card with no value
+  // for it goes last in a sort and fails a filter on it.
+
+  const DAY_OF = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "Europe/Madrid" });
+  const kickoffDay = (entry) => {
+    const at = entry && entry.match && Date.parse(entry.match.kickoff);
+    return Number.isFinite(at) ? DAY_OF.format(at) : null;
+  };
+  const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const LIST_MEASURES = {
+    // Sofix's xScore, his chance of starting counted: not the tile's score if he starts, which would put a 5% starter first
+    xscore: { label: "xScore", short: "xScore", of: (e) => num(e.x), min: 0, max: 100, step: 1, pct: false },
+    fdr: { label: "FDR", short: "FDR", of: (e) => num(e.game && e.game.difficulty), min: 0, max: 100, step: 1, pct: false, low: true },
+    start: { label: "Start %", short: "Start", of: (e) => num(startChance(e)), min: 0, max: 1, step: 0.05, pct: true },
+    cs: { label: "Clean sheet %", short: "CS", of: (e) => num(e.game && e.game.cleanSheet), min: 0, max: 1, step: 0.05, pct: true },
+    xg: { label: "xG", short: "xG", of: (e) => num(e.xg), min: 0, max: 1.5, step: 0.05, pct: false },
+    xga: { label: "xG against", short: "xGA", of: (e) => num(e.game && e.game.goalsAgainst), min: 0, max: 3, step: 0.1, pct: false, low: true },
+    win: { label: "Win %", short: "Win", of: (e) => num(e.game && e.game.win), min: 0, max: 1, step: 0.05, pct: true },
+    on: { label: "Comes on %", short: "On", of: (e) => { const r = comesOnRecord(e); return num(r ? r.p : e.benchedOn); }, min: 0, max: 1, step: 0.05, pct: true },
+  };
+  const SORT_KEYS = ["xscore", "fdr", "start", "cs", "xg", "on"];
+  const FILTER_KEYS = ["xscore", "cs", "xg", "xga", "win", "start", "on", "day"];
+
+  /** A measure's value for one answer, or null; "day" is the kickoff's weekday in Madrid ("Sat"). */
+  function listValue(entry, key) {
+    if (!entry) return null;
+    if (key === "day") return kickoffDay(entry);
+    const m = LIST_MEASURES[key];
+    return m ? m.of(entry) : null;
+  }
+
+  /** The order of `entries` (answers, null for a card Sofix has nothing on) best first by `key`: positions, stable, unknowns last. */
+  function listOrder(entries, key) {
+    const m = LIST_MEASURES[key];
+    const at = entries.map((e, i) => ({ i, v: m ? listValue(e, key) : null }));
+    at.sort((a, b) => (a.v === null) - (b.v === null) || (a.v !== null && b.v !== null ? (m.low ? a.v - b.v : b.v - a.v) : 0) || a.i - b.i);
+    const out = new Array(entries.length);
+    at.forEach((x, rank) => (out[x.i] = rank));
+    return out;
+  }
+
+  /** Whether an answer passes every filter ({ key, at }): at least `at`, at most for a measure where less is better, that day for "day". */
+  function listPasses(entry, filters) {
+    for (const f of filters || []) {
+      const v = listValue(entry, f.key);
+      if (v === null) return false;
+      if (f.key === "day" ? v !== f.at : LIST_MEASURES[f.key].low ? v > f.at + 1e-9 : v < f.at - 1e-9) return false;
+    }
+    return true;
+  }
+
+  /** A filter's threshold in words: "xScore ≥ 50", "FDR ≤ 40", "Start ≥ 70%", "Sat". */
+  function filterLabel(f) {
+    if (f.key === "day") return String(f.at);
+    const m = LIST_MEASURES[f.key];
+    const v = m.pct ? chanceLabel(f.at) : m.step < 1 ? f.at.toFixed(2) : String(Math.round(f.at));
+    return `${m.short} ${m.low ? "≤" : "≥"} ${v}`;
+  }
+
+  /** A new filter's starting threshold: the middle of what the list holds, so the chip does something at once. */
+  function filterStart(entries, key) {
+    if (key === "day") return entries.map((e) => listValue(e, "day")).find(Boolean) || "Sat";
+    const m = LIST_MEASURES[key];
+    const vs = entries.map((e) => listValue(e, key)).filter((v) => v !== null).sort((a, b) => a - b);
+    const mid = vs.length ? vs[Math.floor(vs.length / 2)] : (m.min + m.max) / 2;
+    // rounded towards letting the middle card through (a 99.5% median gives 95%, not ">99%" with one card left)
+    const steps = mid / m.step;
+    return Number(((m.low ? Math.ceil(steps - 1e-9) : Math.floor(steps + 1e-9)) * m.step).toFixed(4));
+  }
+
+  /** The compare panel's rows for two answers: each row's two values in words and which side is better (null for a tie or a gap). */
+  function compareRows(a, b) {
+    const rows = [
+      ["xScore", "xscore"],
+      ["FDR", "fdr"],
+      ["Win %", "win"],
+      ["Clean sheet %", "cs"],
+      ["xG against", "xga"],
+      ["xD", null],
+    ];
+    return rows.map(([label, key]) => {
+      const pick = (e) => (key ? listValue(e, key) : num(e && e.xd));
+      const [va, vb] = [pick(a), pick(b)];
+      const m = key ? LIST_MEASURES[key] : { pct: false, step: 0.01 };
+      const words = (v) => (v === null ? "—" : m.pct ? chanceLabel(v) : m.step < 1 ? v.toFixed(2) : String(Math.round(v)));
+      let better = null;
+      if (va !== null && vb !== null && Math.abs(va - vb) > 1e-9) better = (m.low ? va < vb : va > vb) ? "a" : "b";
+      return { label, a: words(va), b: words(vb), better, chip: key === "xscore" || key === "fdr" ? key : null };
+    });
+  }
+
   /**
    * The team panel's three rings: the level the total most likely ends on (nothing, or a tier) in the centre, the one below on the
    * left and the one above on the right (null past either end). Each with the chance shown: for nothing, the chance of ending there;
@@ -921,7 +1013,7 @@
   root.__sofixCore = {
     crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

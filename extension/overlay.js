@@ -1495,6 +1495,7 @@
     if (again) schedule();
     try {
       placeTeam(pitch, column);
+      placeList();
       placeWorthBox();
       placeStrip();
     } catch {
@@ -1990,6 +1991,387 @@
     team.el.style.transform = `translate3d(${Math.round(rect.right - team.el.offsetWidth)}px, ${Math.round(rect.bottom + 16)}px, 0)`;
   }
 
+  // -- sort, filter, Sofix lineup and compare on the builder's card list (plans/overlay-v2.md 1.4, step 6) --------------
+  // Sorare's builder lists the cards for a slot under "Select your Goalkeeper": a heading row, then a CSS grid whose children are the
+  // cards (seen 4 Nov 2026). Sofix's bar sits in that heading row. Sorting sets `order` on Sorare's own grid items (its nodes are
+  // never moved: React owns them); a filter fades the cards that fail it; the Sofix lineup switch outlines the cards the plan uses on
+  // this competition. Shift+click two cards to compare them (a plain click still picks the card). Clearing the bar, or switching the
+  // overlay off, gives Sorare's list back as it was. The choices are kept in this browser (chrome.storage.local).
+  const LIST_KEY = "sfxList";
+  const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  let listPrefs = { sort: "xscore", filters: [], plan: false };
+  let listBar = null; // { el, sig }
+  let listItems = []; // Sorare's grid items we touched, to give back
+  let listsAt = { epoch: -1, lists: [] };
+  let compare = []; // up to two { item, record }
+  let comparePanel = null;
+  let menuOpen = false;
+  let listMenu = null; // the filter menu, on the page's top layer: inside Sorare's row it opened under the cards
+
+  try {
+    chrome.storage.local.get(LIST_KEY).then((got) => {
+      const saved = got && got[LIST_KEY];
+      if (saved && typeof saved === "object") {
+        listPrefs = {
+          sort: core.SORT_KEYS.includes(saved.sort) || saved.sort === "sorare" ? saved.sort : "xscore",
+          filters: Array.isArray(saved.filters) ? saved.filters.filter((f) => f && core.FILTER_KEYS.includes(f.key)) : [],
+          plan: saved.plan === true,
+        };
+        if (listBar) listBar.sig = "";
+        schedule();
+      }
+    }, () => {});
+  } catch {
+    // no storage here: the defaults hold for this page
+  }
+  const saveList = () => {
+    try {
+      chrome.storage.local.set({ [LIST_KEY]: listPrefs });
+    } catch {
+      // kept for this page only
+    }
+  };
+  const setList = (change) => {
+    listPrefs = { ...listPrefs, ...change };
+    saveList();
+    if (listBar) listBar.sig = "";
+    schedule();
+  };
+
+  /** Sorare's "Select your …" lists on the page: each heading and the grid items under it. Found once per page change. */
+  function cardLists() {
+    if (listsAt.epoch === pageEpoch && listsAt.lists.every((l) => l.head.isConnected)) return listsAt.lists;
+    const lists = [];
+    for (const el of document.querySelectorAll("div, h2, h3, h4")) {
+      if (el.closest("[data-sfx]")) continue;
+      const own = [...el.childNodes].filter((n) => !(n.nodeType === 1 && n.hasAttribute("data-sfx"))); // our bar may sit in it
+      if (own.filter((n) => n.nodeType === 1).length > 2) continue;
+      const text = own.map((n) => n.textContent).join("").trim();
+      if (text.length > 40 || !/^Select your \S/i.test(text)) continue;
+      if (lists.some((l) => l.head.contains(el) || el.contains(l.head))) continue;
+      let row = el;
+      for (let i = 0; i < 4 && row && !(row.nextElementSibling && row.nextElementSibling.querySelector("img")); i++) row = row.parentElement;
+      if (!row || !row.nextElementSibling) continue;
+      let grid = row.nextElementSibling;
+      while (grid.childElementCount === 1) grid = grid.firstElementChild;
+      const items = [...grid.children].filter((c) => c.querySelector("img") && !c.hasAttribute("data-sfx"));
+      if (items.length) lists.push({ head: el, row, grid, items });
+    }
+    listsAt = { epoch: pageEpoch, lists };
+    return lists;
+  }
+
+  /** Each item's record and answer, by the card art inside it. */
+  function itemsRead(lists) {
+    const byMedia = new Map();
+    for (const record of live) byMedia.set(record.media, record);
+    return lists.map((list) =>
+      list.items.map((item) => {
+        let record = null;
+        for (const img of item.querySelectorAll("img, video")) if ((record = byMedia.get(img))) break;
+        const held = record && entryOf(record);
+        return { item, record, entry: held && held.entry && !core.staleness(held.entry, now()) ? held.entry : null };
+      }),
+    );
+  }
+
+  function undoList() {
+    for (const item of listItems) {
+      if (!item.isConnected) continue;
+      item.style.removeProperty("order");
+      item.classList.remove("sfx-faded", "sfx-inplan", "sfx-comparing");
+    }
+    listItems = [];
+    if (listBar) listBar.el.remove();
+    listBar = null;
+    if (listMenu) listMenu.remove();
+    listMenu = null;
+    menuOpen = false;
+    closeCompare();
+  }
+
+  function placeList() {
+    const lists = builderPage() ? cardLists() : [];
+    if (!lists.length) {
+      undoList();
+      return;
+    }
+    const read = itemsRead(lists);
+    const touched = new Set();
+    let shown = 0;
+    let total = 0;
+    const plan = listPrefs.plan && teamNow && teamNow.comp;
+    read.forEach((rows) => {
+      const ranks = listPrefs.sort === "sorare" ? null : core.listOrder(rows.map((r) => r.entry), listPrefs.sort);
+      rows.forEach((r, i) => {
+        touched.add(r.item);
+        const order = ranks ? String(ranks[i]) : "";
+        if (r.item.style.order !== order) r.item.style.order = order;
+        const pass = core.listPasses(r.entry, listPrefs.filters);
+        r.item.classList.toggle("sfx-faded", !pass);
+        const used = plan && r.entry && r.entry.inPlan && r.record && r.entry.inPlan[r.record.cardSlug];
+        r.item.classList.toggle("sfx-inplan", Boolean(used && used.lineup === teamNow.comp));
+        r.item.classList.toggle("sfx-comparing", compare.some((c) => c.item === r.item));
+        total += 1;
+        if (pass) shown += 1;
+      });
+    });
+    for (const item of listItems) if (!touched.has(item) && item.isConnected) {
+      item.style.removeProperty("order");
+      item.classList.remove("sfx-faded", "sfx-inplan", "sfx-comparing");
+    }
+    listItems = [...touched];
+    drawBar(lists[0], read.flat(), shown, total);
+  }
+
+  function drawBar(list, rows, shown, total) {
+    // The count changes as cards load: it is updated in place, never by rebuilding the bar under a pressed button (the click would
+    // land on Sorare's card below it).
+    const sig = JSON.stringify([listPrefs, menuOpen, Boolean(teamNow && teamNow.comp)]);
+    const attached = listBar && listBar.el.isConnected && listBar.el.parentElement === list.row;
+    if (attached && listBar.sig === sig) {
+      const count = listBar.el.querySelector(".sfx-lb-count");
+      if (count && count.textContent !== `${shown} of ${total}`) count.textContent = `${shown} of ${total}`;
+      return;
+    }
+    const focused = listBar && listBar.el.contains(document.activeElement) ? document.activeElement.getAttribute("data-k") : null;
+    const fresh = !(listBar && listBar.el.isConnected);
+    const el = fresh ? node("div", "sfx-listbar") : listBar.el;
+    // The bar sits inside Sorare's page: its presses and clicks stop here, so Sorare never takes them for its own.
+    if (fresh) for (const type of ["pointerdown", "mousedown", "pointerup", "mouseup", "click"]) el.addEventListener(type, (event) => event.stopPropagation());
+    el.setAttribute("data-sfx", "");
+    el.setAttribute("role", "toolbar");
+    el.setAttribute("aria-label", "Sofix: sort and filter these cards");
+    el.replaceChildren();
+
+    const sort = node("label", "sfx-lb-sort");
+    sort.append(node("span", "", "Sort"));
+    const pick = document.createElement("select");
+    pick.setAttribute("data-k", "sort");
+    for (const key of [...core.SORT_KEYS, "sorare"]) {
+      const o = document.createElement("option");
+      o.value = key;
+      o.textContent = key === "sorare" ? "Sorare's order" : core.LIST_MEASURES[key].label;
+      if (key === listPrefs.sort) o.selected = true;
+      pick.append(o);
+    }
+    pick.addEventListener("change", guard(() => setList({ sort: pick.value })));
+    sort.append(pick);
+    el.append(sort);
+
+    listPrefs.filters.forEach((f, i) => {
+      const chip = node("span", "sfx-lb-chip");
+      const label = node("span", "sfx-lb-chip-text", core.filterLabel(f));
+      chip.append(label);
+      if (f.key === "day") {
+        const day = document.createElement("select");
+        day.setAttribute("aria-label", "Kickoff day");
+        day.setAttribute("data-k", `f${i}`);
+        for (const d of DAYS) {
+          const o = document.createElement("option");
+          o.value = o.textContent = d;
+          if (d === f.at) o.selected = true;
+          day.append(o);
+        }
+        day.addEventListener("change", guard(() => setList({ filters: listPrefs.filters.map((g, j) => (j === i ? { ...g, at: day.value } : g)) })));
+        chip.replaceChildren(day);
+      } else {
+        const m = core.LIST_MEASURES[f.key];
+        const range = document.createElement("input");
+        range.type = "range";
+        range.min = String(m.min);
+        range.max = String(m.max);
+        range.step = String(m.step);
+        range.value = String(f.at);
+        range.setAttribute("data-k", `f${i}`);
+        range.setAttribute("aria-label", `${m.label} threshold`);
+        range.addEventListener("input", guard(() => {
+          const at = Number(range.value);
+          listPrefs = { ...listPrefs, filters: listPrefs.filters.map((g, j) => (j === i ? { ...g, at } : g)) };
+          label.textContent = core.filterLabel({ ...f, at });
+          schedule();
+        }));
+        range.addEventListener("change", guard(() => setList({})));
+        chip.append(range);
+      }
+      const x = node("button", "sfx-lb-x", "×");
+      x.type = "button";
+      x.setAttribute("aria-label", `Remove the ${f.key === "day" ? "day" : core.LIST_MEASURES[f.key].label} filter`);
+      x.addEventListener("click", guard(() => setList({ filters: listPrefs.filters.filter((_, j) => j !== i) })));
+      chip.append(x);
+      el.append(chip);
+    });
+
+    let place = null;
+    const left = core.FILTER_KEYS.filter((k) => !listPrefs.filters.some((f) => f.key === k));
+    if (left.length) {
+      const wrap = node("span", "sfx-lb-add");
+      const add = node("button", "sfx-lb-btn", "+ Filter");
+      add.type = "button";
+      add.setAttribute("data-k", "add");
+      add.setAttribute("aria-expanded", String(menuOpen));
+      add.setAttribute("aria-haspopup", "menu");
+      add.addEventListener("click", guard(() => {
+        menuOpen = !menuOpen;
+        if (listBar) listBar.sig = "";
+        schedule();
+      }));
+      wrap.append(add);
+      if (listMenu) listMenu.remove();
+      listMenu = null;
+      if (menuOpen) {
+        const menu = node("div", "sfx-lb-menu");
+        menu.setAttribute("data-sfx", "");
+        menu.setAttribute("role", "menu");
+        menu.setAttribute("aria-label", "Add a filter");
+        for (const type of ["pointerdown", "mousedown", "pointerup", "mouseup", "click"]) menu.addEventListener(type, (event) => event.stopPropagation());
+        for (const key of left) {
+          const item = node("button", "", key === "day" ? "Kickoff day" : core.LIST_MEASURES[key].label);
+          item.type = "button";
+          item.setAttribute("role", "menuitem");
+          item.addEventListener("click", guard(() => {
+            menuOpen = false;
+            setList({ filters: [...listPrefs.filters, { key, at: core.filterStart(rows.map((r) => r.entry), key) }] });
+          }));
+          menu.append(item);
+        }
+        listMenu = menu;
+        place = () => {
+          const r = add.getBoundingClientRect();
+          menu.style.left = `${Math.round(r.right)}px`;
+          menu.style.top = `${Math.round(r.bottom + 6)}px`;
+          if (!menu.isConnected) document.body.append(menu);
+        };
+      }
+      el.append(wrap);
+    }
+
+    const count = node("span", "sfx-lb-count", `${shown} of ${total}`);
+    count.setAttribute("aria-live", "polite");
+    el.append(count);
+
+    if (teamNow && teamNow.comp) {
+      const toggle = node("button", `sfx-lb-btn sfx-lb-plan${listPrefs.plan ? " is-on" : ""}`, "Sofix lineup");
+      toggle.type = "button";
+      toggle.setAttribute("aria-pressed", String(listPrefs.plan));
+      toggle.setAttribute("data-k", "plan");
+      toggle.addEventListener("click", guard(() => setList({ plan: !listPrefs.plan })));
+      el.append(toggle);
+    }
+    if (listPrefs.filters.length || listPrefs.sort !== "xscore" || listPrefs.plan) {
+      const clear = node("button", "sfx-lb-btn sfx-lb-clear", "Clear");
+      clear.type = "button";
+      clear.setAttribute("data-k", "clear");
+      clear.addEventListener("click", guard(() => setList({ sort: "xscore", filters: [], plan: false })));
+      el.append(clear);
+    }
+    if (!attached) list.row.append(el);
+    if (place) place();
+    else if (listMenu) {
+      listMenu.remove();
+      listMenu = null;
+    }
+    listBar = { el, sig };
+    const back = focused && el.querySelector(`[data-k="${focused}"]`);
+    if (back) back.focus();
+  }
+
+  // Shift+click: the first card, then the second opens the panel; Shift+click a chosen card again, or Escape, closes it.
+  function onListClick(event) {
+    if (!event.shiftKey || !enabled || !builderPage()) return;
+    const item = listItems.find((one) => one.contains(event.target));
+    if (!item) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (event.type !== "click") return;
+    const at = compare.findIndex((c) => c.item === item);
+    if (at >= 0) {
+      closeCompare();
+      return;
+    }
+    const row = itemsRead(cardLists()).flat().find((r) => r.item === item);
+    if (!row || !row.entry) return;
+    compare = [...compare, { item, record: row.record, entry: row.entry }].slice(-2);
+    if (compare.length === 2) openCompare();
+    schedule();
+  }
+
+  function onCompareKey(event) {
+    if (event.key === "Escape" && compare.length) {
+      closeCompare();
+      schedule();
+    } else if (event.key === "Escape" && menuOpen) {
+      menuOpen = false;
+      if (listBar) listBar.sig = "";
+      schedule();
+    }
+  }
+
+  function closeCompare() {
+    compare = [];
+    if (comparePanel) comparePanel.remove();
+    comparePanel = null;
+    for (const item of listItems) item.classList.remove("sfx-comparing");
+  }
+
+  const nameOf = (record) => String((record && record.media.getAttribute("alt")) || "").replace(/\s-\s[a-z_ ]+$/i, "") || "This card";
+
+  function openCompare() {
+    if (comparePanel) comparePanel.remove();
+    const [a, b] = compare;
+    const box = node("div", "sfx-compare");
+    box.setAttribute("data-sfx", "");
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-label", `${nameOf(a.record)} against ${nameOf(b.record)}`);
+    const heads = node("div", "sfx-cmp-heads");
+    for (const side of [a, b]) {
+      const head = node("div", "sfx-cmp-head");
+      const art = document.createElement("img");
+      art.src = side.record.media.currentSrc || side.record.media.src || "";
+      art.alt = "";
+      head.append(art, node("b", "sfx-cmp-name", nameOf(side.record)));
+      const game = side.entry.island && side.entry.island[0];
+      if (game) {
+        const line = node("span", "sfx-cmp-game");
+        for (const src of [game.teamCrest, game.opponentCrest]) {
+          if (!src) continue;
+          const crest = document.createElement("img");
+          crest.src = src;
+          crest.alt = "";
+          line.append(crest);
+        }
+        line.append(node("span", "", `${game.venue === "A" ? "at" : "v"} ${game.opponentCode || game.opponent} · ${kickoffLabel(game.kickoff)}`));
+        head.append(line);
+      }
+      heads.append(head);
+    }
+    box.append(heads);
+    const table = node("div", "sfx-cmp-rows");
+    for (const row of core.compareRows(a.entry, b.entry)) {
+      const line = node("div", "sfx-cmp-row");
+      const cell = (side, text) => {
+        const v = node("b", `sfx-cmp-v${row.better === side ? " is-better" : ""}${row.chip ? " sfx-cmp-chip" : ""}`, text);
+        const e = side === "a" ? a.entry : b.entry;
+        if (row.chip === "xscore" && text !== "—") v.style.setProperty("--sfx-c", colour(core.scoreLevel(e.x)));
+        if (row.chip === "fdr" && text !== "—" && e.game) v.style.setProperty("--sfx-c", colour(core.fdrLevel(e.game.bucket)));
+        return v;
+      };
+      line.append(cell("a", row.a), node("span", "sfx-cmp-label", row.label), cell("b", row.b));
+      table.append(line);
+    }
+    box.append(table);
+    const close = node("button", "sfx-cmp-close", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "Close the comparison");
+    close.addEventListener("click", guard(() => {
+      closeCompare();
+      schedule();
+    }));
+    box.append(close);
+    document.body.append(box);
+    comparePanel = box;
+  }
+
   // -- price per point (plans/overlay-v2.md 1.2) ------------------------------------------------------------------------
   // On Sorare's market and your gallery, a Limited card says what a point of his costs: his Limited price over his xScore, from the
   // app (lib/overlay.ts, priceOf), green in the cheapest third of similar players, red in the dearest, plain between. At the right,
@@ -2480,6 +2862,8 @@
     window.addEventListener("resize", onMove, { passive: true });
     window.addEventListener("sofix-guide", schedule);
     document.addEventListener("pointerup", onGuidePress, true);
+    for (const type of ["pointerdown", "mousedown", "click"]) document.addEventListener(type, onListClick, true);
+    document.addEventListener("keydown", onCompareKey, true);
     liveTimer = setInterval(guard(() => wantLive(true)), LIVE_POLL_MS);
     schedule();
   }
@@ -2499,6 +2883,9 @@
     window.removeEventListener("resize", onMove);
     window.removeEventListener("sofix-guide", schedule);
     document.removeEventListener("pointerup", onGuidePress, true);
+    for (const type of ["pointerdown", "mousedown", "click"]) document.removeEventListener(type, onListClick, true);
+    document.removeEventListener("keydown", onCompareKey, true);
+    undoList();
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
     if (moving) cancelAnimationFrame(moving);

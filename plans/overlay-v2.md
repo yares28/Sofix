@@ -417,6 +417,12 @@ within 2 points of the planner's own numbers.
 
 ### Step 6. Sort and filter, Sofix lineup, compare
 
+**Built (4 Nov, 0.4.59).** `core.listOrder/listPasses/filterLabel/filterStart/compareRows`; the bar is put in Sorare's heading row
+(its presses stop there; the "+ Filter" menu lives on the page's top layer, since inside the row it opened under the cards and a
+click on it picked the card below). xScore sorts and filters on Sofix's expected score (start chance counted), not the tile's score
+if he starts, which led with a 5% starter. A new chip starts at the list's middle value, rounded towards letting it through. The
+lineup outline uses the answer's `team.comp` and each card's `inPlan`. The e2e uses the fixture's two lists (6 + 3 cards), not 12.
+
 - Bar above Sorare's card list (found as the scroll box holding the card grid). Sorting uses CSS `order` on Sorare's own grid
   items (never moving Sorare's DOM nodes, which React owns); filtering fades with a class; both undone when the bar is cleared
   or the overlay is turned off.

@@ -47,6 +47,14 @@ type Core = {
     team: { captainBonus?: number; clubBonus?: [number, number] | null; averageBonus?: [number, number] | null; tiers?: { need: number; label: string }[] },
     runs?: number,
   ) => { x: number; lo: number; hi: number; n: number; bonus: number; tiers: { need: number; label: string; p: number }[] } | null;
+  listOrder: (entries: (Record<string, unknown> | null)[], key: string) => number[];
+  listPasses: (entry: Record<string, unknown> | null, filters: { key: string; at: number | string }[]) => boolean;
+  listValue: (entry: Record<string, unknown> | null, key: string) => number | string | null;
+  filterLabel: (f: { key: string; at: number | string }) => string;
+  filterStart: (entries: (Record<string, unknown> | null)[], key: string) => number | string;
+  compareRows: (a: Record<string, unknown>, b: Record<string, unknown>) => { label: string; a: string; b: string; better: "a" | "b" | null; chip: string | null }[];
+  SORT_KEYS: string[];
+  FILTER_KEYS: string[];
   teamRings: (tiers: { need: number; label: string; p: number }[]) => Record<"below" | "at" | "above", { label: string; need: number | null; p: number } | null> | null;
   START_COLOURS: Record<string, [string, string]>;
   startHover: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage: number | undefined, full: boolean) => string;
@@ -939,5 +947,65 @@ describe("the team gauge on Sorare's builder", () => {
     expect(top.at!.label).toBe("T3");
     expect(top.above).toBeNull();
     expect(core.teamRings([])).toBeNull();
+  });
+});
+
+describe("sorting and filtering Sorare's builder list", () => {
+  const card = (x: number, more: Record<string, unknown> = {}) => ({ x, p: 0.9, pStart: 0.8, game: { win: 0.5, cleanSheet: 0.3, difficulty: 40, goalsAgainst: 1.1 }, ...more });
+  const list = [card(40), null, card(70, { game: { win: 0.6, cleanSheet: 0.4, difficulty: 25, goalsAgainst: 0.8 } }), card(55, { xg: 0.3 }), card(55)];
+
+  it("ranks best first, a tie keeps Sorare's order, a card with nothing goes last", () => {
+    expect(core.listOrder(list, "xscore")).toEqual([3, 4, 0, 1, 2]);
+    expect(core.listOrder(list, "fdr")).toEqual([1, 4, 0, 2, 3]); // lower is better: the 25 first
+    expect(core.listOrder(list, "xg")).toEqual([1, 2, 3, 0, 4]); // only one has xG
+    // xScore is Sofix's expected score, start chance counted, not the tile's score if he starts: a 5% starter does not lead
+    expect(core.listOrder([card(4, { start: 54, bench: 1, pStart: 0.05 }), card(46, { start: 50, bench: 5 })], "xscore")).toEqual([1, 0]);
+    expect(core.SORT_KEYS).toEqual(["xscore", "fdr", "start", "cs", "xg", "on"]);
+    expect(core.FILTER_KEYS).toEqual(["xscore", "cs", "xg", "xga", "win", "start", "on", "day"]);
+  });
+
+  it("passes a card at or over a threshold, at or under one where less is better, and never one with no value", () => {
+    expect(core.listPasses(card(50), [{ key: "xscore", at: 50 }])).toBe(true);
+    expect(core.listPasses(card(49), [{ key: "xscore", at: 50 }])).toBe(false);
+    expect(core.listPasses(card(60), [{ key: "xscore", at: 50 }, { key: "fdr", at: 30 }])).toBe(false); // difficulty 40 > 30
+    expect(core.listPasses(card(60), [{ key: "xga", at: 1.1 }])).toBe(true);
+    expect(core.listPasses(card(60), [{ key: "xg", at: 0.1 }])).toBe(false); // no xG: fades
+    expect(core.listPasses(null, [])).toBe(true); // no filter, nothing faded
+    expect(core.listPasses(null, [{ key: "xscore", at: 0 }])).toBe(false);
+    // the comes-on chance from his last ten games, else the rate Sofix uses
+    const rec = { benchRecord: { started: 2, on: 3, unused: 1, minsOn: 20, games: "SSOOOU", mins: [90, 90, 20, 20, 20, 0] } };
+    expect(core.listValue(card(50, rec), "on")).toBe(0.75);
+    expect(core.listValue(card(50, { benchedOn: 0.4 }), "on")).toBe(0.4);
+  });
+
+  it("filters on the kickoff day, Madrid time", () => {
+    const sat = card(50, { match: { kickoff: "2026-11-07T21:30:00Z" } }); // 22:30 Saturday in Madrid
+    const sun = card(50, { match: { kickoff: "2026-11-07T23:30:00Z" } }); // 00:30 Sunday in Madrid
+    expect([core.listValue(sat, "day"), core.listValue(sun, "day")]).toEqual(["Sat", "Sun"]);
+    expect(core.listPasses(sun, [{ key: "day", at: "Sat" }])).toBe(false);
+  });
+
+  it("names a chip and starts its threshold in the middle of the list", () => {
+    expect(core.filterLabel({ key: "xscore", at: 50 })).toBe("xScore ≥ 50");
+    expect(core.filterLabel({ key: "fdr", at: 40 })).toBe("FDR ≤ 40");
+    expect(core.filterLabel({ key: "start", at: 0.7 })).toBe("Start ≥ 70%");
+    expect(core.filterLabel({ key: "xg", at: 0.25 })).toBe("xG ≥ 0.25");
+    expect(core.filterLabel({ key: "day", at: "Sat" })).toBe("Sat");
+    expect(core.filterStart(list, "xscore")).toBe(55);
+    const starts = [0.995, 0.995, 0.95, 0.9, 0.995].map((pStart) => card(50, { pStart }));
+    expect(core.filterStart(starts, "start")).toBe(0.95); // the middle card (99.5%) passes; not ">99%" with almost nobody left
+    expect(core.filterStart([card(50, { game: { difficulty: 41.5 } })], "fdr")).toBe(42); // less is better: rounded up
+  });
+
+  it("compares two cards row by row, the better value marked, a gap never better", () => {
+    const rows = core.compareRows(card(62, { xd: 0.3 }), card(55, { game: { win: 0.6, cleanSheet: null, difficulty: 30, goalsAgainst: 1.1 } }));
+    expect(rows.map((r) => [r.label, r.a, r.b, r.better])).toEqual([
+      ["xScore", "62", "55", "a"],
+      ["FDR", "40", "30", "b"],
+      ["Win %", "50%", "60%", "b"],
+      ["Clean sheet %", "30%", "—", null],
+      ["xG against", "1.10", "1.10", null],
+      ["xD", "0.30", "—", null],
+    ]);
   });
 });

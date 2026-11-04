@@ -966,7 +966,7 @@ describe("the team gauge's numbers on a builder (plans/overlay-v2.md step 5)", (
   it("answers a builder with its board's bonuses and reward levels, lowest first, and each card's bonus there", () => {
     const answer = overlayNumbers(withPlan([lineup()]), null, ask({ cards: ["unai-simon-2026-limited-12", "unai-simon-2023-rare-3"], board: "laliga-limited" }), NOW);
     expect(answer.team).toEqual({
-      size: 5, captainBonus: 0.5, clubBonus: [2, 0.02], averageBonus: null,
+      size: 5, comp: "LaLiga Limited", captainBonus: 0.5, clubBonus: [2, 0.02], averageBonus: null,
       tiers: [{ need: 257, label: "500 XP" }, { need: 314, label: "$5" }],
     });
     expect(answer.cards["unai-simon-2026-limited-12"]).toMatchObject({ mult: 1.06, mu: 58, sd: 16.2, club: "Athletic Club", average: 55 }); // in season + level 1

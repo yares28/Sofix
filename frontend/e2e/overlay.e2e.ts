@@ -228,7 +228,7 @@ const OLD_WEEK = "football-18-22-sep-2026";
 
 async function openPage(
   page: Page,
-  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; url?: string; html?: string; need?: unknown } = {},
+  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; url?: string; html?: string; need?: unknown; team?: unknown } = {},
 ) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
@@ -288,6 +288,7 @@ async function openPage(
         const out = { state: "ok", cards: {} as Record<string, unknown>, players: {} as Record<string, unknown> };
         // What the app does: a page that names a gameweek is answered for that week, and only this week has numbers here.
         if (message.fixture && message.fixture !== config.thisWeek) return out;
+        if (config.team && (message as { board?: string }).board) (out as Record<string, unknown>).team = config.team;
         for (const slug of message.cards ?? []) if (slug in config.numbers.cards) out.cards[slug] = (config.numbers.cards as Record<string, unknown>)[slug];
         for (const slug of message.players ?? []) if (slug in config.numbers.players) out.players[slug] = (config.numbers.players as Record<string, unknown>)[slug];
         return out;
@@ -309,7 +310,7 @@ async function openPage(
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null, team: options.team ?? null },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "dock.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
@@ -1734,6 +1735,82 @@ test.describe("the sorare.com overlay", () => {
     await mark(["pick-2", "pick-3"], null); // he left the pitch: the next best
     await expect(page.locator(".sfx-captain")).toHaveCount(1);
     expect(Math.abs((await box(page, ".sfx-captain")).right - (await box(page, "#pick-2 img")).right)).toBeLessThan(10);
+  });
+
+  test("on Sorare's builder, Sofix's gauge sits under Sorare's bonuses and fills as cards go on the pitch; hover opens the team panel", async ({ page }, testInfo) => {
+    const team = { size: 5, captainBonus: 0.5, clubBonus: null, averageBonus: null, tiers: [{ need: 150, label: "500 XP" }, { need: 300, label: "$5" }] };
+    await openPage(page, { url: BUILDER_URL, team });
+    await settled(page);
+    // Sorare's bonus column, as drawn on 4 Nov 2026: an absolute box at the pitch's top right, right-aligned rows over 36 px icons.
+    await page.evaluate(() => {
+      const col = document.createElement("div");
+      col.className = "absolute top-6 right-0";
+      col.style.cssText = "position:fixed;top:64px;left:892px;width:110px;height:152px;display:flex;flex-direction:column;align-items:flex-end;color:#fff";
+      col.innerHTML = "<div><span>+6%</span><div>Lineup Bonus</div></div><div>Multi-Club +2%</div><div>Cap 260 +4%</div>";
+      document.body.append(col);
+    });
+    const mark = (ids: string[], captain: string | null) =>
+      page.evaluate(([list, cap]) => {
+        document.querySelectorAll("[data-test-mark]").forEach((el) => el.remove());
+        for (const id of list as string[]) {
+          const r = document.getElementById(id)!.getBoundingClientRect();
+          const c = document.createElement("div");
+          c.title = "Captain";
+          c.dataset.testMark = "";
+          if (id === cap) c.className = "active";
+          c.style.cssText = `position:absolute;left:${r.left + scrollX - 16}px;top:${r.top + scrollY - 16}px;width:32px;height:32px`;
+          document.body.append(c);
+        }
+      }, [ids, captain] as const);
+    await page.locator("#pick-1").scrollIntoViewIfNeeded();
+    await mark([], null);
+    await page.mouse.move(5, 5);
+    const gauge = page.locator(".sfx-team");
+    const total = () => gauge.locator(".sfx-team-gauge b").innerText();
+    const filled = () => gauge.locator(".sfx-team-gauge .sfx-ring-fill").evaluate((el) => parseFloat(el.getAttribute("stroke-dasharray")!));
+    await expect(gauge).toBeVisible();
+    await expect(gauge.locator(".sfx-team-count")).toHaveText("0 of 5");
+    await expect(gauge.locator(".sfx-team-gauge b")).toHaveText("—");
+    // Under Sorare's last row, flush with its right edge.
+    const at = await box(page, ".sfx-team");
+    expect(Math.abs(at.right - 1002)).toBeLessThan(2);
+    expect(Math.abs(at.top - (64 + 152 + 16))).toBeLessThan(2);
+
+    await mark(["pick-1"], null);
+    await expect(gauge.locator(".sfx-team-count")).toHaveText("1 of 5");
+    const one = Number(await total());
+    expect(Math.abs(one - 70)).toBeLessThanOrEqual(3); // his 70: 0.9 to play x 77.8 if he plays
+    const oneFill = await filled();
+
+    await mark(["pick-1", "pick-2", "pick-3"], null);
+    await expect(gauge.locator(".sfx-team-count")).toHaveText("3 of 5");
+    const three = Number(await total());
+    expect(Math.abs(three - 195)).toBeLessThanOrEqual(4); // 70 + 65 + 60
+    expect(await filled()).toBeGreaterThan(oneFill * 2.5);
+
+    // Sorare makes Pick 1 captain: his half again is counted.
+    await mark(["pick-1", "pick-2", "pick-3"], "pick-1");
+    await expect.poll(async () => Number(await total())).toBeGreaterThan(three + 25);
+
+    await gauge.hover();
+    const panel = page.locator(".sfx-team-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel.locator(".sfx-team-total")).toHaveText(await total());
+    await expect(panel.locator(".sfx-team-range")).toHaveText(/^\d+–\d+$/);
+    // The likeliest level in the centre, the one under it on the left, the one above on the right.
+    await expect(panel.locator(".sfx-team-ring--at .sfx-team-prize")).toHaveText("500 XP");
+    await expect(panel.locator(".sfx-team-ring--below .sfx-team-prize")).toHaveText("No reward");
+    await expect(panel.locator(".sfx-team-ring--above .sfx-team-prize")).toHaveText("$5");
+    await expect(panel.locator(".sfx-team-ring--above .sfx-team-need")).toHaveText("at 300");
+    // The team's stats: no expected decisive actions in these answers (a dash), their sides' win, the defenders' clean sheet, the difficulty.
+    await expect(panel.locator(".sfx-team-stat")).toHaveText(["XD—", "WIN50%", "CS30%", "FDR44"]);
+    for (const size of await panel.locator("span, b").evaluateAll((els) => els.map((el) => parseFloat(getComputedStyle(el).fontSize)))) expect(size).toBeGreaterThanOrEqual(11);
+    await page.screenshot({ path: testInfo.outputPath("overlay-team-gauge.png") });
+
+    // Off a builder there is no gauge.
+    await page.evaluate(() => history.pushState({}, "", "/football/my-club/cards"));
+    await mark([], null);
+    await expect(gauge).toHaveCount(0);
   });
 
   test("the Missions tab shows today's swap, and Swap guides it on Sorare's missions page", async ({ page }) => {

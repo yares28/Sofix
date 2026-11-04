@@ -1149,6 +1149,9 @@ def gameweek_payload(
             "cards": sum(1 for c in cards if c.player == card.player),
             "p": round(forecasts.get(card.player, Forecast(0, 0)).p_play, 3),
             "x": round(_expected(forecasts.get(card.player)), 1),
+            # his score if he plays and its spread: what the builder's team gauge simulates, as the planner does
+            "mu": round(forecasts.get(card.player, Forecast(0, 0)).mu, 1),
+            **({"sd": round(sd, 1)} if (sd := forecasts.get(card.player, Forecast(0, 0)).sd) else {}),
             "by": forecasts.get(card.player, Forecast(0, 0)).score_source,
             **({"waiting": "board"} if forecasts.get(card.player, Forecast(0, 0)).waiting else {}),
             **({"xd": round(xd, 2)} if (xd := forecasts.get(card.player, Forecast(0, 0)).xd) is not None else {}),

@@ -114,3 +114,17 @@ def test_the_record_counts_a_game_already_played_this_week() -> None:
     lock = datetime(2026, 10, 30, 18, tzinfo=UTC)
     week = player_weeks(rows, {"mumin": [{}]}, history, lock, None, use_sorare=False)["mumin"]
     assert week.bench_record == {"started": 0, "on": 2, "unused": 0, "minsOn": 50, "games": "OO", "mins": [31, 69]}
+
+
+def test_a_playing_row_carries_what_the_team_gauge_simulates() -> None:
+    # The builder's gauge (plans/overlay-v2.md step 5) runs the planner's simulation: each player's score if he plays and its spread.
+    from app.sorare import publish
+    from tests.test_sorare_publish import snapshot
+
+    payload = publish.build_payload(snapshot(), runs=2, draws=100)
+    week = publish.week_of(payload)
+    assert week is not None
+    for row in week["playing"]["players"]:
+        assert isinstance(row["mu"], float)
+        assert row["x"] == round(row["p"] * row["mu"], 1) or abs(row["x"] - row["p"] * row["mu"]) < 0.2
+        assert "sd" not in row or row["sd"] > 0

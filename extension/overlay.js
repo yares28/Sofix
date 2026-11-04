@@ -57,6 +57,7 @@
   let downUntil = 0;
   let fixtureNow = core.fixtureOf(location.href); // the gameweek the page is about, from its address; null when it names none
   let boardNow = core.composeBoard(location.pathname); // the leaderboard of the lineup builder the page is, else null
+  let teamNow = null; // that builder's board as the team gauge needs it (lib/overlay.ts OverlayTeam), from the app
 
   const now = () => Date.now();
   // Reloading the extension leaves this script running in an open tab with nothing to talk to, and the worker puts a fresh copy
@@ -308,6 +309,7 @@
             setTimeout(guard(schedule), 30500);
           } else {
             appState = "ok";
+            if (reply.team) teamNow = reply.team;
             for (const key of batch) numbers.set(key, { at: now(), entry: (key[0] === "c" ? reply.cards : reply.players)[baseOf(key).slice(2)] || null });
           }
           for (const slug of batch) asking.delete(slug);
@@ -1471,7 +1473,9 @@
       }
       return read;
     });
-    const captain = captainOf(reads);
+    const pitch = pitchOf(reads);
+    const captain = captainOf(pitch);
+    const column = builderPage() ? bonusColumn() : null;
 
     let again = false;
     for (const read of reads) {
@@ -1490,6 +1494,7 @@
     }
     if (again) schedule();
     try {
+      placeTeam(pitch, column);
       placeWorthBox();
       placeStrip();
     } catch {
@@ -1769,14 +1774,14 @@
   // faint purple C at the bottom right, until Sorare has that card as captain.
   const builderPage = () => Boolean(core.composeBoard(location.pathname)) || /^\/football\/series\/[^/]+\/compose-team(?:\/|$)/.test(location.pathname);
 
-  /** The read of the pitch card to mark, or null. Only reads the page (called before anything is written). */
-  function captainOf(reads) {
-    if (!builderPage()) return null;
+  /** The cards on Sorare's pitch, each with whether Sorare has it as captain. Only reads the page (called before anything is written). */
+  function pitchOf(reads) {
+    if (!builderPage()) return [];
     const marks = [...document.querySelectorAll('[title="Captain"]')]
       .filter((el) => !el.closest("[data-sfx]"))
       .map((el) => ({ el, r: el.getBoundingClientRect() }))
       .filter(({ r }) => r.width >= 20); // Sorare's 16 px one in the "Select Captain" line is not on a card
-    if (!marks.length) return null;
+    if (!marks.length) return [];
     const pitch = [];
     for (const read of reads) {
       if (read.tier !== "full" || read.covered) continue;
@@ -1784,6 +1789,11 @@
       const mark = marks.find(({ r }) => Math.abs(r.left + r.width / 2 - rect.left) < 24 && Math.abs(r.top + r.height / 2 - rect.top) < 24);
       if (mark) pitch.push({ read, captain: mark.el.classList.contains("active") });
     }
+    return pitch;
+  }
+
+  /** The read of the pitch card to mark, or null. */
+  function captainOf(pitch) {
     const i = core.captainPick(pitch.map(({ read, captain }) => {
       const held = entryOf(read.record);
       const entry = held && held.entry;
@@ -1816,6 +1826,158 @@
     }
     if (fresh) return true; // measured on the next pass
     return moveTo(mark, rect.right - INSET.full.x, rect.bottom - INSET.full.y - mark.getBoundingClientRect().height);
+  }
+
+  // -- team gauge on Sorare's builder (plans/overlay-v2.md 1.4, step 5) -------------------------------------------------
+  // Sorare's builder has a column of its own bonuses at the pitch's top right ("+6% Lineup Bonus", "Multi-Club +2%", "Cap 260 +4%"):
+  // right-aligned rows over 36 px icons in an absolute box (seen 4 Nov 2026). Sofix's gauge is one more row under them: "SOFIX · n of
+  // 5" and a ring that fills as cards go on the pitch, around the expected total of whatever is there (core.teamChances, the planner's
+  // own simulation). Hover or focus opens the team panel: the total and its likely range, three rings around the likeliest reward,
+  // the team's stats. Worked out again only when the pitch changes.
+  let team = null; // { el, sig }
+  let columnAt = { epoch: -1, el: null };
+
+  /** Sorare's bonus column (the box holding "Lineup Bonus"), found once per page change. */
+  function bonusColumn() {
+    if (columnAt.epoch === pageEpoch && columnAt.el && columnAt.el.isConnected) return columnAt.el;
+    let el = null;
+    for (const one of document.querySelectorAll("div")) {
+      if (one.childElementCount === 0 && /^lineup bonus$/i.test(one.textContent.trim())) {
+        el = one;
+        break;
+      }
+    }
+    while (el && el.getBoundingClientRect().height < 100) el = el.parentElement;
+    columnAt = { epoch: pageEpoch, el };
+    return el;
+  }
+
+  const meanOf = (values) => {
+    const list = values.filter((v) => typeof v === "number" && Number.isFinite(v));
+    return list.length ? list.reduce((a, b) => a + b, 0) / list.length : null;
+  };
+
+  /** What the gauge shows for these pitch cards: the simulation and the team's stats, or null with nothing to count. */
+  function teamRead(pitch) {
+    const cards = [];
+    const entries = [];
+    for (const { read, captain } of pitch) {
+      const held = entryOf(read.record);
+      const e = held && held.entry;
+      if (!e || core.staleness(e, now()) || !(e.p >= 0)) continue;
+      entries.push(e);
+      const mu = typeof e.mu === "number" ? e.mu : e.p > 0 ? e.x / e.p : 0;
+      cards.push({ p: e.p, mu, sd: e.sd, mult: typeof e.mult === "number" ? e.mult : 1, pos: e.pos, game: e.match && e.match.id, venue: e.match && e.match.venue, club: e.club || null, average: e.average, captain });
+    }
+    const sim = core.teamChances(cards, teamNow || {});
+    if (!sim) return null;
+    const keepers = entries.filter((e) => e.pos === "GK" || e.pos === "DEF");
+    const xds = entries.map((e) => e.xd).filter((v) => typeof v === "number");
+    return {
+      sim,
+      rings: core.teamRings(sim.tiers),
+      size: (teamNow && teamNow.size) || 5,
+      stats: {
+        xd: xds.length ? xds.reduce((a, b) => a + b, 0) : null,
+        win: meanOf(entries.map((e) => e.game && e.game.win)),
+        cs: meanOf(keepers.map((e) => e.game && e.game.cleanSheet)),
+        fdr: meanOf(entries.map((e) => e.game && e.game.difficulty)),
+        bucket: meanOf(entries.map((e) => e.game && e.game.bucket)),
+      },
+    };
+  }
+
+  const RING_R = 23;
+  const RING_LEN = 2 * Math.PI * RING_R;
+
+  function ringSvg(share) {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 54 54");
+    svg.setAttribute("class", "sfx-ring");
+    svg.setAttribute("aria-hidden", "true");
+    for (const [name, dash] of [["sfx-ring-track", RING_LEN], ["sfx-ring-fill", RING_LEN * Math.max(0, Math.min(1, share))]]) {
+      const c = document.createElementNS(SVG_NS, "circle");
+      c.setAttribute("cx", "27");
+      c.setAttribute("cy", "27");
+      c.setAttribute("r", String(RING_R));
+      c.setAttribute("class", name);
+      c.setAttribute("stroke-dasharray", `${dash.toFixed(1)} ${RING_LEN.toFixed(1)}`);
+      svg.append(c);
+    }
+    return svg;
+  }
+
+  function teamPanel(t) {
+    const box = node("div", "sfx-team-panel");
+    box.setAttribute("role", "tooltip");
+    box.id = "sfx-team-panel";
+    const head = node("div", "sfx-team-head");
+    const chip = node("b", "sfx-team-total", String(Math.round(t.sim.x)));
+    chip.style.setProperty("--sfx-c", colour(core.scoreLevel(t.sim.x / Math.max(1, t.sim.n)))); // a card's average, whatever is on the pitch
+    head.append(chip, node("span", "sfx-team-range", `${Math.round(t.sim.lo)}–${Math.round(t.sim.hi)}`));
+    box.append(head);
+    if (t.rings) {
+      const rings = node("div", "sfx-team-rings");
+      for (const key of ["below", "at", "above"]) {
+        const ring = t.rings[key];
+        const one = node("div", `sfx-team-ring sfx-team-ring--${key}`);
+        if (ring) {
+          const dial = node("div", "sfx-team-dial");
+          dial.append(ringSvg(ring.p), node("b", "", core.chanceLabel(ring.p)));
+          one.append(dial, node("span", "sfx-team-prize", ring.label), node("span", "sfx-team-need", ring.need === null ? "under the first" : `at ${Math.round(ring.need)}`));
+        }
+        rings.append(one);
+      }
+      box.append(rings);
+    }
+    const stats = node("div", "sfx-team-stats");
+    const level = t.stats.bucket === null ? null : core.fdrLevel(Math.round(t.stats.bucket));
+    for (const [key, value, tone] of [
+      ["XD", t.stats.xd === null ? "—" : t.stats.xd.toFixed(2), null],
+      ["WIN", t.stats.win === null ? "—" : core.chanceLabel(t.stats.win), null],
+      ["CS", t.stats.cs === null ? "—" : core.chanceLabel(t.stats.cs), null],
+      ["FDR", t.stats.fdr === null ? "—" : String(Math.round(t.stats.fdr)), level],
+    ]) {
+      const cell = node("span", "sfx-team-stat");
+      const b = node("b", value === "—" ? "sfx-stat--none" : "", value);
+      if (tone) b.style.setProperty("--sfx-d", colour(tone));
+      cell.append(node("span", "", key), b);
+      stats.append(cell);
+    }
+    box.append(stats);
+    return box;
+  }
+
+  function placeTeam(pitch, column) {
+    const rect = column && column.isConnected ? column.getBoundingClientRect() : null;
+    if (!rect || !rect.width) {
+      if (team) team.el.remove();
+      team = null;
+      return;
+    }
+    const t = teamRead(pitch);
+    const size = t ? t.size : (teamNow && teamNow.size) || 5;
+    const n = t ? t.sim.n : 0;
+    const sig = t ? `${Math.round(t.sim.x)}|${Math.round(t.sim.lo)}|${Math.round(t.sim.hi)}|${n}|${size}|${t.sim.tiers.map((x) => Math.round(x.p * 100)).join(",")}|${t.stats.xd}|${t.stats.fdr}` : `none|${size}`;
+    if (!team || !team.el.isConnected || team.sig !== sig) {
+      const el = team && team.el.isConnected ? team.el : node("div", "sfx-team");
+      el.setAttribute("data-sfx", "");
+      el.replaceChildren();
+      const dial = node("div", "sfx-team-gauge");
+      dial.append(ringSvg(n / size), node("b", "", t ? String(Math.round(t.sim.x)) : "—"));
+      const words = node("div", "sfx-team-words");
+      words.append(node("span", "sfx-team-name", "SOFIX"), node("span", "sfx-team-count", `${n} of ${size}`));
+      el.append(words, dial);
+      el.tabIndex = 0;
+      el.setAttribute("aria-label", t ? `Sofix: ${Math.round(t.sim.x)} expected from ${n} of ${size} cards, likely ${Math.round(t.sim.lo)} to ${Math.round(t.sim.hi)}` : "Sofix: no card on the pitch yet");
+      if (t) {
+        el.setAttribute("aria-describedby", "sfx-team-panel");
+        el.append(teamPanel(t));
+      } else el.removeAttribute("aria-describedby");
+      if (!el.isConnected) document.body.append(el);
+      team = { el, sig };
+    }
+    team.el.style.transform = `translate3d(${Math.round(rect.right - team.el.offsetWidth)}px, ${Math.round(rect.bottom + 16)}px, 0)`;
   }
 
   // -- price per point (plans/overlay-v2.md 1.2) ------------------------------------------------------------------------
@@ -2190,6 +2352,7 @@
     if (here === fixtureNow && board === boardNow) return;
     fixtureNow = here;
     boardNow = board;
+    teamNow = null;
     numbers.clear();
     asking.clear();
     liveByMatch.clear(); // another gameweek's matches are not these

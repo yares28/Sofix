@@ -944,3 +944,41 @@ describe("overlayProfile: Sofix's line on a LaLiga player's Sorare page (B3)", (
     expect(() => ask({ profile: "Not a slug!" })).toThrow();
   });
 });
+
+describe("the team gauge's numbers on a builder (plans/overlay-v2.md step 5)", () => {
+  const lineup = (over: Record<string, unknown> = {}) =>
+    ({
+      comp: "LaLiga Limited", board: "laliga-limited", boardId: "B1", size: 5, captainBonus: 0.5, clubBonus: [2, 0.02], averageBonus: null,
+      bonuses: { season: 0.05, grade: 0.01, scarcity: { limited: 0, rare: 0.1 } }, x: 295, lo: 221, hi: 365, starters: [], subs: [],
+      tiers: [
+        { lo: 1, hi: 100, cash: 5, essence: 0, need: 314, p: 0.38 },
+        { lo: 101, hi: 1000, xp: 500, need: 257, p: 0.38 },
+        { lo: 1001, hi: 5000, need: null, p: 0.24 },
+      ],
+      ...over,
+    }) as unknown as Lineup;
+  const withPlan = (lineups: Lineup[]) => {
+    const data = sorare([player({ mu: 58, sd: 16.2 })]);
+    data.weeks[0]!.plans = [{ rank: 1, essence: 0, cash: 0, pAny: 0.7, rewards: 1, cardsUsed: 5, cardsAvailable: 9, lineups }] as unknown as Plan[];
+    return data;
+  };
+
+  it("answers a builder with its board's bonuses and reward levels, lowest first, and each card's bonus there", () => {
+    const answer = overlayNumbers(withPlan([lineup()]), null, ask({ cards: ["unai-simon-2026-limited-12", "unai-simon-2023-rare-3"], board: "laliga-limited" }), NOW);
+    expect(answer.team).toEqual({
+      size: 5, captainBonus: 0.5, clubBonus: [2, 0.02], averageBonus: null,
+      tiers: [{ need: 257, label: "500 XP" }, { need: 314, label: "$5" }],
+    });
+    expect(answer.cards["unai-simon-2026-limited-12"]).toMatchObject({ mult: 1.06, mu: 58, sd: 16.2, club: "Athletic Club", average: 55 }); // in season + level 1
+    expect(answer.cards["unai-simon-2023-rare-3"]!.mult).toBeCloseTo(1.14); // level 4 + rare, not in season
+  });
+
+  it("gives a Pro builder its step targets, and nothing for a builder Sofix has no lineup on", () => {
+    const pro = lineup({ pro: { level: 2, target: 280, boost: 1, ladder: [{ level: 2, target: 280, cash: 2, essence: 0, p: 0.5 }, { level: 3, target: 330, cash: 0, essence: 100, p: 0.2 }] } });
+    expect(overlayNumbers(withPlan([pro]), null, ask({ cards: [], board: "laliga-limited" }), NOW).team!.tiers).toEqual([{ need: 280, label: "$2" }, { need: 330, label: "100 essence" }]);
+    const none = overlayNumbers(withPlan([lineup()]), null, ask({ cards: ["unai-simon-2026-limited-12"], board: "other-board" }), NOW);
+    expect(none.team).toBeUndefined();
+    expect(none.cards["unai-simon-2026-limited-12"]).not.toHaveProperty("mult");
+    expect(overlayNumbers(withPlan([lineup()]), null, ask({ cards: [] }), NOW).team).toBeUndefined(); // not a builder
+  });
+});

@@ -528,6 +528,9 @@ async function overlayNumbers(cards, players, fixture = null, games = {}, board 
   const now = Date.now();
   const answers = {};
   const missing = [];
+  // A builder's board (the team gauge's bonuses and reward levels, plans/overlay-v2.md step 5): kept once per gameweek and builder.
+  const teamKey = `ov:team:${fixture || "now"}:${board || "-"}`;
+  let team = null;
   for (const key of wanted) {
     const hit = cached[keyOf(key)];
     if (hit && now - hit.at < OVERLAY_TTL_MS) answers[key] = hit.entry;
@@ -542,13 +545,19 @@ async function overlayNumbers(cards, players, fixture = null, games = {}, board 
     const hints = Object.fromEntries(batch.filter((key) => gameOf[key]).map((key) => [key, gameOf[key]]));
     const answer = await askApp({ ...asked, ...(fixture ? { fixture } : {}), ...(board ? { board } : {}), ...(Object.keys(hints).length ? { games: hints } : {}) });
     if (!answer.body) return { state: answer.state };
+    if (board && answer.body.team) team = answer.body.team;
     const fresh = {};
     for (const slug of asked.cards) fresh[`c:${slug}`] = answer.body.cards?.[slug] ?? null;
     for (const slug of asked.players) fresh[`p:${slug}`] = answer.body.players?.[slug] ?? null;
     Object.assign(answers, fresh);
     await chrome.storage.session.set(Object.fromEntries(Object.entries(fresh).map(([key, entry]) => [keyOf(key), { at: Date.now(), entry }])));
   }
-  const out = { state: "ok", cards: {}, players: {} };
+  if (board && team) await chrome.storage.session.set({ [teamKey]: { at: Date.now(), team } });
+  else if (board) {
+    const kept = (await chrome.storage.session.get(teamKey))[teamKey];
+    if (kept && now - kept.at < OVERLAY_TTL_MS) team = kept.team;
+  }
+  const out = { state: "ok", cards: {}, players: {}, ...(team ? { team } : {}) };
   for (const [key, entry] of Object.entries(answers)) if (entry) out[key.startsWith("c:") ? "cards" : "players"][key.slice(2)] = entry;
   return out;
 }

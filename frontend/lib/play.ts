@@ -319,6 +319,9 @@ export type PlayingPlayer = {
   p: number;
   x: number;
   average: number;
+  /** His score if he plays and its spread, which the builder's team gauge simulates as the planner does; sd absent means 17.6. */
+  mu?: number;
+  sd?: number;
   /**
    * His score if he starts and if he does not, and the chance of each (plans/overlay.md, O9). For the overlay:
    * the plans keep using `x`. Payloads published before O9 do not carry them.

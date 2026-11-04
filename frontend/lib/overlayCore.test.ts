@@ -42,6 +42,12 @@ type Core = {
   startTitle: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage?: number) => string;
   startLevel: (p: number) => "low" | "medium" | "high";
   captainPick: (cards: { x: number | null; captain: boolean }[]) => number;
+  teamChances: (
+    cards: { p: number; mu: number; sd?: number | null; mult: number; pos: string; game: string | null; venue: string | null; club: string | null; average: number | null; captain: boolean }[],
+    team: { captainBonus?: number; clubBonus?: [number, number] | null; averageBonus?: [number, number] | null; tiers?: { need: number; label: string }[] },
+    runs?: number,
+  ) => { x: number; lo: number; hi: number; n: number; bonus: number; tiers: { need: number; label: string; p: number }[] } | null;
+  teamRings: (tiers: { need: number; label: string; p: number }[]) => Record<"below" | "at" | "above", { label: string; need: number | null; p: number } | null> | null;
   START_COLOURS: Record<string, [string, string]>;
   startHover: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage: number | undefined, full: boolean) => string;
   statusNote: (entry: { ffStatus?: { kind?: string; cause?: string; since?: string } }) => { kind: string; text: string } | null;
@@ -888,5 +894,50 @@ describe("the start badge colours, Sorare's own steps", () => {
     expect([0.5, 0.7, 0.79].map(core.startLevel)).toEqual(["medium", "medium", "medium"]);
     expect([0.8, 0.9, 1].map(core.startLevel)).toEqual(["high", "high", "high"]);
     expect(core.START_COLOURS).toEqual({ low: ["--c-score-veryLow", "#ff5a5a"], medium: ["--c-yellow-400", "#ffd914"], high: ["--c-onBase-success", "#00f3eb"] });
+  });
+});
+
+describe("the team gauge on Sorare's builder", () => {
+  // Five cards as the planner sees them (10,000 runs here); its own _draw (backend/app/sorare/planner.py) on 200,000 weeks gives 270.0, 177.2 to 356.4,
+  // and 84.0% / 57.9% / 24.6% at 200, 260 and 320 (2% lineup bonus, the forward captain at +50%).
+  const card = (pos: string, p: number, mu: number, sd: number | null, mult: number, game: string, venue: string, club: string, captain = false) => ({ p, mu, sd, mult, pos, game, venue, club, average: 40, captain });
+  const pitch = [
+    card("GK", 0.95, 48, 15, 1.05, "g1", "H", "a"),
+    card("DEF", 0.9, 52, 16, 1.1, "g1", "H", "a"),
+    card("MID", 0.8, 58, null, 1.0, "g2", "A", "b"),
+    card("FWD", 0.85, 62, 20, 1.15, "g1", "A", "c", true),
+    card("FWD", 0.6, 55, 18, 1.0, "g3", "H", "d"),
+  ];
+  const team = { captainBonus: 0.5, clubBonus: [2, 0.02] as [number, number], tiers: [{ need: 260, label: "500 XP" }, { need: 200, label: "250 XP" }, { need: 320, label: "1000 XP" }] };
+
+  it("reads what the planner reads, within two points and two in a hundred", () => {
+    const got = core.teamChances(pitch, team)!;
+    expect(got.bonus).toBeCloseTo(0.02);
+    expect(Math.abs(got.x - 270.0)).toBeLessThan(2);
+    expect(Math.abs(got.lo - 177.2)).toBeLessThan(4);
+    expect(Math.abs(got.hi - 356.4)).toBeLessThan(4);
+    expect(got.tiers.map((t) => t.label)).toEqual(["250 XP", "500 XP", "1000 XP"]); // lowest first
+    got.tiers.forEach((t, i) => expect(Math.abs(t.p - [0.84, 0.579, 0.246][i]!)).toBeLessThan(0.025));
+    expect(core.teamChances(pitch, team)).toEqual(got); // the same pitch, the same numbers
+  });
+
+  it("drops the club bonus when too many cards share a club, and counts nothing for an empty pitch", () => {
+    const same = pitch.map((c) => ({ ...c, club: "a" }));
+    expect(core.teamChances(same, team)!.bonus).toBe(0);
+    expect(core.teamChances([], team)).toBeNull();
+  });
+
+  it("puts the likeliest level in the centre with its neighbours either side", () => {
+    const tiers = (...p: number[]) => p.map((v, i) => ({ need: 200 + 60 * i, label: `T${i + 1}`, p: v }));
+    // ends on nothing 24%, T1 38%, T2 38%: T1 in the centre (a tie goes lower), nothing on the left, T2 on the right
+    expect(core.teamRings(tiers(0.76, 0.38))).toEqual({ below: { label: "No reward", need: null, p: 0.24 }, at: { label: "T1", need: 200, p: 0.76 }, above: { label: "T2", need: 260, p: 0.38 } });
+    // nothing is likeliest: no ring to its left
+    expect(core.teamRings(tiers(0.2, 0.1))!.below).toBeNull();
+    expect(core.teamRings(tiers(0.2, 0.1))!.at!.label).toBe("No reward");
+    // the top tier is likeliest: no ring to its right
+    const top = core.teamRings(tiers(0.99, 0.95, 0.9))!;
+    expect(top.at!.label).toBe("T3");
+    expect(top.above).toBeNull();
+    expect(core.teamRings([])).toBeNull();
   });
 });

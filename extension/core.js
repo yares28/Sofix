@@ -239,6 +239,127 @@
     };
   }
 
+  // -- the team gauge on Sorare's builder (plans/overlay-v2.md 1.4, step 5) ------------------------------------------------------
+  // The planner's own simulation (backend/app/sorare/planner.py `_draw`, `totals`; links.py), so the gauge reads what the plan reads.
+
+  const TEAM_RUNS = 10000; // about 8 ms, once per pitch change; the mean within a point (the planner draws 3,000)
+  const TEAM_SD = 17.6; // planner.SCORE_SD, for a player with no spread of his own
+  // links.py: how far two players' scores move together, by positions, same side or opposite sides of one game
+  const LINK_SAME = { "DEF|GK": 0.29, "DEF|DEF": 0.16, "FWD|FWD": 0.1, "GK|MID": 0.08, "DEF|MID": 0.07, "MID|MID": 0.08, "FWD|MID": 0.05 };
+  const LINK_OPPOSITE = { "FWD|GK": -0.26, "DEF|FWD": -0.16, "GK|MID": -0.09, "DEF|MID": -0.08, "MID|MID": -0.09, "FWD|MID": -0.06, "DEF|DEF": -0.05 };
+
+  /** The lower triangle of a correlation matrix, or null when it is not safely positive definite. */
+  function cholesky(m) {
+    const n = m.length;
+    const l = m.map(() => new Array(n).fill(0));
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j <= i; j++) {
+        let s = m[i][j];
+        for (let k = 0; k < j; k++) s -= l[i][k] * l[j][k];
+        if (i === j) {
+          if (s < 0.05) return null;
+          l[i][i] = Math.sqrt(s);
+        } else l[i][j] = s / l[j][j];
+      }
+    }
+    return l;
+  }
+
+  /**
+   * What the cards on the pitch add up to, simulated 10,000 times with a fixed seed: `cards` as { p (chance he plays), mu (his score if
+   * he plays), sd, mult (his card's bonus here), pos, game, venue, club, average, captain }, `team` as { captainBonus, clubBonus:
+   * [most from one club, bonus], averageBonus: [cap, bonus], tiers: [{ need, label }] }. Returns the expected total, the 10th to 90th
+   * percentile, and each tier with the chance of reaching it; null with no card.
+   */
+  function teamChances(cards, team, runs = TEAM_RUNS, seed = 7) {
+    const list = (cards || []).filter((c) => c && Number.isFinite(c.mu) && Number.isFinite(c.p));
+    if (!list.length) return null;
+    const n = list.length;
+    const pos = list.map((c) => String(c.pos || "")); // GK, DEF, MID or FWD, as the answer gives it
+    const corr = list.map((_, i) => list.map((__, j) => (i === j ? 1 : 0)));
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        if (!list[i].game || list[i].game !== list[j].game) continue;
+        const key = [pos[i], pos[j]].sort().join("|");
+        const v = (list[i].venue === list[j].venue ? LINK_SAME : LINK_OPPOSITE)[key] || 0;
+        corr[i][j] = corr[j][i] = v;
+      }
+    }
+    let low = cholesky(corr);
+    // ponytail: links.py shrinks to an eigenvalue of 0.05; here the links shrink by tenths until the matrix factors
+    for (let shrink = 0.9; !low && shrink > 0; shrink -= 0.1) low = cholesky(corr.map((row, i) => row.map((v, j) => (i === j ? 1 : v * shrink))));
+    if (!low) low = cholesky(corr.map((row, i) => row.map((_, j) => (i === j ? 1 : 0))));
+    // the lineup's own bonuses (planner._lineup_bonus): few enough cards from one club, a low enough sum of averages
+    let bonus = 0;
+    const t = team || {};
+    if (Array.isArray(t.clubBonus)) {
+      const clubs = {};
+      for (const c of list) clubs[c.club] = (clubs[c.club] || 0) + 1;
+      if (Math.max(...Object.values(clubs)) <= t.clubBonus[0]) bonus += t.clubBonus[1];
+    }
+    if (Array.isArray(t.averageBonus) && list.reduce((s, c) => s + (Number(c.average) || 0), 0) <= t.averageBonus[0]) bonus += t.averageBonus[1];
+    const captainBonus = Number(t.captainBonus) || 0;
+    let a = seed >>> 0;
+    const next = () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let x = a;
+      x = Math.imul(x ^ (x >>> 15), x | 1);
+      x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+    const normal = () => Math.sqrt(-2 * Math.log(1 - next())) * Math.cos(2 * Math.PI * next());
+    const totals = new Array(runs);
+    const z = new Array(n);
+    for (let r = 0; r < runs; r++) {
+      let total = 0;
+      for (let i = 0; i < n; i++) z[i] = normal();
+      for (let i = 0; i < n; i++) {
+        const c = list[i];
+        let shock = 0;
+        for (let k = 0; k <= i; k++) shock += low[i][k] * z[k];
+        if (next() >= c.p) continue;
+        const score = Math.min(100, Math.max(0, c.mu + (Number.isFinite(c.sd) ? c.sd : TEAM_SD) * shock));
+        total += score * ((Number(c.mult) || 1) + bonus + (c.captain ? captainBonus : 0));
+      }
+      totals[r] = total;
+    }
+    totals.sort((x, y) => x - y);
+    const at = (q) => {
+      const i = (runs - 1) * q;
+      const lo = Math.floor(i);
+      return totals[lo] + (totals[Math.min(lo + 1, runs - 1)] - totals[lo]) * (i - lo);
+    };
+    const reach = (need) => {
+      let lo = 0;
+      let hi = runs;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (totals[mid] < need) lo = mid + 1;
+        else hi = mid;
+      }
+      return (runs - lo) / runs;
+    };
+    const tiers = (t.tiers || []).filter((tier) => Number.isFinite(tier.need)).sort((x, y) => x.need - y.need).map((tier) => ({ ...tier, p: reach(tier.need) }));
+    return { x: totals.reduce((s, v) => s + v, 0) / runs, lo: at(0.1), hi: at(0.9), n, bonus, tiers };
+  }
+
+  /**
+   * The team panel's three rings: the level the total most likely ends on (nothing, or a tier) in the centre, the one below on the
+   * left and the one above on the right (null past either end). Each with the chance shown: for nothing, the chance of ending there;
+   * for a tier, the chance of reaching it. A tie goes to the lower level.
+   */
+  function teamRings(tiers) {
+    const list = tiers || [];
+    if (!list.length) return null;
+    const levels = [{ label: "No reward", need: null, p: 1 - list[0].p, end: 1 - list[0].p }, ...list.map((tier, i) => ({ ...tier, end: tier.p - (list[i + 1] ? list[i + 1].p : 0) }))];
+    let at = 0;
+    levels.forEach((level, i) => {
+      if (level.end > levels[at].end + 1e-9) at = i;
+    });
+    const ring = (level) => (level ? { label: level.label, need: level.need, p: level.p } : null);
+    return { below: ring(levels[at - 1]), at: ring(levels[at]), above: ring(levels[at + 1]) };
+  }
+
   /**
    * The card on Sorare's builder pitch Sofix would make captain, from `{ x, captain }` per pitch card: the highest xScore (Sorare
    * adds bonuses together, so the captain's bonus is worth most on the best score whatever the card's own bonus), first on a tie.
@@ -800,7 +921,7 @@
   root.__sofixCore = {
     crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

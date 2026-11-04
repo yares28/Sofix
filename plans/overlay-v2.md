@@ -393,6 +393,15 @@ Accept: Abdul Mumin shows 0 / 7 / 3 / 22′ and 70%.
 
 ### Step 5. Team gauge and panel on the builder
 
+**Built (4 Nov, 0.4.52).** `core.teamChances` is the Python planner's simulation (`_draw` + `totals`: p, mu, sd, links.py pairs,
+card multiplier + lineup bonuses + captain), not `arcadePlan.simulate`: the acceptance is against the planner, and on the same five
+cards it reads 270.2 against the planner's 270.0 (200,000 runs each); 10,000 runs (~8 ms, once per pitch change) keep it within about
+a point, while the planner's own 3,000 draws move ±3. No substitutes counted. The app answers a builder with `team` {size, captain
+and lineup bonuses, paying levels lowest first (Pro: its steps)} from any of the week's lineups on that board, and each of your cards
+with its `mult` there, `mu`, `sd` (published on playing rows) and club; no Sofix lineup on the board, no reward rings
+(`reward_bars` not used yet). The lineup bonuses are worked out from the rules, not read from Sorare's column. The gauge sits under
+Sorare's bonus column (found by its "Lineup Bonus" text), the panel under the gauge on hover or focus.
+
 - `core.js`: `teamChances(cards, lines, captainBonus)`, a copy of `arcadePlan.simulate` + `chanceOf` (2,000 seeded runs,
   teammate link 0.09), with a parity test against the TypeScript version on the same inputs.
 - App: the answer for a compose board carries its reward tiers (`tiers[].need`, reward label) from the planned week's

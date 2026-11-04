@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NATIONAL_COMPETITION, clubKey, nextFive, sideOutlook, type NextGameCell, type SideOutlook } from "./home";
 import { squadBar, verdict, type Verdict } from "./cards";
-import { cardScore, likelyResult, nextWeek, proOpen, resultLabel, waitingFor, weekPlan, type BenchRecord, type FfStatus, type GameweekPlan, type Lineup, type MarketFixture, type MarketPlayer, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
+import { cardScore, cashLabel, essenceLabel, likelyResult, nextWeek, proOpen, resultLabel, waitingFor, weekPlan, type BenchRecord, type FfStatus, type GameweekPlan, type Lineup, type MarketFixture, type MarketPlayer, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
 import { appearances, type Appearance } from "./apply";
 import type { MissionPlan } from "./missions";
 import type { MissionsStatus } from "./missionsToday";
@@ -157,6 +157,14 @@ export type OverlayEntry = {
   benchRecord?: BenchRecord;
   xd?: number;
   decisive?: number;
+  /**
+   * For the builder's team gauge (plans/overlay-v2.md step 5), on your cards when the page is a builder Sofix has a lineup on: his
+   * score if he plays and its spread (the planner's simulation), his club, and this card's own bonus on that board.
+   */
+  mu?: number;
+  sd?: number;
+  club?: string | null;
+  mult?: number;
   /** What a point of his costs, from his market row's Limited price (absent without one): the overlay's "€0.14/pt" on Limited cards. */
   price?: OverlayPrice;
 };
@@ -285,7 +293,35 @@ export type OverlayAnswer = {
   players: Record<string, OverlayEntry>;
   plan?: OverlayPlan;
   missions?: DockMissions;
+  /** A builder's board as the gauge needs it: the captain's and the lineup's bonuses, and the scores that pay, lowest first. */
+  team?: OverlayTeam;
 };
+
+export type OverlayTeam = {
+  /** Cards on the pitch, for the gauge's "n of 5". */
+  size: number;
+  captainBonus: number;
+  clubBonus: [number, number] | null;
+  averageBonus: [number, number] | null;
+  tiers: { need: number; label: string }[];
+};
+
+/** What a level pays, in words: "$5", "250 essence", "500 XP", "a card", joined with "+". */
+const prizeOf = (tier: { cash?: number; essence?: number; xp?: number; card?: boolean }) =>
+  [tier.cash ? cashLabel(tier.cash) : "", tier.essence ? `${essenceLabel(tier.essence)} essence` : "", tier.xp ? `${tier.xp} XP` : "", tier.card ? "a card" : ""].filter(Boolean).join(" + ");
+
+/** The board a builder page is, from the lineup Sofix plans on it (any plan of the week): Pro's step targets, else the levels that pay. */
+function teamOf(week: GameweekPlan, board: string): { team: OverlayTeam; bonuses: Lineup["bonuses"] } | null {
+  const lineup = (week.plans ?? []).flatMap((plan) => plan.lineups).find((one) => one.board === board);
+  if (!lineup) return null;
+  const tiers = lineup.pro
+    ? lineup.pro.ladder.map((step) => ({ need: step.target, label: prizeOf(step) || `Level ${step.level}` }))
+    : lineup.tiers.flatMap((tier) => (typeof tier.need === "number" && prizeOf(tier) ? [{ need: tier.need, label: prizeOf(tier) }] : []));
+  return {
+    team: { size: lineup.size, captainBonus: lineup.captainBonus, clubBonus: lineup.clubBonus ?? null, averageBonus: lineup.averageBonus ?? null, tiers: tiers.sort((a, b) => a.need - b.need) },
+    bonuses: lineup.bonuses,
+  };
+}
 
 /** The plan's lineups, the one expected to score most first. */
 const lineupsByScore = (lineups: Lineup[]): Lineup[] => [...lineups].sort((a, b) => b.x - a.x);
@@ -615,6 +651,8 @@ function entryFor(
     ...(player.benchRecord ? { benchRecord: player.benchRecord } : {}),
     ...(player.xd !== undefined ? { xd: player.xd } : {}),
     ...(player.shape ? { decisive: player.shape.p } : {}),
+    ...(player.mu !== undefined ? { mu: player.mu } : {}),
+    ...(player.sd !== undefined ? { sd: player.sd } : {}),
   };
 }
 
@@ -805,17 +843,26 @@ export function overlayNumbers(
     return entries.get(key) ?? null;
   };
 
+  const board = request.board ? teamOf(plan, request.board) : null;
+  const held = new Map((sorare.collection ?? []).map((card) => [card.slug, card]));
+  // Sorare's card bonus on this board (planner Competition.multiplier): in season, per level, per rarity.
+  const multOf = (cardSlug: string) => {
+    const card = held.get(cardSlug);
+    const b = board?.bonuses;
+    return card && b ? Math.round((1 + (card.inSeason ? b.season : 0) + b.grade * card.level + (b.scarcity[card.rarity] ?? 0)) * 1000) / 1000 : undefined;
+  };
   const cards: Record<string, OverlayEntry> = {};
   for (const cardSlug of request.cards) {
     const entry = forPlayer(owners.get(cardSlug), request.games?.[`c:${cardSlug}`]);
-    if (entry) cards[cardSlug] = entry;
+    const mult = entry ? multOf(cardSlug) : undefined;
+    if (entry) cards[cardSlug] = mult !== undefined ? { ...entry, mult, club: held.get(cardSlug)?.club ?? null } : entry;
   }
   const players: Record<string, OverlayEntry> = {};
   for (const playerSlug of request.players) {
     const entry = forPlayer(playerSlug, request.games?.[`p:${playerSlug}`]);
     if (entry) players[playerSlug] = entry;
   }
-  return { week: plan.gameweek.number, cards, players, ...(request.plan ? { plan: overlayPlan(plan, now) } : {}) };
+  return { week: plan.gameweek.number, cards, players, ...(request.plan ? { plan: overlayPlan(plan, now) } : {}), ...(board ? { team: board.team } : {}) };
 }
 
 /** Sofix's line on one LaLiga player's Sorare page (plans/overlay-bridge.md, B3), with the numbers his /players page shows. */

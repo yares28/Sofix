@@ -1074,6 +1074,11 @@ it writes to Sorare.
   decisive action. Comes on: how often he came on when he did not start, from his last ten games (any competition), what Sofix's
   plans use today struck beside it, a bar of his minutes in each game (started green, came on yellow, unused grey) and the four
   counts. During his game a player left on the bench opens on Comes on. The game's numbers, sources and score chart left the panel.
+- **Team gauge** (0.4.52, 4 Nov 2026): on Sorare's builder, under its own bonus column, "SOFIX · n of 5" and a ring that fills as
+  cards go on the pitch around the expected total of whatever is there, simulated as Sofix's planner does (card, captain and lineup
+  bonuses counted). Hover it for the total and its likely range, the likeliest reward in the centre with the one below and above
+  (each with its chance and the score it needs; Pro shows its steps) and the team's xD, win %, keepers' and defenders' clean sheet %
+  and difficulty. Rewards show where Sofix has a lineup on that competition.
 - **Light on the page** (0.4.49, 4 Nov 2026): scrolling moves only the crests (a pass at most every 400 ms while it lasts, one
   when it stops); a crest hides under a sticky bar of Sorare's; the popup's cards line says the slowest pass of the last minute.
 - **Price per point** (0.4.47, 3 Nov 2026): on Sorare's market and your gallery, a Limited card says what a point of his costs,

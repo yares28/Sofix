@@ -739,9 +739,19 @@ const NEED_IDLE_MS = 10 * 60 * 1000; // and this often otherwise
 const NEED_ENTRY_MS = 15 * 1000; // opening a lineup page reads them afresh, unless they were read this recently
 const NEED_GAME_MS = 2.5 * 60 * 60 * 1000; // a game this long after its kick-off may still be scoring
 const num = (value) => (typeof value === "number" && Number.isFinite(value) ? value : null);
+/**
+ * Whether a card's score can no longer move: Sorare has settled it, his game is over, or he has been taken off (or is not on the sheet
+ * of a game under way). His points are then locked and the rest of the target falls on the cards still to play or playing.
+ */
+const doneScoring = (a) => {
+  const field = a?.playerGameScore?.anyPlayerGameStats?.fieldStatus;
+  const game = a?.game?.statusTyped;
+  return ["FINAL", "DID_NOT_PLAY", "REVIEWING"].includes(a?.scoreStatus) || ["played", "cancelled", "postponed"].includes(game)
+    || field === "SUBSTITUTED" || (game === "playing" && field === "NOT_ON_GAME_SHEET");
+};
 const appearancesOf = (lineup) => (Array.isArray(lineup?.taskAppearances) ? lineup.taskAppearances : []).flatMap((a) => (a?.anyCard?.slug
   ? [{ slug: String(a.anyCard.slug), score: num(a.score), bonus: num(a.bonus), captain: a.captain === true, kickoff: typeof a.game?.date === "string" ? a.game.date : null,
-    game: typeof a.game?.id === "string" && GAME_ID.test(a.game.id) ? a.game.id : null }] : []));
+    game: typeof a.game?.id === "string" && GAME_ID.test(a.game.id) ? a.game.id : null, ...(doneScoring(a) ? { done: true } : {}) }] : []));
 const openLineup = (l) => l && l.__typename === "TaskLineup" && !l.draft && !l.cancelledAt && !["SUCCESSFUL", "FAILED"].includes(l.aasmState);
 
 /** What one read through here adds to the copy. */

@@ -842,7 +842,8 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   a card whose game is over shows nothing (no tile, no pill), and a lineup no longer in play shows no tiles at all: only the cards
   still to play or playing are drawn. Since 0.4.44 every card still able to score aims at the same score, counting what it has: a
   card still to play shows that score, a card playing how far he is from his ("-7" short, "+3" in green past it, which lowers what
-  the others need).
+  the others need). Since 0.4.62 a player taken off, not on the sheet of a game under way, or whose game or score Sorare calls over
+  counts as finished at once: his points are locked and the rest of the target is shared among the others.
   Not on plans or on Sofix's Arcade sections.
 - A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga, Ligue 1, Champions League, Europa League or Conference League
   game (the Conference League's still provisional; else Sorare's projection, else his average when he
@@ -1016,9 +1017,9 @@ colour for that score. Under it is one thing that drives the score, chosen by po
   Arcade card plays one game, so on a lineup page and a Pro builder its xScore is that game's; Classic gameweek builders and every
   other page keep the week's (two games: the better of the two counts).
 - **The opponent's crest on each card** (extension 0.4.34, 3 Nov 2026; since 0.4.50 on Sorare's lineup builders and lineup pages only, not the gallery, market or other lists): centred on the card's top edge, half outside (22 px, 16 on a
-  small card; 0.4.36), gone as soon as Sorare hides its card or lays a player's page over it (0.4.37); two games, both crests; his game on, a dark pill with a red live dot ("Live": no source gives the real minute yet);
-  sure not to play (Futbol Fantasy says out), the same pill with "Out"; no crest from Sorare, a shield in the club's colour with its
-  letters; no game, nothing. Hover or focus it: the island opens above the card with both sides, the day and time (Madrid), the
+  small card; 0.4.36), gone as soon as Sorare hides its card or lays a player's page over it (0.4.37); two games, both crests; his game on, the crest alone with a small pulsing red dot on its corner (0.4.62; still under reduced motion);
+  sure not to play (Futbol Fantasy says out), a dark pill with "Out"; no crest from Sorare, the club's UEFA crest from the European
+  boards (the Table page's) when it plays in Europe (4 Nov 2026), else a shield in the club's colour with its letters; no game, nothing. Hover or focus it: the island opens above the card with both sides, the day and time (Madrid), the
   competition, and five numbers for his side (win %, clean sheet %, xG, xG against, FDR), each coloured by its sixth among all the
   games Sofix rates that gameweek (the season's when fewer than 12), Sorare's colours from red to cyan; Escape closes it.
 **A goalkeeper's number follows his game.** It is no longer his last five games: those are mostly luck (a clean sheet is worth about 75, a game without

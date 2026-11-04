@@ -392,16 +392,24 @@
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / .18); text-shadow: 0 1px 2px rgb(0 0 0 / .5);
 }
 .sfx-crest--compact .sfx-shield { letter-spacing: 0; }
-.sfx-crest--live, .sfx-crest--out {
+.sfx-crest--out {
   padding: 2px 8px 2px 2px; border-radius: 999px; background: #0b0a10; filter: none;
   box-shadow: 0 6px 16px rgb(0 0 0 / .55), 0 0 0 1px rgb(255 255 255 / .08);
 }
-.sfx-crest--compact.sfx-crest--live, .sfx-crest--compact.sfx-crest--out { padding: 2px 7px 2px 2px; gap: 4px; font-size: 11px; }
-.sfx-live-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #ff3b5c; }
-/* The pulse is a ring scaled and faded (compositor only, 3b.7), not a shadow repainted every frame. */
-.sfx-live-dot::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; background: rgb(255 59 92 / .25); animation: sfx-live 1.6s ease-in-out infinite; }
+.sfx-crest--compact.sfx-crest--out { padding: 2px 7px 2px 2px; gap: 4px; font-size: 11px; }
 .sfx-out { color: #ff3b5c; }
-@keyframes sfx-live { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.2; } }
+/* Live: a 5 px red dot on the crest's top-right corner, ringed in the dark so it reads on any crest, beating while a sonar ring
+   spreads from it. Transform and opacity only (compositor, 3b.7). */
+.sfx-live-dot {
+  position: absolute; top: -1px; right: -3px; width: 5px; height: 5px; border-radius: 50%; background: #ff3b5c;
+  box-shadow: 0 0 0 1.5px #0b0a10; animation: sfx-beat 1.6s ease-in-out infinite;
+}
+.sfx-live-dot::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; background: #ff3b5c;
+  animation: sfx-sonar 1.6s cubic-bezier(.2, .7, .3, 1) infinite;
+}
+@keyframes sfx-beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } }
+@keyframes sfx-sonar { 0% { transform: scale(1); opacity: .7; } 70%, 100% { transform: scale(3); opacity: 0; } }
 
 .sfx-island {
   position: fixed; width: 286px; display: grid; gap: 12px; padding: 10px 14px 12px; border-radius: 22px; background: #0b0a10;
@@ -424,7 +432,7 @@
   0% { opacity: .4; clip-path: inset(calc(100% - 40px) calc(50% - 20px) 0 calc(50% - 20px) round 20px); }
   100% { opacity: 1; clip-path: inset(0 0 0 0 round 22px); }
 }
-@media (prefers-reduced-motion: reduce) { .sfx-island, .sfx-live-dot::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .sfx-island, .sfx-live-dot, .sfx-live-dot::after { animation: none; } }
 
 /* Sofix's captain pick on Sorare's builder (1.2): a faint purple C at the card's bottom right, never glowing. */
 .sfx-captain {

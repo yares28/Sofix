@@ -1212,3 +1212,25 @@ def test_a_market_row_carries_his_game_of_the_week_being_played_while_it_is_stil
     assert on[0]["now"]["fixture"]["id"] == "Game:tue"  # on: still his game until the final whistle
     assert out[2] == {"slug": "nobody", "x": 1.0}
     assert publish.with_now(rows, None, at) == rows
+
+
+def test_a_club_sorare_draws_without_a_picture_gets_the_european_boards_crest() -> None:
+    uefa = "https://img.uefa.com/imgml/TP/teams/logos/70x70/50079.png"
+    grids = {
+        "EL": {
+            "teams": [
+                {"sorare_slug": "fenerbahce-istanbul", "crest_url": uefa},
+                {"sorare_slug": None, "crest_url": uefa},
+            ]
+        }
+    }
+    crests = sorare_job.european_crests(grids)
+    assert crests == {"fenerbahce-istanbul": uefa}
+    game = {
+        "homeTeam": {"slug": "fenerbahce-istanbul", "pictureUrl": ""},
+        "awayTeam": {"slug": "liverpool-liverpool", "pictureUrl": "https://assets.sorare.com/team/lfc.png"},
+    }
+    snapshot = {"cards": [{"player": {"slug": "alisson", "plan": [game]}}], "market": None}
+    sorare_job.fill_crests([snapshot.get(k) for k in ("cards", "market", "foreign")], crests)
+    assert game["homeTeam"]["pictureUrl"] == uefa
+    assert game["awayTeam"]["pictureUrl"] == "https://assets.sorare.com/team/lfc.png"  # Sorare's own crest stays

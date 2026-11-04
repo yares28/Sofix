@@ -460,6 +460,28 @@ def board_of(laliga: LaLigaBoard | None, grids: dict[str, dict[str, Any]]) -> so
     return read
 
 
+def european_crests(grids: dict[str, dict[str, Any]]) -> dict[str, str]:
+    """Each European club's UEFA crest, by its Sorare slug, from the boards the Table page shows (CL, EL, Conference)."""
+    return {
+        team["sorare_slug"]: team["crest_url"]
+        for code in ("CL", "EL", "CONF")
+        for team in (grids.get(code) or {}).get("teams") or []
+        if team.get("sorare_slug") and team.get("crest_url")
+    }
+
+
+def fill_crests(value: Any, crests: dict[str, str]) -> None:
+    """Gives every club Sorare draws without a picture (Fenerbahce, Napoli...) its crest from the European boards, in place."""
+    if isinstance(value, dict):
+        if "pictureUrl" in value and not value["pictureUrl"] and value.get("slug") in crests:
+            value["pictureUrl"] = crests[value["slug"]]
+        for item in value.values():
+            fill_crests(item, crests)
+    elif isinstance(value, list):
+        for item in value:
+            fill_crests(item, crests)
+
+
 def foreign_inputs(kept: dict[str, Any], now: datetime) -> tuple[dict[str, Any], dict[str, Any], dict[str, list[str]]]:
     grids, models, clubs = {}, {}, {}
     for code in foreign_scores.COMPETITIONS:
@@ -597,6 +619,8 @@ def run(
             **foreign_kwargs,
         )
         snapshot["scoreModels"] = {c: foreign_scores.version(c) for c in active_models}
+        # Sorare has no picture for some clubs; every game and squad below then shows the crest the Table page has.
+        fill_crests([snapshot.get(k) for k in ("cards", "market", "foreign")], european_crests(foreign_grids))
         if not dry_run:
             for code, index in (snapshot.get("foreign") or {}).items():
                 put(

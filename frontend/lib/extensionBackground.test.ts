@@ -720,6 +720,25 @@ describe("points needed on sorare.com", () => {
     expect(kept.proLineups[0]).toMatchObject({ target: 380, cards: [{ slug: "p1", score: 66, bonus: 1.1 }] });
   });
 
+  it("marks a card whose score can no longer move: taken off, his game over or Sorare's score final; not one on the bench of a live game", async () => {
+    const card = (slug: string, extra: Record<string, unknown>) => ({ captain: false, score: 30, bonus: 1, anyCard: { slug }, ...extra });
+    const field = (fieldStatus: string) => ({ playerGameScore: { anyPlayerGameStats: { fieldStatus } } });
+    const w = load({ sorareTab: true, operationData: (operation) => operation === "SofixArcadeLineups"
+      ? { currentUser: { setBoard: { steps: [{ id: STEP, myLineups: [{ __typename: "TaskLineup", id: "open", draft: false, aasmState: "READY", taskAppearances: [
+          card("subbed", { game: { id: "Game:00000000-0000-0000-0000-000000000001", date: "2026-11-04T17:45:00Z", statusTyped: "playing" }, scoreStatus: "PENDING", ...field("SUBSTITUTED") }),
+          card("over", { game: { date: "2026-11-04T17:45:00Z", statusTyped: "played" }, scoreStatus: "PENDING" }),
+          card("final", { game: { date: "2026-11-04T17:45:00Z" }, scoreStatus: "FINAL" }),
+          card("absent", { game: { date: "2026-11-04T17:45:00Z", statusTyped: "playing" }, ...field("NOT_ON_GAME_SHEET") }),
+          card("bench", { game: { date: "2026-11-04T17:45:00Z", statusTyped: "playing" }, scoreStatus: "PENDING", ...field("ON_BENCH") }),
+          card("playing", { game: { date: "2026-11-04T17:45:00Z", statusTyped: "playing" }, scoreStatus: "PENDING", ...field("ON_FIELD") }),
+        ] }] }] } } }
+      : answers(operation) });
+    await w.sendFrom(APP, { type: "sorare", step: "arcade-lineups" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const kept = w.local.get("needData") as { arcadeLineups: { cards: { slug: string; done?: boolean }[] }[] };
+    expect(kept.arcadeLineups[0]!.cards.filter((c) => c.done).map((c) => c.slug)).toEqual(["subbed", "over", "final", "absent"]);
+  });
+
   it("answers the overlay from what it keeps, and reads your lineups again only while a game is live, at most every 2 minutes", async () => {
     const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
     const now = Date.now();

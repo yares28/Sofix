@@ -875,15 +875,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-04",
-        "note": "4 Nov 2026: playing rows also publish mu and sd for the overlay's builder gauge; planner, selection, chances and rewards unchanged.",
+        "note": "4 Nov 2026: the Sorare job fills a club picture Sorare leaves empty with the European boards' UEFA crest by Sorare slug, right after the sync; display only, no plan, forecast or selection input changes.",
         "files": {
           "backend/app/sorare/publish.py": "8aa55e2cb599d31ac0f5293cf60da4653be7b78f618a55cbf03a2adf0bfe08d3",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "ae6598e9a0cca2649be47386ce6ee71f1c7a783987bfa3b4a6c3230a72435ca2",
+          "backend/app/jobs/sorare.py": "0b23337836defeb6abf0d3e58e2d3e5e3fbabfe843906ff4f311424b95f720b2",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
-          "backend/tests/test_sorare_publish.py": "d02896735b378fe251e387cb6d36ebacc126a08647be5a73608f10362e028ab2"
+          "backend/tests/test_sorare_publish.py": "f918b02fe13fb877fb683b7bb7355e3c6554586f0474f7ca78791539e221c9e0"
         }
       }
     },
@@ -997,12 +997,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-04",
-        "note": "4 Nov 2026: playing rows also publish mu and sd for the overlay's builder gauge; planner, selection, chances and rewards unchanged.",
+        "note": "4 Nov 2026: test file gained a crest-fill test only; no forecast behavior change.",
         "files": {
           "backend/app/sorare/publish.py": "8aa55e2cb599d31ac0f5293cf60da4653be7b78f618a55cbf03a2adf0bfe08d3",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
-          "backend/tests/test_sorare_publish.py": "d02896735b378fe251e387cb6d36ebacc126a08647be5a73608f10362e028ab2"
+          "backend/tests/test_sorare_publish.py": "f918b02fe13fb877fb683b7bb7355e3c6554586f0474f7ca78791539e221c9e0"
         }
       }
     },
@@ -1573,15 +1573,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-04",
-        "note": "4 Nov 2026 (0.4.61): a read-only % to clear pill on lineup pages from need-data and overlay answers; no Sorare operation, no write, no new permission.",
+        "note": "4 Nov 2026 (0.4.62): the read-only SofixArcadeLineups and SofixProLineups queries also read scoreStatus, game statusTyped and the player's fieldStatus to mark a card done (subbed off, game over, score final); no new operation, no write, no new permission.",
         "files": {
-          "extension/background.js": "753ce4c30689712f22101fb91404e8be17c5ea87abe54e9a7e771d0d4c9b677e",
-          "extension/bridge.js": "7a989a799f064d5b7dfca405b03e1e908b3ee5e744ea0a9c5be401ffd5fa0789",
-          "extension/manifest.template.json": "1fee8ae737845521ecfe70df9daa4fbe30cbd4c4e124230d088cf7bc9d278b3c",
+          "extension/background.js": "285db459a828ef8239e8d2d2724d34f99527699b472264fc8fb32fbba7fd3bcd",
+          "extension/bridge.js": "d318a12d9854876efa1ef44e2cbce2b2884bf22fc0d0934777296945a305418d",
+          "extension/manifest.template.json": "d91e66198f3cc372c12582c180cc611a8a6363f975e7efbdd2191b593576924f",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "6698cb32089ac0ee9611e960534e59fdc462f83a61425ef2218c0cbba921d3bb"
+          "frontend/lib/extensionBackground.test.ts": "ed74d81a5a96398f1c9b62e65299436628b1058bebe1e562d3aa15591dff0c54"
         }
       }
     },

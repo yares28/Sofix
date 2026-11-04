@@ -1022,8 +1022,8 @@
 
   // -- the crest above each card and its island (plans/overlay-v2.md 1.2, step 2) -------------------------------------
   // The opponent's crest sits on the card's top edge, half outside, in a layer of its own on the page (Sorare's boxes clip anything
-  // drawn inside them), moved with the card on each pass. Two games: both crests. His game on: a dark pill with a live dot. Sure not
-  // to play: the same pill, "Out". No crest from Sorare: a shield in the club's colour with its letters. Hovering or focusing it opens
+  // drawn inside them), moved with the card on each pass. Two games: both crests. His game on: the crest with a pulsing red dot. Sure not
+  // to play: a dark pill, "Out". No crest from Sorare: a shield in the club's colour with its letters. Hovering or focusing it opens
   // the island above the card: both sides, when, where, and the game's five numbers coloured against the week's games.
 
   let crestLayer = null;
@@ -1079,9 +1079,9 @@
       button.setAttribute("aria-label", `Sofix: next game ${state.games.map(gameWords).join("; then ")}. Show the game`);
     } else {
       const g = state.games[0];
-      button.append(clubMark(g.opponentCrest, g.opponent, g.opponentCode, g.opponentColor, PILL_CREST[tier]));
-      if (state.kind === "live") button.append(node("i", "sfx-live-dot"), node("b", "", "Live"));
-      else button.append(node("b", "sfx-out", "Out"));
+      // Live: the crest alone with a small pulsing red dot on its corner, no word (the owner, 4 Nov 2026: the pill took too much room).
+      button.append(clubMark(g.opponentCrest, g.opponent, g.opponentCode, g.opponentColor, state.kind === "live" ? CREST_SIZE[tier][0] : PILL_CREST[tier]));
+      button.append(state.kind === "live" ? node("i", "sfx-live-dot") : node("b", "sfx-out", "Out"));
       button.setAttribute("aria-label", `Sofix: ${state.kind === "live" ? "his game is on" : "sure not to play"}, ${gameWords(g)}. Show the game`);
     }
     if (record.crest) record.crest.remove();
@@ -1562,7 +1562,8 @@
       const target = lineup.kind === "arcade" ? (steps[lineup.step] ? steps[lineup.step].target : null) : lineup.target;
       const cards = lineup.cards.map((c) => {
         const at = c.kickoff ? Date.parse(c.kickoff) : NaN;
-        const state = !Number.isFinite(at) || t < at ? "to play" : t - at < NEED_GAME_MS ? "live" : "finished";
+        // Taken off or his game over (background.js doneScoring): his score is locked, whatever the clock says.
+        const state = c.done ? "finished" : !Number.isFinite(at) || t < at ? "to play" : t - at < NEED_GAME_MS ? "live" : "finished";
         // Sorare's card score already holds the card's bonus (and the captain's): his raw score is that score divided by it.
         return { multiplier: c.bonus, unknown: "Sorare gave no bonus for this card", state, raw: c.score === null || !c.bonus ? null : c.score / c.bonus };
       });

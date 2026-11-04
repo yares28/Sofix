@@ -198,7 +198,8 @@
           ... on TaskLineup { id draft confirmable aasmState score
             taskAppearances { id index captain rarity positions score bonus locked pictureUrl(derivative: "tinified")
               averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
-              anyCard { slug inSeasonEligible anyTeam { name } } player { slug displayName } game { date } } }
+              anyCard { slug inSeasonEligible anyTeam { name } } player { slug displayName } game { id date statusTyped }
+              scoreStatus playerGameScore { anyPlayerGameStats { ... on PlayerGameStats { fieldStatus } } } } }
           ... on So5Lineup { ${LINEUP} so5Fixture { slug startDate } } } } } } }`,
 
     // Today's daily missions of every rarity, with the picks you made and Sorare's verdict on each. Read only: the app's
@@ -244,7 +245,8 @@
       steps { id level myLineups { __typename
         ... on TaskLineup { id draft aasmState score cancelledAt forfeitable hasLiveGames updatable
           taskAppearances { id index captain positions score locked bonus
-            anyCard { slug } player { slug displayName } game { id date } } } } } } } }`,
+            anyCard { slug } player { slug displayName } game { id date statusTyped }
+            scoreStatus playerGameScore { anyPlayerGameStats { ... on PlayerGameStats { fieldStatus } } } } } } } } } }`,
 
     // Today's General daily missions (Sorare's Play missions window, `setPlayTasks`, seen 22 Oct 2026: the Decisive Player Picker, some
     // days more), with their rewards, your picks and your progress. The older Common panel's streaks could no longer be played.

@@ -753,7 +753,9 @@ test.describe("the sorare.com overlay", () => {
     await page.locator("#noxg").scrollIntoViewIfNeeded();
     expect(await crestOf("noxg")).toMatchObject({ imgs: 0, text: "FEN" }); // no crest from Sorare: its shield
     await page.locator("#doubtful").scrollIntoViewIfNeeded();
-    expect((await crestOf("doubtful"))!.text).toBe("Live");
+    // his game on: the crest alone with a red dot, no word (the owner, 4 Nov 2026)
+    expect(await crestOf("doubtful")).toMatchObject({ text: "", kind: expect.stringContaining("sfx-crest--live") });
+    expect(await page.locator(".sfx-crest--live .sfx-live-dot").first().evaluate((el) => el.getBoundingClientRect().width)).toBeLessThanOrEqual(5);
     await page.locator("#pick-6").scrollIntoViewIfNeeded();
     expect((await crestOf("pick-6"))!.text).toBe("Out");
     // A card Sofix has no game for draws no crest at all.

@@ -1774,20 +1774,30 @@
   // faint purple C at the bottom right, until Sorare has that card as captain.
   const builderPage = () => Boolean(core.composeBoard(location.pathname)) || /^\/football\/series\/[^/]+\/compose-team(?:\/|$)/.test(location.pathname);
 
-  /** The cards on Sorare's pitch, each with whether Sorare has it as captain. Only reads the page (called before anything is written). */
+  /**
+   * The cards on Sorare's pitch, each with whether Sorare has it as captain. A placed card sits in a slot button labelled "Select
+   * <player>" (seen 4 Nov 2026; an empty slot says "Select DEF"), and once the lineup is full Sorare adds the "Captain" marks. One
+   * entry per card (Sorare draws a card's art twice). Only reads the page (called before anything is written).
+   */
   function pitchOf(reads) {
     if (!builderPage()) return [];
     const marks = [...document.querySelectorAll('[title="Captain"]')]
       .filter((el) => !el.closest("[data-sfx]"))
       .map((el) => ({ el, r: el.getBoundingClientRect() }))
       .filter(({ r }) => r.width >= 20); // Sorare's 16 px one in the "Select Captain" line is not on a card
-    if (!marks.length) return [];
+    const slots = [...document.querySelectorAll("button")].filter((b) => /^Select\s/.test(b.getAttribute("aria-label") || b.textContent || "") && b.getBoundingClientRect().width >= 90);
+    if (!marks.length && !slots.length) return [];
     const pitch = [];
+    const seen = new Set();
     for (const read of reads) {
       if (read.tier !== "full" || read.covered) continue;
-      const { rect } = read;
+      const { rect, record } = read;
       const mark = marks.find(({ r }) => Math.abs(r.left + r.width / 2 - rect.left) < 24 && Math.abs(r.top + r.height / 2 - rect.top) < 24);
-      if (mark) pitch.push({ read, captain: mark.el.classList.contains("active") });
+      if (!mark && !slots.some((b) => b.contains(record.media))) continue;
+      const key = slugOf(record) || record.media;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      pitch.push({ read, captain: Boolean(mark) && mark.el.classList.contains("active") });
     }
     return pitch;
   }

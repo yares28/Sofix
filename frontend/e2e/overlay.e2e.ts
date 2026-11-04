@@ -1776,7 +1776,15 @@ test.describe("the sorare.com overlay", () => {
     expect(Math.abs(at.right - 1002)).toBeLessThan(2);
     expect(Math.abs(at.top - (64 + 152 + 16))).toBeLessThan(2);
 
-    await mark(["pick-1"], null);
+    // Before the lineup is full Sorare draws no captain marks: a placed card is the art inside its slot button, "Select <player>".
+    await page.evaluate(() => {
+      const card = document.getElementById("pick-1")!;
+      const slot = document.createElement("button");
+      slot.setAttribute("aria-label", "Select Pick 1");
+      slot.style.cssText = "all:unset;display:block";
+      card.replaceWith(slot);
+      slot.append(card);
+    });
     await expect(gauge.locator(".sfx-team-count")).toHaveText("1 of 5");
     const one = Number(await total());
     expect(Math.abs(one - 70)).toBeLessThanOrEqual(3); // his 70: 0.9 to play x 77.8 if he plays

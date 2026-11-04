@@ -379,7 +379,8 @@ unused) as the hero, `benchedOn` struck as "SOFIX TODAY" when it differs, ten ba
 without a record keeps the old score-if-he-comes-on side. A player whose game is live and whom FF's live read has at 0% opens on
 Comes on. The chart, reasons, sources list, games list and game cells went, with their core helpers and CSS; panel labels are
 11 px. Blocks: about +95 bytes a row, Europa League ~1.43 MB of 1.6. Not done: the planner switch (a separate decision after
-`lineup_backtest --pools 600`). Acceptance on real data after the refresh.
+`lineup_backtest --pools 600`). Acceptance on real data after the refresh. 4 Nov: the first real record (Mumin 0 / 6 / 3 / 14′,
+nine games) stopped at the week's lock and missed his 69′ on 31 Oct; the record now counts every finished game up to the refresh.
 
 - Backend: `forecast.py` gains the 10-game minutes record per player (from `player_games`: started, came on, unused, minutes
   when on) and publishes it with each market and playing row (`benchRecord: {started, on, unused, minsOn, games}`).

@@ -875,9 +875,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-04",
-        "note": "4 Nov 2026: added the overlay-only benchRecord (forecast.bench_record from past games, carried on Forecast and published on playing and market rows; play.ts types). The planner, raw record, chances and their sources are unchanged; the record is a separate quantity (came on / (came on + unused)), not the chance of coming on.",
+        "note": "4 Nov 2026: benchRecord now reads every finished game up to the refresh, not only those before the lock (overlay-only; planner, raw record, chances and selection unchanged).",
         "files": {
-          "backend/app/sorare/publish.py": "576e682287b00a1e34ae50b9f5292d2c32f2772ced677fc78ca3ceea2fa0b5cf",
+          "backend/app/sorare/publish.py": "ff5f60c40142c57b8cf366a9f8e8f71305b2340a9504d6b42fcdc7f8c9ba5fb0",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
@@ -997,9 +997,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-04",
-        "note": "4 Nov 2026: added the overlay-only benchRecord (forecast.bench_record from past games, carried on Forecast and published on playing and market rows; play.ts types). The planner, raw record, chances and their sources are unchanged; the record is a separate quantity (came on / (came on + unused)), not the chance of coming on.",
+        "note": "4 Nov 2026: benchRecord now reads every finished game up to the refresh, not only those before the lock (overlay-only; planner, raw record, chances and selection unchanged).",
         "files": {
-          "backend/app/sorare/publish.py": "576e682287b00a1e34ae50b9f5292d2c32f2772ced677fc78ca3ceea2fa0b5cf",
+          "backend/app/sorare/publish.py": "ff5f60c40142c57b8cf366a9f8e8f71305b2340a9504d6b42fcdc7f8c9ba5fb0",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "d02896735b378fe251e387cb6d36ebacc126a08647be5a73608f10362e028ab2"

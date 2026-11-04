@@ -450,7 +450,8 @@ def player_weeks(
             game_dec=tuple(o.p_decisive if o is not None else (own_decisive(past, pos) or 0.0) for o in made.outcomes),
             dec=own_decisive(past, pos),
             waiting=made.waiting,
-            bench_record=bench_record(past),
+            # His last ten games as of now, not as of the lock: a game played this week is part of what the panel shows.
+            bench_record=bench_record(sorted(history.get(slug, []), key=lambda h: h["date"], reverse=True)),
         )
     return weeks
 

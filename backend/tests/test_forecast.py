@@ -88,3 +88,29 @@ def test_a_market_row_carries_the_record_and_a_row_without_one_does_not() -> Non
     )
     assert rows[0]["benchRecord"] == {"started": 0, "on": 1, "unused": 1, "minsOn": 20, "games": "UO", "mins": [0, 20]}
     assert "benchRecord" not in rows[1]
+
+
+def test_the_record_counts_a_game_already_played_this_week() -> None:
+    # Mumin on 4 Nov: the week locked on 30 Oct, his 69 minutes on 31 Oct came after it and still belong to "his last ten".
+    from datetime import UTC, datetime
+
+    from app.sorare.publish import player_weeks
+
+    rows = [{"player": {"slug": "mumin", "position": "Defender"}}]
+    history = {
+        "mumin": [
+            game("2026-10-24T16:30:00+00:00", False, 31, score=30.0),
+            game("2026-10-31T13:00:00+00:00", False, 69, score=45.0),
+            {
+                "date": "2026-11-08T15:15:00+00:00",
+                "started": False,
+                "mins": None,
+                "played": False,
+                "status": "PENDING",
+                "score": None,
+            },
+        ]
+    }
+    lock = datetime(2026, 10, 30, 18, tzinfo=UTC)
+    week = player_weeks(rows, {"mumin": [{}]}, history, lock, None, use_sorare=False)["mumin"]
+    assert week.bench_record == {"started": 0, "on": 2, "unused": 0, "minsOn": 50, "games": "OO", "mins": [31, 69]}

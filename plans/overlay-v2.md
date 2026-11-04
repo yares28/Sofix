@@ -450,6 +450,14 @@ Tests: e2e with one waiting and two missed lineups (pill only on the waiting one
 
 ### Step 8. Further weeks (GW+2, GW+3)
 
+**Closed (4 Nov, the owner): not needed.** Measured on the 4 Nov blocks: the Champions League, Europa League and Conference League
+blocks are 1.24-1.37 MB against the 1.6 MB limit, and two more weeks on every row (~425 bytes a week, as `next` today) would put all
+three over it; the refresh is 14-20 minutes against a 25-minute timeout, its Sorare step 12-14, and two more weeks of games for every
+squad could not be timed without a production run. The LaLiga fallback would not show either: Sorare only has pages for the weeks
+the overlay already answers (the one played, the one planned and the next), and the early plans (`sorare_ahead:<round>`) are for
+rounds Sorare has not opened. Their one use would be a card of yours with no game this week or next, which keeps crest and island
+only (edge case 14).
+
 - The refresh plans two more weeks of market rows for every league; measured first (refresh minutes, Neon MB, R2 size). Ships
   only if the refresh stays under its slot and the free tiers hold; otherwise LaLiga only (already published as early rounds).
 

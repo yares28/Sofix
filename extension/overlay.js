@@ -743,46 +743,37 @@
   const PANEL_WIDTH = 290;
   const scoreColourOf = (score) => colour(core.scoreLevel(score));
 
-  /** The number and its words: the score if he starts (or if he is benched), and the chance of that with whose number it is. */
-  function panelBig(entry, mode) {
+  /** The panel's hero: his xScore, large and in its colour (the score if he comes on when he sits on the bench during his game). */
+  function panelHero(entry, benched) {
     const f = facts(entry);
-    const starts = mode === "start" || !f.split;
-    const comes = core.comesOnScore(entry);
-    const score = starts ? f.score : comes.score;
+    const score = benched ? core.comesOnScore(entry).score : f.score;
     const big = node("div", "sfx-big");
     big.style.setProperty("--sfx-c", scoreColourOf(score));
-    const line = node("div", "sfx-num");
-    line.append(node("strong", "", String(score)), node("span", "", f.split ? (starts ? "if he starts" : comes.words) : "expected score"));
-    big.append(line);
-    const chance = starts ? f.startChance : core.benchOnChance(entry);
-    const side = node("div", `sfx-chance${starts && f.tone === "doubt" ? " sfx-chance--doubt" : ""}${starts && f.tone === "out" ? " sfx-chance--out" : ""}`);
-    if (chance !== null && (f.split || !starts)) {
-      const value = node("div", "sfx-chance-row");
-      if (starts && f.source) value.append(sourceDot(f.source));
-      value.append(node("b", "", core.chanceLabel(chance)));
-      const what = starts ? `START${f.source ? " · " + core.SOURCE_SHORT[f.source] : ""}` : "COMES ON";
-      side.append(value, node("span", "", what));
-      big.append(side);
-    } else if (!f.split) {
-      const value = node("div", "sfx-chance-row");
-      value.append(node("b", "", core.chanceLabel(entry.p)));
-      side.append(value, node("span", "", "PLAYS"));
-      big.append(side);
-    }
+    big.append(node("strong", "", String(score)));
     return big;
   }
 
-  /** The Starts side under its hero (1.3): his expected decisive actions and the chance of one if he starts. */
-  function startCells(entry) {
-    const grid = node("div", "sfx-stats sfx-stats--two");
-    const cells = [
-      ["XD", typeof entry.xd === "number" ? entry.xd.toFixed(2) : "—", "Expected decisive actions in his game"],
-      ["DECISIVE", typeof entry.decisive === "number" ? core.chanceLabel(entry.decisive) : "—", "The chance of a decisive action if he starts"],
-    ];
-    for (const [key, value, title] of cells) {
-      const cell = node("div", "sfx-stat");
+  /**
+   * The five numbers under the hero, one size: his expected decisive actions (no scale to colour it by yet), and, coloured good
+   * to bad, his side's xG, win and clean-sheet chances and the FDR of his next game (their sixth among the week's games, as on the crest).
+   */
+  function panelCells(entry) {
+    const g = Array.isArray(entry.island) ? entry.island[0] : null;
+    const n = (g && g.game) || {};
+    const tone = (stat) => (g && g.tones && Number.isInteger(g.tones[stat]) ? core.SIXTHS[g.tones[stat]] : null);
+    const pct = (v) => (typeof v === "number" ? `${Math.round(v * 100)}%` : null);
+    const grid = node("div", "sfx-cells");
+    for (const [key, value, background, title] of [
+      ["XD", typeof entry.xd === "number" ? entry.xd.toFixed(2) : null, null, "Expected decisive actions in his game"],
+      ["XG", typeof n.goalsFor === "number" ? n.goalsFor.toFixed(2) : null, tone("goalsFor"), "Goals his side is expected to score"],
+      ["WIN", pct(n.win), tone("win"), "His side's chance to win"],
+      ["CS", pct(n.cleanSheet), tone("cleanSheet"), "His side's chance to keep a clean sheet"],
+      ["FDR", typeof n.difficulty === "number" ? String(Math.round(n.difficulty)) : null, typeof n.difficulty === "number" ? colour(core.fdrLevel(n.bucket)) : null, "Difficulty, 0 to 100, lower is easier"],
+    ]) {
+      const cell = node("div", value === null ? "sfx-cell sfx-cell--none" : "sfx-cell");
+      if (background && value !== null) cell.style.background = background;
       cell.title = title;
-      cell.append(node("span", "", key), node("b", value === "—" ? "sfx-stat--none" : "", value));
+      cell.append(node("span", "", key), node("b", "", value === null ? "—" : value));
       grid.append(cell);
     }
     return grid;
@@ -797,7 +788,12 @@
     const record = core.comesOnRecord(entry);
     const box = node("div", "sfx-comes");
     if (!record) {
-      box.append(panelBig(entry, "bench"));
+      const chance = core.benchOnChance(entry);
+      const big = node("div", "sfx-big");
+      const line = node("div", "sfx-num");
+      line.append(node("strong", "", chance === null ? "—" : core.chanceLabel(chance)), node("span", "", "comes on"));
+      big.append(line);
+      box.append(big);
       return box;
     }
     const big = node("div", "sfx-big");
@@ -823,21 +819,7 @@
     });
     const axis = node("div", "sfx-mins-axis");
     axis.append(node("span", "", `last ${record.bars.length} games`));
-    const four = node("div", "sfx-stats sfx-stats--four");
-    for (const [key, value] of [["STARTED", record.started], ["CAME ON", record.on], ["UNUSED", record.unused], ["MIN ON", record.minsOn === null ? "—" : `${record.minsOn}′`]]) {
-      const cell = node("div", "sfx-stat");
-      cell.append(node("span", "", key), node("b", value === "—" ? "sfx-stat--none" : "", String(value)));
-      four.append(cell);
-    }
-    box.append(bars, axis, four);
-    return box;
-  }
-
-  /** The side the switch is on, in one box swapped when it changes. */
-  function sideNode(entry, mode) {
-    const box = node("div", "sfx-side");
-    if (mode === "bench") box.append(comesNode(entry));
-    else box.append(panelBig(entry, "start"), startCells(entry));
+    box.append(bars, axis);
     return box;
   }
 
@@ -864,18 +846,15 @@
     return alert;
   }
 
-  function panelNode(entry, mode, onPick, plan, onResize) {
-    const f = facts(entry);
+  function panelNode(entry, benched, plan) {
     const el = node("div", "sfx-panel");
     el.setAttribute("data-sfx", "panel");
     el.setAttribute("role", "dialog");
     el.setAttribute("aria-label", "Sofix details");
     const body = node("div", "sfx-body");
-    const brand = node("span", "sfx-brand");
-    const mark = stripe();
-    brand.append(mark, "SOFIX");
-    const head = node("div", "sfx-head");
-    head.append(brand);
+    const top = node("div", "sfx-head");
+    top.append(panelHero(entry, benched));
+    const side = node("div", "sfx-head-side");
     if (plan) {
       const chip = node("span", "sfx-plan", plan.lineup);
       if (plan.captain) {
@@ -883,32 +862,15 @@
         captain.setAttribute("aria-label", "Captain");
         chip.append(captain);
       }
-      head.append(chip);
+      side.append(chip);
     }
     const age = entry.live ? core.freshLabel(entry.startAt, now()) : core.freshLabel(entry.at, now());
-    if (age) head.append(node("span", "sfx-age", entry.live ? `FF live ${age}` : age));
-    body.append(head);
+    if (age) side.append(node("span", "sfx-age", entry.live ? `FF live ${age}` : age));
+    top.append(side);
+    body.append(top);
     const stale = core.staleness(entry, now());
     if (stale) body.append(node("p", "sfx-note", stale.kind === "over" ? "His game has started." : `These numbers are ${stale.hours} h old.`));
-    if (f.split || entry.benchRecord) {
-      const seg = node("div", "sfx-seg");
-      seg.setAttribute("role", "group");
-      seg.setAttribute("aria-label", "Show him when he");
-      for (const [key, text] of [["start", "Starts"], ["bench", "Comes on"]]) {
-        const button = node("button", "", text);
-        button.type = "button";
-        button.setAttribute("aria-pressed", String(key === mode));
-        button.setAttribute("data-mode", key);
-        button.addEventListener("click", guard((event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          onPick(key);
-        }));
-        seg.append(button);
-      }
-      body.append(seg);
-    }
-    body.append(sideNode(entry, mode));
+    body.append(panelCells(entry));
     const alert = alertNode(entry);
     if (alert) body.append(alert);
     const next = nextGameNode(entry);
@@ -917,21 +879,17 @@
     return el;
   }
 
-  /** His next game in one line at the panel's foot: the opponent's crest, where and when, and the FDR (the rest of the game's numbers are the crest island's). */
+  /** His next game in one short line: "v [crest] Barcelona" at home, "[crest] Sevilla v" away, then when. */
   function nextGameNode(entry) {
     const g = Array.isArray(entry.island) ? entry.island[0] : null;
     if (!g || !g.opponent) return null;
-    const n = g.game || {};
     const row = node("div", "sfx-next");
-    const words = node("span", "sfx-next-words");
-    words.append(node("b", "", `${g.venue === "A" ? "at" : "v"} ${g.opponent}`), node("span", "", `${core.islandWhen(g.kickoff)} · ${core.competitionName(g.competition)}`));
-    row.append(clubMark(g.opponentCrest, g.opponent, g.opponentCode, g.opponentColor, 26), words);
-    if (typeof n.difficulty === "number") {
-      const fdr = node("span", "sfx-next-fdr", String(Math.round(n.difficulty)));
-      fdr.title = "Difficulty, 0 to 100, lower is easier";
-      fdr.style.background = colour(core.fdrLevel(n.bucket));
-      row.append(fdr);
-    }
+    row.setAttribute("aria-label", gameWords(g));
+    const crest = clubMark(g.opponentCrest, g.opponent, g.opponentCode, g.opponentColor, 20);
+    const name = node("b", "", g.opponent);
+    if (g.venue === "A") row.append(crest, name, node("span", "sfx-next-v", "v"));
+    else row.append(node("span", "sfx-next-v", "v"), crest, name);
+    row.append(node("span", "sfx-next-when", core.islandWhen(g.kickoff)));
     return row;
   }
 
@@ -1009,22 +967,15 @@
     if (!entry || !record.tile || !record.tile.isConnected) return;
     if (panel && panel.record === record) {
       clearTimeout(panel.timer);
-      if (focusInside) focusFirst();
+      if (focusInside) panel.el.focus({ preventScroll: true });
       return;
     }
     closePanel(false);
     // During his game, a player left on the bench opens on Comes on (1.6, "live for a benched player").
     const benchedNow = core.crestState(entry, now()).kind === "live" && entry.live && typeof entry.pStart === "number" && entry.pStart < 0.05;
-    const first = benchedNow && (entry.benchRecord || facts(entry).split) ? "bench" : "start";
-    const state = { record, entry, mode: first, el: null, timer: 0, overTile: true, overPanel: false };
-    const pick = (mode) => {
-      if (!panel || panel !== state) return;
-      state.mode = mode;
-      state.el.querySelector(".sfx-side").replaceWith(sideNode(entry, mode)); // only the side changes, so the buttons keep the focus
-      positionPanel();
-      for (const button of state.el.querySelectorAll(".sfx-seg button")) button.setAttribute("aria-pressed", String(button.getAttribute("data-mode") === mode));
-    };
-    state.el = panelNode(entry, first, pick, planFor(record, entry), () => { if (panel === state) positionPanel(); });
+    const state = { record, entry, el: null, timer: 0, overTile: true, overPanel: false };
+    state.el = panelNode(entry, benchedNow && facts(entry).split, planFor(record, entry));
+    state.el.tabIndex = -1;
     state.el.addEventListener("pointerenter", guard(() => { state.overPanel = true; clearTimeout(state.timer); }));
     state.el.addEventListener("pointerleave", guard(() => { state.overPanel = false; scheduleClose(); }));
     state.el.addEventListener("focusout", guard(() => scheduleClose()));
@@ -1037,12 +988,7 @@
     document.addEventListener("pointerdown", onOutside, true);
     window.addEventListener("scroll", onPanelScroll, true);
     window.addEventListener("resize", onPanelScroll, true);
-    if (focusInside) focusFirst();
-  }
-
-  function focusFirst() {
-    const first = panel && panel.el.querySelector(".sfx-seg button");
-    if (first) first.focus({ preventScroll: true });
+    if (focusInside) state.el.focus({ preventScroll: true });
   }
 
   /** The tile is the one thing on the card that answers the pointer, and all it does is open the panel. */
@@ -1253,9 +1199,10 @@
     perf.slowestMove = Math.max(perf.slowestMove, performance.now() - started);
   }
 
-  function statCell(label, value, background, title) {
-    const cell = node("div", value === null ? "sfx-isl-stat sfx-isl-stat--none" : "sfx-isl-stat");
-    if (background && value !== null) cell.style.background = background;
+  /** One of the strip's numbers: its colour on the figure, or, for the FDR, the whole cell filled. */
+  function statCell(label, value, tone, title, filled) {
+    const cell = node("div", `sfx-isl-stat${value === null ? " sfx-isl-stat--none" : ""}${filled ? " sfx-isl-stat--fill" : ""}`);
+    if (tone && value !== null) cell.style.setProperty(filled ? "background" : "--sfx-t", tone);
     cell.append(node("span", "", label), node("b", "", value === null ? "–" : value));
     if (title) cell.title = title;
     return cell;
@@ -1269,23 +1216,17 @@
     const top = node("div", "sfx-isl-top");
     const mid = node("div", "sfx-isl-mid");
     mid.append(node("b", "", core.islandWhen(g.kickoff)), node("span", "", core.competitionName(g.competition)));
-    const side = (club) => {
-      const holder = node("span", "sfx-isl-club");
-      holder.append(clubMark(club[0], club[1], club[2], club[3], 40), node("span", "sfx-isl-name", club[1] || ""));
-      return holder;
-    };
-    top.append(side(home), mid, side(away));
+    top.append(clubMark(home[0], home[1], home[2], home[3], 40), mid, clubMark(away[0], away[1], away[2], away[3], 40));
     const n = g.game || {};
     const tone = (stat) => (Number.isInteger(g.tones && g.tones[stat]) ? core.SIXTHS[g.tones[stat]] : null);
     const pct = (v) => (typeof v === "number" ? `${Math.round(v * 100)}%` : null);
     const goals = (v) => (typeof v === "number" ? v.toFixed(2) : null);
     const stats = node("div", "sfx-isl-stats");
     stats.append(
-      statCell("WIN", pct(n.win), tone("win"), "His side's chance to win"),
-      statCell("CS", pct(n.cleanSheet), tone("cleanSheet"), "His side's chance to keep a clean sheet"),
-      statCell("XG", goals(n.goalsFor), tone("goalsFor"), "Goals his side is expected to score"),
-      statCell("XGA", goals(n.goalsAgainst), tone("goalsAgainst"), "Goals his side is expected to concede"),
-      statCell("FDR", typeof n.difficulty === "number" ? String(Math.round(n.difficulty)) : null, colour(core.fdrLevel(n.bucket)), "Difficulty, 0 to 100, lower is easier"),
+      statCell("WIN", pct(n.win), tone("win"), "His side's chance to win", false),
+      statCell("CS", pct(n.cleanSheet), tone("cleanSheet"), "His side's chance to keep a clean sheet", false),
+      statCell("XG", goals(n.goalsFor), tone("goalsFor"), "Goals his side is expected to score", false),
+      statCell("FDR", typeof n.difficulty === "number" ? String(Math.round(n.difficulty)) : null, colour(core.fdrLevel(n.bucket)), "Difficulty, 0 to 100, lower is easier", true),
     );
     block.append(top, stats);
     block.setAttribute("aria-label", `${home[1]} against ${away[1]}, ${core.islandWhen(g.kickoff)}, ${core.competitionName(g.competition)}`);
@@ -1296,10 +1237,10 @@
     if (!island || !island.record.crest) return;
     const r = island.record.crest.getBoundingClientRect();
     const el = island.el;
-    const width = el.offsetWidth || 286;
+    const width = el.offsetWidth || 420;
     const height = el.offsetHeight;
     el.style.left = `${Math.round(Math.min(Math.max(8, r.left + r.width / 2 - width / 2), innerWidth - width - 8))}px`;
-    el.style.top = `${Math.round(Math.max(8, r.top + r.height / 2 + 20 - height))}px`;
+    el.style.top = `${Math.round(Math.max(8, r.top - 8 - height))}px`; // above the crest, the card's art left in view
   }
 
   function openIsland(record, focusInside) {
@@ -1823,7 +1764,7 @@
       hostOf(record).append(chip);
       record.start = chip;
       chip.addEventListener("pointerenter", guard(() => openTip(record, chip)));
-      chip.addEventListener("pointerleave", guard(() => closeTip()));
+      chip.addEventListener("pointerleave", guard(() => scheduleTipClose()));
       fresh = true;
     }
     if (chip.dataset.sig !== sig) {
@@ -1849,47 +1790,86 @@
     return moveTo(chip, edge, top);
   }
 
-  // -- the start island: the chance large, each source's number, and what the site says is wrong with him ---------------------
+  // -- the start island: two buttons, his chance to start and to come on; the first shows each source's number, the second his
+  // record off the bench (the chance from his last ten games, what Sofix uses today, his minutes game by game). ------------------
   let tip = null;
-  const SOURCE_LONG = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix form" };
+
+  function tipStart(entry, onPage, f) {
+    const box = node("div", "sfx-tip-rows");
+    const said = { ...(entry.sources || {}) };
+    if (typeof onPage === "number") said.sorare = onPage;
+    for (const key of ["futbolfantasy", "sorare", "sofix"]) {
+      if (typeof said[key] !== "number") continue;
+      const row = node("div", `sfx-tip-row${key === f.source ? " sfx-tip-row--used" : ""}`);
+      row.append(node("span", "", core.SOURCE_SHORT[key]), node("b", "", core.chanceLabel(said[key])));
+      box.append(row);
+    }
+    const note = core.statusNote(entry);
+    if (note) box.append(node("p", `sfx-tip-note${note.kind === "doubt" ? "" : " sfx-tip-note--out"}`, note.text));
+    return box;
+  }
 
   function openTip(record, chip) {
     const held = entryOf(record);
     const entry = held && held.entry;
-    if (!entry || (tip && tip.chip === chip)) return;
+    if (tip && tip.chip === chip) {
+      clearTimeout(tip.timer);
+      return;
+    }
+    if (!entry) return;
     closeTip();
     const onPage = record.playerSlug ? pageOdds.get(record.playerSlug) : undefined;
     const f = facts(entry, onPage);
     const el = node("div", "sfx-tip");
     el.setAttribute("data-sfx", "tip");
-    el.setAttribute("role", "tooltip");
-    const big = node("div", "sfx-tip-big");
-    big.style.setProperty("--sfx-c", chip.style.background);
-    big.append(node("b", "", core.chanceLabel(f.startChance)), node("span", "", "TO START"));
-    el.append(big);
-    const said = { ...(entry.sources || {}) };
-    if (typeof onPage === "number") said.sorare = onPage;
-    const rows = node("div", "sfx-tip-rows");
-    for (const key of Object.keys(SOURCE_LONG)) {
-      if (typeof said[key] !== "number") continue;
-      const row = node("div", `sfx-tip-row${key === f.source ? " sfx-tip-row--used" : ""}`);
-      row.append(sourceDot(key), node("span", "", SOURCE_LONG[key]), node("b", "", core.chanceLabel(said[key])));
-      rows.append(row);
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-label", "Sofix: chance to start");
+    const comesRecord = core.comesOnRecord(entry);
+    const comes = comesRecord && comesRecord.p !== null ? comesRecord.p : core.benchOnChance(entry);
+    const switches = node("div", "sfx-tip-seg");
+    const body = node("div", "sfx-tip-body");
+    const show = (mode) => {
+      for (const b of switches.children) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
+      body.replaceChildren(mode === "bench" ? comesNode(entry) : tipStart(entry, onPage, f));
+    };
+    for (const [mode, value, label] of [["start", f.startChance, "Chance to start"], ["bench", comes, "Chance to come on"]]) {
+      if (typeof value !== "number") continue;
+      const button = node("button", "", core.chanceLabel(value));
+      button.type = "button";
+      button.dataset.mode = mode;
+      button.setAttribute("aria-label", `${label} ${core.chanceLabel(value)}`);
+      if (mode === "start") button.style.setProperty("--sfx-c", chip.style.background);
+      button.addEventListener("click", guard((event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        show(mode);
+      }));
+      switches.append(button);
     }
-    if (rows.childElementCount) el.append(rows);
-    const note = core.statusNote(entry);
-    if (note) el.append(node("p", `sfx-tip-note${note.kind === "doubt" ? "" : " sfx-tip-note--out"}`, note.text));
+    el.append(switches, body);
+    el.addEventListener("pointerenter", guard(() => tip && clearTimeout(tip.timer)));
+    el.addEventListener("pointerleave", guard(() => scheduleTipClose()));
+    show("start");
     document.body.append(el);
     const a = chip.getBoundingClientRect();
     const [w, h] = [el.offsetWidth, el.offsetHeight];
-    el.style.left = `${Math.round(Math.min(Math.max(8, a.left + a.width / 2 - w / 2), innerWidth - w - 8))}px`;
-    el.style.top = `${Math.round(a.bottom + 8 + h > innerHeight - 8 ? Math.max(8, a.top - 8 - h) : a.bottom + 8)}px`;
+    el.style.left = `${Math.round(Math.min(Math.max(8, a.right - w), innerWidth - w - 8))}px`;
+    el.style.top = `${Math.round(a.bottom + 6 + h > innerHeight - 8 ? Math.max(8, a.top - 6 - h) : a.bottom + 6)}px`;
     islandFrom(el, chip);
-    tip = { el, chip };
+    tip = { el, chip, timer: 0 };
+  }
+
+  function scheduleTipClose() {
+    if (!tip) return;
+    clearTimeout(tip.timer);
+    tip.timer = setTimeout(guard(() => {
+      if (tip && !tip.el.matches(":hover") && !tip.chip.matches(":hover")) closeTip();
+    }), 160);
   }
 
   function closeTip() {
     if (!tip) return;
+    clearTimeout(tip.timer);
     islandAway(tip.el);
     tip = null;
   }

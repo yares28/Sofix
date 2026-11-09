@@ -846,8 +846,8 @@ test.describe("the sorare.com overlay", () => {
     await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2); // a pointer, as a person moves one: the island then covers the crest
     const isle = page.getByRole("dialog", { name: /Sofix: v Getafe CF/ });
     await expect(isle).toBeVisible();
-    await expect(isle.locator(".sfx-isl-stat")).toHaveText(["WIN46%", "CS33%", "XG1.42", "XGA0.88", "FDR45"]);
-    await expect(isle.locator(".sfx-isl-stat").first()).toHaveCSS("background-color", "rgb(37, 237, 54)"); // fifth sixth: Sorare's green
+    await expect(isle.locator(".sfx-isl-stat")).toHaveText(["WIN46%", "CS33%", "XG1.42", "FDR45"]);
+    await expect(isle.locator(".sfx-isl-stat b").first()).toHaveCSS("color", "rgb(37, 237, 54)"); // fifth sixth: Sorare's green
     await expect(isle.locator(".sfx-isl-mid span")).toHaveText("LaLiga");
     const art = await box(page, "#big img");
     const shown = await isle.boundingBox();
@@ -1293,13 +1293,13 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page).locator(".sfx-fixtures")).toHaveCount(0);
   });
 
-  test("opens a panel beside the card on hover: starts by default, the other score one press away, and it never writes anything", async ({ page }) => {
+  test("opens a panel beside the card on hover: his xScore large, five numbers under it, his next game, and it never writes anything", async ({ page }) => {
     await openPage(page);
     await settled(page);
     await page.waitForTimeout(250);
     await expect(panel(page)).toHaveCount(0);
 
-    // A card far enough from the left edge: the panel opens on its left, pointing at the tile.
+    // A card far enough from the left edge: the panel opens on its left.
     await tileOf(page, "abroad").hover();
     await expect(panel(page)).toBeVisible();
     await expect(panel(page)).toHaveAttribute("data-side", "left");
@@ -1308,29 +1308,12 @@ test.describe("the sorare.com overlay", () => {
     const [p, t] = [await panel(page).boundingBox(), await tile(page, "abroad")];
     expect(p!.x + p!.width).toBeLessThanOrEqual(t.left);
     expect(p!.x).toBeGreaterThanOrEqual(0);
-    await expect(panel(page)).toContainText("SOFIX");
     await expect(panel(page)).toContainText("11 h ago");
-    await expect(panel(page).getByRole("button", { name: "Starts" })).toHaveAttribute("aria-pressed", "true");
-    await expect(panel(page).getByRole("button", { name: "Comes on" })).toHaveAttribute("aria-pressed", "false");
     await expect(panel(page).locator(".sfx-big strong")).toHaveText("64");
-    await expect(panel(page).locator(".sfx-big")).toContainText("if he starts");
-    await expect(panel(page).locator(".sfx-chance")).toContainText("82%");
-    await expect(panel(page).locator(".sfx-chance")).toContainText("START · SF");
-    // Under it his expected decisive actions and the chance of one (none in this answer: dashes, never zeros); the game's numbers,
-    // the score chart and its reasons left the panel (plans/overlay-v2.md 1.3).
-    await expect(panel(page).locator(".sfx-stat")).toHaveText(["XD—", "DECISIVE—"]);
+    // The start and comes-on chances moved to the start % island (9 Nov 2026): no switch here.
+    await expect(panel(page).getByRole("button")).toHaveCount(0);
+    await expect(panel(page).locator(".sfx-cell span")).toHaveText(["XD", "XG", "WIN", "CS", "FDR"]);
     await expect(panel(page).locator(".sfx-bars, .sfx-why-row")).toHaveCount(0);
-    await expect(panel(page)).not.toContainText("Understat");
-    await expect(panel(page)).not.toContainText("From Sorare's odds");
-
-    // The other case: the score if he comes on from the bench (a substitute starts at 35, so it is a score near 40, never his chance
-    // times it), and the chance he comes on (0.08 of the 0.18 not starting).
-    await panel(page).getByRole("button", { name: "Comes on" }).click();
-    await expect(panel(page).getByRole("button", { name: "Comes on" })).toHaveAttribute("aria-pressed", "true");
-    await expect(panel(page).locator(".sfx-big strong")).toHaveText("45");
-    await expect(panel(page).locator(".sfx-big")).toContainText("if he comes on");
-    await expect(panel(page).locator(".sfx-chance")).toContainText("44%");
-    await expect(panel(page).locator(".sfx-chance")).toContainText("COMES ON"); // no record of his minutes in this answer: the old number
 
     // Moving from the tile onto the panel keeps it open; leaving both closes it.
     const inside = await panel(page).boundingBox();
@@ -1344,20 +1327,12 @@ test.describe("the sorare.com overlay", () => {
     // On a card near the left edge it opens on the right.
     await tileOf(page, "big").hover();
     await expect(panel(page)).toHaveAttribute("data-side", "right");
-    await expect(panel(page).locator(".sfx-chance")).toContainText("START · SO");
-    await panel(page).getByRole("button", { name: "Comes on" }).click();
-    await expect(panel(page).locator(".sfx-big strong")).toHaveText("42"); // a keeper who comes on scores like a substitute: 0.8 was his chance times it
-    await expect(panel(page).locator(".sfx-chance")).toContainText("8%");
 
-    // A midfielder with nothing for its cells says so in a dash.
+    // A midfielder with nothing for his xD says so in a dash, never a zero.
     await page.mouse.move(2, 2);
     await expect(panel(page)).toHaveCount(0);
     await tileOf(page, "linked").hover();
-    await expect(panel(page).locator(".sfx-stat b.sfx-stat--none")).toHaveCount(2);
-    // His payload is from before the score if he comes on existed: it still opens, with the old number under its old name.
-    await panel(page).getByRole("button", { name: "Comes on" }).click();
-    await expect(panel(page).locator(".sfx-big")).toContainText("if benched");
-    await expect(panel(page).locator(".sfx-big strong")).toHaveText("15");
+    await expect(panel(page).locator(".sfx-cell").first()).toHaveText("XD—");
 
     // Nothing it sends is a step that writes to Sorare (chances-seen hands Sorare's own readings to Sofix, read only).
     const kinds = new Set((await probe(page)).sent.map((message) => message.type));
@@ -1371,9 +1346,6 @@ test.describe("the sorare.com overlay", () => {
 
     await tileOf(page, "doubtful").hover();
     await expect(panel(page).getByRole("status")).toHaveText("Doubt · since 12 Sep");
-    await expect(panel(page).locator(".sfx-chance")).toContainText("START · FF");
-    await expect(panel(page).locator(".sfx-src--futbolfantasy").first()).toBeVisible();
-    await expect(panel(page).getByRole("button", { name: "SOURCES" })).toHaveCount(0); // who says what is the start chip's hover now
 
     await page.mouse.move(2, 2);
     await expect(panel(page)).toHaveCount(0);
@@ -1397,7 +1369,6 @@ test.describe("the sorare.com overlay", () => {
 
     await doubtful.hover();
     await expect(panel(page)).toContainText("FF live 2 min ago");
-    await expect(panel(page).locator(".sfx-chance")).toContainText("80%");
     await expect(panel(page).getByRole("status")).toHaveCount(0); // no longer a doubt
 
     // It asked once, for the match the cards on screen are about, and named nothing else.
@@ -1415,23 +1386,24 @@ test.describe("the sorare.com overlay", () => {
     await expect(startOf(page, "doubtful")).toHaveClass(/sfx-start--doubt/);
   });
 
-  test("the panel's Starts side shows his score, start %, xD and decisive chance; Comes on shows his last ten games' minutes", async ({ page }, testInfo) => {
+  test("the start % opens its island: his chance to start and to come on; the first lists each source, the second his last ten games", async ({ page }, testInfo) => {
     await openPage(page);
     await settled(page);
     await page.locator("#doubtful").scrollIntoViewIfNeeded();
-    await tileOf(page, "doubtful").hover();
-    const box = panel(page);
+    await startOf(page, "doubtful").hover();
+    const box = page.getByRole("dialog", { name: "Sofix: chance to start" });
     await expect(box).toBeVisible();
-    await expect(box.getByRole("button", { name: "Starts" })).toHaveAttribute("aria-pressed", "true");
-    await expect(box.locator(".sfx-big strong")).toHaveText("53");
-    await expect(box.locator(".sfx-stats--two")).toContainText(/XD\s*0\.18/);
-    await expect(box.locator(".sfx-stats--two")).toContainText(/DECISIVE\s*21%/);
-    // Gone from the panel (1.3): the game's numbers (the island has them), the sources, the score chart and its reasons.
-    await expect(box.locator(".sfx-shape, .sfx-why, .sfx-sources, .sfx-fixtures")).toHaveCount(0);
-    await expect(box.getByText("WIN")).toHaveCount(0);
+    const start = box.getByRole("button", { name: /^Chance to start/ });
+    const comes = box.getByRole("button", { name: /^Chance to come on/ });
+    await expect(start).toHaveText("31%");
+    await expect(start).toHaveAttribute("aria-pressed", "true");
+    await expect(comes).toHaveText("70%"); // from his last ten games
+    await expect(box.locator(".sfx-tip-row--used")).toHaveText(/FF\s*31%/);
+    await expect(box.locator(".sfx-tip-note")).toHaveText("Doubt · since 12 Sep");
 
-    await box.getByRole("button", { name: "Comes on" }).click();
-    await expect(box.getByRole("button", { name: "Comes on" })).toHaveAttribute("aria-pressed", "true");
+    // Moving from the chip into the island keeps it open, so its buttons can be pressed.
+    await comes.click();
+    await expect(comes).toHaveAttribute("aria-pressed", "true");
     await expect(box.locator(".sfx-big strong")).toHaveText("70%");
     await expect(box.locator(".sfx-big .sfx-num span")).toHaveText("comes on");
     await expect(box.locator(".sfx-was")).toHaveText(/44%\s*SOFIX TODAY/); // what the plans use today, struck through
@@ -1442,27 +1414,25 @@ test.describe("the sorare.com overlay", () => {
       ["unused", "on", "on", "on", "on", "on", "unused", "unused", "on", "on"].map((k) => `sfx-mins--${k}`),
     );
     await expect(box.locator(".sfx-mins")).toHaveAttribute("aria-label", "Minutes in his last 10 games, oldest first: 0, 12, 8, 6, 24, 5, 0, 0, 31, 69");
-    // The tallest bar is his 69 minutes, the unused ones a sliver.
     const heights = await bars.evaluateAll((all) => all.map((b) => (b as HTMLElement).offsetHeight)); // layout height: the rise animation scales them
     expect(Math.max(...heights)).toBe(heights[9]);
     expect(heights[0]).toBeLessThan(heights[1]!);
-    await expect(box.locator(".sfx-stats--four")).toHaveText(/STARTED\s*0\s*CAME ON\s*7\s*UNUSED\s*3\s*MIN ON\s*22′/);
-    // No text under 11 px in the panel.
+    // No text under 11 px in it.
     const smallest = await box.evaluate((el) => Math.min(...[...el.querySelectorAll("*")].filter((n) => n.childNodes.length && [...n.childNodes].some((c) => c.nodeType === 3 && c.textContent!.trim())).map((n) => parseFloat(getComputedStyle(n).fontSize))));
     expect(smallest).toBeGreaterThanOrEqual(11);
-    await page.waitForTimeout(1000); // the bars have risen
+    await page.waitForTimeout(1000);
     await box.screenshot({ path: testInfo.outputPath("overlay-comes-on.png") });
+    await page.mouse.move(2, 2);
+    await expect(box).toHaveCount(0);
   });
 
-  test("during his game, a player left on the bench opens the panel on Comes on", async ({ page }) => {
-    // Futbol Fantasy's live read of his match says he did not start: the game is on, so the panel opens where it matters now.
+  test("during his game, a player left on the bench gets his score if he comes on in the panel", async ({ page }) => {
     await openPage(page, { live: { "22502": { at: new Date(Date.now() - 120_000).toISOString(), players: { "2802": { p: 0, lesion: -1 } } } } });
     await settled(page);
     await page.locator("#doubtful").scrollIntoViewIfNeeded();
     await expect.poll(() => page.locator("#doubtful .sfx-start").textContent()).toMatch(/0%/);
     await tileOf(page, "doubtful").hover();
-    await expect(panel(page).getByRole("button", { name: "Comes on" })).toHaveAttribute("aria-pressed", "true");
-    await expect(panel(page).locator(".sfx-big strong")).toHaveText("70%");
+    await expect(panel(page).locator(".sfx-big strong")).not.toHaveText("53");
   });
 
   test("opens from the keyboard and closes with Escape, giving the focus back to the tile", async ({ page }) => {
@@ -1473,12 +1443,7 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page)).toBeVisible();
 
     await page.keyboard.press("Enter");
-    await expect(panel(page).getByRole("button", { name: "Starts" })).toBeFocused();
-    await page.keyboard.press("Tab");
-    await expect(panel(page).getByRole("button", { name: "Comes on" })).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(panel(page).getByRole("button", { name: "Comes on" })).toHaveAttribute("aria-pressed", "true");
-    await expect(panel(page).getByRole("button", { name: "Comes on" })).toBeFocused(); // the press keeps the focus
+    await expect(panel(page)).toBeFocused();
 
     await page.keyboard.press("Escape");
     await expect(panel(page)).toHaveCount(0);
@@ -2135,10 +2100,9 @@ test.describe("the sorare.com overlay", () => {
     await page.waitForTimeout(300);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
-    // With the hover panel open, and its two scores switched, still nothing to fix.
+    // With the hover panel open, still nothing to fix.
     await tileOf(page, "abroad").hover();
     await expect(panel(page)).toBeVisible();
-    await panel(page).getByRole("button", { name: "Comes on" }).click();
     await page.waitForTimeout(600); // past the pop-in: contrast is measured on what is settled
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath("overlay-panel.png") });

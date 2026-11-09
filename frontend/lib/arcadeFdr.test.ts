@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardFixtures, matchFixture, nameMatch, type FdrFixture } from "./arcadeFdr";
+import { ARCADE_FDR_DAYS, boardFixtures, matchFixture, nameMatch, type FdrFixture } from "./arcadeFdr";
 import type { FixtureGrid } from "./types";
 
 const side = (code: string, name: string, bucket: 1 | 2 | 3 | 4 | 5) => ({ code, name, bucket, label: "Even", cleanSheet: 0.3, xgFor: 1.4, xgAgainst: 1.1 });
@@ -13,6 +13,10 @@ describe("Arcade and the league boards", () => {
     expect(nameMatch("Real Madrid", "Real Betis")).toBe(1);
     expect(nameMatch("FC Bayern München", "Bayern Munich")).toBeGreaterThan(0);
     expect(nameMatch("Arsenal FC", "Everton")).toBe(0);
+    // 9 Nov 2026: Sorare's "N.E.C. Nijmegen v Stade Rennais F.C." against the board's "N.E.C. v Rennes" matched no word.
+    expect(nameMatch("N.E.C. Nijmegen", "N.E.C.")).toBe(1);
+    expect(nameMatch("Stade Rennais F.C.", "Rennes")).toBe(1);
+    expect(nameMatch("Stade Rennais F.C.", "Stade Reims")).toBe(1); // "stade" only: Rennais is not Reims
   });
 
   it("finds a Sorare game's fixture in the same league at the same kick-off, by names when two kick off together", () => {
@@ -35,5 +39,19 @@ describe("Arcade and the league boards", () => {
     const out = boardFixtures(grid, "PL", 0, Date.parse("2026-11-01T00:00:00Z"));
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ home: { code: "ARS", bucket: 2, difficulty: 2 }, away: { code: "EVE", bucket: 5, difficulty: 5 } });
+  });
+
+  it("reaches a game eleven days away and the last game of a two-month set, with numbers rounded for the page", () => {
+    // 9 Nov 2026: Divination's first club games were 11 days away (an international break) and its last on 6 Jan; 8 days rated none.
+    const now = Date.parse("2026-11-09T12:00:00Z");
+    const cell = (fixture_id: number, venue: "H" | "A", kickoff_utc: string) => ({ fixture_id, venue, opponent_code: "X", kickoff_utc, date_confirmed: true, rescheduled: false, status: "scheduled" as const, result: null,
+      prediction: { difficulty: 37.4999, label: "Even" as const, bucket: 3, expected_points: 1.4, probabilities: { win: 0.4, draw: 0.3, loss: 0.3 }, clean_sheet: 0.312345, xg_for: 1.456789, xg_against: 1.123456 } });
+    const grid = { competition: "PD", season: "2026", current_matchday: 13, model_version: null, lens_scales: {}, matchdays: [], teams: [
+      { code: "RMA", name: "Real Madrid", color: "#fff", crest_url: null, cells: [[cell(1, "H", "2026-11-20T20:00:00Z")], [cell(2, "A", "2027-01-06T20:15:00Z")]] },
+      { code: "BAR", name: "Barcelona", color: "#00f", crest_url: null, cells: [[cell(1, "A", "2026-11-20T20:00:00Z")], [cell(2, "H", "2027-01-06T20:15:00Z")]] },
+    ] } as unknown as FixtureGrid;
+    const out = boardFixtures(grid, "PD", now, now + ARCADE_FDR_DAYS * 86_400_000);
+    expect(out.map((f) => f.kickoff)).toEqual(["2026-11-20T20:00:00Z", "2027-01-06T20:15:00Z"]);
+    expect(out[0]!.home).toMatchObject({ difficulty: 37.5, cleanSheet: 0.31, xgFor: 1.46, xgAgainst: 1.12 });
   });
 });

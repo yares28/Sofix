@@ -853,7 +853,8 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   plays) × his start % (Sofix's in those leagues) × Sorare's bonuses (edition + club + captain),
   shown below FDR (0–100, lower is easier) at the upper right of the card art. Lineup and Players cards share the same layout: large start percentage, fixture crests and xD below the art, with the edition bonus on the art. The selected lineup game stays fixed; its kickoff and source are available in the fixture label and forecast titles. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or
   Ligue 1 game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
-  and expected goals for the others. It is shown, not added to the card's number.
+  and expected goals for the others. It is shown, not added to the card's number. Every game to the set's end is rated (9 Nov 2026:
+  only the next 8 days were, so an international break left every card at "—"); a game with no board (Nations League) says so on hover.
 - **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (the **Refresh start percentages** icon) and saved, so the
   newest saved reading shows on any visit. The % button also reads Sorare's announced elevens for your clubs' games within three hours of kickoff (extension 0.4.21). Confirmed starters become 100% and non-starters 0%, ahead of every forecast, across Players and all recommendations. Unannounced sides keep their forecast or unknown value. Official readings survive navigation until three hours after their own game's kickoff; a fresh read is available with the same % button. No match tabs open.
   Your cards are kept in this browser and read again only when Sorare's count changes (a pack

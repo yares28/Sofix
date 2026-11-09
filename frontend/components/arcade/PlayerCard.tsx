@@ -27,7 +27,7 @@ export default function PlayerCard({ card, outlook, game, fixtures, crests, onSe
           // eslint-disable-next-line @next/next/no-img-element -- Original Sorare card art
           ? <img src={card.picture} alt={card.name} loading="lazy" width={240} height={388} />
           : <div className="arc-card-blank" role="img" aria-label={card.name}>{card.name}</div>}
-        <CardRatings outlook={outlook} game={game?.id} home={game?.home?.slug === card.teamSlug} detail={detail} captain={captain} captainBonus={captainBonus} />
+        <CardRatings outlook={outlook} game={game?.id} competition={game?.competition} home={game?.home?.slug === card.teamSlug} detail={detail} captain={captain} captainBonus={captainBonus} />
         {bonus ? <span className="arc-card-bonus" title={`${card.edition ?? "Edition"} bonus; club bonus is included separately in xScore`}>{bonus}</span> : null}
       </div>
       <figcaption>

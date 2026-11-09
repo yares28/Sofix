@@ -14,6 +14,13 @@ export type FdrFixture = { league: Competition; kickoff: string; home: FdrSide; 
 /** Sorare's competition slug for each board. */
 export const BOARD_OF: Record<string, Competition> = { "laliga-es": "PD", "premier-league-gb-eng": "PL", "bundesliga-de": "BL1", "ligue-1-fr": "FL1", "uefa-champions-league":"CL", "uefa-europa-league":"EL", "uefa-europa-conference-league":"CONF" };
 
+/**
+ * How far ahead Arcade's games are rated. Sorare lists a set's games to its end (Divination, 9 Nov 2026: 429 games to 6 Jan, 58 days
+ * away), so 8 days rated none of them during an international break. 60 days was 378 fixtures on the seven boards.
+ */
+export const ARCADE_FDR_DAYS = 60;
+const round = (x: number | null | undefined, places: number) => (x == null ? null : Math.round(x * 10 ** places) / 10 ** places);
+
 /** The board's scheduled fixtures between two times, both sides with their difficulty; a side the model has not rated is left out. */
 export function boardFixtures(grid: FixtureGrid, league: Competition, from: number, to: number): FdrFixture[] {
   const byId = new Map<number, { kickoff: string; home?: FdrSide; away?: FdrSide }>();
@@ -23,7 +30,8 @@ export function boardFixtures(grid: FixtureGrid, league: Competition, from: numb
         const at = Date.parse(cell.kickoff_utc);
         if (cell.status !== "scheduled" || !cell.prediction || at < from || at > to) continue;
         const p = cell.prediction;
-        const side: FdrSide = { code: team.code, name: team.name, difficulty: p.difficulty, bucket: p.bucket, label: p.label, cleanSheet: p.clean_sheet, xgFor: p.xg_for, xgAgainst: p.xg_against };
+        // Rounded to what the page shows: every byte of these rows is sent with the page.
+        const side: FdrSide = { code: team.code, name: team.name, difficulty: round(p.difficulty, 1) ?? undefined, bucket: p.bucket, label: p.label, cleanSheet: round(p.clean_sheet, 2), xgFor: round(p.xg_for, 2), xgAgainst: round(p.xg_against, 2) };
         const entry = byId.get(cell.fixture_id) ?? { kickoff: cell.kickoff_utc };
         entry[cell.venue === "H" ? "home" : "away"] = side;
         byId.set(cell.fixture_id, entry);
@@ -34,11 +42,13 @@ export function boardFixtures(grid: FixtureGrid, league: Competition, from: numb
 }
 
 const STOP = new Set(["fc", "cf", "afc", "sc", "ac", "cd", "ud", "rc", "rcd", "sd", "ca", "club", "de", "del", "la", "the", "and", "fsv", "vfl", "vfb", "tsg", "sv", "bv", "hotspur", "albion", "balompie"]);
-const tokens = (name: string) => name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length > 2 && !STOP.has(t));
-/** Words two club names share (a word may be the other's start: "atletico" and "atl"). */
+// Dots join initials ("N.E.C." is "nec").
+const tokens = (name: string) => name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\./g, "").toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length > 2 && !STOP.has(t));
+const shared = (t: string, u: string) => { let i = 0; while (i < t.length && t[i] === u[i]) i++; return i; };
+/** Words two club names share (a word may be the other's start, "atletico" and "atl", or share four letters, "rennais" and "rennes"). */
 export function nameMatch(a: string, b: string): number {
   const x = tokens(a), y = tokens(b);
-  return x.filter((t) => y.some((u) => t === u || (Math.min(t.length, u.length) >= 3 && (t.startsWith(u) || u.startsWith(t))))).length;
+  return x.filter((t) => y.some((u) => t === u || (Math.min(t.length, u.length) >= 3 && (t.startsWith(u) || u.startsWith(t))) || shared(t, u) >= 4)).length;
 }
 
 /** The board's fixture for a Sorare game: same league, kick-off within 20 minutes, and the clubs' names when two are that close. */

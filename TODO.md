@@ -29,7 +29,8 @@ Found by reading `components/arcade/*`, `lib/arcade*.ts`, `lib/climbClient.ts`, 
 localhost (9 Nov 2026, Divination, step 4 of 6, 687 commons, set ends 6 Jan). Order: broken first (A to C), then D to F, then G.
 Each step ships alone, with its regression test, the Arcade spec and the 1440 + 390 px look.
 
-**A · Every card shows FDR "—" (point 2, broken)**
+**A · Every card shows FDR "—" (point 2, broken)** · *done 9 Nov 2026: 376 of 377 board games rated on your page (the other has no
+forecast on the EL board), 52 Nations League games say "no Sofix board"; club names like "N.E.C. Nijmegen" / "N.E.C." now match.*
 - Cause: `app/arcade/page.tsx` loads board fixtures for `FDR_DAYS = 8` days ("the set's days left, at most"), but Divination runs to
   6 Jan and your first club game is Fri 20 Nov, 11 days away (international break). On the real page all 22 cards shown had "—".
 - Fix: load each board's fixtures to the set's end (the grids already hold the season; read only `fixture_id`, kick-off and both

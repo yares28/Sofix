@@ -396,6 +396,36 @@
     return holder;
   }
 
+  /**
+   * The iPhone-style island: a popup grows out of a small black pill at what was hovered, with a spring, its content fading in
+   * after it; closing shrinks it back into that pill. Called once the popup is placed.
+   */
+  function islandFrom(el, anchor) {
+    const a = anchor.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = Math.min(Math.max(a.left + a.width / 2 - r.left, 22), r.width - 22);
+    const y = Math.min(Math.max(a.top + a.height / 2 - r.top, 15), r.height - 15);
+    el.style.setProperty("--sfx-from", `inset(${y - 15}px ${r.width - x - 22}px ${r.height - y - 15}px ${x - 22}px round 15px)`);
+    el.style.transformOrigin = `${x}px ${y}px`;
+    el.classList.remove("sfx-morph");
+    void el.offsetWidth; // restart when the same popup grows again
+    el.classList.add("sfx-morph");
+  }
+
+  /** Takes a popup away the island's way: out of the page's reach at once (no role, no pointer), gone once it has shrunk. */
+  function islandAway(el) {
+    el.removeAttribute("role");
+    el.setAttribute("aria-hidden", "true");
+    el.style.pointerEvents = "none";
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || !el.style.getPropertyValue("--sfx-from")) {
+      el.remove();
+      return;
+    }
+    el.classList.remove("sfx-morph");
+    el.classList.add("sfx-morph-out");
+    setTimeout(() => el.remove(), 200);
+  }
+
   /** The small mark that says whose number a start chance is: a filled dot for FF, a ring for SO, a dashed ring for SF. */
   function sourceDot(source) {
     const dot = node("span", `sfx-src sfx-src--${source}`);
@@ -697,6 +727,7 @@
     record.tile = null;
     if (record.need) record.need.remove();
     record.need = null;
+    if (tip && tip.chip === record.start) closeTip();
     if (record.start) record.start.remove();
     record.start = null;
     if (record.captain) record.captain.remove();
@@ -880,8 +911,28 @@
     body.append(sideNode(entry, mode));
     const alert = alertNode(entry);
     if (alert) body.append(alert);
-    el.append(stripe(), node("span", "sfx-arrow"), body);
+    const next = nextGameNode(entry);
+    if (next) body.append(next);
+    el.append(body);
     return el;
+  }
+
+  /** His next game in one line at the panel's foot: the opponent's crest, where and when, and the FDR (the rest of the game's numbers are the crest island's). */
+  function nextGameNode(entry) {
+    const g = Array.isArray(entry.island) ? entry.island[0] : null;
+    if (!g || !g.opponent) return null;
+    const n = g.game || {};
+    const row = node("div", "sfx-next");
+    const words = node("span", "sfx-next-words");
+    words.append(node("b", "", `${g.venue === "A" ? "at" : "v"} ${g.opponent}`), node("span", "", `${core.islandWhen(g.kickoff)} · ${core.competitionName(g.competition)}`));
+    row.append(clubMark(g.opponentCrest, g.opponent, g.opponentCode, g.opponentColor, 26), words);
+    if (typeof n.difficulty === "number") {
+      const fdr = node("span", "sfx-next-fdr", String(Math.round(n.difficulty)));
+      fdr.title = "Difficulty, 0 to 100, lower is easier";
+      fdr.style.background = colour(core.fdrLevel(n.bucket));
+      row.append(fdr);
+    }
+    return row;
   }
 
   function positionPanel() {
@@ -899,8 +950,6 @@
     panel.el.dataset.side = side;
     panel.el.style.left = `${Math.max(8, left)}px`;
     panel.el.style.top = `${top}px`;
-    const arrow = panel.el.querySelector(".sfx-arrow");
-    if (arrow) arrow.style.top = `${Math.min(Math.max(tile.top + tile.height / 2 - top - 5, 12), Math.max(12, height - 24))}px`;
   }
 
   function scheduleClose() {
@@ -923,7 +972,7 @@
     const { record, el, timer } = panel;
     clearTimeout(timer);
     const hadFocus = el.contains(document.activeElement) || (record.tile && record.tile === document.activeElement);
-    el.remove();
+    islandAway(el);
     if (record.tile) record.tile.setAttribute("aria-expanded", "false");
     document.removeEventListener("keydown", onPanelKey, true);
     document.removeEventListener("pointerdown", onOutside, true);
@@ -983,6 +1032,7 @@
     document.body.append(state.el);
     record.tile.setAttribute("aria-expanded", "true");
     positionPanel();
+    islandFrom(state.el, record.tile);
     document.addEventListener("keydown", onPanelKey, true);
     document.addEventListener("pointerdown", onOutside, true);
     window.addEventListener("scroll", onPanelScroll, true);
@@ -1219,7 +1269,12 @@
     const top = node("div", "sfx-isl-top");
     const mid = node("div", "sfx-isl-mid");
     mid.append(node("b", "", core.islandWhen(g.kickoff)), node("span", "", core.competitionName(g.competition)));
-    top.append(clubMark(home[0], home[1], home[2], home[3], 40), mid, clubMark(away[0], away[1], away[2], away[3], 40));
+    const side = (club) => {
+      const holder = node("span", "sfx-isl-club");
+      holder.append(clubMark(club[0], club[1], club[2], club[3], 40), node("span", "sfx-isl-name", club[1] || ""));
+      return holder;
+    };
+    top.append(side(home), mid, side(away));
     const n = g.game || {};
     const tone = (stat) => (Number.isInteger(g.tones && g.tones[stat]) ? core.SIXTHS[g.tones[stat]] : null);
     const pct = (v) => (typeof v === "number" ? `${Math.round(v * 100)}%` : null);
@@ -1270,6 +1325,7 @@
     island = { record, el, timer: 0 };
     record.crest.setAttribute("aria-expanded", "true");
     positionIsland();
+    islandFrom(el, record.crest);
     document.addEventListener("keydown", onIslandKey, true);
     if (focusInside) el.focus({ preventScroll: true });
   }
@@ -1289,7 +1345,7 @@
     if (!island) return;
     const { record, el, timer } = island;
     clearTimeout(timer);
-    el.remove();
+    islandAway(el);
     island = null;
     document.removeEventListener("keydown", onIslandKey, true);
     if (record.crest) {
@@ -1747,6 +1803,7 @@
     const shown = (tier === "full" || tier === "compact") && size !== "tiny" && entry && !core.staleness(entry, now()) && typeof core.startChance(entry) === "number";
     let chip = record.start && record.start.isConnected ? record.start : null;
     if (!shown) {
+      if (tip && tip.chip === chip) closeTip();
       if (chip) chip.remove();
       record.start = null;
       return false;
@@ -1765,12 +1822,14 @@
       chip.setAttribute("data-pending", "");
       hostOf(record).append(chip);
       record.start = chip;
+      chip.addEventListener("pointerenter", guard(() => openTip(record, chip)));
+      chip.addEventListener("pointerleave", guard(() => closeTip()));
       fresh = true;
     }
     if (chip.dataset.sig !== sig) {
       chip.dataset.sig = sig;
       chip.className = `sfx-start sfx-start--${tier}${f.tone === "doubt" ? " sfx-start--doubt" : ""}${f.tone === "out" ? " sfx-start--out" : ""}${f.apart ? " sfx-start--apart" : ""}`;
-      chip.title = hover;
+      chip.dataset.tip = hover; // drawn by the start island on hover, not the browser's tooltip
       chip.style.background = background;
       chip.setAttribute("aria-hidden", "true"); // the tile's own name says the same to a screen reader
       const value = node("b");
@@ -1788,6 +1847,51 @@
     const width = chip.getBoundingClientRect().width;
     if (tile && tile.right + 3 > edge - width && tile.bottom + 3 > top && tile.top < top + 18) top = tile.bottom + 3; // never over the tile
     return moveTo(chip, edge, top);
+  }
+
+  // -- the start island: the chance large, each source's number, and what the site says is wrong with him ---------------------
+  let tip = null;
+  const SOURCE_LONG = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix form" };
+
+  function openTip(record, chip) {
+    const held = entryOf(record);
+    const entry = held && held.entry;
+    if (!entry || (tip && tip.chip === chip)) return;
+    closeTip();
+    const onPage = record.playerSlug ? pageOdds.get(record.playerSlug) : undefined;
+    const f = facts(entry, onPage);
+    const el = node("div", "sfx-tip");
+    el.setAttribute("data-sfx", "tip");
+    el.setAttribute("role", "tooltip");
+    const big = node("div", "sfx-tip-big");
+    big.style.setProperty("--sfx-c", chip.style.background);
+    big.append(node("b", "", core.chanceLabel(f.startChance)), node("span", "", "TO START"));
+    el.append(big);
+    const said = { ...(entry.sources || {}) };
+    if (typeof onPage === "number") said.sorare = onPage;
+    const rows = node("div", "sfx-tip-rows");
+    for (const key of Object.keys(SOURCE_LONG)) {
+      if (typeof said[key] !== "number") continue;
+      const row = node("div", `sfx-tip-row${key === f.source ? " sfx-tip-row--used" : ""}`);
+      row.append(sourceDot(key), node("span", "", SOURCE_LONG[key]), node("b", "", core.chanceLabel(said[key])));
+      rows.append(row);
+    }
+    if (rows.childElementCount) el.append(rows);
+    const note = core.statusNote(entry);
+    if (note) el.append(node("p", `sfx-tip-note${note.kind === "doubt" ? "" : " sfx-tip-note--out"}`, note.text));
+    document.body.append(el);
+    const a = chip.getBoundingClientRect();
+    const [w, h] = [el.offsetWidth, el.offsetHeight];
+    el.style.left = `${Math.round(Math.min(Math.max(8, a.left + a.width / 2 - w / 2), innerWidth - w - 8))}px`;
+    el.style.top = `${Math.round(a.bottom + 8 + h > innerHeight - 8 ? Math.max(8, a.top - 8 - h) : a.bottom + 8)}px`;
+    islandFrom(el, chip);
+    tip = { el, chip };
+  }
+
+  function closeTip() {
+    if (!tip) return;
+    islandAway(tip.el);
+    tip = null;
   }
 
   // -- captain C on Sorare's builder (plans/overlay-v2.md 1.2) ---------------------------------------------------------
@@ -2998,6 +3102,7 @@
     strip = null;
     closePanel(false);
     closeIsland(false);
+    closeTip();
     if (crestLayer) crestLayer.remove();
     crestLayer = null;
     if (!mine) return;

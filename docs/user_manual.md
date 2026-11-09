@@ -1024,6 +1024,9 @@ colour for that score. Under it is one thing that drives the score, chosen by po
   "Man City" never matched by name); Sofix's start % goes under Sorare's badge and grade even where they let clicks through (0.4.63). Hover or focus it: the island opens above the card with both sides, the day and time (Madrid), the
   competition, and five numbers for his side (win %, clean sheet %, xG, xG against, FDR), each coloured by its sixth among all the
   games Sofix rates that gameweek (the season's when fewer than 12), Sorare's colours from red to cyan; Escape closes it.
+  The xScore panel, the crest island and the start % all open the same way (9 Nov 2026): a black island grows out of what you
+  hovered with a spring and shrinks back into it. The panel ends with his next game (crest, when, FDR); the start % opens its own
+  island with the chance large, each source's number (the one used lit) and any doubt or injury.
 **A goalkeeper's number follows his game.** It is no longer his last five games: those are mostly luck (a clean sheet is worth about 75, a game without
 one about 40), so Sofix works out how likely his side is to keep a clean sheet (its own numbers, adjusted by the bookmakers' goals line), what he scores if it does
 and if it does not. Since 26 Oct 2026 it no longer uses Sorare's projection: Sofix's number stands on its own data, with Sorare's beside it to compare. Two keepers' numbers sit closer together than before and move with the opponent. In a test on

@@ -386,8 +386,8 @@ test.describe("the sorare.com overlay", () => {
 
     // A lineup slot: the xScore chip alone and his start %, whose hover names its own source; a thumbnail: the smallest chip only.
     expect(await text(page, "slot-a")).toEqual(["53", "88%"]);
-    await expect(startOf(page, "slot-a")).toHaveAttribute("title", "Sorare 88%");
-    await expect(startOf(page, "big")).toHaveAttribute("title", "Sorare 88%");
+    await expect(startOf(page, "slot-a")).toHaveAttribute("data-tip", "Sorare 88%");
+    await expect(startOf(page, "big")).toHaveAttribute("data-tip", "Sorare 88%");
     expect(await text(page, "thumb")).toEqual(["53"]);
     await expect(ribs(page, "slot-a")).toHaveClass(/sfx-ribs--compact/);
     await expect(tileOf(page, "slot-a")).not.toHaveClass(/sfx-tile--tiny/);
@@ -1194,14 +1194,14 @@ test.describe("the sorare.com overlay", () => {
     // page's own number counts when Sofix's answer has none (Messi 82% against the page's 30%); FF 31% against SO 40% does not.
     const apart = await seen("noxg");
     await expect(apart).toHaveClass(/sfx-start--apart/);
-    await expect(apart).toHaveAttribute("title", "Sofix 80% · Sorare 35%");
+    await expect(apart).toHaveAttribute("data-tip", "Sofix 80% · Sorare 35%");
     await expect(apart).toHaveCSS("outline", "rgb(255, 174, 43) solid 2px");
     await expect(await seen("abroad")).toHaveClass(/sfx-start--apart/);
-    await expect(await seen("abroad")).toHaveAttribute("title", "Sofix 82% · Sorare 30%");
+    await expect(await seen("abroad")).toHaveAttribute("data-tip", "Sofix 82% · Sorare 30%");
     await expect(await seen("doubtful")).not.toHaveClass(/sfx-start--apart/);
-    await expect(await seen("doubtful")).toHaveAttribute("title", "Sofix 31% · Sorare 40%");
+    await expect(await seen("doubtful")).toHaveAttribute("data-tip", "Sofix 31% · Sorare 40%");
     // Hover, small card: one line naming the number's own source.
-    await expect(await seen("slot-b")).toHaveAttribute("title", "FF 31%");
+    await expect(await seen("slot-b")).toHaveAttribute("data-tip", "FF 31%");
     // No start % on a thumbnail, or on a number that no longer holds.
     for (const id of ["thumb", "over", "old"]) await expect(await seen(id)).toHaveCount(0);
 

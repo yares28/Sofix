@@ -207,30 +207,15 @@
   position: fixed;
   z-index: 2147483000;
   width: 290px;
-  border-radius: 14px;
-  background: rgba(22, 22, 25, 0.95);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 26px 50px -18px rgba(0, 0, 0, 0.9);
+  border-radius: 26px;
+  background: #050506;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 30px 60px -20px rgba(0, 0, 0, 0.85), 0 0 0 0.5px rgba(0, 0, 0, 0.6);
   color: var(--sfx-white);
   font: 500 12px/16px var(--sfx-font);
   pointer-events: auto;
-  animation: sfx-pop 0.3s cubic-bezier(0.3, 0.7, 0.2, 1) both;
+  --sfx-r: 26px;
 }
-.sfx-panel[data-side="left"] { --sfx-slide: 6px; }
-.sfx-panel[data-side="right"] { --sfx-slide: -6px; }
-.sfx-panel > .sfx-stripe { height: 3px; border-radius: 14px 14px 0 0; overflow: hidden; }
-.sfx-arrow {
-  position: absolute;
-  top: 16px;
-  width: 10px;
-  height: 10px;
-  background: rgba(22, 22, 25, 0.95);
-  transform: rotate(45deg);
-}
-.sfx-panel[data-side="left"] .sfx-arrow { right: -5px; clip-path: polygon(0 0, 100% 0, 100% 100%); box-shadow: inset -1px 1px 0 rgba(255, 255, 255, 0.1); }
-.sfx-panel[data-side="right"] .sfx-arrow { left: -5px; clip-path: polygon(0 0, 0 100%, 100% 100%); box-shadow: inset 1px -1px 0 rgba(255, 255, 255, 0.1); }
-.sfx-body { display: flex; flex-direction: column; gap: 11px; padding: 11px 14px 13px; }
+.sfx-body { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; }
 .sfx-head { display: flex; align-items: center; justify-content: space-between; }
 .sfx-brand { display: flex; align-items: center; gap: 7px; font: 700 11px/13px var(--sfx-font); letter-spacing: 0.16em; color: var(--sfx-white); }
 .sfx-brand .sfx-stripe { width: 12px; height: 12px; border-radius: 3px; overflow: hidden; }
@@ -242,15 +227,16 @@
 }
 .sfx-plan-c { display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; background: #7dff8a; color: #0e0e0e; font: 800 11px/14px var(--sfx-font); }
 
-.sfx-seg { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, 0.07); }
+.sfx-seg { display: flex; gap: 3px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); }
 .sfx-seg button {
   flex: 1 1 0;
   height: 28px;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 7px;
+  border-radius: 999px;
   background: transparent;
+  transition: background-color .2s ease, color .2s ease;
   color: rgba(255, 255, 255, 0.72);
   font: 700 11px/12px var(--sfx-font);
   letter-spacing: 0.02em;
@@ -281,7 +267,7 @@
 .sfx-chance--doubt b, .sfx-chance--doubt .sfx-src { color: #f0ce1d; }
 .sfx-chance--out b, .sfx-chance--out .sfx-src { color: #ff7a7a; }
 
-.sfx-alert { display: flex; align-items: center; gap: 7px; margin: 0; padding: 6px 8px; border-radius: 8px; background: rgba(240, 206, 29, 0.13); color: #f0ce1d; font: 600 11px/14px var(--sfx-font); }
+.sfx-alert { display: flex; align-items: center; gap: 7px; margin: 0; padding: 7px 10px; border-radius: 999px; background: rgba(240, 206, 29, 0.13); color: #f0ce1d; font: 600 11px/14px var(--sfx-font); }
 .sfx-alert--out { background: rgba(255, 90, 90, 0.14); color: #ff8a8a; }
 .sfx-alert svg { width: 13px; height: 13px; flex: none; }
 .sfx-alert circle { fill: currentColor; }
@@ -313,7 +299,7 @@
 .sfx-mins-axis { display: flex; justify-content: center; margin-top: -6px; font: 600 11px/13px var(--sfx-font); color: #8e8e93; }
 @keyframes sfx-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @media (prefers-reduced-motion: reduce) { .sfx-mins i { animation: none; } }
-.sfx-stat { padding: 6px 7px 5px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); }
+.sfx-stat { padding: 7px 10px 6px; border-radius: 14px; background: rgba(255, 255, 255, 0.06); }
 .sfx-stat span { display: block; font: 700 11px/13px var(--sfx-font); letter-spacing: 0.08em; color: #8e8e93; }
 .sfx-stat b { display: block; font: 700 17px/18px var(--sfx-cond); color: var(--sfx-white); font-variant-numeric: tabular-nums; }
 .sfx-stat b.sfx-stat--none { color: rgba(255, 255, 255, 0.45); }
@@ -329,7 +315,7 @@
 @keyframes sfx-num { from { opacity: 0; transform: translateY(5px); } }
 @keyframes sfx-shimmer { from { background-position: -44px 0; } to { background-position: 44px 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .sfx-ribs, .sfx-odds, .sfx-tile, .sfx-panel, .sfx-big, .sfx-skel > i { animation: none !important; }
+  .sfx-ribs, .sfx-odds, .sfx-tile, .sfx-panel, .sfx-big, .sfx-morph, .sfx-morph > *, .sfx-morph-out, .sfx-skel > i { animation: none !important; }
 }
 
 /* Guide me (dock.js): the card to pick next, and one to take out of a mission. On the picture itself, so nothing moves. */
@@ -412,27 +398,61 @@
 @keyframes sfx-sonar { 0% { transform: scale(1); opacity: .7; } 70%, 100% { transform: scale(3); opacity: 0; } }
 
 .sfx-island {
-  position: fixed; width: 286px; display: grid; gap: 12px; padding: 10px 14px 12px; border-radius: 22px; background: #0b0a10;
-  border: 1px solid #24202f; box-shadow: 0 18px 44px rgb(0 0 0 / .65); pointer-events: auto; outline: none;
-  font: 600 11px/1.2 Inter, system-ui, sans-serif; color: #f4f2fa; animation: sfx-island .45s cubic-bezier(.2, 1, .3, 1) both;
+  position: fixed; width: 300px; display: grid; gap: 14px; padding: 14px 16px 16px; border-radius: 28px; background: #050506;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 54px -16px rgb(0 0 0 / .8); pointer-events: auto; outline: none;
+  font: 600 11px/1.2 var(--sfx-font); color: #f4f2fa; --sfx-r: 28px;
 }
-.sfx-isl-game { display: grid; gap: 10px; }
-.sfx-isl-game + .sfx-isl-game { padding-top: 12px; border-top: 1px solid #24202f; }
-.sfx-isl-top { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 8px; }
-.sfx-isl-top > * { justify-self: center; }
-.sfx-isl-mid { display: grid; gap: 2px; text-align: center; }
-.sfx-isl-mid b { font-size: 13px; font-weight: 800; }
-.sfx-isl-mid span { font-size: 11px; color: #8e88a3; }
-.sfx-isl-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-.sfx-isl-stat { display: grid; gap: 1px; justify-items: center; padding: 6px 0; border-radius: 10px; background: #2a2537; color: #0e0e0e; }
-.sfx-isl-stat span { font-size: 11px; font-weight: 700; letter-spacing: .06em; opacity: .72; }
-.sfx-isl-stat b { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sfx-isl-game { display: grid; gap: 12px; }
+.sfx-isl-game + .sfx-isl-game { padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.sfx-isl-top { display: grid; grid-template-columns: 66px 1fr 66px; align-items: start; gap: 4px; }
+.sfx-isl-club { display: grid; justify-items: center; gap: 6px; min-width: 0; }
+.sfx-isl-club > :first-child { filter: drop-shadow(0 4px 10px rgb(0 0 0 / .5)); }
+.sfx-isl-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 600; color: #a7a3b5; }
+.sfx-isl-mid { display: grid; gap: 4px; align-self: center; text-align: center; padding-bottom: 16px; }
+.sfx-isl-mid b { font: 800 15px/1 var(--sfx-cond); letter-spacing: .01em; white-space: nowrap; }
+.sfx-isl-mid span { justify-self: center; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); font-size: 11px; color: #a7a3b5; }
+.sfx-isl-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+.sfx-isl-stat { display: grid; gap: 2px; justify-items: center; padding: 7px 0 6px; border-radius: 14px; background: rgba(255, 255, 255, 0.07); color: #0e0e0e; }
+.sfx-isl-stat span { font-size: 11px; font-weight: 700; letter-spacing: .06em; opacity: .7; }
+.sfx-isl-stat b { font: 800 15px/1 var(--sfx-cond); font-variant-numeric: tabular-nums; }
 .sfx-isl-stat--none { color: #8e88a3; }
-@keyframes sfx-island {
-  0% { opacity: .4; clip-path: inset(calc(100% - 40px) calc(50% - 20px) 0 calc(50% - 20px) round 20px); }
-  100% { opacity: 1; clip-path: inset(0 0 0 0 round 22px); }
+
+/* The island's motion: grows out of a black pill at what was hovered, with a spring; its content fades up after it. */
+.sfx-morph { animation: sfx-grow .55s linear(0, .012, .05 2.4%, .2 5.5%, .45 9.6%, .78 15%, .95 19.5%, 1.03 24%, 1.06 28%, 1.05 33%, 1.01 41%, .995 50%, 1) backwards; }
+.sfx-morph > * { animation: sfx-reveal .3s .09s cubic-bezier(.2, .8, .2, 1) backwards; }
+.sfx-morph-out { animation: sfx-shrink .2s cubic-bezier(.5, 0, .9, .4) forwards; }
+.sfx-morph-out > * { opacity: 0; transition: opacity .08s; }
+@keyframes sfx-grow { from { clip-path: var(--sfx-from); transform: scale(.94); } to { clip-path: inset(0 round var(--sfx-r, 24px)); transform: none; } }
+@keyframes sfx-shrink { to { clip-path: var(--sfx-from); transform: scale(.96); opacity: .3; } }
+@keyframes sfx-reveal { from { opacity: 0; filter: blur(5px); transform: scale(.97); } }
+
+/* His next game at the panel's foot. */
+.sfx-next { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border-radius: 18px; background: rgba(255, 255, 255, 0.05); }
+.sfx-next-words { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.sfx-next-words b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 12px/15px var(--sfx-font); }
+.sfx-next-words span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 11px/13px var(--sfx-font); color: #8e8e93; }
+.sfx-next-win { display: grid; justify-items: end; gap: 1px; }
+.sfx-next-win b { font: 800 16px/1 var(--sfx-cond); font-variant-numeric: tabular-nums; }
+.sfx-next-win span { font: 700 11px/1 var(--sfx-font); letter-spacing: .06em; color: #8e8e93; }
+.sfx-next-fdr { display: grid; place-items: center; min-width: 34px; height: 30px; padding: 0 6px; border-radius: 12px; color: #0e0e0e; font: 800 16px/1 var(--sfx-cond); font-variant-numeric: tabular-nums; }
+
+/* The start island: the chance large, then each source's number, the one used lit. */
+.sfx-tip {
+  position: fixed; z-index: 2147483000; min-width: 170px; display: grid; gap: 10px; padding: 12px 14px; border-radius: 22px; background: #050506;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 18px 40px -14px rgb(0 0 0 / .8); color: #fff; font: 600 11px/1.2 var(--sfx-font);
+  pointer-events: none; --sfx-r: 22px;
 }
-@media (prefers-reduced-motion: reduce) { .sfx-island, .sfx-live-dot, .sfx-live-dot::after { animation: none; } }
+.sfx-tip-big { display: flex; align-items: baseline; gap: 8px; }
+.sfx-tip-big b { font: 800 34px/30px var(--sfx-cond); color: var(--sfx-c, #fff); font-variant-numeric: tabular-nums; }
+.sfx-tip-big span { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #8e8e93; }
+.sfx-tip-rows { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.sfx-tip-row { display: grid; grid-template-columns: 7px 1fr auto; align-items: center; gap: 8px; color: #8e8e93; }
+.sfx-tip-row .sfx-src { width: 7px; height: 7px; color: currentColor; }
+.sfx-tip-row b { font: 700 13px/1 var(--sfx-cond); font-variant-numeric: tabular-nums; }
+.sfx-tip-row--used { color: #fff; }
+.sfx-tip-note { margin: 0; padding: 5px 9px; border-radius: 999px; background: rgba(240, 206, 29, 0.13); color: #f0ce1d; font-size: 11px; }
+.sfx-tip-note--out { background: rgba(255, 90, 90, 0.14); color: #ff8a8a; }
+@media (prefers-reduced-motion: reduce) { .sfx-island, .sfx-tip, .sfx-live-dot, .sfx-live-dot::after { animation: none; } }
 
 /* Sofix's captain pick on Sorare's builder (1.2): a faint purple C at the card's bottom right, never glowing. */
 .sfx-captain {

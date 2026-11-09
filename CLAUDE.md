@@ -69,7 +69,9 @@ Sofix already has a design system, so the design skills serve it; they never rep
    [research report](docs/research_report.md). Resolve known contradictions explicitly; the frontend renders backend decisions instead of re-deriving them.
 2. `node scripts/check.mjs` passes; a visible change also passed its page spec and the desktop + phone look.
 3. The doc the change affects (manual or plan) is updated in the same commit, in a line or two.
-4. Pushed to `main`, and `node scripts/check.mjs --live` says all clear; the reply ends with its "Test it" links.
+4. Committed locally; pushed to `main` only when the owner asked, batched with other commits (AGENTS.md "Shipping" step 4).
+   After a push, `node scripts/check.mjs --live` says all clear and the reply ends with its "Test it" links; without one, the reply
+   says what is committed and waiting, and asks before deploying when a push is necessary or recommended.
 5. Source credits (Futbol Fantasy links, hot-linked art), free-tier throttles and secret boundaries are intact.
 
 ## What's next

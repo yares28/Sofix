@@ -97,8 +97,11 @@ any global habit of branches, pull requests, CI waits or review subagents.
    against the design bar in CLAUDE.md (one hero, real cards and crests, text floor, no horizontal overflow). A new or
    restyled screen also gets the `web-design-guidelines` pass on its files. The full browser suite runs locally only when
    shared code moved (the app shell, nav, `lib/weeks.ts`, the e2e mock); otherwise CI runs it after the push.
-4. **Ship:** commit (`<type>: <description>`, with the doc line the change needs in the same commit) and
-   `git push origin main`. Vercel deploys in one to two minutes. A push that touches `backend/app/**` or
+4. **Ship (owner's rule, 9 Nov 2026):** commit each finished change locally (`<type>: <description>`, with the doc line the
+   change needs in the same commit), but push only when the owner asks. Deploys are batched: several commits go out in one
+   push, because every push costs Vercel CPU (deploy screenshots, the `--live` renders, the extension's check-ins after a
+   release). When a push is necessary (production broken) or recommended (a fix he is waiting to use), say so and ask; never
+   push on your own. Then `git push origin main`. Vercel deploys in one to two minutes. A push that touches `backend/app/**` or
    `backend/artifacts/**` also starts the refresh (`refresh.yml`), which republishes the read models: never dispatch it by
    hand for that.
 5. **Confirm and hand over:** `node scripts/check.mjs --live /<changed page> ...` waits for the deploy, opens the home page
@@ -115,9 +118,9 @@ any global habit of branches, pull requests, CI waits or review subagents.
    first, so the app is back in about two minutes; then find the cause and ship the fix as a new commit.
 8. **Roadmap:** shipping an item from "Next up" moves it to the roadmap's Results and off the list, in the same commit.
 
-Hold the push only when the owner says so; for a schema change until he has migrated production (the migration goes
-first, the code second); and for an extension release until `node extension/scripts/configure.mjs` has rebuilt his
-folder, after which he presses Reload once.
+Push only when the owner asks (step 4), and even then hold it for a schema change until he has migrated production (the
+migration goes first, the code second), and for an extension release until `node extension/scripts/configure.mjs` has
+rebuilt his folder, after which he presses Reload once.
 
 Not done here: pull requests, waiting for CI or for a refresh, review subagents, screenshots of production (the
 `--live` check covers it), Chrome round trips to GitHub.

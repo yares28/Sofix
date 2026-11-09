@@ -69,7 +69,9 @@ games first (Bellingham, Alexander-Arnold, Livaković).*
 - Edges: no later window (Hold empty: Play 100%, "no later game"); both 0 at every prize (no bar, the verdict says why); a near tie
   (within `tie`, the advice plays): 50 | 50 with "near tie, play: speed first"; Spend verdict; waiting lineups on the step.
 
-**E · Pick teams starts empty (point 4)**
+**E · Pick teams starts empty (point 4)** · *done 9 Nov 2026, after you found taps that changed nothing: the plan's 25 games were
+picked on pages out of sight. Also: a Picked (n) view, a note when a tap leaves the five, taps that flip at once (the five follow; a
+tap cost about 1 s with 240 games), and Easiest games limited to the first day with easy games (it had picked 239 over two months).*
 - Today `ArcadePlanner` fills it with the plan's first move when you have not picked (`selection ?? plan.path[0]`).
 - New: nothing picked until you tap a game; your picks still survive a refresh; "Edit in Pick teams" and "Add to Pick teams" still
   fill it on purpose. The empty state invites a tap, and "Easiest games" stays one tap away.

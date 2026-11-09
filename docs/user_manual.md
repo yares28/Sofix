@@ -835,6 +835,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   more, else Sorare's own word: starter or regular, no open injury; Sorare's news feed is empty in its API). **Add to Pick teams** puts
   the game in the builder. One owned likely starter is enough. All qualifying clubs stay in one horizontal row: drag, swipe, or use the arrows at either end to move two teams, with no page footer.
   **Pick teams** has a larger five-player pitch on the left and a game grid on the right, paginated after twelve games. **Today** shows only games left on the Madrid calendar date; filtering keeps your choices and counts selected games hidden for later. A compact range and every step's chance sit below the pitch. Your chosen games and target are saved in this browser for that set and board, including an empty choice; new start percentages and plans rebuild the best five without changing those games. Games that have started leave the active selection.
+  It starts empty: nothing is picked for you (9 Nov 2026: the plan's 25 games, picked out of sight, kept your taps from changing the
+  team). **Picked (n)** lists every game in the team on one page; a tap that leaves the five as they were says so; **Easiest games**
+  takes the first day that has any.
 - **Your lineups on Sorare**: each lineup you entered, as a race to the target: points so far, what its cards still to play add at
   their best, **Dead** when that cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next lineup more.
 - **Points needed** (2 Nov 2026, [plans/points-needed.md](../plans/points-needed.md)): only on lineups you entered and that are still in

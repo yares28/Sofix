@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useContext, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { memo, useCallback, useContext, useDeferredValue, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
 import { WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
@@ -155,23 +155,42 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
   const boards = useContext(FdrContext);
   const crests = useMemo(() => crestsOf(arcade), [arcade]);
   const games = useMemo(() => (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now && (outlooks.get(g.id) ?? []).length), [arcade.games, outlooks, now]);
-  const [todayOnly, setTodayOnly] = useState(false);
+  const [show, setShow] = useState<"all" | "today" | "picked">("all");
+  const todayOnly = show === "today";
   const [page, setPage] = useState(0);
   const today = madridDate(iso(now));
-  const filteredGames = todayOnly ? games.filter((g) => madridDate(g.kickoff) === today) : games;
+  const picked = games.filter((g) => chosen.has(g.id));
+  // "Picked" lists every game in the team on one page, so a pick on another page is never out of sight.
+  const filteredGames = show === "picked" ? picked : todayOnly ? games.filter((g) => madridDate(g.kickoff) === today) : games;
   const pages = Math.max(1, Math.ceil(filteredGames.length / 12));
   const atPage = Math.min(page, pages - 1);
   const hiddenSelected = todayOnly ? games.filter((g) => chosen.has(g.id) && madridDate(g.kickoff) !== today).length : 0;
   const target = steps.find((s) => s.number === aim)?.target ?? steps[0]?.target ?? 0;
-  const lineup = useMemo(() => preset ?? bestLineup([...chosen].flatMap((id) => outlooks.get(id) ?? []).filter((o) => !busy.has(o.card.slug)), target, captainBonus), [chosen, outlooks, target, captainBonus, busy, preset]);
-  const toggle = (id: string) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); };
+  // The ticket flips at once; the five follow when worked out (a second with 200 games picked on 9 Nov 2026).
+  const pending = useDeferredValue(chosen);
+  const lineup = useMemo(() => preset ?? bestLineup([...pending].flatMap((id) => outlooks.get(id) ?? []).filter((o) => !busy.has(o.card.slug)), target, captainBonus), [pending, outlooks, target, captainBonus, busy, preset]);
+  const five = (l: Lineup | null) => (l ? l.picks.map((p) => p.outlook.card.slug).sort().join() : "");
+  // The last tap, so one that leaves the five as they were says so instead of looking broken.
+  const [tap, setTap] = useState<{ name: string; added: boolean; before: string } | null>(null);
+  const toggle = (g: ArcadeGame) => {
+    const next = new Set(chosen);
+    const added = !next.has(g.id);
+    if (added) next.add(g.id); else next.delete(g.id);
+    setTap({ name: `${g.home?.name ?? "?"} v ${g.away?.name ?? "?"}`, added, before: five(lineup) });
+    setChosen(next);
+  };
+  const stayed = tap && pending === chosen && lineup && five(lineup) === tap.before
+    ? `${tap.name} ${tap.added ? "is in: none of its cards beats these" : "is out: none of its cards was in the team"}, so the five stay.` : null;
   // The games where one of your clubs is favourite on Sofix's board (difficulty 1 or 2).
-  const easy = filteredGames.filter((g) => {
+  const easyAll = (show === "picked" ? games : filteredGames).filter((g) => {
     const f = boards.get(g.id);
     if (!f) return false;
     const mine = new Set((outlooks.get(g.id) ?? []).map((o) => sideIn(o.card, g)));
     return (mine.has(g.home?.slug ?? null) && f.home.bucket <= 2) || (mine.has(g.away?.slug ?? null) && f.away.bucket <= 2);
   });
+  // One lineup plays one day: the easy games of the first day that has any (9 Nov 2026: 239 games over two months went in one team).
+  const easyDay = easyAll[0] ? madridDate(easyAll[0].kickoff) : null;
+  const easy = easyAll.filter((g) => madridDate(g.kickoff) === easyDay);
   const settles = lineup ? Date.parse(lineup.last) + SETTLES_AFTER_MS : null;
   const open = steps.filter((s) => !["CLAIMED", "CLAIMABLE"].includes(s.state));
 
@@ -179,20 +198,21 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
     <div className="arc-teams">
       <div className="arc-teams-bar">
         <label className="arc-aim">Aim at
-          <select value={aim} onChange={(e) => setAim(Number(e.target.value))}>
+          <select value={aim} onChange={(e) => { setTap(null); setAim(Number(e.target.value)); }}>
             {(open.length ? open : steps).map((s) => <option key={s.id} value={s.number}>Step {s.number} · {s.target} pts</option>)}
           </select>
         </label>
-        <button type="button" className="arc-small" onClick={() => setChosen(new Set(easy.map((g) => g.id)))} disabled={!easy.length} title="Games where Sofix's board makes one of your clubs favourite (difficulty 1 or 2): LaLiga, Premier League, Bundesliga, Ligue 1 and their European games">
+        <button type="button" className="arc-small" onClick={() => { setTap(null); setChosen(new Set(easy.map((g) => g.id))); }} disabled={!easy.length} title={`Games on ${easyDay ? madridDay(`${easyDay}T12:00:00Z`) : "the first day"} where Sofix's board makes one of your clubs favourite (difficulty 1 or 2)`}>
           Easiest games ({easy.length})
         </button>
-        <button type="button" className="arc-small" onClick={() => setChosen(new Set())} disabled={!chosen.size}>Clear</button>
+        <button type="button" className="arc-small" onClick={() => { setTap(null); setChosen(new Set()); if (show === "picked") setShow("all"); }} disabled={!chosen.size}>Clear</button>
       </div>
       <div className="arc-game-picker">
         <div className="arc-game-filter">
           <div className="arc-modes" role="group" aria-label="Game day">
-            <button type="button" aria-pressed={!todayOnly} onClick={() => { setTodayOnly(false); setPage(0); }}>All games</button>
-            <button type="button" aria-pressed={todayOnly} onClick={() => { setTodayOnly(true); setPage(0); }}>Today</button>
+            <button type="button" aria-pressed={show === "all"} onClick={() => { setShow("all"); setPage(0); }}>All games</button>
+            <button type="button" aria-pressed={todayOnly} onClick={() => { setShow("today"); setPage(0); }}>Today</button>
+            <button type="button" aria-pressed={show === "picked"} disabled={!picked.length} onClick={() => { setShow("picked"); setPage(0); }}>Picked ({picked.length})</button>
           </div>
           {hiddenSelected ? <span>{hiddenSelected} selected later</span> : null}
         </div>
@@ -201,7 +221,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
           const f = boards.get(g.id);
           const on = chosen.has(g.id);
           return (
-            <button key={g.id} type="button" className="arc-ticket" aria-pressed={on} onClick={() => toggle(g.id)} style={{ "--i": Math.min(i, 12) } as CSSProperties}>
+            <button key={g.id} type="button" className="arc-ticket" aria-pressed={on} onClick={() => toggle(g)} style={{ "--i": Math.min(i, 12) } as CSSProperties}>
               <small>{g.competition.name}</small>
               <span className="arc-ticket-crests"><Crest team={g.home} crests={crests} /><i>v</i><Crest team={g.away} crests={crests} /></span>
               <span className="arc-ticket-name">{g.home?.name ?? "?"} v {g.away?.name ?? "?"}</span>
@@ -215,16 +235,17 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
           );
         })}
         </div>
-        {!filteredGames.length ? <p className="arc-sub" role="status">No games left today.</p> : null}
+        {!filteredGames.length ? <p className="arc-sub" role="status">{show === "picked" ? "No game picked." : "No games left today."}</p> : null}
         {pages > 1 ? <nav className="arc-pager" aria-label="Game pages">
           <button type="button" aria-label="Previous page" disabled={!atPage} onClick={() => setPage(atPage - 1)}>Previous</button>
           <span>Page {atPage + 1} of {pages}</span>
           <button type="button" aria-label="Next page" disabled={atPage === pages - 1} onClick={() => setPage(atPage + 1)}>Next</button>
         </nav> : null}
       </div>
+      {stayed ? <p className="arc-sub arc-pick-note" role="status">{stayed}</p> : null}
       {lineup ? (
-        <div className="arc-pitch-wrap">
-          <Pitch lineup={lineup} captainBonus={captainBonus} title={`Best five from your ${chosen.size} game${chosen.size === 1 ? "" : "s"} · settles about ${when(settles!, now)}`} />
+        <div className="arc-pitch-wrap" aria-busy={pending !== chosen}>
+          <Pitch lineup={lineup} captainBonus={captainBonus} title={`Best five from your ${pending.size} game${pending.size === 1 ? "" : "s"} · settles about ${when(settles!, now)}`} />
           <Scale lineup={lineup} steps={steps} aim={aim} />
           <details className="arc-detail">
             <summary>Each card&apos;s numbers</summary>
@@ -482,11 +503,12 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
   // One Set per change, not per render: Pick teams reruns its lineup search whenever this changes.
   const chosen = useMemo(() => {
     const available = new Set(games.map((g) => g.id));
-    return new Set([...(selection?.chosen ?? (plan?.path[0]?.list ?? []).map((o) => o.game.id))].filter((id) => available.has(id)));
-  }, [games, selection?.chosen, plan]);
+    // Starts empty (owner, 9 Nov 2026: "prepick the teams instead of letting me pick"): only your picks, kept between visits.
+    return new Set([...(selection?.chosen ?? [])].filter((id) => available.has(id)));
+  }, [games, selection?.chosen]);
   const wantedAim = selection?.aim ?? plan?.path[0]?.step ?? current;
   const aim = arcade.board?.steps.some((s) => s.number === wantedAim && !["CLAIMED", "CLAIMABLE"].includes(s.state)) ? wantedAim : current;
-  const preset = selection ? (selection.preset?.plan === plan ? selection.preset.lineup : null) : plan?.path[0]?.lineups[0] ?? null;
+  const preset = selection?.preset?.plan === plan ? selection.preset.lineup : null;
   const setChosen = (next: Set<string>) => setSelection({ chosen: next, aim, preset: null });
   const setAim = (next: number) => setSelection({ chosen, aim: next, preset: null });
   const lives = start.step === current ? start.lives : 0;

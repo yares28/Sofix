@@ -1714,12 +1714,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-09",
-        "note": "National-team games (9 Nov): a card plays a game for its club or its national team (sideIn); outlooks, elevens, projections, teammate correlation, Teams to build around and Easiest games use it",
+        "note": "Pick teams (9 Nov): starts empty, Picked view, a note when a tap leaves the five, deferred rebuild, Easiest limited to the first day with easy games",
         "files": {
           "frontend/lib/arcadeClimb.ts": "35da416ef1c2dc5f99d34a6ec0e93f6e7356589620877bdf58fa425899449657",
           "frontend/lib/arcadePlan.ts": "3c3fe5ad47a589e374878c9efaeedf069aad29c6b6894ed95b4e9eaac3931d01",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "3fc4f252173bb84d0530cfb544bf94663284d8b29a92c8435c095bf5f618cbf7",
+          "frontend/components/arcade/ArcadePlanner.tsx": "43fc27c1812e103c41820cf04cdda00293d2e52ba8d43048f65e4905d193ecdd",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
           "frontend/app/arcade-canvas.css": "35833ef6c996640d05fba699164e5d25c8900ec6a2b867ede86220bb69616e09",
           "frontend/lib/arcadeTeams.ts": "f586d4ac14469d5fdbc02272989ba212a0e84d530739d127e31deb411a9b8646",
@@ -1729,7 +1729,7 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/arcadePlan.test.ts": "ecd85809041795e010daf53a22f91195333d7ce089a86a67d95dfa87fc9fb3ce",
           "frontend/lib/arcadeTeams.test.ts": "cf0d58177712224c0267c9fd5b1f1f397597e5b704f0035f0ea7713868d9e181",
           "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
-          "frontend/e2e/arcade.e2e.ts": "8a53e4abcd162874e6ac989b893e1173755b8164a69b7d6c1f33f29a4fcd9401"
+          "frontend/e2e/arcade.e2e.ts": "3e9a9a147829a57f71d833e398766259317791efbbfcd576e8bf9492d60690a3"
         }
       }
     },

@@ -297,6 +297,8 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
   await expect(page.locator(".arc-grid .arc-card-score b")).toHaveText("34");
   await show(page, "Play now");
+  await expect(page.locator(".arc-plan")).toContainText("Pick at least one game."); // nothing picked for you
+  await page.getByRole("group", { name: "Games to pick from" }).getByRole("button").click();
   await expect(page.locator(".arc-pitch li")).toHaveCount(5); // the five on the pitch
   await expect(page.locator(".arc-scale-tick.is-aim")).toContainText("Step 2");
   await page.getByText("Each card's numbers").click();
@@ -427,7 +429,8 @@ test("step one spends four resettable lives and keeps every insurance team ident
   expect(new Set(players).size).toBe(20);
 });
 
-test("the club row flanks all teams with arrows while the bigger pitch, compact chances and game matrix remember selections", async ({ page }) => {
+/** Fourteen games, one forward of yours in each but the first (Club, the full squad): two pages of tickets. */
+function pickerAnswers() {
   const games = Array.from({ length: 14 }, (_, i) => ({ id: i === 0 ? GAME : `Game:picker-${i}`, date: KICKOFF, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: i === 0 ? "club" : i === 1 ? "barcelona" : `club-${i}`, name: i === 0 ? "Club" : i === 1 ? "Barcelona" : `Club ${i}` }, awayTeam: { slug: `rival-${i}`, name: `Rival ${i}` } }));
   const singleCards = games.slice(1).map((g, i) => ({ slug: `single-${i}`, pictureUrl: null, anyPositions: ["Forward"], cardSet: { slug: "glitch" }, skinEdition: { bonus: 1 }, anyPlayer: { slug: `single-${i}`, displayName: i === 0 ? "Raphinha" : `Forward ${i}` }, anyTeam: g.homeTeam }));
   const base = ANSWERS["arcade-cards"] as { currentUser: { cards: { nodes: unknown[] } } };
@@ -437,13 +440,42 @@ test("the club row flanks all teams with arrows while the bigger pitch, compact 
     "arcade-past": { players: [...SQUAD.map(([, player]) => ({ slug: player, playingStatus: "STARTER", playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })), ...singleCards.map((c) => ({ slug: c.anyPlayer.slug, playingStatus: "STARTER", playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) }))] },
     ...Object.fromEntries(games.slice(1).map((g, i) => [`arcade-projections:${g.id}`, { anyGame: { id: g.id, playerGameScores: [{ projection: { score: i === 0 ? 90 : 60 }, anyPlayer: singleCards[i]!.anyPlayer }] } }])),
   };
+  return answers;
+}
+
+test("Pick teams starts empty, every pick shows across pages, and a tap that leaves the five as they were says so", async ({ page }) => {
+  // 9 Nov 2026: the plan's 25 games were picked on pages out of sight, so the owner's taps never changed the team.
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page, pickerAnswers(), "0.4.18");
+  await page.goto("/arcade");
+  const picker = page.locator(".arc-plan");
+  const tickets = picker.getByRole("group", { name: "Games to pick from", exact: true });
+  await expect(picker).toContainText("Pick at least one game.");
+  await expect(tickets.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(0);
+  await tickets.getByRole("button", { name: /Club v Rival 0/ }).click();
+  await expect(picker.locator(".arc-pitch li")).toHaveCount(5);
+  const team = await picker.locator(".arc-pitch li").evaluateAll((els) => els.map((el) => el.textContent));
+  await picker.getByRole("button", { name: "Next page" }).click();
+  await tickets.getByRole("button", { name: /Club 13 v Rival 13/ }).click(); // a 60-point forward: the squad's are better
+  await expect(picker.getByRole("status").filter({ hasText: "Club 13 v Rival 13" })).toContainText("the five stay");
+  expect(await picker.locator(".arc-pitch li").evaluateAll((els) => els.map((el) => el.textContent))).toEqual(team);
+  await picker.getByRole("button", { name: "Picked (2)", exact: true }).click();
+  await expect(tickets.getByRole("button")).toHaveCount(2);
+  await expect(tickets.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(2);
+  await tickets.getByRole("button", { name: /Club 13 v Rival 13/ }).click();
+  await expect(picker.getByRole("status").filter({ hasText: "Club 13 v Rival 13" })).toContainText("the five stay");
+  await expect(picker.getByRole("button", { name: "Picked (1)", exact: true })).toBeVisible();
+});
+
+test("the club row flanks all teams with arrows while the bigger pitch, compact chances and game matrix remember selections", async ({ page }) => {
+  const answers = pickerAnswers();
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
   await withExtension(page, answers, "0.4.18");
   await page.goto("/arcade");
   const clubs = page.locator(".arc-clubs");
   await expect(clubs.locator(".arc-club").filter({ hasText: "Barcelona" })).toContainText("Raphinha");
   const picker = page.locator(".arc-plan");
-  await picker.getByRole("button", { name: "Clear", exact: true }).click();
+  await expect(picker.getByRole("button", { name: "Clear", exact: true })).toBeDisabled(); // starts empty
   await picker.getByRole("button", { name: /Club v Rival 0/ }).click();
   await picker.getByRole("button", { name: /Barcelona v Rival 1/ }).click();
   const tickets = picker.getByRole("group", { name: "Games to pick from", exact: true });
@@ -528,7 +560,7 @@ test("Today filters the game matrix by Madrid midnight without losing selected l
   const picker = page.locator(".arc-plan");
   const tickets = picker.getByRole("group", { name: "Games to pick from", exact: true });
   await expect(tickets.getByRole("button")).toHaveCount(3);
-  await picker.getByRole("button", { name: "Clear", exact: true }).click();
+  await expect(tickets.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(0); // starts empty
   await tickets.getByRole("button", { name: /Club v Rival 0/ }).click();
   await tickets.getByRole("button", { name: /Club v Rival 1/ }).click();
   const team = await picker.locator(".arc-pitch").textContent();
@@ -565,7 +597,8 @@ test("saved team choices discard expired games and cleared targets, and another 
   board.currentUser.setBoard.id = "another-board";
   await page.evaluate((board) => { (window as unknown as { __answers: Record<string, unknown> }).__answers = { arcade: board }; }, board);
   await page.getByRole("button", { name: "Refresh board and cards", exact: true }).click();
-  await expect(picker.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(1);
+  await expect(picker).toContainText("Pick at least one game."); // the new board has no picks of yours
+  await expect(picker.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(0);
 });
 
 test("Gems and packs compares editable mixed options without rereading odds", async ({ page }) => {

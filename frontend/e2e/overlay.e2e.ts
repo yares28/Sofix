@@ -229,7 +229,7 @@ const OLD_WEEK = "football-18-22-sep-2026";
 
 async function openPage(
   page: Page,
-  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; url?: string; html?: string; need?: unknown; team?: unknown } = {},
+  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; url?: string; html?: string; need?: unknown; team?: unknown; brokenCrests?: boolean } = {},
 ) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
@@ -238,7 +238,9 @@ async function openPage(
   const pageUrl = options.url ?? PAGE_URL;
   await page.route((url) => url.origin + url.pathname === pageUrl, (route) => route.fulfill({ contentType: "text/html", body: options.html ?? FIXTURE }));
   await page.route("https://crests.football-data.org/**", (route) =>
-    route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#d33"/></svg>' }));
+    options.brokenCrests
+      ? route.fulfill({ status: 404, body: "" })
+      : route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#d33"/></svg>' }));
   await page.route("https://assets.sorare.com/**", (route) => {
     if (/\.webm/.test(route.request().url())) return route.fulfill({ status: 200, contentType: "video/webm", body: "" });
     const art =
@@ -795,9 +797,8 @@ test.describe("the sorare.com overlay", () => {
   });
 
   test("a crest picture that will not load gives way to the club's shield, and a small box of Sorare's on the card's edge does not hide it (9 Nov 2026)", async ({ page }) => {
-    await openPage(page, { url: BUILDER_URL });
+    await openPage(page, { url: BUILDER_URL, brokenCrests: true }); // every crest picture answers 404 (a refused hot-link)
     await settled(page);
-    await page.route("https://crests.football-data.org/missing.png", (route) => route.fulfill({ status: 404, body: "" }));
     await page.locator("#big").scrollIntoViewIfNeeded();
     const crest = () =>
       page.evaluate(() => {
@@ -808,16 +809,7 @@ test.describe("the sorare.com overlay", () => {
         });
         return c ? { text: c.textContent, imgs: c.querySelectorAll("img").length, hidden: getComputedStyle(c).visibility === "hidden" } : null;
       });
-    await expect.poll(crest).toMatchObject({ imgs: 1 });
-    // The crest's picture fails (a 404, a refused hot-link): Getafe's shield takes its place.
-    await page.evaluate(() => {
-      const art = document.querySelector("#big img")!.getBoundingClientRect();
-      for (const img of document.querySelectorAll<HTMLImageElement>(".sfx-crests .sfx-crest img")) {
-        const r = img.getBoundingClientRect();
-        if (r.left < art.right && r.right > art.left && Math.abs(r.top + r.height / 2 - art.top) < 20) img.src = "https://crests.football-data.org/missing.png";
-      }
-    });
-    await expect.poll(crest).toMatchObject({ text: "GET", imgs: 0 });
+    await expect.poll(crest).toMatchObject({ text: "GET", imgs: 0 }); // Getafe's shield in its place
     // Sorare's own small box over the card's top edge, outside the card's block (a slot's frame): not a bar, so the crest stays.
     await page.evaluate(() => {
       const art = document.querySelector("#big img")!.getBoundingClientRect();

@@ -43,11 +43,16 @@
       cards.set(item.key, { cardSlug: item.cardSlug, playerSlug: item.playerSlug, name: item.name });
       if (item.name && item.playerSlug) {
         const name = core.normalizeCardName(item.name);
-        if (name) byName.set(name, byName.has(name) && byName.get(name) !== item.playerSlug ? null : item.playerSlug);
+        if (name) {
+          const slug = byName.has(name) && byName.get(name) !== item.playerSlug ? null : item.playerSlug;
+          byName.delete(name); // re-inserting moves it to the newest end
+          byName.set(name, slug);
+        }
       }
     }
     while (cards.size > INDEX_MAX) cards.delete(cards.keys().next().value);
-    if (byName.size > INDEX_MAX) byName.clear();
+    // Oldest names out first: clearing them all (until 9 Nov 2026) left every card known only by name blank on a long scroll.
+    while (byName.size > INDEX_MAX) byName.delete(byName.keys().next().value);
     announce();
   }
 

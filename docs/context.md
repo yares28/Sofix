@@ -1573,11 +1573,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-09",
-        "note": "Reviewed extension 0.4.65 (9 Nov): version bump for overlay crest drawing only (shield fallback, covered check, played games, suspended); no session action, allowlist or write path touched.",
+        "note": "Reviewed extension 0.4.66 (9 Nov): bridge.js now evicts its oldest player names past 2,000 instead of clearing them; no operation, allowlist or write path touched.",
         "files": {
           "extension/background.js": "8ca7c9a1d09c855d76334d8db8f4d5e5c8342e8240875af0257855f290608781",
-          "extension/bridge.js": "d318a12d9854876efa1ef44e2cbce2b2884bf22fc0d0934777296945a305418d",
-          "extension/manifest.template.json": "13c0063400641affbfb8104c80a1d984b2145206f7c5868ee94b3a57a5ea11e1",
+          "extension/bridge.js": "03fe0338979ebc82b12f8b8b93031bcbf9ebc0b0dee47c328cfbfc1990eb485f",
+          "extension/manifest.template.json": "b5ca70a56d33f6a00426c651dbd2dc5ea5cfb75099b29fb0a073c15dbbebf215",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
@@ -1777,11 +1777,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-29",
-        "note": "Checked 29 Oct 2026: in-season benches take in-season cards only; Pro teamsheet windows (pro.windows) simulate each Pro lineup on start chances and do not change plan selection, raw forecasts or joint plan rewards; the timeline keeps a live week playing count; currentWeek skips a live Sorare-only week with none of your cards.",
+        "date": "2026-11-09",
+        "note": "Reviewed 9 Nov: CLAUDE.md changed only its 'Done means' shipping line (push only when the owner asks, batched); no navigation rule changed.",
         "files": {
           "frontend/lib/weeks.ts": "be34a90c23ae5a353947547f9e6b69bc2b035b6a439c785704d8b49b71a48c54",
-          "CLAUDE.md": "3e8ad3b87f0ac3840e2cac11dad10e8d7089719bcf455a88b3c653f522c9d06b",
+          "CLAUDE.md": "32a95d8b9cf29bf61411de22ba53fc5f530fe89cb3cba22ffe67b7ff56d33597",
           "frontend/lib/weeks.test.ts": "12731b19b2f9cf68723009db4ec878b69539e016cfe1f28412c55217eb042516"
         }
       }

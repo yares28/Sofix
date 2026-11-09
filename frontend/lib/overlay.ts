@@ -458,6 +458,7 @@ export function dockMissions(today: { status: MissionsStatus; seenAt: string | n
 
 /** The board only models LaLiga. Sorare names it "laliga-es"; "laliga-2" and every cup are other competitions. */
 const LALIGA = /^laliga(-es)?$/i;
+const CARD_SLUG = /^([a-z0-9][a-z0-9-]*?)-\d{4}-(?:limited|rare|super_rare|unique|common|custom_series)-\d+$/;
 
 /** Which game an answer is about: a named one (a lineup's), else one of these leagues (a builder's), else any. */
 type Pick = { id?: string; leagues?: string[] | null };
@@ -870,7 +871,8 @@ export function overlayNumbers(
   };
   const cards: Record<string, OverlayEntry> = {};
   for (const cardSlug of request.cards) {
-    const entry = forPlayer(owners.get(cardSlug), request.games?.[`c:${cardSlug}`]);
+    // A card you do not own, known to the page only by its link: Sorare names it "<player>-<season>-<rarity>-<serial>" (105 of 105 of yours, 9 Nov 2026).
+    const entry = forPlayer(owners.get(cardSlug) ?? CARD_SLUG.exec(cardSlug)?.[1], request.games?.[`c:${cardSlug}`]);
     const mult = entry ? multOf(cardSlug) : undefined;
     if (entry) cards[cardSlug] = mult !== undefined ? { ...entry, mult, club: held.get(cardSlug)?.club ?? null } : entry;
   }

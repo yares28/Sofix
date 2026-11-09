@@ -37,9 +37,13 @@ local copy of the blocks (8 Nov). Not yet watched live on sorare.com. Order: sta
   FF read updates them.
 - S4. When the card's game has no start % of its own, the week's is used (`lib/overlay.ts:620-631`), which is his *first* game's:
   wrong on a double week (Champions League midweek, LaLiga at the weekend).
+  **Dropped 9 Nov:** 2 of 150 players in the local data, and only for the second game of a double week; not worth the risk.
 - S5. A player without the starts/bench split loses his source entirely and shows `p` (`lib/overlay.ts:629-650`).
+  **Dropped 9 Nov:** never happens (0 of 150 players lack the split).
 - S6. Sorare's own fresh start % (read from the page by the bridge) only flags a disagreement; it is never the fallback when FF
   has nothing, so the order FF → Sorare → Sofix is not kept on the card.
+  **Dropped 9 Nov:** your 3 Nov design keeps Sofix's number and rings it amber when Sorare's page number is 30+ points apart;
+  replacing it would undo that ring.
 
 **Tiles missing on some cards or whole pages**
 - A1. On the lineup pages (Pro, Pro step and Arcade step lineups) a card is drawn only when its whole team block matches one of
@@ -50,7 +54,11 @@ local copy of the blocks (8 Nov). Not yet watched live on sorare.com. Order: sta
 - A2. A card is looked up 8 times over about 3½ minutes, then only when the bridge learns new cards (`overlay.js:23,143`). The
   bridge learns only from answers to the page's POST requests (`bridge.js:108`): cards Sorare draws from its own cache (back and
   forward, revisits) are never named. Past 2,000 cards its name index is wiped (`bridge.js:50`).
+  **Fixed 9 Nov (extension 0.4.66):** the oldest names leave first instead of all of them. The cache part is dropped: the bridge's
+  index lives as long as the tab, so back and forward reuse what it learned; unproven otherwise.
 - A3. A card known only by its link asks by card slug, which the app answers only for cards you own (`lib/overlay.ts:861`).
+  **Fixed 9 Nov:** a card you do not own is answered for the player its slug names (`<player>-<season>-<rarity>-<serial>`,
+  105 of 105 of yours follow it).
 - A4. "Sofix has nothing" is remembered for 10 minutes, in the tab (`overlay.js:313`) and in the worker (`background.js:546`): a
   card asked before its lineup's game was known, or during a refresh, stays blank that long. **Fixed 9 Nov:** asked again after 3
   minutes (not sooner: each ask is a Vercel call), without a loading flash.
@@ -59,12 +67,15 @@ local copy of the blocks (8 Nov). Not yet watched live on sorare.com. Order: sta
   Tiles already drawn were never affected.
 - A6. Size rules: a card under 48 px wide, outside a 0.55-0.9 width/height ratio (a card mid hover tilt) or round counts as "not a
   card" (`core.js:119`); the start chip is left off cards under 80 px and once the game has kicked off or the numbers are 24 h old.
+  **Dropped 9 Nov:** these are deliberate (no chip over a thumbnail, no stale number).
 - A7. A player Sofix does not rate (other leagues, unknown position, no xScore) gets nothing, with nothing saying why.
+  **Dropped 9 Nov:** a "no data" mark on every such card is clutter.
 
 **Crest missing**
 - C1. No stand-in when the crest picture fails to load (`overlay.js:1044`): a 404 or a refused hot-link leaves an empty button.
   The coloured shield shows only when there is no address at all. **Fixed 9 Nov (extension 0.4.65):** the shield takes its place.
 - C2. Crests are drawn only on the builders and the lineup pages (your call, 4 Nov); the gallery, the market and Classic pages have none.
+  **Kept as is:** your call.
 - C3. The crest hides whenever anything outside the card's own box sits at its spot (`crestCovered`, `overlay.js:1170`); that box
   stops at 1.3× the card's width, so Sorare's own slot button or badge on the pitch can count as covering it. **Fixed 9 Nov:** only
   something wider than two cards (a sticky header or search bar) hides it.
@@ -72,6 +83,7 @@ local copy of the blocks (8 Nov). Not yet watched live on sorare.com. Order: sta
   game's crest stays and a live second game gets no live dot. **Fixed 9 Nov:** a played game leaves once another is to come or on.
 - C5. "Out" only for FF's `out`: a suspended player keeps an ordinary crest. **Fixed 9 Nov:** suspended says Out too.
 - C6. Hidden while any Sorare dialog or drawer covers the card's column, even one that is not modal.
+  **Dropped 9 Nov:** on a second read it hides only when the drawer's area holds the card's top edge, which is right.
 
 ---
 

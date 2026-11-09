@@ -161,6 +161,17 @@ describe("overlayNumbers", () => {
     expect([bare.pStart, bare.startSource, bare.ffMatch, bare.ffStatus]).toEqual([undefined, undefined, undefined, undefined]);
   });
 
+  it("answers a card you do not own by the player its slug names, when the page knew it only by its link (9 Nov 2026)", () => {
+    const row = { slug: "viktor-tsygankov", name: "Viktor Tsygankov", pos: "MID", club: "Girona FC", crest: null, average: 50, projection: null, eur: null, pic: "", p: 0.9, x: 47,
+      fixture: { id: "g-gir", team: "Girona FC", opponent: "UD Almería", opponentCrest: null, venue: "H", kickoff: "2026-10-10T19:00:00Z", competition: "laliga-es" } } as MarketPlayer;
+    const cards = ["viktor-tsygankov-2026-limited-3", "viktor-tsygankov-2025-common-0", "not-a-card-slug"];
+    const answer = overlayNumbers(sorare([player()]), null, ask({ cards }), NOW, null, { market: [row], grids: [] }).cards;
+    expect(answer["viktor-tsygankov-2026-limited-3"]).toMatchObject({ x: 47, p: 0.9 });
+    expect(answer["viktor-tsygankov-2026-limited-3"]!.mult).toBeUndefined(); // not yours: no card bonus
+    expect(answer["viktor-tsygankov-2025-common-0"]).toMatchObject({ x: 47 });
+    expect(answer["not-a-card-slug"]).toBeUndefined();
+  });
+
   it("carries his last ten games' minutes, his xD and his decisive chance to the panel (plans/overlay-v2.md 1.3, 1.6)", () => {
     const record = { started: 0, on: 7, unused: 3, minsOn: 22, games: "UOOOOOUUOO", mins: [0, 12, 8, 6, 24, 5, 0, 0, 31, 69] };
     const row: MarketPlayer = {

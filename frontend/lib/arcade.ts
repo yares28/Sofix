@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readCopy, shareCopy } from "./chromeCopy";
 import { askExtension, extensionAtLeast, pingExtension } from "./extension";
 import { REFRESH_HEADER } from "./refresh";
 import type { Outlook, PackOdds, StartSource } from "./arcadePlan";
@@ -461,7 +462,7 @@ export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown
 
 export type ArcadeRead =
   | { state: "ok"; arcade: Arcade; unread: string[] }
-  | { state: "no-extension" | "signed-out" | "no-tab" | "unreadable" | "no-set" }
+  | { state: "no-extension" | "signed-out" | "no-tab" | "unreadable" | "no-set" | "chrome-copy" }
   | { state: "outdated"; version: string }
   | { state: "failed"; detail: string };
 
@@ -616,11 +617,11 @@ export async function readArcadeBench(stepId: string, until: string | null, forc
   if (!force) {
     try {
       const kept = JSON.parse(localStorage.getItem(key) ?? "null") as ArcadeBench | null;
-      if (kept && now - kept.at < BENCH_KEEP_MS) return kept;
+      if (kept && now - kept.at < BENCH_KEEP_MS) { shareCopy(key, kept); return kept; }
     } catch { /* no storage: read */ }
   }
   const extension = await pingExtension();
-  if (!extension) return { state: "no-extension", chances: {}, at: now };
+  if (!extension) return (await readCopy<ArcadeBench>(key))?.value ?? { state: "no-extension", chances: {}, at: now };
   if (!extensionAtLeast(extension.version, ARCADE_BENCH_VERSION)) return { state: "outdated", chances: {}, at: now };
   const task = stepId.replace(/^.*:/, "");
   const end = Math.min(Date.parse(until ?? "") || now + 7 * 86_400_000, now + 7 * 86_400_000);
@@ -646,6 +647,7 @@ export async function readArcadeBench(stepId: string, until: string | null, forc
   }
   const read: ArcadeBench = { state: refused && refused >= asked / 2 ? "refused" : "ok", chances, at: now };
   try { if (read.state === "ok") localStorage.setItem(key, JSON.stringify(read)); } catch { /* full or blocked: fine */ }
+  if (read.state === "ok") shareCopy(key, read);
   return read;
 }
 
@@ -721,13 +723,14 @@ export function parseProjections(answer: unknown): Record<string, number> | null
 /** Club bonuses, past scores and the next days' projections, from your Sorare tab. Read once per visit, never polled. */
 export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promise<ArcadeExtras | null> {
   const extension = await pingExtension();
-  if (!extension || !extensionAtLeast(extension.version, ARCADE_PLAN_VERSION)) return null;
+  if (!extension) return (await readCopy<ArcadeExtras>(`sofix-arcade-extras:2:${arcade.set.slug}`))?.value ?? null;
+  if (!extensionAtLeast(extension.version, ARCADE_PLAN_VERSION)) return null;
   // About 100 questions to Sorare: kept 6 hours in this browser, so reloading the page does not ask them again (Sorare answered
   // 429 on 21 Oct after a few reads in a row).
   const key = `sofix-arcade-extras:2:${arcade.set.slug}`; // :2 adds L5/L10/L40, so a read saved before that is asked again
   try {
     const kept = JSON.parse(localStorage.getItem(key) ?? "null") as { at: number; extras: ArcadeExtras } | null;
-    if (kept && now.getTime() - kept.at < EXTRAS_KEEP_MS && !kept.extras.unread.length) return kept.extras;
+    if (kept && now.getTime() - kept.at < EXTRAS_KEEP_MS && !kept.extras.unread.length) { shareCopy(key, kept.extras); return kept.extras; }
   } catch { /* no storage: read */ }
   let slowed = false;
   const ask = async (step: string, extra: Record<string, unknown>) => {
@@ -776,6 +779,7 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
   if (slowed) unread.unshift("Sorare asked Sofix to slow down, so read again in a few minutes");
   const extras = { club, past, status, form, projections, unread };
   try { localStorage.setItem(key, JSON.stringify({ at: now.getTime(), extras })); } catch { /* full or blocked: fine */ }
+  shareCopy(key, extras);
   return extras;
 }
 
@@ -847,7 +851,7 @@ export const ARCADE_TIERS_VERSION = "0.4.18";
 /** "Work out the packs": the current step's packs' odds, a few large answers (about 2 MB each), on a click only. */
 export async function readPackOdds(slots: number): Promise<{ odds: PackOdds; tiers: TierOdds } | "outdated" | null> {
   const extension = await pingExtension();
-  if (!extension) return null;
+  if (!extension) return (await readCopy<{ odds: PackOdds; tiers: TierOdds }>("sofix-arcade-pack-odds"))?.value ?? null;
   if (!extensionAtLeast(extension.version, ARCADE_TIERS_VERSION)) return "outdated";
   const answers: unknown[] = [];
   for (let i = 0; i < Math.min(slots, 10); i += 2) {
@@ -855,7 +859,10 @@ export async function readPackOdds(slots: number): Promise<{ odds: PackOdds; tie
     if (!answer.success || answer.data.state !== "ok") return null;
     answers.push(answer.data.data);
   }
-  return answers.length ? { odds: parsePackOdds(answers), tiers: parseTierOdds(answers) } : null;
+  if (!answers.length) return null;
+  const read = { odds: parsePackOdds(answers), tiers: parseTierOdds(answers) };
+  shareCopy("sofix-arcade-pack-odds", read);
+  return read;
 }
 
 /** A collection mission: what it counts (players, clubs or leagues; none named means any card of the set) and how far you are. */
@@ -887,16 +894,26 @@ export function parseCollection(answer: unknown): ArcadeCollection[] {
 /** Your collection missions, from your Sorare tab (one question). Null when the extension is older or Sorare did not answer. */
 export async function readArcadeCollection(): Promise<ArcadeCollection[] | "outdated" | null> {
   const extension = await pingExtension();
-  if (!extension) return null;
+  if (!extension) return (await readCopy<ArcadeCollection[]>("sofix-arcade-collection"))?.value ?? null;
   if (!extensionAtLeast(extension.version, ARCADE_TIERS_VERSION)) return "outdated";
   const answer = Answer.safeParse(await askExtension({ type: "sorare", step: "arcade-collection" }, 25_000));
-  return answer.success && answer.data.state === "ok" ? parseCollection(answer.data.data) : null;
+  if (!answer.success || answer.data.state !== "ok") return null;
+  const read = parseCollection(answer.data.data);
+  shareCopy("sofix-arcade-collection", read);
+  return read;
 }
 
 /** Live: your lineups again, from your Sorare tab (one small question). Null when Sorare did not answer. */
 export async function readArcadeLineups(): Promise<Map<string, ArcadeLineup[]> | null> {
   const answer = Answer.safeParse(await askExtension({ type: "sorare", step: "arcade-lineups" }, 25_000));
-  return answer.success && answer.data.state === "ok" ? parseLineups(answer.data.data) : null;
+  if (answer.success && answer.data.state === "ok") {
+    const read = parseLineups(answer.data.data);
+    shareCopy("sofix-arcade-lineups", [...read]);
+    return read;
+  }
+  if (await pingExtension()) return null;
+  const copy = await readCopy<[string, ArcadeLineup[]][]>("sofix-arcade-lineups");
+  return copy ? new Map(copy.value) : null;
 }
 
 export type DecisiveGame = { mins: number; stats: string[] | null; date?: string; started?: boolean | null };

@@ -327,6 +327,19 @@ Coverage is all 36 main-stage clubs and their current players/calendar; qualifie
 
 **Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
 
+<a id="api-dev-chrome-copy-001"></a>
+## API-DEV-CHROME-COPY-001 - GET, PUT /api/dev/chrome-copy
+
+**Guard:** answers 404 unless the server is the real-data `npm run dev` (NODE_ENV development and SOFIX_BLOCKS_DIR set; the browser tests blank it); PUT also needs SAME: x-fdr-refresh:1 plus Sec-Fetch-Site=same-origin, or Origin/Host comparison. Never reachable on the live site.
+
+**Input:** query name: 1 to 160 word characters, colons, dots or hyphens; PUT body: any JSON up to 30 MB.
+
+**Response/cache:** GET 200 {at, value} as saved, 404 when none; PUT 200 {ok}; 400 not JSON, 403 guard, 413 too large; no-store.
+
+**Effects and failure boundaries:** Keeps the Arcade reads the Chrome with the extension made on localhost (board, predictions, start %, confirmed lineups, live lineups, collection missions, pack odds) in the git-ignored `frontend/.chrome-copy/`, so a browser without the extension (the integrated browser) shows them with their time (owner, 9 Nov 2026). Never reads Neon, R2 or Sorare. Mission picks' decisive history and the Read start % page walk still need the extension.
+
+**Evidence limit:** inspected handler behavior and one real round trip (his Chrome saved, the integrated browser showed the board), not an automated route test.
+
 <a id="api-league-history-001"></a>
 ## API-LEAGUE-HISTORY-001 - POST /api/league-history
 
@@ -662,6 +675,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | page | `/season` | `frontend/app/(board)/season/page.tsx` |
 | page | `/table` | `frontend/app/(board)/table/page.tsx` |
 | API | `/api/arcade/chances` | `frontend/app/api/arcade/chances/route.ts` |
+| API | `/api/dev/chrome-copy` | `frontend/app/api/dev/chrome-copy/route.ts` |
 | API | `/api/ext/chances` | `frontend/app/api/ext/chances/route.ts` |
 | API | `/api/ext/checkin` | `frontend/app/api/ext/checkin/route.ts` |
 | API | `/api/ext/missions/pool` | `frontend/app/api/ext/missions/pool/route.ts` |
@@ -1942,6 +1956,40 @@ This block is the single machine-readable index for the sections above. Test ref
       }
     },
     {
+      "id": "API-DEV-CHROME-COPY-001",
+      "anchor": "api-dev-chrome-copy-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/dev/chrome-copy"
+      ],
+      "paths": [
+        "frontend/app/api/dev/chrome-copy/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/dev/chrome-copy/route.ts"
+        },
+        {
+          "path": "frontend/lib/chromeCopy.ts"
+        },
+        {
+          "path": "frontend/lib/refresh.ts",
+          "symbol": "isSameOriginRequest"
+        }
+      ],
+      "tests": [],
+      "review": {
+        "date": "2026-11-09",
+        "note": "9 Nov 2026: handler and client helper inspected; dev-only with SOFIX_BLOCKS_DIR (404 otherwise, so the e2e server never sees real data); one real round trip on localhost: his Chrome saved the reads, the integrated browser showed the board and plan. No automated route test.",
+        "files": {
+          "frontend/app/api/dev/chrome-copy/route.ts": "6cfa77b44c0945c4f405ed550ea4ffb86905404b5c0cdc8e821b10c43ba91cdf",
+          "frontend/lib/chromeCopy.ts": "b234126a3c82d6e2ac5bac3bfa78bbf0ba5df9c11c5cf8202dc82a645f471183",
+          "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d"
+        }
+      }
+    },
+    {
       "id": "API-ARCADE-CHANCES-001",
       "anchor": "api-arcade-chances-001",
       "status": "implemented",
@@ -2581,6 +2629,14 @@ This block is the single machine-readable index for the sections above. Test ref
     }
   ],
   "endpoints": [
+    {
+      "path": "frontend/app/api/dev/chrome-copy/route.ts",
+      "methods": [
+        "GET",
+        "PUT"
+      ],
+      "contract": "API-DEV-CHROME-COPY-001"
+    },
     {
       "path": "frontend/app/api/refresh/route.ts",
       "methods": [

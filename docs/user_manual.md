@@ -808,7 +808,7 @@ The editor shows card images, years and copy numbers where recorded. Your picks 
 
 ## 10b. Arcade — Sorare's free common-card board
 
-**Arcade** in the top bar (and the phone's bottom bar) climbs Sorare's free board with your current set's commons. One switch under the hero picks **Play now** (your move, the chain, teams to build around, Pick teams, your lineups on Sorare), **Missions & packs** or **Players** (your cards); the last one chosen is remembered in this browser. Everything is
+**Arcade** in the top bar (and the phone's bottom bar) climbs Sorare's free board with your current set's commons. One switch under the hero picks **Play now** (your move, the chain, teams to build around, Pick teams, your lineups on Sorare), **Missions & packs** or **Players** (your cards); the last one chosen is remembered in this browser. On localhost, a browser without the extension (the integrated browser) shows the last reads Arcade made in your Chrome, with their time (9 Nov 2026); mission picks' history and Read start % still need the extension. Everything is
 read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 0.4.18 for tiers, Sorare's starter word and collection missions, 0.4.20 for L5, L10 and L40; no page opens); nothing is entered or cancelled on Sorare.
 
 - **How Sorare's board runs** (read 29 Oct 2026; Sorare now calls the mode Series): a lineup goes on the step you are on and settles

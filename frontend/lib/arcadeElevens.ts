@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { announcedSides } from "./actualLineups";
+import { readCopy, shareCopy } from "./chromeCopy";
 import { askExtension, extensionAtLeast, pingExtension } from "./extension";
 import type { ArcadeCard, ArcadeChances, ArcadeGame } from "./arcade";
 
@@ -35,7 +36,8 @@ export async function readArcadeElevens(games: ArcadeGame[], cards: ArcadeCard[]
   const result: ArcadeElevens = { state: "ok", chances, games: Object.keys(chances).filter((id) => Object.keys(chances[id]!).length > 0), unread: [], checked: eligible.length, at: now };
   if (!eligible.length) return result;
   const extension = await pingExtension();
-  if (!extension || !extensionAtLeast(extension.version, ARCADE_ELEVENS_VERSION)) return { ...result, state: extension ? "outdated" : "no-extension" };
+  if (!extension) return (await readCopy<ArcadeElevens>(KEY))?.value ?? { ...result, state: "no-extension" };
+  if (!extensionAtLeast(extension.version, ARCADE_ELEVENS_VERSION)) return { ...result, state: "outdated" };
   for (const game of eligible) {
     const mine = [...new Set(cards.filter((c) => c.teamSlug === game.home?.slug || c.teamSlug === game.away?.slug).map((c) => c.player))].sort();
     if (!force && kept[game.id] && now - kept[game.id]!.at < KEEP_MS && JSON.stringify(mine) === JSON.stringify(kept[game.id]!.cards)) continue;
@@ -53,5 +55,6 @@ export async function readArcadeElevens(games: ArcadeGame[], cards: ArcadeCard[]
   }
   try { localStorage.setItem(KEY, JSON.stringify(kept)); } catch { /* unavailable storage: retain this visit's read */ }
   result.games = Object.keys(chances).filter((id) => Object.keys(chances[id]!).length > 0);
+  shareCopy(KEY, result);
   return result;
 }

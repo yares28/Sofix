@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, loadArcadeChances, newerChances, outlookOf, readArcade, setEnded, readArcadeBench, readArcadeExtras, walkArcade,
-  type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
+  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, loadArcadeChances, newerChances, outlookOf, readArcade, setEnded, readArcadeBench, readArcadeExtras, usableArcade, walkArcade,
+  type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk, type KeptArcade,
 } from "../../lib/arcade";
+import { readCopy, shareCopy } from "../../lib/chromeCopy";
 import type { Outlook } from "../../lib/arcadePlan";
 import { matchFixture, type FdrFixture } from "../../lib/arcadeFdr";
 import ArcadeLive from "./ArcadeLive";
@@ -25,12 +26,15 @@ const VIEW_KEY = "sofix-arcade-view";
 
 /** The least time between two reads when you come back to the tab. */
 const REREAD_MS = 3 * 60_000;
+/** The board your Chrome read, kept on the dev server for a browser without the extension (lib/chromeCopy.ts). */
+const COPY = "sofix-arcade-last";
 
 const madrid = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
 const count = (value: number | null) => (value === null ? "—" : value.toLocaleString("en-GB"));
 const WHY: Record<Exclude<ArcadeRead["state"], "ok" | "outdated" | "failed">, string> = {
   "no-extension": "This browser can't reach the Sofix extension. Open Arcade in the Chrome that has it.",
+  "chrome-copy": "Copied from Arcade in your Chrome, which has the extension; it updates each time Arcade reads there.",
   "no-tab": "Open sorare.com in a tab of this Chrome, signed in, then read again.",
   "signed-out": "Sorare says no one is signed in on the open tab. Sign in there, then read again.",
   unreadable: "Sorare answered in a shape Sofix does not know yet, so nothing is shown rather than a wrong number.",
@@ -216,6 +220,11 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
     if (fresh.state === "ok") {
       setBoard({ arcade: fresh.arcade, unread: fresh.unread, at: null });
       keepArcade(fresh.arcade, fresh.unread);
+      shareCopy(COPY, { at: Date.now(), arcade: fresh.arcade, unread: fresh.unread });
+    } else if (fresh.state === "no-extension") {
+      // No extension here (the integrated browser): the last board your Chrome read on this dev server.
+      const copy = usableArcade((await readCopy<KeptArcade>(COPY))?.value ?? null);
+      if (copy) { setBoard(copy); setRead({ state: "chrome-copy" }); }
     }
     setBusy(false);
   }, []);

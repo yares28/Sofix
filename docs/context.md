@@ -1573,11 +1573,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-09",
-        "note": "Reviewed extension 0.4.64 (9 Nov): only the overlay's read cache (empty answers kept 3 min) and the rest after a failed app call (10 s, 30 s for 401/429) changed; no session action, allowlist or write path touched.",
+        "note": "Reviewed extension 0.4.65 (9 Nov): version bump for overlay crest drawing only (shield fallback, covered check, played games, suspended); no session action, allowlist or write path touched.",
         "files": {
           "extension/background.js": "8ca7c9a1d09c855d76334d8db8f4d5e5c8342e8240875af0257855f290608781",
           "extension/bridge.js": "d318a12d9854876efa1ef44e2cbce2b2884bf22fc0d0934777296945a305418d",
-          "extension/manifest.template.json": "64ce92646e13af7dd252d37fc49c230522d77645808f5db2417f0f09340a37fe",
+          "extension/manifest.template.json": "13c0063400641affbfb8104c80a1d984b2145206f7c5868ee94b3a57a5ea11e1",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

@@ -848,6 +848,12 @@ describe("the crest above each card (plans/overlay-v2.md step 2)", () => {
     expect(core.crestState({ island: [island("2026-11-05T20:00:00Z")], ffStatus: { kind: "out" } }, NOW).kind).toBe("out");
     expect(core.crestState({ island: [island("2026-11-05T20:00:00Z")], ffStatus: { kind: "doubt" } }, NOW).kind).toBe("crests");
   });
+  it("leaves a played game out once another is still to come or on, and says Out for a suspended player (9 Nov 2026)", () => {
+    const played = island("2026-11-03T19:00:00Z", { opponent: "Elche" });
+    expect(core.crestState({ island: [played, island("2026-11-05T20:00:00Z")] }, NOW)).toMatchObject({ kind: "crests", games: [{ opponent: "Borussia Dortmund" }] });
+    expect(core.crestState({ island: [played, island("2026-11-04T19:00:00Z")] }, NOW)).toMatchObject({ kind: "live", games: [{ opponent: "Borussia Dortmund" }] });
+    expect(core.crestState({ island: [island("2026-11-05T20:00:00Z")], ffStatus: { kind: "suspended" } }, NOW).kind).toBe("out");
+  });
   it("names a club Sorare has no crest for by its three letters, Sorare's own when it has them", () => {
     expect(core.shieldCode({ opponentCode: "FEN", opponent: "Fenerbahçe" })).toBe("FEN");
     expect(core.shieldCode({ opponentCode: null, opponent: "Fenerbahçe" })).toBe("FEN");

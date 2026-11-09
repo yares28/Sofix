@@ -794,6 +794,43 @@ test.describe("the sorare.com overlay", () => {
     expect(await read("over")).toBeNull();
   });
 
+  test("a crest picture that will not load gives way to the club's shield, and a small box of Sorare's on the card's edge does not hide it (9 Nov 2026)", async ({ page }) => {
+    await openPage(page, { url: BUILDER_URL });
+    await settled(page);
+    await page.route("https://crests.football-data.org/missing.png", (route) => route.fulfill({ status: 404, body: "" }));
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    const crest = () =>
+      page.evaluate(() => {
+        const art = document.querySelector("#big img")!.getBoundingClientRect();
+        const c = [...document.querySelectorAll<HTMLElement>(".sfx-crests .sfx-crest")].find((one) => {
+          const r = one.getBoundingClientRect();
+          return r.left < art.right && r.right > art.left && Math.abs(r.top + r.height / 2 - art.top) < 20;
+        });
+        return c ? { text: c.textContent, imgs: c.querySelectorAll("img").length, hidden: getComputedStyle(c).visibility === "hidden" } : null;
+      });
+    await expect.poll(crest).toMatchObject({ imgs: 1 });
+    // The crest's picture fails (a 404, a refused hot-link): Getafe's shield takes its place.
+    await page.evaluate(() => {
+      const art = document.querySelector("#big img")!.getBoundingClientRect();
+      for (const img of document.querySelectorAll<HTMLImageElement>(".sfx-crests .sfx-crest img")) {
+        const r = img.getBoundingClientRect();
+        if (r.left < art.right && r.right > art.left && Math.abs(r.top + r.height / 2 - art.top) < 20) img.src = "https://crests.football-data.org/missing.png";
+      }
+    });
+    await expect.poll(crest).toMatchObject({ text: "GET", imgs: 0 });
+    // Sorare's own small box over the card's top edge, outside the card's block (a slot's frame): not a bar, so the crest stays.
+    await page.evaluate(() => {
+      const art = document.querySelector("#big img")!.getBoundingClientRect();
+      const box = document.createElement("div");
+      box.id = "theirbox";
+      box.style.cssText = `position:fixed;left:${art.left + art.width / 2 - 20}px;top:${art.top - 10}px;width:40px;height:30px;z-index:5`;
+      document.body.append(box);
+      window.scrollBy(0, 1);
+    });
+    await page.waitForTimeout(500);
+    expect(await crest()).toMatchObject({ hidden: false });
+  });
+
   test("opens the island from the crest, above the card, by pointer or keyboard, and closes it on Escape", async ({ page }) => {
     await openPage(page, { url: BUILDER_URL });
     await settled(page);

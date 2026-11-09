@@ -1045,20 +1045,22 @@
 
   /** A club's crest as Sorare gives it, or the shield in its colour with its letters when Sorare has none. */
   function clubMark(crest, name, code, color, size) {
-    if (crest) {
-      const img = node("img", "sfx-crest-img");
-      img.src = crest;
-      img.alt = "";
-      img.width = size;
-      img.height = size;
-      img.decoding = "async";
-      img.referrerPolicy = "no-referrer";
-      return img;
-    }
-    const shield = node("span", "sfx-shield", core.shieldCode({ opponentCode: code, opponent: name }));
-    shield.style.setProperty("--sfx-club", typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color) ? color : "#2a2537");
-    shield.style.setProperty("--sfx-size", `${size}px`);
-    return shield;
+    const shield = () => {
+      const made = node("span", "sfx-shield", core.shieldCode({ opponentCode: code, opponent: name }));
+      made.style.setProperty("--sfx-club", typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color) ? color : "#2a2537");
+      made.style.setProperty("--sfx-size", `${size}px`);
+      return made;
+    };
+    if (!crest) return shield();
+    const img = node("img", "sfx-crest-img");
+    img.alt = "";
+    img.width = size;
+    img.height = size;
+    img.decoding = "async";
+    img.referrerPolicy = "no-referrer";
+    img.addEventListener("error", guard(() => img.replaceWith(shield())), { once: true }); // a picture that will not load: the shield (9 Nov 2026)
+    img.src = crest;
+    return img;
   }
 
   function gameWords(game) {
@@ -1177,7 +1179,10 @@
     const block = blockOf(record, rect);
     for (const el of document.elementsFromPoint(x, y)) {
       if (el.closest("[data-sfx]")) continue;
-      return !(block.contains(el) || el.contains(record.media));
+      if (block.contains(el) || el.contains(record.media)) return false;
+      // Only a bar (a sticky header or search bar, wider than two cards) hides it: a small box of Sorare's on the card's edge, a
+      // slot's frame or a badge, did too and the crest went missing (9 Nov 2026).
+      return el.getBoundingClientRect().width > rect.width * 2;
     }
     return false;
   }

@@ -63,13 +63,14 @@ local copy of the blocks (8 Nov). Not yet watched live on sorare.com. Order: sta
 
 **Crest missing**
 - C1. No stand-in when the crest picture fails to load (`overlay.js:1044`): a 404 or a refused hot-link leaves an empty button.
-  The coloured shield shows only when there is no address at all.
+  The coloured shield shows only when there is no address at all. **Fixed 9 Nov (extension 0.4.65):** the shield takes its place.
 - C2. Crests are drawn only on the builders and the lineup pages (your call, 4 Nov); the gallery, the market and Classic pages have none.
 - C3. The crest hides whenever anything outside the card's own box sits at its spot (`crestCovered`, `overlay.js:1170`); that box
-  stops at 1.3× the card's width, so Sorare's own slot button or badge on the pitch can count as covering it.
+  stops at 1.3× the card's width, so Sorare's own slot button or badge on the pitch can count as covering it. **Fixed 9 Nov:** only
+  something wider than two cards (a sticky header or search bar) hides it.
 - C4. Only the first game is looked at (`crestState`, `core.js:1018`): on a double week whose first game is over, the finished
-  game's crest stays and a live second game gets no live dot.
-- C5. "Out" only for FF's `out`: a suspended player keeps an ordinary crest.
+  game's crest stays and a live second game gets no live dot. **Fixed 9 Nov:** a played game leaves once another is to come or on.
+- C5. "Out" only for FF's `out`: a suspended player keeps an ordinary crest. **Fixed 9 Nov:** suspended says Out too.
 - C6. Hidden while any Sorare dialog or drawer covers the card's column, even one that is not modal.
 
 ---

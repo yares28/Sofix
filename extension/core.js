@@ -1016,9 +1016,12 @@
   const LIVE_FOR_MS = 115 * 60 * 1000; // from kick-off to the final whistle, stoppages included (the points-needed pill uses the same)
   /** What the crest shows: "out" (sure not to play), "live" (his game is on), "crests" (one per game), or "none" (no game). */
   function crestState(entry, now) {
-    const games = entry && Array.isArray(entry.island) ? entry.island.filter((g) => g && g.opponent) : [];
-    if (!games.length) return { kind: "none", games: [] };
-    if (entry.ffStatus && entry.ffStatus.kind === "out") return { kind: "out", games: games.slice(0, 1) };
+    const listed = entry && Array.isArray(entry.island) ? entry.island.filter((g) => g && g.opponent) : [];
+    if (!listed.length) return { kind: "none", games: [] };
+    // A played game leaves once another is still to come or on (9 Nov 2026: a double week kept its first crest and lost the live dot).
+    const ahead = listed.filter((g) => !(Date.parse(g.kickoff) + LIVE_FOR_MS <= now));
+    const games = ahead.length ? ahead : listed;
+    if (entry.ffStatus && (entry.ffStatus.kind === "out" || entry.ffStatus.kind === "suspended")) return { kind: "out", games: games.slice(0, 1) };
     const at = Date.parse(games[0].kickoff);
     if (Number.isFinite(at) && now >= at && now < at + LIVE_FOR_MS) return { kind: "live", games: games.slice(0, 1) };
     return { kind: "crests", games: games.slice(0, 2) };

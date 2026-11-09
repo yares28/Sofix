@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, loadArcadeChances, newerChances, outlookOf, readArcade, setEnded, readArcadeBench, readArcadeExtras, usableArcade, walkArcade,
+  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_NATION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, sideIn, loadArcadeChances, newerChances, outlookOf, readArcade, setEnded, readArcadeBench, readArcadeExtras, usableArcade, walkArcade,
   type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk, type KeptArcade,
 } from "../../lib/arcade";
 import { readCopy, shareCopy } from "../../lib/chromeCopy";
@@ -79,8 +79,7 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
   const [walking, setWalking] = useState(false);
   const [walked, setWalked] = useState<ArcadeWalk | null>(null);
   const gameIds = useMemo(() => {
-    const clubs = new Set(arcade.cards.map((c) => c.teamSlug));
-    return (arcade.games ?? []).filter((g) => clubs.has(g.home?.slug ?? null) || clubs.has(g.away?.slug ?? null)).map((g) => g.id);
+    return (arcade.games ?? []).filter((g) => arcade.cards.some((c) => sideIn(c, g) !== null)).map((g) => g.id);
   }, [arcade]);
   const [bench, setBench] = useState<ArcadeBench | "reading" | null>(null);
   const [elevens, setElevens] = useState<ArcadeElevens | null>(null);
@@ -106,7 +105,7 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
   const outlooks = useMemo(() => {
     const out = new Map<string, Outlook[]>();
     for (const game of arcade.games ?? []) {
-      const list = arcade.cards.filter((c) => c.teamSlug && (c.teamSlug === game.home?.slug || c.teamSlug === game.away?.slug)).map((c) => outlookOf(c, game, ready, chances, laliga, elevens?.chances));
+      const list = arcade.cards.filter((c) => sideIn(c, game) !== null).map((c) => outlookOf(c, game, ready, chances, laliga, elevens?.chances));
       if (list.length) out.set(game.id, list);
     }
     return out;
@@ -175,6 +174,7 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
         ) : null}
       </section>
       {unread.length ? <p className="arc-note" role="status">Not read this time: {unread.join(", ")}.</p> : null}
+      {arcade.cards.length && arcade.cards.every((c) => c.nation === undefined) ? <p className="arc-note" role="status">National-team games need extension {ARCADE_NATION_VERSION}: reload it on chrome://extensions.</p> : null}
       <p className="arc-read-state" role="status">
         {extras === "reading" ? "Reading projections, past scores and club bonuses from Sorare…"
           : extras === null ? `Predictions need extension ${ARCADE_PLAN_VERSION}: reload it on chrome://extensions. Until then cards are scored on nothing.`

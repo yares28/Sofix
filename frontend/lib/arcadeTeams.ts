@@ -1,5 +1,5 @@
 import type { ArcadeGame } from "./arcade";
-import { madridDate, predicted, type Outlook } from "./arcadePlan";
+import { madridDate, predicted, sideIn, type Outlook } from "./arcadePlan";
 
 /**
  * Teams to build around: for days Sorare has not given a start % yet, the clubs where at least one of your cards
@@ -45,7 +45,7 @@ export function clubsToBuildAround(outlooks: Map<string, Outlook[]>, games: Arca
     if (at < from || at > to) continue;
     for (const side of [game.home, game.away]) {
       if (!side) continue;
-      const mine = (outlooks.get(game.id) ?? []).filter((o) => o.card.teamSlug === side.slug && predicted(o) !== null);
+      const mine = (outlooks.get(game.id) ?? []).filter((o) => sideIn(o.card, game) === side.slug && predicted(o) !== null);
       const byPlayer = new Map<string, Outlook>();
       for (const o of mine) if (!byPlayer.has(o.card.player) || predicted(o)! > predicted(byPlayer.get(o.card.player)!)!) byPlayer.set(o.card.player, o);
       const cards = [...byPlayer.values()].map((o) => ({ outlook: o, signal: signalOf(o, status[o.card.player]), points: predicted(o)! }))

@@ -271,7 +271,7 @@
         totalCount
         nodes { slug pictureUrl cardEditionName anyPositions cardSet { slug }
           skinEdition { bonus skinName variantName }
-          anyPlayer { slug displayName } anyTeam { slug name pictureUrl ... on Club { domesticLeague { slug displayName } } } }
+          anyPlayer { slug displayName ... on Player { activeNationalTeam { slug } } } anyTeam { slug name pictureUrl ... on Club { domesticLeague { slug displayName } } } }
         pageInfo { hasNextPage endCursor } } } }`;
     },
 

@@ -3,7 +3,7 @@
 import { useContext, useMemo, useState } from "react";
 import { gamesOf, type ArcadeCard, type ArcadeGame, type PlayerForm } from "../../lib/arcade";
 import { dayLabel, matchesPick, SCORE_CUTS, TIER_OPTIONS, tierChoice } from "../../lib/arcadeCards";
-import { madridDate, predicted, type Outlook } from "../../lib/arcadePlan";
+import { madridDate, predicted, sideIn, type Outlook } from "../../lib/arcadePlan";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import PlayerCard from "./PlayerCard";
 import { FdrContext, sideOf } from "./Fdr";
@@ -45,7 +45,7 @@ export default function ArcadeCards({ cards, games, outlooks, status, form }: { 
   const rows = useMemo(() => cards.map((card) => {
     const next = games ? gamesOf(card, games)[0] : undefined;
     const outlook = next ? indexed.get(next.id)?.get(card.slug) : null;
-    const difficulty = next ? sideOf(boards.get(next.id), next.home?.slug === card.teamSlug)?.mine.difficulty : null;
+    const difficulty = next ? sideOf(boards.get(next.id), sideIn(card, next) === next.home?.slug)?.mine.difficulty : null;
     const played = form[card.player];
     return {
       card, start: outlook?.start ?? null, score: outlook ? predicted(outlook) : null, fdr: difficulty == null ? null : Math.round(difficulty),

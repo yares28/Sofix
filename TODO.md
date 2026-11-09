@@ -39,7 +39,10 @@ forecast on the EL board), 52 Nations League games say "no Sofix board"; club na
   20-minute match window; Sorare's "English League Players" slug still maps to PL (`premier-league-gb-eng`, checked).
 - Done when: every LaLiga, PL, Bundesliga, Ligue 1, CL, EL and Conference card on the page shows its FDR for its exact game.
 
-**B · National-team games are in Batch but nowhere else (point 5, broken)**
+**B · National-team games are in Batch but nowhere else (point 5, broken)** · *done 9 Nov 2026, extension 0.4.67: 243 of your 687
+cards have a national team; 33 Nations League games now hold your cards in Pick teams (338 games, from 305), the plan weighs them
+(1% at step 4 on Thu 12 Nov, so it waits), Batch builds a team for Thu 20:45. Sorare's own lineup page listed your players in those
+games first (Bellingham, Alexander-Arnold, Livaković).*
 - Cause: an Arcade card knows only its club (`ArcadeCard.teamSlug` from `anyTeam`), so `outlooks` in `ArcadeView` never match a
   national game. Real page: 52 Nations League games, 0 with a card of yours; the planner, Pick teams and Players filter them out, Batch
   lists every game (`batchesOf` keeps unowned games) and then says "not enough available players".

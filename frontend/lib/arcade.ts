@@ -2,7 +2,8 @@ import { z } from "zod";
 import { readCopy, shareCopy } from "./chromeCopy";
 import { askExtension, extensionAtLeast, pingExtension } from "./extension";
 import { REFRESH_HEADER } from "./refresh";
-import type { Outlook, PackOdds, StartSource } from "./arcadePlan";
+import { sideIn, type Outlook, type PackOdds, type StartSource } from "./arcadePlan";
+export { sideIn };
 import { parseTierOdds, type TierOdds } from "./arcadePacks";
 import type { PlayerStatus } from "./arcadeTeams";
 
@@ -11,6 +12,8 @@ import type { PlayerStatus } from "./arcadeTeams";
  * Sorare tab through the extension. Read only, on demand, never polled; the last read is kept in this browser, never in the database.
  */
 export const ARCADE_EXTENSION_VERSION = "0.4.5";
+/** The first extension whose card read asks for each player's national team. */
+export const ARCADE_NATION_VERSION = "0.4.67";
 const MAX_CARD_PAGES = 40; // 100 cards a page
 const MAX_GAME_PAGES = 10; // 50 games a page
 
@@ -24,6 +27,11 @@ export type ArcadeCard = {
   teamPicture: string | null;
   /** The club's league as Sorare names it; null for a national team or when Sorare gives none. */
   league: { slug: string; name: string } | null;
+  /**
+   * The player's national team's Sorare slug, which ties the card to its national games (9 Nov 2026: Arcade lists Nations League
+   * games); null when he has none, absent when the extension did not ask (before 0.4.67).
+   */
+  nation?: string | null;
   positions: string[];
   picture: string | null;
   edition: string | null;
@@ -227,7 +235,7 @@ const CardsPage = z.object({
         anyPositions: z.array(s),
         cardSet: opt(z.object({ slug: s })),
         skinEdition: opt(z.object({ bonus: opt(n), skinName: opt(s), variantName: opt(s) })),
-        anyPlayer: z.object({ slug: s, displayName: s }),
+        anyPlayer: z.object({ slug: s, displayName: s, activeNationalTeam: z.object({ slug: s }).nullable().optional() }),
         anyTeam: opt(z.object({ slug: opt(s), name: opt(s), pictureUrl: opt(s), domesticLeague: opt(z.object({ slug: s, displayName: s })) })),
       })),
       pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: opt(s) }),
@@ -246,6 +254,9 @@ export function keptCards(kept: KeptCards | null, user: string, firstPage: unkno
   const cards = page.success ? page.data.currentUser?.cards : null;
   if (!kept || !cards || cards.totalCount == null || kept.user !== user || kept.total !== cards.totalCount) return null;
   const first = cards.nodes.map((c) => c.slug);
+  // Pages kept before the extension asked for national teams lack them: read again once (extension 0.4.67).
+  const asks = (p: unknown) => { const read = CardsPage.safeParse(p); return read.success && read.data.currentUser?.cards.nodes[0]?.anyPlayer.activeNationalTeam !== undefined; };
+  if (asks(firstPage) && !asks(kept.pages[0])) return null;
   return first.length === kept.first.length && first.every((slug, i) => slug === kept.first[i]) ? kept.pages : null;
 }
 function keepCards(user: string, pages: unknown[]) {
@@ -298,9 +309,9 @@ export function parseGames(pages: unknown[]): ArcadeGame[] | null {
   return read ? [...games.values()].sort((a, b) => a.kickoff.localeCompare(b.kickoff)) : null;
 }
 
-/** A card's games on the board: those its club plays, by kick-off. */
-export function gamesOf(card: Pick<ArcadeCard, "teamSlug">, games: ArcadeGame[]): ArcadeGame[] {
-  return card.teamSlug ? games.filter((g) => g.home?.slug === card.teamSlug || g.away?.slug === card.teamSlug) : [];
+/** A card's games on the board: those its club or its national team plays, by kick-off. */
+export function gamesOf(card: Pick<ArcadeCard, "teamSlug" | "nation">, games: ArcadeGame[]): ArcadeGame[] {
+  return games.filter((g) => sideIn(card, g) !== null).sort((a, b) => a.kickoff.localeCompare(b.kickoff));
 }
 
 const thousands = (value: number) => value.toLocaleString("en-GB");
@@ -417,6 +428,7 @@ export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown
         teamSlug: card.anyTeam?.slug ?? null,
         teamPicture: card.anyTeam?.pictureUrl ?? null,
         league: card.anyTeam?.domesticLeague ? { slug: card.anyTeam.domesticLeague.slug, name: card.anyTeam.domesticLeague.displayName } : null,
+        ...(card.anyPlayer.activeNationalTeam !== undefined ? { nation: card.anyPlayer.activeNationalTeam?.slug ?? null } : {}),
         positions: card.anyPositions,
         picture: card.pictureUrl ?? null,
         edition: card.skinEdition?.variantName ?? card.skinEdition?.skinName ?? card.cardEditionName ?? null,
@@ -723,11 +735,11 @@ export function parseProjections(answer: unknown): Record<string, number> | null
 /** Club bonuses, past scores and the next days' projections, from your Sorare tab. Read once per visit, never polled. */
 export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promise<ArcadeExtras | null> {
   const extension = await pingExtension();
-  if (!extension) return (await readCopy<ArcadeExtras>(`sofix-arcade-extras:2:${arcade.set.slug}`))?.value ?? null;
+  if (!extension) return (await readCopy<ArcadeExtras>(`sofix-arcade-extras:3:${arcade.set.slug}`))?.value ?? null;
   if (!extensionAtLeast(extension.version, ARCADE_PLAN_VERSION)) return null;
   // About 100 questions to Sorare: kept 6 hours in this browser, so reloading the page does not ask them again (Sorare answered
   // 429 on 21 Oct after a few reads in a row).
-  const key = `sofix-arcade-extras:2:${arcade.set.slug}`; // :2 adds L5/L10/L40, so a read saved before that is asked again
+  const key = `sofix-arcade-extras:3:${arcade.set.slug}`; // :2 added L5/L10/L40, :3 national games' projections: a read saved before is asked again
   try {
     const kept = JSON.parse(localStorage.getItem(key) ?? "null") as { at: number; extras: ArcadeExtras } | null;
     if (kept && now.getTime() - kept.at < EXTRAS_KEEP_MS && !kept.extras.unread.length) { shareCopy(key, kept.extras); return kept.extras; }
@@ -770,7 +782,7 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
   const projections: Record<string, Record<string, number>> = {};
   const horizon = now.getTime() + PROJECTION_DAYS * 86_400_000;
   const near = (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now.getTime() && Date.parse(g.kickoff) < horizon
-    && (perClub.has(g.home?.slug ?? "") || perClub.has(g.away?.slug ?? ""))).slice(0, MAX_PROJECTION_GAMES);
+    && arcade.cards.some((c) => sideIn(c, g) !== null)).slice(0, MAX_PROJECTION_GAMES);
   for (const game of near) {
     const read = parseProjections(await ask("arcade-projections", { game: game.id }));
     if (read) projections[game.id] = read;

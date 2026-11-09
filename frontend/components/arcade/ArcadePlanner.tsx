@@ -9,7 +9,7 @@ import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
-import { bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
+import { bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
@@ -169,7 +169,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
   const easy = filteredGames.filter((g) => {
     const f = boards.get(g.id);
     if (!f) return false;
-    const mine = new Set((outlooks.get(g.id) ?? []).map((o) => o.card.teamSlug));
+    const mine = new Set((outlooks.get(g.id) ?? []).map((o) => sideIn(o.card, g)));
     return (mine.has(g.home?.slug ?? null) && f.home.bucket <= 2) || (mine.has(g.away?.slug ?? null) && f.away.bucket <= 2);
   });
   const settles = lineup ? Date.parse(lineup.last) + SETTLES_AFTER_MS : null;

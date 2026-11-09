@@ -32,6 +32,12 @@ describe("Arcade confirmed elevens", () => {
   it("keeps a complete announced side: starters 100%, bench and absent 0%, unannounced opponents unknown", () => {
     expect(parseArcadeElevens(answer(), game, cards, NOW)).toEqual({ "p-0": [10000, NOW / 1000], bench: [0, NOW / 1000], absent: [0, NOW / 1000] });
   });
+  it("reads a national team's eleven for a card whose club is elsewhere", () => {
+    const national = { ...game, home: { slug: "england", name: "England" }, away: { slug: "croatia", name: "Croatia" } } as ArcadeGame;
+    const read = answer(); read.anyGame.homeTeam = national.home!; read.anyGame.awayTeam = national.away!;
+    const jobe = { slug: "jobe", player: "p-9", teamSlug: "dortmund", nation: "england" } as ArcadeCard;
+    expect(parseArcadeElevens(read, national, [jobe, card("club-only", "dortmund")], NOW)).toEqual({ "p-9": [10000, NOW / 1000] });
+  });
   it("never accepts another game's, moved fixture's, swapped team's or incomplete eleven", () => {
     const wrong = answer(); wrong.anyGame.id = "Game:aaaaaaaa-2222-3333-4444-555555555555";
     expect(parseArcadeElevens(wrong, game, cards, NOW)).toBeNull();

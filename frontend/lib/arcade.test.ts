@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bonusLabel, chanceOf, gamesOf, keptCards, newerChances, outlookOf, parseArcade, parseGames, rewardLabel, setEnded, usableArcade, type Arcade, type ArcadeCard, type ArcadeGame } from "./arcade";
+import { bonusLabel, chanceOf, gamesOf, keptCards, newerChances, outlookOf, parseArcade, parseGames, rewardLabel, setEnded, sideIn, usableArcade, type Arcade, type ArcadeCard, type ArcadeGame } from "./arcade";
 
 const main = {
   cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: "2026-09-08T08:30:00Z", endDate: "2026-10-27T16:00:00Z", availableCompetitions: [{ slug: "laliga-es", displayName: "LALIGA EA Sports" }] } },
@@ -34,6 +34,17 @@ const page = (slugs: [string, string][], hasNextPage = false) => ({ currentUser:
 } } });
 
 describe("arcade read", () => {
+  it("reads each card's national team, and none for a player with none or an extension that does not ask", () => {
+    const read = (nation: unknown) => {
+      const p = page2(nation);
+      return parseArcade(main, lineups, null, [p])?.cards[0]?.nation;
+    };
+    const page2 = (nation: unknown) => { const p = page([["b", "glitch"]]); (p.currentUser.cards.nodes[0]!.anyPlayer as Record<string, unknown>).activeNationalTeam = nation; return p; };
+    expect(read({ slug: "england" })).toBe("england");
+    expect(read(null)).toBeNull();
+    expect(parseArcade(main, lineups, null, [page([["b", "glitch"]])])?.cards[0]?.nation).toBeUndefined();
+  });
+
   it("keeps only the current set's commons and that set's essence", () => {
     const arcade = parseArcade(main, lineups, null, [page([["b", "glitch"], ["a", "old"]]), page([["c", "glitch"], ["b", "glitch"]])]);
     expect(arcade?.cards.map((c) => c.slug)).toEqual(["b", "c"]);
@@ -105,6 +116,14 @@ describe("arcade games and start %", () => {
     expect(gamesOf({ teamSlug: null }, games ?? [])).toEqual([]);
   });
 
+  it("ties a card to its national team's games too, and says which side it plays for (9 Nov 2026: 52 Nations League games had no card)", () => {
+    const games = parseGames([page([game("club", "2026-11-21T19:00:00Z", "dortmund", "bayern"), game("eng", "2026-11-12T19:45:00Z", "england", "croatia"), game("other", "2026-11-12T17:00:00Z", "armenia", "cyprus")])]) ?? [];
+    const jobe = { teamSlug: "dortmund", nation: "england" };
+    expect(gamesOf(jobe, games).map((g) => g.id)).toEqual(["eng", "club"]);
+    expect(games.map((g) => sideIn(jobe, g))).toEqual([null, "england", "dortmund"]); // by kick-off: Armenia v Cyprus first
+    expect(gamesOf({ teamSlug: "dortmund" }, games).map((g) => g.id)).toEqual(["club"]); // a card read before the national team was asked
+  });
+
   it("says when Sorare gave no games instead of an empty week", () => {
     expect(parseGames([null, { errors: [] }])).toBeNull();
     expect(parseGames([page([])])).toEqual([]);
@@ -131,6 +150,14 @@ describe("cards kept between visits", () => {
     expect(keptCards(kept, "other", page(3, ["a", "b", "c"]))).toBeNull();
     expect(keptCards(kept, "yares", page(undefined, ["a", "b", "c"]))).toBeNull(); // an extension that does not send the count
     expect(keptCards(null, "yares", page(3, ["a", "b", "c"]))).toBeNull();
+  });
+
+  it("reads the cards again once the extension asks for national teams, so kept pages never hide them", () => {
+    const withNation = (p: ReturnType<typeof page>) => { p.currentUser.cards.nodes.forEach((n) => Object.assign(n.anyPlayer, { activeNationalTeam: null })); return p; };
+    const old = { ...kept, pages: [page(3, ["a", "b", "c"])] };
+    expect(keptCards(old, "yares", withNation(page(3, ["a", "b", "c"])))).toBeNull();
+    const fresh = { ...kept, pages: [withNation(page(3, ["a", "b", "c"]))] };
+    expect(keptCards(fresh, "yares", withNation(page(3, ["a", "b", "c"])))).toEqual(fresh.pages);
   });
 
   it("shows the last read board on the next visit, also after its set ended (marked ended), so the page is never empty between sets", () => {

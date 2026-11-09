@@ -8,6 +8,12 @@ import type { ArcadeCard, ArcadeGame, DecisiveGame } from "./arcade";
  * 1 + edition + club + captain. A card with no start % is kept and counted as playing (owner's answer 10), and marked.
  */
 
+/** The side a card plays for in a game: its club's, else its national team's, else null (not his game). */
+export function sideIn(card: Pick<ArcadeCard, "teamSlug" | "nation">, game: Pick<ArcadeGame, "home" | "away">): string | null {
+  const sides = [game.home?.slug, game.away?.slug];
+  return card.teamSlug && sides.includes(card.teamSlug) ? card.teamSlug : card.nation && sides.includes(card.nation) ? card.nation : null;
+}
+
 export type StartSource = "sorare" | "futbolfantasy" | "sofix";
 export type Outlook = {
   /** This game's official eleven, distinct from a forecast that happens to be 100%. */
@@ -112,7 +118,8 @@ export function simulation(captainBonus: number, runs = RUNS, seed = 7, link = T
   const samples = (o: Outlook) => {
     const known = cards.get(o);
     if (known) return known;
-    const side = `${o.game.id}|${o.card.teamSlug ?? o.card.player}`;
+    // Teammates move together: the side he plays for in this game (his club, or his national team).
+    const side = `${o.game.id}|${sideIn(o.card, o.game) ?? o.card.player}`;
     let day = sides.get(side);
     if (!day) {
       const next = random(seedOf(side, seed));

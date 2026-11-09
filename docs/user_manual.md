@@ -855,6 +855,8 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   Ligue 1 game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
   and expected goals for the others. It is shown, not added to the card's number. Every game to the set's end is rated (9 Nov 2026:
   only the next 8 days were, so an international break left every card at "—"); a game with no board (Nations League) says so on hover.
+- A card plays its club's games and its national team's (extension 0.4.67, 9 Nov 2026): Nations League and other national games Sorare
+  lists for the set are in the plan, Pick teams, Players and Batch, with Sorare's start % and projection (no Sofix board for them).
 - **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (the **Refresh start percentages** icon) and saved, so the
   newest saved reading shows on any visit. The % button also reads Sorare's announced elevens for your clubs' games within three hours of kickoff (extension 0.4.21). Confirmed starters become 100% and non-starters 0%, ahead of every forecast, across Players and all recommendations. Unannounced sides keep their forecast or unknown value. Official readings survive navigation until three hours after their own game's kickoff; a fresh read is available with the same % button. No match tabs open.
   Your cards are kept in this browser and read again only when Sorare's count changes (a pack

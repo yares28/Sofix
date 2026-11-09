@@ -2,7 +2,7 @@ import { z } from "zod";
 import { announcedSides } from "./actualLineups";
 import { readCopy, shareCopy } from "./chromeCopy";
 import { askExtension, extensionAtLeast, pingExtension } from "./extension";
-import type { ArcadeCard, ArcadeChances, ArcadeGame } from "./arcade";
+import { sideIn, type ArcadeCard, type ArcadeChances, type ArcadeGame } from "./arcade";
 
 export const ARCADE_ELEVENS_VERSION = "0.4.21";
 const WINDOW_MS = 3 * 3600_000;
@@ -19,7 +19,7 @@ export function parseArcadeElevens(value: unknown, game: ArcadeGame, cards: Arca
   const out: ArcadeChances[string] = {};
   for (const side of read.sides) {
     const starters = new Set(side.rows.flatMap((r) => r.players.map((p) => p.slug)));
-    for (const card of cards.filter((c) => c.teamSlug === side.team)) out[card.player] = [starters.has(card.player) ? 10000 : 0, Math.floor(now / 1000)];
+    for (const card of cards.filter((c) => sideIn(c, game) === side.team)) out[card.player] = [starters.has(card.player) ? 10000 : 0, Math.floor(now / 1000)];
   }
   return out;
 }
@@ -28,8 +28,7 @@ export function parseArcadeElevens(value: unknown, game: ArcadeGame, cards: Arca
 export async function readArcadeElevens(games: ArcadeGame[], cards: ArcadeCard[], force = false, now = Date.now()): Promise<ArcadeElevens> {
   let kept: z.infer<typeof Kept> = {};
   try { kept = Kept.parse(JSON.parse(localStorage.getItem(KEY) ?? "{}")); } catch { /* empty or old storage */ }
-  const clubs = new Set(cards.map((c) => c.teamSlug).filter(Boolean));
-  const eligible = games.filter((g) => Date.parse(g.kickoff) > now - WINDOW_MS && Date.parse(g.kickoff) <= now + WINDOW_MS && (clubs.has(g.home?.slug ?? "") || clubs.has(g.away?.slug ?? "")));
+  const eligible = games.filter((g) => Date.parse(g.kickoff) > now - WINDOW_MS && Date.parse(g.kickoff) <= now + WINDOW_MS && cards.some((c) => sideIn(c, g) !== null));
   const valid = new Map(eligible.map((g) => [g.id, g.kickoff]));
   kept = Object.fromEntries(Object.entries(kept).filter(([id, row]) => valid.get(id) === row.kickoff && row.at <= now && now < Date.parse(row.kickoff) + WINDOW_MS));
   const chances: ArcadeChances = Object.fromEntries(Object.entries(kept).map(([id, row]) => [id, row.players]));
@@ -39,7 +38,7 @@ export async function readArcadeElevens(games: ArcadeGame[], cards: ArcadeCard[]
   if (!extension) return (await readCopy<ArcadeElevens>(KEY))?.value ?? { ...result, state: "no-extension" };
   if (!extensionAtLeast(extension.version, ARCADE_ELEVENS_VERSION)) return { ...result, state: "outdated" };
   for (const game of eligible) {
-    const mine = [...new Set(cards.filter((c) => c.teamSlug === game.home?.slug || c.teamSlug === game.away?.slug).map((c) => c.player))].sort();
+    const mine = [...new Set(cards.filter((c) => sideIn(c, game) !== null).map((c) => c.player))].sort();
     if (!force && kept[game.id] && now - kept[game.id]!.at < KEEP_MS && JSON.stringify(mine) === JSON.stringify(kept[game.id]!.cards)) continue;
     const answer = z.object({ ok: z.literal(true), state: z.string(), status: z.number().optional(), data: z.unknown().optional() })
       .safeParse(await askExtension({ type: "sorare", step: "arcade-elevens", game: game.id }, 25_000));

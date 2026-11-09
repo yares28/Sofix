@@ -16,6 +16,92 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Arcade: six fixes and features (you, 9 Nov 2026)
+
+Your words: "1. The 40% play and 30% hold is very misleading, isn't it better to have a 100% bar and have both fighting for more %?
+2. Cards have no fdr 3. Have a switch button in the chain section that lets me switch current chain to show all lineups with +15% of
+chance to beat current and future steps 4. Pick teams prepick the teams instead of letting me pick the games 5. Batch show national
+games (Playable in arcade) and the other pages don't 6. A lot of inconsistency issues in the arcade page and all its tabs, find them
+all and their edge cases". On point 3 you added: "I just want to see the closest best lineups I can actually play for that step to
+maximise me hitting the step and getting rewards, sacrificing speed." On point 1 you chose "share of the win".
+
+Found by reading `components/arcade/*`, `lib/arcade*.ts`, `lib/climbClient.ts`, `app/arcade/page.tsx` and your real page on
+localhost (9 Nov 2026, Divination, step 4 of 6, 687 commons, set ends 6 Jan). Order: broken first (A to C), then D to F, then G.
+Each step ships alone, with its regression test, the Arcade spec and the 1440 + 390 px look.
+
+**A · Every card shows FDR "—" (point 2, broken)**
+- Cause: `app/arcade/page.tsx` loads board fixtures for `FDR_DAYS = 8` days ("the set's days left, at most"), but Divination runs to
+  6 Jan and your first club game is Fri 20 Nov, 11 days away (international break). On the real page all 22 cards shown had "—".
+- Fix: load each board's fixtures to the set's end (the grids already hold the season; read only `fixture_id`, kick-off and both
+  sides, a few hundred rows). Keep it on the server, never in a client prop larger than what the cards draw.
+- Edges: a game with no board (Nations League, cups) says "no board", not "—" as if missing; a postponed fixture moved outside the
+  20-minute match window; Sorare's "English League Players" slug still maps to PL (`premier-league-gb-eng`, checked).
+- Done when: every LaLiga, PL, Bundesliga, Ligue 1, CL, EL and Conference card on the page shows its FDR for its exact game.
+
+**B · National-team games are in Batch but nowhere else (point 5, broken)**
+- Cause: an Arcade card knows only its club (`ArcadeCard.teamSlug` from `anyTeam`), so `outlooks` in `ArcadeView` never match a
+  national game. Real page: 52 Nations League games, 0 with a card of yours; the planner, Pick teams and Players filter them out, Batch
+  lists every game (`batchesOf` keeps unowned games) and then says "not enough available players".
+- Fix: read each card's national team in the extension's card read (`activeNationalTeam { slug }`, as `backend/app/sorare/sync.py`
+  already does); outlooks include a card in its national team's games too. Check first with one read-only request that Sorare lets
+  that national game count for Arcade (Batch shows it, so the board lists it; confirm a national game is pickable on the compose page).
+- Edges: a player with a club game and a national game the same week (two outlooks, the card used once per window); national games
+  have no Sofix start % or FDR (Sorare's start % and projection only, labelled so); a player not called up has no national game; the
+  extension release needs the version gate and your one Reload.
+- Done when: the chain, Pick teams, Players and Batch build lineups from national games, and Batch's national windows show teams.
+
+**C · Dates that read wrong (point 6, broken)**
+- `when()` (`ArcadePlanner.tsx`) shows only the weekday for another day: the chain shows "Fri 20:30" for Fri 20 Nov and Fri 27 Nov
+  alike. Fix: the date once a game is more than six days away ("Fri 20 Nov 20:30").
+- The verdict says "Play now" for a window eleven days away. Fix: "Play now" only when the window opens today; else "Play Fri 20 Nov".
+- The Play bar shows the window time (20:30) while "Enter before" shows the lineup's first kick-off (20:45). Fix: one time, the lineup's
+  first kick-off, everywhere for the same move (bar, entry, chain node).
+
+**D · One 100% Play | Hold bar (point 1)**
+- Today: two independent chances to clear the step (Play 40%, Hold 31%), drawn as widths that do not add up.
+- New: one bar, Play and Hold sharing 100%, split by the number the advice actually decides on: `comparePrizes` reads the biggest prize
+  first, so the share is each side's chance at the deciding prize, `now[k] / (now[k] + wait[k])`, with the prize named ("for the
+  €1,000"). Each side's own chance to clear this step stays as small text beneath. The advised side is filled.
+- Edges: no later window (Hold empty: Play 100%, "no later game"); both 0 at every prize (no bar, the verdict says why); a near tie
+  (within `tie`, the advice plays): 50 | 50 with "near tie, play: speed first"; Spend verdict; waiting lineups on the step.
+
+**E · Pick teams starts empty (point 4)**
+- Today `ArcadePlanner` fills it with the plan's first move when you have not picked (`selection ?? plan.path[0]`).
+- New: nothing picked until you tap a game; your picks still survive a refresh; "Edit in Pick teams" and "Add to Pick teams" still
+  fill it on purpose. The empty state invites a tap, and "Easiest games" stays one tap away.
+- Edges: saved picks whose games have kicked off drop out (already filtered); a saved aim on a step since cleared.
+
+**F · Chain switch: Fastest | Surest (point 3)**
+- Fastest is today's chain. Surest puts the chance of clearing each step (and its reward) ahead of speed: for each step from the one
+  you are on, the nearest window you can actually play (lives, cards held by a running lineup, settle times) whose best lineup beats
+  the fastest chain's chance for that step by at least 15 points, else the best window left before the set ends; then the next step.
+- Worked out in the climb worker beside the plan (saved with it), never on the page. Same chain rail, the same move detail and
+  "Edit in Pick teams"; a node shows its gain ("+18 vs fastest").
+- Edges: no window clears the bar (Surest = Fastest for that step, marked); the surest window is after the set ends (not shown);
+  a held card frees only after its lineup settles; top step reached starts again from step 1.
+
+**G · Consistency across the tabs (point 6)**
+1. FDR in three forms: Pick teams tickets and Teams to build around show the 1-5 band; cards, Players and Batch show difficulty out of
+   100. One form everywhere: the out-of-100 number in its band colour (the band alone where space is a chip).
+2. Horizons disagree: Teams to build around looks 4 days ahead (empty during this break, so it vanishes), FDR 8 days (A), Sofix's
+   start % and xD only for each player's next fixture (the `laliga` map is keyed by next kick-off), the plan to the set's end. Teams
+   to build around shows the next days that have games; a far game says "Sorare's projection" instead of a blank xD.
+3. Game lists differ: Batch lists every game, Pick teams and the chain only games with your cards, Players' day filter only next-game
+   days. Batch marks windows with no card of yours and skips them by default.
+4. Two "Aim at" pickers with separate saved values (Pick teams and Batch): one shared aim.
+5. Chances on different bases side by side with no label: the ladder's "91%" (step 4 by the set's end) beside the bar's 40% (this
+   lineup). Each says what it is in a word ("by 6 Jan", "this lineup").
+6. "5 of 5 have no start % yet" eleven days out reads as an error: say when Sorare usually gives it (days before kick-off).
+7. Batch's empty text blames "available players with scores" for windows with no card of yours.
+8. Sorare's league names shown raw ("English League Players") beside Sofix's ("Premier League"): one name per league.
+9. Old sets' saved data never leaves this browser (glitch extras 420 kB, old Pick teams and start % keys): localStorage was 2.5 M
+   characters full, so the saved climb had to move to IndexedDB. Remove keys of ended sets on load.
+10. Dev console: a hydration mismatch on /arcade (metadata boundary); find whether it is Arcade's and fix it if so.
+- Done when: each item is fixed or answered on the real page at 1440 and 390 px, and the Arcade spec covers the date, FDR and
+  aim rules.
+
+---
+
 ## Overlay edge cases (you, 9 Nov 2026)
 
 Your words: "it sometimes appear and other times do not appear, sometimes just 1 card has it instead of all of them, it uses

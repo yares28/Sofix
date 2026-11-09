@@ -1714,12 +1714,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-09",
-        "note": "9 Nov 2026: long-shot guard (LONG_SHOT 0.5 of the next planned lineup's chance, judged per extra insurance lineup; needs 3 points and never wins a tie above step 1) checked against his step-4 board and arcadeClimb.test.ts; planner requests now debounced 1.5 s with the stale worker ended; worker sends one card per game in a move's list; Your move shows Updating while re-planning. Phone layout covered by e2e only (his Chrome would not resize).",
+        "note": "Chain heading: removed the default subtitle; branch label unchanged",
         "files": {
           "frontend/lib/arcadeClimb.ts": "35da416ef1c2dc5f99d34a6ec0e93f6e7356589620877bdf58fa425899449657",
           "frontend/lib/arcadePlan.ts": "d4a3fbbbd2d3e87d40b855d29b1853f7132787f95a754444b215a28b1bdd3936",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "de0cae5fb49c7c8a2b4c880bf8ed3f5636ace1cb3ba6202540e347058f25cf4d",
+          "frontend/components/arcade/ArcadePlanner.tsx": "bbf367e1b96c4ab06ff55a52601a5c7f45007488dd30ecbb38b7a18f137c4778",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
           "frontend/app/arcade-canvas.css": "35833ef6c996640d05fba699164e5d25c8900ec6a2b867ede86220bb69616e09",
           "frontend/lib/arcadeTeams.ts": "2024a4463e05b8e21c73e9b9097baf568241405e1fa564486df29e1f184e66f2",

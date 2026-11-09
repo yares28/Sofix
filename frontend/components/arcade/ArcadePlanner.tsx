@@ -416,7 +416,7 @@ const Chain = memo(function Chain({ plan, captainBonus, now, onBuild }: { plan: 
     <section className="arc-chain" aria-labelledby="arc-chain-title">
       <div className="arc-plan-head">
         <h2 id="arc-chain-title">The chain</h2>
-        <span className="arc-sub">{branch?.of === plan ? `The plan ${branch.label}.` : "Each lineup settles before the next one starts; a clear opens the next step at once."}</span>
+        {branch?.of === plan ? <span className="arc-sub">The plan {branch.label}.</span> : null}
         {branch?.of === plan ? <button type="button" className="arc-small" onClick={() => { setBranch(null); setFocus(null); }}>Back to the likely plan</button> : null}
       </div>
       <ol className="arc-chain-rail">

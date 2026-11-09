@@ -529,7 +529,11 @@ export type MarketPlayer = {
   next?: { p: number; pStart?: number; startSource?: StartSource; start?: number; x: number; fixture: MarketFixture };
   benchRecord?: BenchRecord;
   /** His first game of the week being played still ahead when the refresh ran, from that week's frozen record (plans/overlay-v2.md 1.7.3). */
-  now?: { p: number; pStart?: number; startSource?: StartSource; start?: number; x: number; fixture: MarketFixture };
+  now?: {
+    p: number; pStart?: number; startSource?: StartSource; start?: number; x: number; fixture: MarketFixture;
+    /** For a game Futbol Fantasy spoke about (payloads from 9 Nov 2026): every source's start % and his FF match, for the live read. */
+    sources?: Partial<Record<StartSource, number>>; ffMatch?: { id: number; url: string }; ffPlayer?: string;
+  };
 };
 
 export type MarketFixture = {

@@ -141,6 +141,26 @@ describe("overlayNumbers", () => {
     expect(overlayNumbers(sorare([player()]), null, ask({ players: ["unai-simon"] }), NOW, null, { market: [{ ...row, slug: "unai-simon", x: 1 }], grids: [] }).players["unai-simon"]!.x).toBe(54.5);
   });
 
+  it("gives a player Sofix does not hold FF's start % and match, never his chance of playing as his start % (9 Nov 2026)", () => {
+    const ff = { id: 123456, url: "https://www.futbolfantasy.com/partidos/123456-girona-almeria" };
+    const fixture = (id: string, kickoff: string) => ({ id, team: "Girona FC", opponent: "UD Almería", opponentCrest: null, venue: "H" as const, kickoff, competition: "laliga-es" });
+    const row: MarketPlayer = {
+      slug: "viktor-tsygankov", name: "Viktor Tsygankov", pos: "MID", club: "Girona FC", crest: null, average: 50, projection: null, eur: null, pic: "",
+      p: 0.9, pStart: 0.62, startSource: "futbolfantasy", ffKind: "doubt", sources: { sofix: 0.8, futbolfantasy: 0.62 }, ffMatch: ff, ffPlayer: "777",
+      start: 58, x: 47, fixture: fixture("g-gir", "2026-10-10T19:00:00Z"),
+    };
+    const ask1 = (r: MarketPlayer, at = NOW) => overlayNumbers(sorare([player()]), null, ask({ players: [r.slug] }), at, null, { market: [r], grids: [] }).players[r.slug]!;
+    expect(ask1(row)).toMatchObject({ p: 0.9, pStart: 0.62, startSource: "futbolfantasy", sources: { futbolfantasy: 0.62 }, ffMatch: ff, ffPlayer: "777", ffStatus: { kind: "doubt" } });
+    // Kicked off: nothing more to read live.
+    expect(ask1(row, new Date("2026-10-10T19:30:00Z")).ffMatch).toBeUndefined();
+    // His game of the week being played carries its own FF match; the planned week's never stands in for another game's.
+    const now = { p: 0.95, pStart: 0.9, startSource: "futbolfantasy" as const, x: 50, ffMatch: { ...ff, id: 99 }, ffPlayer: "777", sources: { futbolfantasy: 0.9 }, fixture: fixture("g-now", "2026-10-08T18:00:00Z") };
+    expect(ask1({ ...row, now })).toMatchObject({ pStart: 0.9, startSource: "futbolfantasy", ffMatch: { id: 99 }, match: { id: "g-now" } });
+    const bare = ask1({ ...row, now: { p: 0.95, x: 50, fixture: fixture("g-now", "2026-10-08T18:00:00Z") } });
+    expect(bare.match!.id).toBe("g-now");
+    expect([bare.pStart, bare.startSource, bare.ffMatch, bare.ffStatus]).toEqual([undefined, undefined, undefined, undefined]);
+  });
+
   it("carries his last ten games' minutes, his xD and his decisive chance to the panel (plans/overlay-v2.md 1.3, 1.6)", () => {
     const record = { started: 0, on: 7, unused: 3, minsOn: 22, games: "UOOOOOUUOO", mins: [0, 12, 8, 6, 24, 5, 0, 0, 31, 69] };
     const row: MarketPlayer = {

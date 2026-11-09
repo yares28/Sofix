@@ -666,6 +666,15 @@ function marketEntry(row: MarketPlayer, boards: (FixtureGrid | null)[], now: Dat
   if (oneGame && f?.x !== undefined) row = { ...row, x: f.x, ...(f.start !== undefined ? { start: f.start } : {}) };
   if (row.pos === "UNK" || row.x === undefined || row.p === undefined || !f?.kickoff) return null;
   const board = boardFor(f,row.club,boards);
+  const over = Date.parse(f.kickoff) <= now.getTime();
+  // His start % with whose it is (FF's when it spoke), never `p`, his chance of playing, standing in for it (9 Nov 2026).
+  const start = row.pStart !== undefined && row.startSource ? {
+    pStart: row.pStart,
+    startSource: row.startSource,
+    ...(row.sources ? { sources: row.sources } : {}),
+    ...(row.ffKind ? { ffStatus: { kind: row.ffKind } } : {}),
+    ...(row.ffMatch && row.ffPlayer && !over ? { ffMatch: row.ffMatch, ffPlayer: row.ffPlayer } : {}),
+  } : {};
   return {
     match: matchOf(f, row.club),
     x: row.x,
@@ -675,7 +684,8 @@ function marketEntry(row: MarketPlayer, boards: (FixtureGrid | null)[], now: Dat
     laliga: LALIGA.test(f.competition ?? ""),
     at,
     game: board ? { win: board.win, cleanSheet: board.cleanSheet, goalsFor: board.xgFor, goalsAgainst: board.xgAgainst ?? null, difficulty: board.difficulty!, bucket: board.bucket!, label: board.label!, source: "model" } : null,
-    ...(Date.parse(f.kickoff) <= now.getTime() ? { over: true as const } : {}),
+    ...start,
+    ...(over ? { over: true as const } : {}),
     ...(row.benchRecord ? { benchRecord: row.benchRecord } : {}),
     ...(row.xd !== undefined ? { xd: row.xd } : {}),
     ...(row.decisive !== undefined ? { decisive: row.decisive } : {}),
@@ -749,10 +759,12 @@ export function overlayNumbers(
 
   // Anyone else Sofix rates (an Arcade common, a player you do not hold): his market row for the week being planned, and the one after.
   const market = plan === planned || plan === afterPlanned ? new Map(others.market.map((row) => [row.slug, row])) : new Map<string, MarketPlayer>();
-  const nextOf = (row: MarketPlayer): MarketPlayer | null => (row.next ? { ...row, ...row.next, fixture: row.next.fixture } : null);
+  // Another game's row: the planned week's start % and FF match belong to its own game, so only the other game's own stand.
+  const ownStart = { pStart: undefined, startSource: undefined, sources: undefined, ffKind: undefined, ffMatch: undefined, ffPlayer: undefined };
+  const nextOf = (row: MarketPlayer): MarketPlayer | null => (row.next ? { ...row, ...ownStart, ...row.next, fixture: row.next.fixture } : null);
   // His game of the week being played, still ahead: the refresh leaves the side's crest out of it (the row has it).
   const nowOf = (row: MarketPlayer): MarketPlayer | null =>
-    row.now ? { ...row, ...row.now, fixture: { ...row.now.fixture, teamCrest: row.now.fixture.teamCrest ?? row.crest } } : null;
+    row.now ? { ...row, ...ownStart, ...row.now, fixture: { ...row.now.fixture, teamCrest: row.now.fixture.teamCrest ?? row.crest } } : null;
   const boards = [...new Map([grid, ...others.grids].flatMap(g => g ? [[g.competition ?? "PD", g] as const] : [])).values()];
   const leaguesOf = (week: GameweekPlan) => (request.board ? (week.boards?.[request.board] ?? null) : null);
   const counted = (row: MarketPlayer | null, week: GameweekPlan) => {

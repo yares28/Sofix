@@ -16,6 +16,61 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Overlay edge cases (you, 9 Nov 2026)
+
+Your words: "it sometimes appear and other times do not appear, sometimes just 1 card has it instead of all of them, it uses
+sofix starting % instead of ff for laliga, sometimes the crest doesnt appear". Found by reading the overlay end to end
+(`extension/overlay.js`, `core.js`, `bridge.js`, `background.js`, `frontend/lib/overlay.ts`, the `/api/ext/overlay` route) and the
+local copy of the blocks (8 Nov). Not yet watched live on sorare.com. Order: start %, then missing tiles, then crests.
+
+**Start % shows Sofix's number instead of Futbol Fantasy's**
+- S1. Any player outside your plan (cards you do not own, Arcade commons, other players in the builder's list) is answered from
+  his market row by `marketEntry` (`lib/overlay.ts:664`), which drops the row's `pStart`, `startSource`, `sources`, `start`,
+  `ffMatch` and `ffPlayer`. The chip then shows `p`, Sofix's chance he *plays* (not starts), with no source mark, and the live FF
+  read never runs for him. Local data, 8 Nov: 251 of the 311 rows for the round being played had an FF start %; all would show Sofix's.
+  **Fixed 9 Nov** (with S2): the answer keeps his start %, its source, FF's doubt/out and his FF match; another game's row never
+  borrows the planned week's.
+- S2. Those rows for the round being played (`now`, `backend/app/sorare/publish.py` ~2178) are published without `ffMatch`/`ffPlayer`,
+  so even with S1 fixed the extension cannot read FF live for them. **Fixed 9 Nov:** `with_now` carries the game's FF match and sources.
+- S3. ~~Your own cards during a round use a plan frozen before FF's numbers.~~ Not a bug: the 6-10 Nov frozen plan has FF's
+  number and match for 78 of your 89 players, the same as the refresh's record (0 differ); after the lock the extension's live
+  FF read updates them.
+- S4. When the card's game has no start % of its own, the week's is used (`lib/overlay.ts:620-631`), which is his *first* game's:
+  wrong on a double week (Champions League midweek, LaLiga at the weekend).
+- S5. A player without the starts/bench split loses his source entirely and shows `p` (`lib/overlay.ts:629-650`).
+- S6. Sorare's own fresh start % (read from the page by the bridge) only flags a disagreement; it is never the fallback when FF
+  has nothing, so the order FF → Sorare → Sofix is not kept on the card.
+
+**Tiles missing on some cards or whole pages**
+- A1. On the lineup pages (Pro, Pro step and Arcade step lineups) a card is drawn only when its whole team block matches one of
+  your lineups exactly (`onLineupPage` → `lineupOf` → `teamOf`, `overlay.js:1590-1627`). One unidentified card, a card known only
+  by name, a lineup the worker has not read yet (or does not read), or a block that is not exactly that lineup's cards blanks the
+  whole lineup, silently.
+- A2. A card is looked up 8 times over about 3½ minutes, then only when the bridge learns new cards (`overlay.js:23,143`). The
+  bridge learns only from answers to the page's POST requests (`bridge.js:108`): cards Sorare draws from its own cache (back and
+  forward, revisits) are never named. Past 2,000 cards its name index is wiped (`bridge.js:50`).
+- A3. A card known only by its link asks by card slug, which the app answers only for cards you own (`lib/overlay.ts:861`).
+- A4. "Sofix has nothing" is remembered for 10 minutes, in the tab (`overlay.js:313`) and in the worker (`background.js:546`): a
+  card asked before its lineup's game was known, or during a refresh, stays blank that long.
+- A5. One failed call (a 500, a slow cold start, a 429) blanks every sorare.com tab for 30 s (`overlayDown`, `background.js:511`):
+  big cards say "Offline", small ones show nothing.
+- A6. Size rules: a card under 48 px wide, outside a 0.55-0.9 width/height ratio (a card mid hover tilt) or round counts as "not a
+  card" (`core.js:119`); the start chip is left off cards under 80 px and once the game has kicked off or the numbers are 24 h old.
+- A7. A player Sofix does not rate (other leagues, unknown position, no xScore) gets nothing, with nothing saying why.
+
+**Crest missing**
+- C1. No stand-in when the crest picture fails to load (`overlay.js:1044`): a 404 or a refused hot-link leaves an empty button.
+  The coloured shield shows only when there is no address at all.
+- C2. Crests are drawn only on the builders and the lineup pages (your call, 4 Nov); the gallery, the market and Classic pages have none.
+- C3. The crest hides whenever anything outside the card's own box sits at its spot (`crestCovered`, `overlay.js:1170`); that box
+  stops at 1.3× the card's width, so Sorare's own slot button or badge on the pitch can count as covering it.
+- C4. Only the first game is looked at (`crestState`, `core.js:1018`): on a double week whose first game is over, the finished
+  game's crest stays and a live second game gets no live dot.
+- C5. "Out" only for FF's `out`: a suspended player keeps an ordinary crest.
+- C6. Hidden while any Sorare dialog or drawer covers the card's column, even one that is not modal.
+
+---
+
 ## Nine issues after the points-needed pill (you, 2 Nov 2026)
 
 Sent after the pill shipped (a3c45a0) and localhost was rebuilt from `main`. Order of work: broken first (A–E), then new

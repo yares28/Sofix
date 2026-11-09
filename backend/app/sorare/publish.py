@@ -2185,6 +2185,12 @@ def with_now(rows: list[dict[str, Any]], record: dict[str, Any] | None, at: date
             ),
             **({"start": game["sofix"]} if game.get("sofix") is not None else {}),
             "x": round(his["pPlay"] * his["mu"], 1),
+            # His Futbol Fantasy match, so the overlay reads it live; only for a game FF spoke about (bytes: the blocks' budgets).
+            **(
+                {"ffMatch": game["ffMatch"], "ffPlayer": game["ffPlayer"], "sources": game.get("sources") or {}}
+                if game.get("ffMatch") and game.get("ffPlayer")
+                else {}
+            ),
             # The side's own crest is the row's (`crest`): left out, it keeps the Champions League block under its 1.6 MB budget.
             "fixture": {k: game[k] for k in FIXTURE_KEYS if k != "teamCrest" and game.get(k) is not None},
         }

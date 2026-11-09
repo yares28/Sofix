@@ -1216,6 +1216,35 @@ def test_a_market_row_carries_his_game_of_the_week_being_played_while_it_is_stil
     assert publish.with_now(rows, None, at) == rows
 
 
+def test_with_now_carries_futbol_fantasy_match_so_the_overlay_reads_it_live() -> None:
+    """9 Nov 2026: 251 rows of the round being played had FF's start %, none its match page, so the overlay could not read it live."""
+    ff = {"id": 123456, "url": "https://www.futbolfantasy.com/partidos/123456-sevilla-betis"}
+    record = {
+        "players": {
+            "isco": {
+                "pPlay": 0.9,
+                "mu": 50,
+                "pStart": 0.8,
+                "startSource": "futbolfantasy",
+                "games": [
+                    {
+                        "id": "Game:sev",
+                        "kickoff": "2026-11-08T20:00:00Z",
+                        "venue": "A",
+                        "sources": {"sofix": 0.7, "futbolfantasy": 0.8},
+                        "ffMatch": ff,
+                        "ffPlayer": "321",
+                    }
+                ],
+            }
+        }
+    }
+    now = publish.with_now([{"slug": "isco"}], record, datetime(2026, 11, 8, 12, 0, tzinfo=UTC))[0]["now"]
+    assert now["ffMatch"] == ff
+    assert now["ffPlayer"] == "321"
+    assert now["sources"] == {"sofix": 0.7, "futbolfantasy": 0.8}
+
+
 def test_a_club_sorare_draws_without_a_picture_gets_the_european_boards_crest() -> None:
     uefa = "https://img.uefa.com/imgml/TP/teams/logos/70x70/50079.png"
     grids = {

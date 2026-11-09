@@ -484,6 +484,19 @@ test.describe("the sorare.com overlay", () => {
     }
   });
 
+  test("on a lineup page, one card the page never named does not blank the rest of its lineup (9 Nov 2026)", async ({ page }) => {
+    const at = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
+    const slugs = ["unai-simon-2026-limited-12", "pau-cubarsi-2026-rare-3", "lionel-messi-2026-limited-9", "kai-havertz-2026-limited-2", "mystery-2026-limited-1"];
+    const need = {
+      arcade: { steps: { s2: { target: 300 } } },
+      arcadeLineups: [{ id: "l1", kind: "arcade", step: "s2", cards: slugs.map((slug, i) => ({ slug, score: null, bonus: 1, captain: false, kickoff: at(20), game: gameId(i + 1) })) }],
+    };
+    // Pick 1's picture swapped for one no answer of the page names, and no link around it.
+    const html = LINEUPS.replace(/alt="Pick 1 - limited" src="[^"]+"/, 'alt="Mystery Man - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000099/picture/tinified-x.png"');
+    await openPage(page, { url: LINEUPS_URL, html, need });
+    for (const id of ["l-simon", "l-cubarsi", "l-messi", "l-havertz"]) await expect(tileOf(page, id)).toHaveCount(1);
+  });
+
   test("on an Arcade step's lineups page, the lineup in progress says its chance to clear the target; missed ones say nothing", async ({ page }, testInfo) => {
     const at = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
     const card = (slug: string, n: number, hours: number, score: number | null) => ({ slug, score, bonus: 1, captain: false, kickoff: at(hours), game: gameId(n) });

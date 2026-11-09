@@ -477,6 +477,8 @@ function fromSorare(sender) {
 // your own app, in batches, and the answers are kept for a few minutes in the browser's memory (storage.session:
 // gone when Chrome closes), so scrolling a gallery never asks twice. An unknown slug is remembered as unknown too.
 const OVERLAY_TTL_MS = 15 * 60 * 1000;
+// "Sofix has nothing on him" is asked again sooner (9 Nov 2026: a card asked mid-refresh stayed blank 15 minutes); still minutes apart.
+const OVERLAY_EMPTY_TTL_MS = 3 * 60 * 1000;
 const OVERLAY_BATCH = 120; // the app's cap per call
 const SLUG = /^[a-z0-9][a-z0-9_-]{0,119}$/;
 const FIXTURE = /^football-[a-z0-9-]{1,80}-\d{4}$/; // the gameweek a page's address names (core.fixtureOf), or nothing
@@ -506,9 +508,10 @@ async function askApp(payload) {
   }
   const body = response?.ok ? await response.json().catch(() => null) : null;
   if (body?.ok) return { body };
-  // 401: the app does not accept this extension's token. Anything else: the app is not answering. Either way, say
-  // so once and leave it alone for 30 seconds (a 429 is honoured the same way).
-  overlayDown = { until: Date.now() + 30_000, state: response?.status === 401 ? "auth" : "unreachable" };
+  // 401: the app does not accept this extension's token, and a 429 asks for a rest: left alone 30 seconds. Anything else (one 500,
+  // a slow cold start) only 10, so one failure does not blank every sorare.com tab for half a minute (9 Nov 2026).
+  const rest = response?.status === 401 || response?.status === 429 ? 30_000 : 10_000;
+  overlayDown = { until: Date.now() + rest, state: response?.status === 401 ? "auth" : "unreachable" };
   await chrome.storage.local.set(
     response?.status === 401 ? { lastError: "HTTP 401" } : { appReachable: false, lastError: response ? `HTTP ${response.status}` : "network error" },
   );
@@ -533,7 +536,7 @@ async function overlayNumbers(cards, players, fixture = null, games = {}, board 
   let team = null;
   for (const key of wanted) {
     const hit = cached[keyOf(key)];
-    if (hit && now - hit.at < OVERLAY_TTL_MS) answers[key] = hit.entry;
+    if (hit && now - hit.at < (hit.entry ? OVERLAY_TTL_MS : OVERLAY_EMPTY_TTL_MS)) answers[key] = hit.entry;
     else missing.push(key);
   }
   for (let i = 0; i < missing.length; i += OVERLAY_BATCH) {

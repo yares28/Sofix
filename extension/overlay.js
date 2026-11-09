@@ -20,6 +20,7 @@
   globalThis.__sofixOverlay = 1;
 
   const NUMBERS_TTL_MS = 10 * 60 * 1000; // the background keeps them as long; this only spares it the question
+  const EMPTY_TTL_MS = 3 * 60 * 1000; // "nothing on him", as the background keeps it: asked again sooner (9 Nov 2026)
   const IDENTIFY_TRIES = 8;
   const guard = (fn) => (...args) => {
     try {
@@ -203,7 +204,7 @@
   function entryOf(record) {
     const slug = slugOf(record);
     const held = slug && numbers.get(slug);
-    return held && now() - held.at < NUMBERS_TTL_MS ? withLive(held) : null;
+    return held && now() - held.at < (held.entry ? NUMBERS_TTL_MS : EMPTY_TTL_MS) ? withLive(held) : null;
   }
 
   /**
@@ -305,8 +306,9 @@
         guard(() => {
           if (reply.state !== "ok") {
             appState = reply.state;
-            downUntil = now() + 30000; // the background is not asking the app either; look again in half a minute
-            setTimeout(guard(schedule), 30500);
+            const rest = reply.state === "auth" ? 30000 : 10000; // as long as the background rests from the app
+            downUntil = now() + rest;
+            setTimeout(guard(schedule), rest + 500);
           } else {
             appState = "ok";
             if (reply.team) teamNow = reply.team;
@@ -464,7 +466,8 @@
       }));
       return { sig: `${tier}|tag|${appState}`, node: tag, label, interactive: false };
     }
-    if (slug && asking.has(slug)) {
+    const empty = slug && numbers.has(slug) && !numbers.get(slug).entry; // nothing last time: asked again without a skeleton flashing
+    if (slug && asking.has(slug) && !empty) {
       const tile = node("span", `sfx-tile sfx-tile--loading${tier === "compact" ? " sfx-tile--compact" : ""}${size === "tiny" ? " sfx-tile--tiny" : ""}${size === "narrow" ? " sfx-tile--narrow" : ""}`);
       tile.setAttribute("role", "img");
       tile.setAttribute("aria-label", "Sofix numbers loading");
@@ -1583,30 +1586,33 @@
   }
 
   /**
-   * The team block a card is drawn in: the smallest box around it holding five or more cards, as their slugs. Cards sit 12 to 17
-   * levels deep on the Arcade lineups page (2 Nov 2026), so the walk goes up to 40. Until every card in that box is identified
-   * the answer is not kept, so a block read half-identified is read again.
+   * The team block a card is drawn in: the smallest box around it holding five or more cards, with the slugs of those the page has
+   * named. Cards sit 12 to 17 levels deep on the Arcade lineups page (2 Nov 2026), so the walk goes up to 40. Kept for the page
+   * change only once every card in it is named, so a block read half-named is read again.
    */
   function teamOf(record) {
-    if (record.needTeam && record.needTeam.epoch === pageEpoch) return record.needTeam.slugs;
+    if (record.needTeam && record.needTeam.epoch === pageEpoch && record.needTeam.whole) return record.needTeam;
     let box = record.media.parentElement;
     for (let depth = 0; box && box !== document.body && depth < 40; depth += 1, box = box.parentElement) {
       const inside = [...live].filter((other) => box.contains(other.media));
       if (inside.length < 5) continue;
-      if (inside.some((other) => !other.cardSlug)) return null;
-      const slugs = new Set(inside.map((other) => other.cardSlug));
-      record.needTeam = { epoch: pageEpoch, slugs, box };
-      return slugs;
+      const slugs = new Set(inside.map((other) => other.cardSlug).filter(Boolean));
+      record.needTeam = { epoch: pageEpoch, slugs, box, whole: inside.every((other) => other.cardSlug) };
+      return record.needTeam;
     }
     return null;
   }
 
-  /** The lineup of yours still in play whose team block this card is drawn in, on a lineup page; else null. */
+  /**
+   * The lineup of yours still in play whose team block this card is drawn in, on a lineup page; else null. Every card the block names
+   * must be in that lineup: one card the page never named no longer blanks the rest (9 Nov 2026), and a block of another lineup,
+   * settled or not, never matches.
+   */
   function lineupOf(record) {
     if (!needPage() || !record.cardSlug) return null;
     const team = teamOf(record);
     if (!team) return null;
-    return needLineups().find((l) => l.slugs.size === team.size && [...l.slugs].every((slug) => team.has(slug))) || null;
+    return needLineups().find((l) => l.slugs.has(record.cardSlug) && [...team.slugs].every((slug) => l.slugs.has(slug))) || null;
   }
 
   /** This card's pill: only on a lineup page, only when its team block is one of your lineups still in play, and not once its game is over. */

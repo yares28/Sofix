@@ -1572,12 +1572,12 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-04",
-        "note": "4 Nov 2026 (0.4.63): lineup reads also take scoreStatus, game statusTyped and fieldStatus; a card is done when subbed off, absent from a game under way, its game played/cancelled/postponed or its score FINAL (REVIEWING is Sorare's state during a game, so it is not used). Read-only, no new operation, no write, no new permission.",
+        "date": "2026-11-09",
+        "note": "Reviewed extension 0.4.64 (9 Nov): only the overlay's read cache (empty answers kept 3 min) and the rest after a failed app call (10 s, 30 s for 401/429) changed; no session action, allowlist or write path touched.",
         "files": {
-          "extension/background.js": "3e74c9522f3cf2192f2a0a8389459470fb7b48bb24b36da3561bf1ebc2e82a18",
+          "extension/background.js": "8ca7c9a1d09c855d76334d8db8f4d5e5c8342e8240875af0257855f290608781",
           "extension/bridge.js": "d318a12d9854876efa1ef44e2cbce2b2884bf22fc0d0934777296945a305418d",
-          "extension/manifest.template.json": "b97eacd9f2b1c55e828e016142c77da65ad71dcd233486113f81260da674b7c7",
+          "extension/manifest.template.json": "64ce92646e13af7dd252d37fc49c230522d77645808f5db2417f0f09340a37fe",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

@@ -45,15 +45,18 @@ local copy of the blocks (8 Nov). Not yet watched live on sorare.com. Order: sta
 - A1. On the lineup pages (Pro, Pro step and Arcade step lineups) a card is drawn only when its whole team block matches one of
   your lineups exactly (`onLineupPage` → `lineupOf` → `teamOf`, `overlay.js:1590-1627`). One unidentified card, a card known only
   by name, a lineup the worker has not read yet (or does not read), or a block that is not exactly that lineup's cards blanks the
-  whole lineup, silently.
+  whole lineup, silently. **Fixed 9 Nov (extension 0.4.64):** every card the block names must be in the lineup; cards the page
+  never named no longer blank the rest. A lineup the worker does not read still draws nothing (by your 3 Nov rule).
 - A2. A card is looked up 8 times over about 3½ minutes, then only when the bridge learns new cards (`overlay.js:23,143`). The
   bridge learns only from answers to the page's POST requests (`bridge.js:108`): cards Sorare draws from its own cache (back and
   forward, revisits) are never named. Past 2,000 cards its name index is wiped (`bridge.js:50`).
 - A3. A card known only by its link asks by card slug, which the app answers only for cards you own (`lib/overlay.ts:861`).
 - A4. "Sofix has nothing" is remembered for 10 minutes, in the tab (`overlay.js:313`) and in the worker (`background.js:546`): a
-  card asked before its lineup's game was known, or during a refresh, stays blank that long.
+  card asked before its lineup's game was known, or during a refresh, stays blank that long. **Fixed 9 Nov:** asked again after 3
+  minutes (not sooner: each ask is a Vercel call), without a loading flash.
 - A5. One failed call (a 500, a slow cold start, a 429) blanks every sorare.com tab for 30 s (`overlayDown`, `background.js:511`):
-  big cards say "Offline", small ones show nothing.
+  big cards say "Offline", small ones show nothing. **Fixed 9 Nov:** 10 s after a 500 or a timeout; 30 s stays for a 401 or a 429.
+  Tiles already drawn were never affected.
 - A6. Size rules: a card under 48 px wide, outside a 0.55-0.9 width/height ratio (a card mid hover tilt) or round counts as "not a
   card" (`core.js:119`); the start chip is left off cards under 80 px and once the game has kicked off or the numbers are 24 h old.
 - A7. A player Sofix does not rate (other leagues, unknown position, no xScore) gets nothing, with nothing saying why.

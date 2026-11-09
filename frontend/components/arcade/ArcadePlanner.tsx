@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { memo, useCallback, useContext, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
 import { WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
@@ -279,8 +279,8 @@ export function climbStep(arcade: Arcade): number {
 const VERB: Record<Climb["verdict"]["kind"], string> = { play: "Play now", wait: "Wait", spend: "Spend them now", none: "Nothing to play yet" };
 
 /** Your move: play, wait or spend your lives, why, and the lineup to enter. */
-function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote }: {
-  plan: ClimbPlan; steps: StepInfo[]; boardSteps: ArcadeStep[]; current: number; lives: number; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void; waitingNote: string | null;
+const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote, updating }: {
+  plan: ClimbPlan; steps: StepInfo[]; boardSteps: ArcadeStep[]; current: number; lives: number; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void; waitingNote: string | null; updating: boolean;
 }) {
   const move = plan.path[0] ?? null;
   const target = (n: number) => steps.find((s) => s.number === n)?.target ?? 0;
@@ -302,7 +302,7 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
   const why = v.kind === "play" && move?.step === 1 && move.play === lives
     ? `Use all ${lives} lives: if every lineup misses, you restart step 1 with four fresh lives. ${holdMove && holdMove.at < move.settles ? "Waiting could enter the next games sooner; this batch gives the better climb." : "Holding saves no progress."}`
     : v.kind === "play" ? (holdMove && holdMove.at < (move?.settles ?? 0)
-      ? "The next games start before this settles. This batch gives the better chance through the remaining climb."
+      ? `The next games start before this settles. This ${move && move.play > 1 ? "batch" : "lineup"} gives the better chance through the remaining climb.`
       : holdChance !== null && holdChance > playChance + 0.005 && lives > (move?.play ?? 1)
       ? `The later games are stronger, but a miss now still leaves ${lives - (move?.play ?? 1)} lives for them.`
       : holdChance === null ? "No later game before the set ends." : "Every window you skip is a try lost.")
@@ -313,8 +313,9 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
   const together = lineup ? Date.parse(lineup.last) - Date.parse(lineup.first) <= WINDOW_MS : true;
   const share = (p: number | null) => Math.max(0.25, p ?? 0);
   return (
-    <section className={`arc-move is-${v.kind}`} aria-labelledby="arc-move-title">
+    <section className={`arc-move is-${v.kind}`} aria-labelledby="arc-move-title" aria-busy={updating}>
       <div className="arc-move-main">
+        {updating ? <p className="arc-move-updating" role="status">Updating with the latest start %…</p> : null}
         <p className="arc-move-kicker">
           <span>Step {current} · {step?.target ?? ""} pts</span>
           <span className="arc-lives" aria-label={`${lives} of 4 lives`}>{[0, 1, 2, 3].map((i) => <i key={i} className={i < lives ? "is-on" : undefined} aria-hidden="true" />)}</span>
@@ -337,7 +338,7 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
             <div className="arc-move-entry-head">
               {playsNow && move.play === 1 ? null : <span className="arc-move-chance"><b>{pct(lineup ? chanceOf(lineup.totals, target(move.step)) : move.clear)}</b><small>{playsNow ? "this lineup clears it" : `ready for ${when(move.at, now)}`}</small></span>}
               <span className="arc-move-times">
-                {lineup ? <span>{together ? `All five play at ${madridTime(lineup.first)}: you see the official lineups before you enter.` : `Its games run ${madridTime(lineup.first)} to ${madridTime(lineup.last)}: the later cards' start % can still change after you enter.`}</span> : null}
+                {lineup ? <span>{together ? `All five play at ${madridTime(lineup.first)}: you see the official lineups before you enter.` : `Its games run ${when(Date.parse(lineup.first), now)} to ${when(Date.parse(lineup.last), now)}: the later cards' start % can still change after you enter.`}</span> : null}
                 <span>Enter before <b>{when(lineup ? Date.parse(lineup.first) : move.at, now)}</b></span>
                 <span>Settles about <b>{when(lineup ? Date.parse(lineup.last) + SETTLES_AFTER_MS : move.settles, now)}</b></span>
                 {move.play > 1 ? <span>{move.play} lineups together: <b>{pct(clear)}</b> one clears (Sorare cancels the others)</span> : null}
@@ -369,7 +370,7 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
       </ol>
     </section>
   );
-}
+});
 
 /** The chain: the next moves, window by window, each settling before the next starts; the other outcome of each a tap away. */
 /** A move's two outcomes, asked of the worker when the move is opened; each button waits for its own answer. */
@@ -398,7 +399,7 @@ function Outcomes({ plan, picked, now, onFollow }: { plan: ClimbPlan; picked: Mo
   );
 }
 
-function Chain({ plan, captainBonus, now, onBuild }: { plan: ClimbPlan; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void }) {
+const Chain = memo(function Chain({ plan, captainBonus, now, onBuild }: { plan: ClimbPlan; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void }) {
   const [branch, setBranch] = useState<{ of: ClimbPlan; moves: Move[]; label: string } | null>(null);
   const moves = branch?.of === plan ? branch.moves : plan.path;
   const [focus, setFocus] = useState<number | null>(null);
@@ -455,7 +456,7 @@ function Chain({ plan, captainBonus, now, onBuild }: { plan: ClimbPlan; captainB
       ) : null}
     </section>
   );
-}
+});
 
 export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; status: Record<string, PlayerStatus> }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- Advance the planning clock on fresh board/forecast inputs, without rebuilding it when a picker control changes.
@@ -464,7 +465,7 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
   const current = climbStep(arcade);
   const { start, waiting, after } = useMemo(() => climbStart(arcade, steps, current), [arcade, steps, current]);
   const all = useMemo(() => [...outlooks.values()].flat(), [outlooks]);
-  const plan = useClimb(all, steps, start, captainBonus, now);
+  const { plan, updating } = useClimb(all, steps, start, captainBonus, now);
   const busy = useMemo(() => new Set(start.held.filter((h) => h.until > now).map((h) => h.card)), [start.held, now]);
   const games = useMemo(() => (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now && (outlooks.get(g.id) ?? []).length), [arcade.games, outlooks, now]);
   const storageKey = `sofix-arcade-teams:${arcade.set.slug}:${arcade.board?.id ?? ""}`;
@@ -478,8 +479,11 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
     if (!selection) return;
     try { localStorage.setItem(storageKey, JSON.stringify({ games: [...selection.chosen], aim: selection.aim })); } catch { /* Storage blocked or full: retain the choice for this visit. */ }
   }, [selection, storageKey]);
-  const available = new Set(games.map((g) => g.id));
-  const chosen = new Set([...(selection?.chosen ?? new Set((plan?.path[0]?.list ?? []).map((o) => o.game.id)))].filter((id) => available.has(id)));
+  // One Set per change, not per render: Pick teams reruns its lineup search whenever this changes.
+  const chosen = useMemo(() => {
+    const available = new Set(games.map((g) => g.id));
+    return new Set([...(selection?.chosen ?? (plan?.path[0]?.list ?? []).map((o) => o.game.id))].filter((id) => available.has(id)));
+  }, [games, selection?.chosen, plan]);
   const wantedAim = selection?.aim ?? plan?.path[0]?.step ?? current;
   const aim = arcade.board?.steps.some((s) => s.number === wantedAim && !["CLAIMED", "CLAIMABLE"].includes(s.state)) ? wantedAim : current;
   const preset = selection ? (selection.preset?.plan === plan ? selection.preset.lineup : null) : plan?.path[0]?.lineups[0] ?? null;
@@ -489,15 +493,15 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
   const waitingNote = after
     ? `Your ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} on step ${current} settle${waiting.length > 1 ? "" : "s"} first (about ${when(after.at, now)}); the plan goes on as if one clears it.`
     : waiting.length ? `You have ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} waiting on step ${current}: if one clears it, Sorare cancels any other you entered on the step.` : null;
-  const build = (move: Move, lineup: Lineup | null) => {
+  const build = useCallback((move: Move, lineup: Lineup | null) => {
     setSelection({ chosen: new Set(move.list.map((o) => o.game.id)), aim: move.step, preset: lineup && plan ? { plan, lineup } : null });
     document.getElementById("arc-teams-title")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
-  };
+  }, [plan]);
   if (!games.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;
   return (
     <>
       {plan ? <>
-        <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} />
+        <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} updating={updating} />
         <Chain plan={plan} captainBonus={captainBonus} now={now} onBuild={build} />
       </> : <p className="arc-read-state" role="status">Planning the climb…</p>}
       <ArcadeTeams arcade={arcade} outlooks={outlooks} status={status} chosen={chosen} onToggle={(id) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); }} now={now} />

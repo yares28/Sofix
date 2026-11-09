@@ -29,6 +29,14 @@ const COMBINE_MS = 3 * 3_600_000;
 const PLAY_TIE = 0.005;
 /** A lineup over a wider span of kick-offs must beat the window's own games by this much (2 points) at some prize. */
 const LEG_TIE = 0.02;
+/**
+ * A long shot: a lineup (or an extra lineup in a batch, by the chance it adds) under half as likely to clear as the next one the plan
+ * would play. Above step 1 it costs a life, so it is
+ * played only when it is clearly better (LONG_SHOT_TIE, 3 points at some prize), never on a near tie (owner, 9 Nov 2026: an 11%
+ * lineup on step 4 was played before a 31% one the next day, "I feel like I am just burning lives away").
+ */
+const LONG_SHOT = 0.5;
+const LONG_SHOT_TIE = 0.03;
 
 export type Window = { at: number; list: Outlook[] };
 
@@ -224,6 +232,9 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     const known = memo.get(key);
     if (known) return known;
     let choice: Choice = { ...hold, reach: value(i + 1, n, lives, best).reach };
+    // The chance of the next lineup the plan would play if this window is held.
+    let nextShot = 0;
+    for (let j = i + 1; j < W;) { const c = value(j, n, lives, best); if (c.play) { nextShot = c.clear; break; } j = c.next; }
     for (const leg of legsFrom(i)) {
       const ranked = teamsFor(i, leg, n);
       let settles = 0;
@@ -236,8 +247,10 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
         const reach = mix(clear, won, lost);
         // Speed first: a move as good as holding (within PLAY_TIE) is played. A wider leg or more lives must be clearly better.
         const freeReset = n === 1 && k === lives && choice.play > 0 && next === choice.next;
-        const comparison = comparePrizes(reach, choice.reach, freeReset ? 0 : leg.to > choice.to ? LEG_TIE : PLAY_TIE);
-        const better = comparison > 0 || (comparison === 0 && (!choice.play || (freeReset && leg.to === choice.to)));
+        // Each life spent must buy its share: an extra insurance lineup is judged by the chance it adds.
+        const longShot = n > 1 && clear - (k > 1 ? clears.get(ranked)![k - 2]! : 0) < LONG_SHOT * nextShot;
+        const comparison = comparePrizes(reach, choice.reach, freeReset ? 0 : longShot ? LONG_SHOT_TIE : leg.to > choice.to ? LEG_TIE : PLAY_TIE);
+        const better = comparison > 0 || (comparison === 0 && !longShot && (!choice.play || (freeReset && leg.to === choice.to)));
         if (better) choice = { reach, to: leg.to, play: k, clear, next, settles, lineups: ranked.slice(0, k), list: leg.list };
       }
     }

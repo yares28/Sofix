@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { climbWindows, type Climb, type Move } from "./arcadeClimb";
 
 export type ClimbArgs = Parameters<typeof climbWindows>;
@@ -16,45 +16,49 @@ const inline = (args: ClimbArgs): ClimbPlan => {
 };
 
 /**
- * Arcade's climb, worked out in a worker so a tap never waits on it (2 Nov 2026: a tap on a move of the chain froze the page for 14 s
- * while both of its outcomes were planned). Null until the first plan arrives; a newer request makes an older answer void.
+ * Reads arrive one after another when the page opens (9 Nov 2026: 14 new inputs in 36 s); the plan starts once they have been quiet
+ * this long, not once per read.
  */
-export function useClimb(...args: ClimbArgs): ClimbPlan | null {
+const SETTLE_MS = 1_500;
+
+/**
+ * Arcade's climb, worked out in a worker so a tap never waits on it (2 Nov 2026: a tap on a move of the chain froze the page for 14 s
+ * while both of its outcomes were planned). A plan takes tens of seconds on a full board, so a newer request ends the worker running an
+ * older one and starts a fresh one (9 Nov: 19 queued plans held the page's plan back for minutes). The last plan stays shown, marked
+ * `updating`, while the next is worked out; null until the first arrives.
+ */
+export function useClimb(...args: ClimbArgs): { plan: ClimbPlan | null; updating: boolean } {
   const [plan, setPlan] = useState<ClimbPlan | null>(null);
-  const worker = useRef<Worker | null>(null);
-  const waiting = useRef(new Map<number, (reply: ClimbReply) => void>());
-  const next = useRef(0);
+  const [updating, setUpdating] = useState(true);
   const [outlooks, steps, start, captainBonus, now] = args;
 
   useEffect(() => {
-    if (typeof Worker === "undefined") return;
-    try {
-      const w = new Worker(new URL("./climb.worker.ts", import.meta.url));
-      const pending = waiting.current;
-      w.onmessage = (event: MessageEvent<ClimbReply>) => { const done = pending.get(event.data.id); pending.delete(event.data.id); done?.(event.data); };
-      worker.current = w;
-      return () => { w.terminate(); worker.current = null; pending.clear(); };
-    } catch { worker.current = null; }
-  }, []);
-
-  useEffect(() => {
-    const w = worker.current;
     const request = [outlooks, steps, start, captainBonus, now] as ClimbArgs;
-    if (!w) { setPlan(inline(request)); return; }
-    const id = next.current++;
-    const cache = new Map<string, Promise<Move[]>>();
-    const ask = (message: ClimbRequest) => new Promise<ClimbReply>((resolve) => { waiting.current.set(message.id, resolve); w.postMessage(message); });
-    let live = true;
-    void ask({ id, kind: "plan", args: request }).then((reply) => {
-      if (!live || reply.kind !== "plan") return;
-      setPlan({ ...reply.plan, after: (move, cleared) => {
-        const key = `${(move as Move & { id?: string }).id}:${cleared}`;
-        if (!cache.has(key)) cache.set(key, ask({ id: next.current++, kind: "after", move: (move as Move & { id?: string }).id ?? "", cleared }).then((r) => (r.kind === "after" ? r.moves : [])));
-        return cache.get(key)!;
-      } });
-    });
-    return () => { live = false; };
+    setUpdating(true);
+    let worker: Worker | null = null;
+    const timer = setTimeout(() => {
+      if (typeof Worker === "undefined") { setPlan(inline(request)); setUpdating(false); return; }
+      try { worker = new Worker(new URL("./climb.worker.ts", import.meta.url)); } catch { setPlan(inline(request)); setUpdating(false); return; }
+      const w = worker;
+      const waiting = new Map<number, (reply: ClimbReply) => void>();
+      let next = 0;
+      w.onmessage = (event: MessageEvent<ClimbReply>) => { const done = waiting.get(event.data.id); waiting.delete(event.data.id); done?.(event.data); };
+      w.onerror = () => setUpdating(false);
+      const ask = (message: ClimbRequest) => new Promise<ClimbReply>((resolve) => { waiting.set(message.id, resolve); w.postMessage(message); });
+      const cache = new Map<string, Promise<Move[]>>();
+      void ask({ id: next++, kind: "plan", args: request }).then((reply) => {
+        if (reply.kind !== "plan") return;
+        setUpdating(false);
+        setPlan({ ...reply.plan, after: (move, cleared) => {
+          const key = `${(move as Move & { id?: string }).id}:${cleared}`;
+          if (!cache.has(key)) cache.set(key, ask({ id: next++, kind: "after", move: (move as Move & { id?: string }).id ?? "", cleared }).then((r) => (r.kind === "after" ? r.moves : [])));
+          return cache.get(key)!;
+        } });
+      });
+    }, SETTLE_MS);
+    // A newer request (or leaving the page) ends this one, and its worker with it.
+    return () => { clearTimeout(timer); worker?.terminate(); };
   }, [outlooks, steps, start, captainBonus, now]);
 
-  return plan;
+  return { plan, updating };
 }

@@ -9,7 +9,15 @@ import type { ClimbRequest, ClimbReply } from "./climbClient";
 let climb: Climb | null = null;
 let moves = new Map<string, Move>();
 let count = 0;
-const tag = (list: Move[]) => list.map((move) => { const id = `m${count++}`; moves.set(id, move); return { ...move, id }; });
+/**
+ * The page reads only a move's games from its card list, so it gets one card per game: the full list was 3 MB of a 3.8 MB plan on
+ * his board (9 Nov 2026), and copying it into the page froze it about 300 ms per plan. The worker keeps the full move for `after`.
+ */
+const tag = (list: Move[]) => list.map((move) => {
+  const id = `m${count++}`;
+  moves.set(id, move);
+  return { ...move, id, list: [...new Map(move.list.map((o) => [o.game.id, o])).values()] };
+});
 const tagOne = (move: Move | null) => (move ? tag([move])[0]! : null);
 
 self.onmessage = (event: MessageEvent<ClimbRequest>) => {

@@ -101,6 +101,21 @@ describe("the window planner", () => {
     expect(plan.verdict.waitFor?.at).toBe(Date.parse("2026-11-02T18:00:00Z"));
   });
 
+  it("never spends a life on a long shot when the next lineup is far likelier and the gain is within the model's noise", () => {
+    // His board on 9 Nov 2026: step 4 of 6 with 2 lives; it said play an 11% lineup on Friday night, before a 31% one on Saturday.
+    const board = [260, 300, 360, 400, 440, 480].map((target, i) => ({ number: i + 1, target, lives: 4, big: i >= 3, cash: [0, 0, 0, 0, 100, 1000][i] }));
+    const wide = (list: Outlook[]) => list.map((o) => ({ ...o, past: [0.6, 0.8, 1, 1.2, 1.4].map((x) => x * o.score!) }));
+    const days = ["2026-11-13", "2026-11-14", "2026-11-15", "2026-11-16"].flatMap((d, i) => wide([
+      ...squad(game(`W${i}`, `${d}T19:30:00Z`), `w${i}`, 62), ...squad(game(`S${i}`, `${d}T12:30:00Z`), `s${i}`, 72), ...squad(game(`M${i}`, `${d}T16:00:00Z`), `m${i}`, 66),
+    ]));
+    const plan = climbWindows(days, board, { step: 4, lives: 2, notBefore: null, held: [], best: 3 }, 0.5, Date.parse("2026-11-13T18:00:00Z"));
+    const first = plan.path[0]!;
+    expect(first).toMatchObject({ step: 4, lives: 2 });
+    expect(first.clear).toBeGreaterThan(0.4);
+    expect(first.lineups[0]!.picks.every((p) => p.outlook.game.id.startsWith("S"))).toBe(true); // Saturday's strong games, not Friday's
+    expect(plan.verdict.chanceNow!).toBeGreaterThan(0.4);
+  }, 30_000);
+
   it("never captains a card with no start % while another has one", () => {
     const g = game("A", "2026-10-31T11:00:00Z");
     const list = squad(g, "a", 60);

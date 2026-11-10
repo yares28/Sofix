@@ -11,7 +11,7 @@ import { FdrContext } from "./Fdr";
 import { fdrOf } from "../../lib/arcadeFdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
-import { aimStep, bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
+import { aimStep, noStartNote, bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
@@ -348,6 +348,7 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
     : v.kind === "spend" && move ? `If all miss you restart step 1 about ${when(move.settles, now)}, and the steps below come back fast.`
     : "Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).";
   // Whether the lineup's start % will all be known before it is entered: its games kick off together (within the 75-minute window).
+  const noStart = lineup ? noStartNote(lineup.picks.filter((p) => p.outlook.start === null).length, Date.parse(lineup.first), now) : null;
   const together = lineup ? Date.parse(lineup.last) - Date.parse(lineup.first) <= WINDOW_MS : true;
   // One bar sharing 100% between Play and Hold by the prize the advice decides on (owner, 9 Nov 2026).
   const split = holdSplit(v);
@@ -402,7 +403,7 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
               </div>
             ) : null}
             {lineup ? <LineupCards lineup={lineup} captainBonus={captainBonus} /> : null}
-            {lineup && lineup.picks.some((p) => p.outlook.start === null) ? <p className="arc-sub">{lineup.picks.filter((p) => p.outlook.start === null).length} of 5 have no start % yet and count as starting: read start % again closer to kick-off.</p> : null}
+            {noStart ? <p className="arc-sub">{noStart}</p> : null}
           </div>
         ) : null}
       </div>

@@ -1714,19 +1714,19 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-10",
-        "note": "G5: climbWindows' solver(end) gives week odds over the next 7 days and week.best (five likeliest distinct lineups per step), carried by the worker (PLAN_VERSION 4); ladder rows are buttons opening the step's list; unit and e2e cases; checked on the owner's real board 10 Nov 2026",
+        "note": "G6: noStartNote (arcadePlan.ts) says when Sorare gives start % for a lineup over 2 days out, from Sorare's help article read 10 Nov 2026; unit cases; seen on the owner's real board",
         "files": {
           "frontend/lib/arcadeClimb.ts": "cc33d2707e00d9a7e9f1d7f0dad46c045b4ece724bd69ab9ba0e665d1af9d527",
-          "frontend/lib/arcadePlan.ts": "03b8ad24f718d6fb8480b70fd20b4973a8afa970b4542913f4a6c9596e9f6af0",
+          "frontend/lib/arcadePlan.ts": "f39a56a7560db05be739b4c9846b82ab835b0313362af09800e7afcee44e88b7",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "a7e9c580fc47f51f650a9a545fd41ea055986c3a843b4eb337db07edc96ef121",
+          "frontend/components/arcade/ArcadePlanner.tsx": "e50197f03f7aa9159229d1c6435255a5c86649e9bb470dd79e716676f6e87cbe",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
           "frontend/app/arcade-canvas.css": "b1f924f7c2a8a5b7604383ef82faedbde441ff298ab8d21dd5eaf937416fee34",
           "frontend/lib/arcadeTeams.ts": "a6ee5032672dd5b7fe2187295d99ac40655ca51832f40e4a87d268165848c9c7",
           "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
           "frontend/components/arcade/ArcadeBatch.tsx": "b996739205e8acca66b325bea4acfa9099eb38f90d79e02e9bad8757fb04cb73",
           "frontend/lib/arcadeClimb.test.ts": "04da5afadaf687c628b77ff24b1e9240399c7be26b3bc62b4a25408d4e87cc66",
-          "frontend/lib/arcadePlan.test.ts": "6b9da477d3f0ad63b803b8fcebfbc02d780ed5fa2892f39c46f91898806afd0b",
+          "frontend/lib/arcadePlan.test.ts": "664b295214417c8dda4473de5a37be40344f0785e2be26491246cbbcb06cf9ff",
           "frontend/lib/arcadeTeams.test.ts": "54b59af0e303b3509d3f8c029898c19c4c23c670966e2e0491a31739d62a1873",
           "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
           "frontend/e2e/arcade.e2e.ts": "17880773f57a369bac86ef5b0c226a4154d05bd86d9343f61b0c533b0355978b"

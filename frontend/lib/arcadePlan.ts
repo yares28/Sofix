@@ -455,3 +455,15 @@ export function xdTitle(o: Pick<Outlook, "xd" | "scoreSource"> | undefined): str
   if (o?.xd != null) return null;
   return o?.scoreSource === "sorare" ? "No Sofix xD for this game: its number is Sorare's projection" : o?.scoreSource === "form" ? "No Sofix xD or Sorare projection for this game yet: its number is his recent form" : null;
 }
+
+/**
+ * The note under a lineup with cards that have no start % yet. Sorare gives start % "the day before the start of each Game Week"
+ * (help.sorare.com, "How does lineup prediction work?", read 10 Nov 2026), so a game more than 2 days out says so instead of reading as
+ * an error (9 Nov 2026: "5 of 5 have no start % yet" eleven days out).
+ */
+export function noStartNote(missing: number, firstKickoff: number, now: number): string | null {
+  if (!missing) return null;
+  return firstKickoff - now > 2 * 86_400_000
+    ? `${missing} of 5 have no start % yet: Sorare gives it from the day before its game week starts. Until then they count as starting.`
+    : `${missing} of 5 have no start % yet and count as starting: read start % again closer to kick-off.`;
+}

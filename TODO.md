@@ -112,7 +112,8 @@ kept the other chain's scroll.*
    14, 14, 13, 11, 9%) with Edit in Pick teams. The bar and entry already say what their chances are ("clears step 4", "ready for").*
    Chances on different bases side by side with no label: the ladder's "91%" (step 4 by the set's end) beside the bar's 40% (this
    lineup). Each says what it is in a word ("by 6 Jan", "this lineup").
-6. "5 of 5 have no start % yet" eleven days out reads as an error: say when Sorare usually gives it (days before kick-off).
+6. *Done 10 Nov 2026: more than 2 days out it says "Sorare gives it from the day before its game week starts" (Sorare's help,
+   "How does lineup prediction work?", updated 3 Nov 2026); closer, it still asks for a fresh read.* "5 of 5 have no start % yet" eleven days out reads as an error: say when Sorare usually gives it (days before kick-off).
 7. Batch's empty text blames "available players with scores" for windows with no card of yours.
 8. Sorare's league names shown raw ("English League Players") beside Sofix's ("Premier League"): one name per league.
 9. Old sets' saved data never leaves this browser (glitch extras 420 kB, old Pick teams and start % keys): localStorage was 2.5 M

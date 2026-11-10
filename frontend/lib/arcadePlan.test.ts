@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, type Outlook } from "./arcadePlan";
+import { batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, noStartNote, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
@@ -303,5 +303,17 @@ describe("Pick teams' aim", () => {
   it("drops a saved aim on a step since cleared, and one the board does not have", () => {
     expect(aimStep(board, 2, 4, false)).toBe(4);
     expect(aimStep(board, 9, 4, true)).toBe(4);
+  });
+});
+
+describe("the note for cards without a start %", () => {
+  // 9 Nov 2026: "5 of 5 have no start % yet" eleven days out read as an error.
+  const now = Date.parse("2026-11-10T12:00:00Z");
+  it("says when Sorare gives start % for a game more than 2 days out", () => {
+    expect(noStartNote(5, Date.parse("2026-11-20T19:45:00Z"), now)).toBe("5 of 5 have no start % yet: Sorare gives it from the day before its game week starts. Until then they count as starting.");
+  });
+  it("asks for a fresh read closer to kick-off, and says nothing when every card has one", () => {
+    expect(noStartNote(2, Date.parse("2026-11-11T19:45:00Z"), now)).toBe("2 of 5 have no start % yet and count as starting: read start % again closer to kick-off.");
+    expect(noStartNote(0, Date.parse("2026-11-11T19:45:00Z"), now)).toBeNull();
   });
 });

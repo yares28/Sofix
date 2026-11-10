@@ -432,10 +432,10 @@ test("step one spends four resettable lives and keeps every insurance team ident
   await expect(move.locator(".arc-move-why")).toContainText("four fresh lives");
   await expect(move.locator(".arc-split .is-pick")).toContainText("4 lineups");
   // The two shares make 100%, and the larger share has the wider pill.
-  const parts = await move.locator(".arc-split > div > span").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width));
-  const shares = (await move.locator(".arc-split > div > span > b").allTextContents()).map((s) => parseFloat(s) / 100);
-  expect(shares[0]! + shares[1]!).toBeCloseTo(1, 1);
-  if (Math.abs(shares[0]! - shares[1]!) > 0.1) expect(parts[0]! > parts[1]!).toBe(shares[0]! > shares[1]!);
+  // Layout widths (offsetWidth): the pills' scaleX entrance made on-screen widths wrong mid-animation under load (10 Nov 2026).
+  const [play, hold] = await move.locator(".arc-split > div > span").evaluateAll((els) => els.map((el) => ({ width: (el as HTMLElement).offsetWidth, share: parseFloat(el.querySelector("b")!.textContent!) / 100 })));
+  expect(play!.share + hold!.share).toBeCloseTo(1, 1);
+  if (Math.abs(play!.share - hold!.share) > 0.1) expect(play!.width > hold!.width).toBe(play!.share > hold!.share);
   const signature = (selector: string) => page.locator(`${selector} .arc-lineup li`).evaluateAll((items) => items.map((li) => ({ name: li.getAttribute("aria-label"), captain: !!li.querySelector(".arc-captain"), score: li.querySelector(".arc-card-score")?.textContent })));
   const first = await signature(".arc-move");
   await page.locator(".arc-chain-node").first().click();

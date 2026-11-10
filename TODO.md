@@ -118,7 +118,9 @@ kept the other chain's scroll.*
    Belgium and Armenia v Cyprus, on your page).* Batch's empty text blames "available players with scores" for windows with no card of yours.
 8. *Done 10 Nov 2026: `leagueLabel` gives Sofix's name for every league with a board on tickets, Batch, card titles, Players'
    filter and packs (0 "English League Players" or "LALIGA EA Sports" left on your page); Nations League keeps Sorare's.* Sorare's league names shown raw ("English League Players") beside Sofix's ("Premier League"): one name per league.
-9. Old sets' saved data never leaves this browser (glitch extras 420 kB, old Pick teams and start % keys): localStorage was 2.5 M
+9. *Done 10 Nov 2026: on load Arcade removes other sets' extras, picks, batch and aim, extras of an older version and start % reads
+   past their 6 hours; your browser went from 2.71 M to 2.20 M characters (glitch extras 421 kB, old Divination extras 93 kB). The
+   rest is today's cards (546 k) and the last read's copy (675 k), both in use.* Old sets' saved data never leaves this browser (glitch extras 420 kB, old Pick teams and start % keys): localStorage was 2.5 M
    characters full, so the saved climb had to move to IndexedDB. Remove keys of ended sets on load.
 10. Dev console: a hydration mismatch on /arcade (metadata boundary); find whether it is Arcade's and fix it if so.
 - Done when: each item is fixed or answered on the real page at 1440 and 390 px, and the Arcade spec covers the date, FDR and

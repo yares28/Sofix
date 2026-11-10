@@ -615,6 +615,8 @@ export async function walkArcade(config: string, stepId: string): Promise<Arcade
 /** Start % without a tab: the extension that replays Sorare's own bench question (21 Oct 2026). */
 export const ARCADE_BENCH_VERSION = "0.4.15";
 const BENCH_PAGES = 2; // 30 cards a page, best first: the cards a plan would pick
+/** The extras' saved version: one saved under another is never read again (pruneArcadeStorage removes it). */
+const EXTRAS_VERSION = 3;
 const BENCH_KEEP_MS = 6 * 3_600_000; // Sorare's numbers are saved too; "Read start % again" asks sooner
 const BenchAnswer = z.object({ ok: z.literal(true), state: s, data: z.object({ cards: n, after: s.nullable(), rows: z.array(z.object({ game: s, player: s, basisPoints: n })) }).optional() });
 export type ArcadeBench = { state: "ok" | "outdated" | "no-extension" | "refused"; chances: ArcadeChances; at: number };
@@ -735,11 +737,11 @@ export function parseProjections(answer: unknown): Record<string, number> | null
 /** Club bonuses, past scores and the next days' projections, from your Sorare tab. Read once per visit, never polled. */
 export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promise<ArcadeExtras | null> {
   const extension = await pingExtension();
-  if (!extension) return (await readCopy<ArcadeExtras>(`sofix-arcade-extras:3:${arcade.set.slug}`))?.value ?? null;
+  if (!extension) return (await readCopy<ArcadeExtras>(`sofix-arcade-extras:${EXTRAS_VERSION}:${arcade.set.slug}`))?.value ?? null;
   if (!extensionAtLeast(extension.version, ARCADE_PLAN_VERSION)) return null;
   // About 100 questions to Sorare: kept 6 hours in this browser, so reloading the page does not ask them again (Sorare answered
   // 429 on 21 Oct after a few reads in a row).
-  const key = `sofix-arcade-extras:3:${arcade.set.slug}`; // :2 added L5/L10/L40, :3 national games' projections: a read saved before is asked again
+  const key = `sofix-arcade-extras:${EXTRAS_VERSION}:${arcade.set.slug}`; // :2 added L5/L10/L40, :3 national games' projections: a read saved before is asked again
   try {
     const kept = JSON.parse(localStorage.getItem(key) ?? "null") as { at: number; extras: ArcadeExtras } | null;
     if (kept && now.getTime() - kept.at < EXTRAS_KEEP_MS && !kept.extras.unread.length) { shareCopy(key, kept.extras); return kept.extras; }
@@ -1003,4 +1005,28 @@ export async function readDecisive(players: string[], before = new Date().toISOS
   }
   try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), rows: out })); } catch { /* Storage unavailable. */ }
   return out;
+}
+
+/**
+ * Removes Arcade data this browser can never use again, on load (9 Nov 2026: localStorage was 2.5 M characters full): another set's
+ * extras, picks, batch and aim, extras saved under an older version, and start % reads past their 6 hours. Picks of another board of
+ * this set stay (a restart can bring its step back). Returns the keys removed.
+ */
+export function pruneArcadeStorage(storage: Pick<Storage, "length" | "key" | "getItem" | "removeItem">, set: string, now: number): string[] {
+  const keys = Array.from({ length: storage.length }, (_, i) => storage.key(i)).filter((k): k is string => !!k?.startsWith("sofix-arcade-"));
+  const gone = keys.filter((key) => {
+    const extras = /^sofix-arcade-extras:(?:(\d+):)?([^:]+)$/.exec(key);
+    if (extras) return extras[1] !== String(EXTRAS_VERSION) || extras[2] !== set;
+    const picks = /^sofix-arcade-(?:teams|batch|aim):([^:]+):/.exec(key);
+    if (picks) return picks[1] !== set;
+    if (key.startsWith("sofix-arcade-bench:")) {
+      try {
+        const at = (JSON.parse(storage.getItem(key) ?? "null") as { at?: unknown } | null)?.at;
+        return typeof at !== "number" || now - at >= BENCH_KEEP_MS;
+      } catch { return true; }
+    }
+    return false;
+  });
+  gone.forEach((key) => storage.removeItem(key));
+  return gone;
 }

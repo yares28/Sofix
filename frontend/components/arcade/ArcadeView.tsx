@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_NATION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, sideIn, loadArcadeChances, newerChances, outlookOf, readArcade, setEnded, readArcadeBench, readArcadeExtras, usableArcade, walkArcade,
+  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_NATION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, sideIn, loadArcadeChances, newerChances, outlookOf, pruneArcadeStorage, readArcade, setEnded, readArcadeBench, readArcadeExtras, usableArcade, walkArcade,
   type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk, type KeptArcade,
 } from "../../lib/arcade";
 import { readCopy, shareCopy } from "../../lib/chromeCopy";
@@ -98,6 +98,8 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
   useEffect(() => { void refresh(); }, [refresh]); // once per read; never on a timer
   const [extras, setExtras] = useState<ArcadeExtras | null | "reading">("reading");
   useEffect(() => { void readArcadeExtras(arcade).then(setExtras); }, [arcade]); // once per read
+  // Saved data of ended sets and stale reads leave this browser once per set (9 Nov 2026: localStorage was full).
+  useEffect(() => { try { pruneArcadeStorage(localStorage, arcade.set.slug, Date.now()); } catch { /* Storage blocked: nothing saved to clean. */ } }, [arcade.set.slug]);
   const ready = extras === "reading" ? null : extras;
   const [view, setView] = useState<View>(() => { try { return (VIEWS.find((v) => v.value === localStorage.getItem(VIEW_KEY))?.value) ?? "play"; } catch { return "play"; } });
   const pick = (next: View) => { setView(next); try { localStorage.setItem(VIEW_KEY, next); } catch { /* blocked: not remembered */ } };

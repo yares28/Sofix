@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bonusLabel, chanceOf, gamesOf, keptCards, newerChances, outlookOf, parseArcade, parseGames, rewardLabel, setEnded, sideIn, usableArcade, type Arcade, type ArcadeCard, type ArcadeGame } from "./arcade";
+import { bonusLabel, chanceOf, gamesOf, keptCards, newerChances, outlookOf, parseArcade, parseGames, pruneArcadeStorage, rewardLabel, setEnded, sideIn, usableArcade, type Arcade, type ArcadeCard, type ArcadeGame } from "./arcade";
 
 const main = {
   cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: "2026-09-08T08:30:00Z", endDate: "2026-10-27T16:00:00Z", availableCompetitions: [{ slug: "laliga-es", displayName: "LALIGA EA Sports" }] } },
@@ -173,5 +173,28 @@ describe("cards kept between visits", () => {
     const saved = { g1: { a: [9000, 200] as [number, number], b: [1000, 100] as [number, number] } };
     const read = { g1: { a: [5000, 150] as [number, number], b: [7000, 150] as [number, number] }, g2: { c: [8000, 150] as [number, number] } };
     expect(newerChances(saved, read)).toEqual({ g1: { a: [9000, 200], b: [7000, 150] }, g2: { c: [8000, 150] } });
+  });
+});
+
+describe("old Arcade data in this browser", () => {
+  // 9 Nov 2026: localStorage held 2.5 M characters, ended sets' data among them (glitch extras 420 kB).
+  const store = (entries: Record<string, string>) => {
+    const map = new Map(Object.entries(entries));
+    return { map, storage: { get length() { return map.size; }, key: (i: number) => [...map.keys()][i] ?? null, getItem: (k: string) => map.get(k) ?? null, removeItem: (k: string) => { map.delete(k); } } };
+  };
+  const now = Date.parse("2026-11-10T12:00:00Z");
+  it("removes ended sets' keys, extras of an older version and start % reads past their 6 hours, and keeps the rest", () => {
+    const { map, storage } = store({
+      "sofix-arcade-extras:glitch": "x", "sofix-arcade-extras:2:glitch": "x", "sofix-arcade-extras:2:divination": "x", "sofix-arcade-extras:3:divination": "keep",
+      "sofix-arcade-teams:glitch:b1": "x", "sofix-arcade-batch:glitch:b1": "x", "sofix-arcade-aim:glitch:b1": "x",
+      "sofix-arcade-teams:divination:old-step": "keep", "sofix-arcade-teams:divination:b2": "keep", "sofix-arcade-aim:divination:b2": "keep",
+      "sofix-arcade-bench:Tasks::Task:old": JSON.stringify({ at: now - 7 * 3_600_000 }), "sofix-arcade-bench:Tasks::Task:new": JSON.stringify({ at: now - 3_600_000 }),
+      "sofix-arcade-bench:Tasks::Task:broken": "{", "sofix-arcade-cards": "keep", "sofix-arcade-view": "keep", "sofix-other": "keep",
+    });
+    expect(pruneArcadeStorage(storage, "divination", now).sort()).toEqual([
+      "sofix-arcade-aim:glitch:b1", "sofix-arcade-batch:glitch:b1", "sofix-arcade-bench:Tasks::Task:broken", "sofix-arcade-bench:Tasks::Task:old",
+      "sofix-arcade-extras:2:divination", "sofix-arcade-extras:2:glitch", "sofix-arcade-extras:glitch", "sofix-arcade-teams:glitch:b1",
+    ]);
+    expect([...map.values()].every((v) => v === "keep" || v.includes(String(now - 3_600_000)))).toBe(true);
   });
 });

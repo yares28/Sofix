@@ -1714,7 +1714,7 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-10",
-        "note": "G8: leagueLabel (arcadeFdr.ts) names leagues with a Sofix board as Sofix does across tickets, Batch, card titles, Players filter and packs; unit and e2e checks; owner's real page has no raw board-league names left",
+        "note": "G9: pruneArcadeStorage (arcade.ts) removes other sets' keys, older extras versions and stale start % reads once per set on load; unit case; owner's browser freed 0.5 M characters 10 Nov 2026; Play|Hold width check uses layout widths",
         "files": {
           "frontend/lib/arcadeClimb.ts": "cc33d2707e00d9a7e9f1d7f0dad46c045b4ece724bd69ab9ba0e665d1af9d527",
           "frontend/lib/arcadePlan.ts": "f39a56a7560db05be739b4c9846b82ab835b0313362af09800e7afcee44e88b7",
@@ -1729,7 +1729,7 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/arcadePlan.test.ts": "664b295214417c8dda4473de5a37be40344f0785e2be26491246cbbcb06cf9ff",
           "frontend/lib/arcadeTeams.test.ts": "54b59af0e303b3509d3f8c029898c19c4c23c670966e2e0491a31739d62a1873",
           "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
-          "frontend/e2e/arcade.e2e.ts": "9acb82410affa803391e7c98701b13f5232e47ee6cef1ae69d1908a8488271d7"
+          "frontend/e2e/arcade.e2e.ts": "f463b54cb0f617b0459bed02226d266f4a7e7db325fcbe9620eaca09f7bd8e66"
         }
       }
     },

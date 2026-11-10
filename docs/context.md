@@ -1714,14 +1714,14 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-10",
-        "note": "Play | Hold bar (9 Nov): holdSplit shares 100% by the deciding prize (comparePrizes order, PLAY_TIE); caption gives both chances there; step chances stay beneath",
+        "note": "Play | Hold bar (9 Nov): original pills restored, each grows by its holdSplit share; the step's own chance is a line inside each pill",
         "files": {
           "frontend/lib/arcadeClimb.ts": "9783768bb51f09b9619b19ade0b6e81b004f63f5bc6892bfb1042abf4c86d765",
           "frontend/lib/arcadePlan.ts": "af6426875e6beac143537e3133959262f7ca617ca2f40c7d8b23f44e97e38a1f",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "dcd6becab66a5cbd7bc010486b72f84f82eaf0840e38fe10a9365ba5ef7f2c16",
+          "frontend/components/arcade/ArcadePlanner.tsx": "b5d4e8807fef244fee0fdb9ce7a63b6b229f3ebfe98cf31ce5ff1b6994c28100",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
-          "frontend/app/arcade-canvas.css": "21f7dbed5614c502003ae8dd3765387fde6afcbf2ef7eb5e1e72b5573a327338",
+          "frontend/app/arcade-canvas.css": "b9ea46612f4ddc5645e76af3500a385e978046457073ea95e17fe10fd2c1fe0d",
           "frontend/lib/arcadeTeams.ts": "f586d4ac14469d5fdbc02272989ba212a0e84d530739d127e31deb411a9b8646",
           "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
           "frontend/components/arcade/ArcadeBatch.tsx": "61a39850e308fedafd2619b5c8dab547151788cd7b51b7d5ad2315cdc9c61948",
@@ -1729,7 +1729,7 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/arcadePlan.test.ts": "e9fffaea0fc884eb04594e29b5012d8876f387dca9a76b16babd246d0aea5823",
           "frontend/lib/arcadeTeams.test.ts": "cf0d58177712224c0267c9fd5b1f1f397597e5b704f0035f0ea7713868d9e181",
           "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
-          "frontend/e2e/arcade.e2e.ts": "d88481e5b40c857e1f72622a74babb45a9ddbd925f59122053aa6cceddeef2ba"
+          "frontend/e2e/arcade.e2e.ts": "eebb28449bc7ae248b39af16d1637b95105508e3e2a19ec810bb789ad21c16c2"
         }
       }
     },

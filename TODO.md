@@ -34,7 +34,7 @@ page's spec and the 1440 + 390 px look.
 - Done when: a regression test feeds Sorare's refusal and the chart keeps its players; after the next league-history run the
   block holds ~660 players and every window draws dots on /stats.
 
-**B · Arcade Pick teams: say why no team is built, and keep the five slots**: "the banner should say why the team is not built
+**B · Arcade Pick teams: say why no team is built, and keep the five slots** · *done 10 Nov 2026: each slot the games can fill gets its card, the rest stay empty card spaces, named in one short line*: "the banner should say why the team is not built
 (If no game is selected it says something like 'Select games') and it should keep the 5 man team even if empty instead of nothing."
 - Each reason gets its own line: no game picked, games picked but too few of your cards play in them, no slot for a goalkeeper,
   the start % not read yet. The pitch keeps its five slots, empty ones drawn as card-shaped spaces, so nothing moves when cards arrive.
@@ -50,7 +50,7 @@ closed (now `open`), twelve gameweeks a page, newest first.
 from the user's side (what the season's form looks like at a glance, each game readable, the league's average for scale), in
 Sofix's style, desktop and phone. A canvas first if it changes the layout around it.
 
-**F · Arcade's yellow alerts restyled**: "I don't like the yellow alerts change them to something more original and personalized,
+**F · Arcade's yellow alerts restyled** · *done 10 Nov 2026: info notices removed ("Your board as read…"), problems are a line led by an amber dot, the set's end date sits big at the top right*: "I don't like the yellow alerts change them to something more original and personalized,
 minimalistic and easy to see but it doesn't stick out". `.arc-note`, `.arc-advice`, `.arc-warn` and `.arc-dead` (amber fill/ink in
 `app/arcade.css`) become one quiet Sofix notice: neutral surface, a small coloured mark for its kind, the same type as the page.
 

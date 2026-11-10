@@ -15,8 +15,9 @@ and a check, so a session can work through it alone and stop only where you have
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
 10 Nov, first: **the review board's six fixes** ([TODO.md](../TODO.md) "Review board: six fixes"), in its order: A Stats "Who
-sticks out" empty (Sorare refuses repeated `anyPlayer`), B Arcade Pick teams' reason and five empty slots, C Missions History
-paginated, D Audit Rewards weeks closed and paginated, E Team "Points per game" redesigned, F Arcade's yellow notices restyled.
+sticks out" empty (Sorare refuses repeated `anyPlayer`), C Missions History paginated, D Audit Rewards weeks closed and
+paginated, E Team "Points per game" redesigned. *B (Pick teams fills what it can, the rest empty) and F (notices: a dot line, only
+for problems; the set's end in the wallet) done 10 Nov 2026.*
 
 30 Oct owner priority: **two independent copies, each fast and responsive**
 ([current plan](independent-installs-performance.md), [setup](../docs/independent-install.md)). Each person has their own

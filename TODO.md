@@ -94,7 +94,8 @@ kept the other chain's scroll.*
   a held card frees only after its lineup settles; top step reached starts again from step 1.
 
 **G · Consistency across the tabs (point 6)**
-1. FDR in three forms: Pick teams tickets and Teams to build around show the 1-5 band; cards, Players and Batch show difficulty out of
+1. *Done 10 Nov 2026: one form (`fdrOf`): out of 100 in its band colour on cards, Players, Batch and Teams to build around; a
+   ticket's two dots carry the band, the number on hover (Tottenham 65, Brighton 43 on your page).* FDR in three forms: Pick teams tickets and Teams to build around show the 1-5 band; cards, Players and Batch show difficulty out of
    100. One form everywhere: the out-of-100 number in its band colour (the band alone where space is a chip).
 2. Horizons disagree: Teams to build around looks 4 days ahead (empty during this break, so it vanishes), FDR 8 days (A), Sofix's
    start % and xD only for each player's next fixture (the `laliga` map is keyed by next kick-off), the plan to the set's end. Teams

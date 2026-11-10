@@ -61,3 +61,13 @@ export function matchFixture(game: { kickoff: string; competition: { slug: strin
   if (scored.length === 1) return scored[0]!.f;
   return scored[0] && scored[0].score > 0 && scored[0].score > (scored[1]?.score ?? -1) ? scored[0].f : null;
 }
+
+/**
+ * How Arcade shows a side's FDR, the same everywhere (9 Nov 2026: three forms): the difficulty out of 100 in its band colour, the band
+ * alone where only a dot fits. Never the 1-5 band number.
+ */
+export function fdrOf(side: FdrSide | null | undefined): { value: number | null; band: FdrSide["bucket"] | null; title: string } {
+  if (!side) return { value: null, band: null, title: "FDR unavailable" };
+  const value = side.difficulty == null ? null : Math.round(side.difficulty);
+  return { value, band: side.bucket, title: `${side.label} · difficulty ${value === null ? "unknown" : `${value} of 100 (lower is easier)`}` };
+}

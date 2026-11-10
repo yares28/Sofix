@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ARCADE_FDR_DAYS, boardFixtures, matchFixture, nameMatch, type FdrFixture } from "./arcadeFdr";
+import { ARCADE_FDR_DAYS, boardFixtures, matchFixture, nameMatch, fdrOf, type FdrFixture } from "./arcadeFdr";
 import type { FixtureGrid } from "./types";
 
 const side = (code: string, name: string, bucket: 1 | 2 | 3 | 4 | 5) => ({ code, name, bucket, label: "Even", cleanSheet: 0.3, xgFor: 1.4, xgAgainst: 1.1 });
@@ -53,5 +53,17 @@ describe("Arcade and the league boards", () => {
     const out = boardFixtures(grid, "PD", now, now + ARCADE_FDR_DAYS * 86_400_000);
     expect(out.map((f) => f.kickoff)).toEqual(["2026-11-20T20:00:00Z", "2027-01-06T20:15:00Z"]);
     expect(out[0]!.home).toMatchObject({ difficulty: 37.5, cleanSheet: 0.31, xgFor: 1.46, xgAgainst: 1.12 });
+  });
+});
+
+describe("one FDR form across Arcade", () => {
+  // 9 Nov 2026: tickets and Teams to build around showed the 1-5 band, cards, Players and Batch difficulty out of 100.
+  const side = { code: "RMA", name: "Real Madrid", difficulty: 23.6, bucket: 1 as const, label: "Very favourite", cleanSheet: 0.5, xgFor: 2.1, xgAgainst: 0.7 };
+  it("is the difficulty out of 100 in its band colour, never the band number", () => {
+    expect(fdrOf(side)).toEqual({ value: 24, band: 1, title: "Very favourite · difficulty 24 of 100 (lower is easier)" });
+  });
+  it("says it is missing rather than inventing one", () => {
+    expect(fdrOf({ ...side, difficulty: undefined })).toEqual({ value: null, band: 1, title: "Very favourite · difficulty unknown" });
+    expect(fdrOf(null)).toEqual({ value: null, band: null, title: "FDR unavailable" });
   });
 });

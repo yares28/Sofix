@@ -7,6 +7,7 @@ import { holdSplit, kickOf, WINDOW_MS, type Climb, type Move } from "../../lib/a
 import { useClimb, type ClimbPlan } from "../../lib/climbClient";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
+import { fdrOf } from "../../lib/arcadeFdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
 import { aimStep, bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
@@ -203,7 +204,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
             {(open.length ? steps.filter((s) => open.includes(s) || s.number === aim) : steps).map((s) => <option key={s.id} value={s.number}>Step {s.number} · {s.target} pts</option>)}
           </select>
         </label>
-        <button type="button" className="arc-small" onClick={() => { setTap(null); setChosen(new Set(easy.map((g) => g.id))); }} disabled={!easy.length} title={`Games on ${easyDay ? madridDay(`${easyDay}T12:00:00Z`) : "the first day"} where Sofix's board makes one of your clubs favourite (difficulty 1 or 2)`}>
+        <button type="button" className="arc-small" onClick={() => { setTap(null); setChosen(new Set(easy.map((g) => g.id))); }} disabled={!easy.length} title={`Games on ${easyDay ? madridDay(`${easyDay}T12:00:00Z`) : "the first day"} where Sofix's board makes one of your clubs favourite or very favourite`}>
           Easiest games ({easy.length})
         </button>
         <button type="button" className="arc-small" onClick={() => { setTap(null); setChosen(new Set()); if (show === "picked") setShow("all"); }} disabled={!chosen.size}>Clear</button>
@@ -230,7 +231,8 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
                 <b>{when(Date.parse(g.kickoff), now)}</b>
                 <span>{(outlooks.get(g.id) ?? []).length} of your cards</span>
               </span>
-              {f ? <span className="arc-ticket-fdr" title="Sofix's difficulty, home and away (1 easiest)"><span className={`f${f.home.bucket}`}>{f.home.bucket}</span><span className={`f${f.away.bucket}`}>{f.away.bucket}</span></span> : null}
+              {/* A dot per side, in its FDR band's colour; the number out of 100 is on the cards (one FDR form, 10 Nov 2026). */}
+              {f ? <span className="arc-ticket-fdr">{([["Home", f.home], ["Away", f.away]] as const).map(([where, s]) => <span key={where} className={`f${s.bucket}`} title={`${where} (${s.name}): ${fdrOf(s).title}`} />)}</span> : null}
               {on ? <span className="arc-stamp" aria-hidden="true">IN</span> : null}
             </button>
           );

@@ -7,7 +7,7 @@ import { batchesOf, teamsInBatch } from "../../lib/arcadeBatch";
 import { batchChances, chanceOf, simulation, type Outlook } from "../../lib/arcadePlan";
 import { climbStart, climbStep, Crest, crestsOf, LineupCards, madridDay, madridTime, pct, pts, stepInfos } from "./ArcadePlanner";
 import { FdrContext } from "./Fdr";
-import type { FdrSide } from "../../lib/arcadeFdr";
+import { fdrOf, type FdrSide } from "../../lib/arcadeFdr";
 
 const Saved = z.object({ day: z.string(), selected: z.string(), aim: z.number().int(), counts: z.record(z.string(), z.number().int().min(1).max(4)) });
 const number = (value: number | null | undefined, percent = false) => value == null ? "—" : percent ? pct(value) : value.toFixed(2);
@@ -18,7 +18,7 @@ function Match({ game, crests }: { game: ArcadeGame; crests: Map<string, string>
     <div className="arc-batch-side">
       <div><Crest team={team} crests={crests} /><b>{team?.name ?? "Unknown team"}</b></div>
       <dl>
-        <div><dt>FDR</dt><dd className={evidence ? `f${evidence.bucket}` : undefined} title={evidence ? `${evidence.label} · difficulty out of 100, lower is easier` : "FDR unavailable"}>{evidence?.difficulty == null ? "—" : Math.round(evidence.difficulty)}</dd></div>
+        <div><dt>FDR</dt><dd className={evidence ? `f${evidence.bucket}` : undefined} title={fdrOf(evidence).title}>{fdrOf(evidence).value ?? "—"}</dd></div>
         <div><dt>CS</dt><dd>{number(evidence?.cleanSheet, true)}</dd></div>
         <div><dt>xG</dt><dd>{number(evidence?.xgFor)}</dd></div>
         <div><dt>xGA</dt><dd>{number(evidence?.xgAgainst)}</dd></div>

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from app.sorare import versus
+from app.sorare.client import SorareError
 
 GAME = "Game:00000000-0000-0000-0000-000000000001"
 
@@ -115,3 +116,24 @@ def test_figures_split_by_position_and_week_and_count_the_weeks():
     assert out["recorded"] == 2 and out["settled"] == 1
     assert out["positions"]["GK"]["starts"] == 1 and out["positions"]["DEF"]["starts"] == 0
     assert out["weeks"] == [{"week": 21, **versus.compare(versus.starts_of(done))}]
+
+
+class StrictSorare:
+    """Refuses a root field asked twice, as Sorare does ("Duplicated root field: anyGame", 10 Nov 2026)."""
+
+    def query(self, query: str, variables: dict | None = None) -> dict:
+        if query.count("anyGame(") > 1:
+            raise SorareError("Duplicated root field: anyGame")
+        row = {
+            "score": 61.5,
+            "anyPlayer": {"slug": "a"},
+            "anyPlayerGameStats": {"playedInGame": True, "gameStarted": True, "minsPlayed": 90},
+        }
+        return {"g0": {"playerGameScores": [row]}}
+
+
+def test_results_read_every_game_although_sorare_refuses_two_games_in_one_question():
+    games = [GAME, GAME.replace("0001", "0002"), GAME.replace("0001", "0003")]
+    found = versus.results(StrictSorare(), games)  # type: ignore[arg-type]
+    assert sorted(found) == games
+    assert found[GAME]["a"] == {"score": 61.5, "played": True, "started": True, "mins": 90}

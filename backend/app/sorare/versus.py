@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 PREFIX = "score_record:"
 SETTLE = timedelta(hours=27)  # Sorare reviews scores for about a day after a game
 CLOSE = 7.0  # "within 7 points", the page's measure of a number that was right
-BATCH = 6
+BATCH = 1  # Sorare refuses a root field asked twice, aliases too ("Duplicated root field: anyGame", 10 Nov 2026)
 GAME_ID = re.compile(r"^Game:[0-9a-f-]{36}$")
 RESULTS = (
     '{alias}: anyGame(id: "{id}") {{ ... on Game {{ id playerGameScores {{ score anyPlayer {{ slug }} '

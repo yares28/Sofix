@@ -1,6 +1,6 @@
 # Sofix illustrated user manual
 
-Arcade → Batch shows every upcoming kickoff batch that holds a card of yours (**Without your cards (n)** adds the others, marked "no card of yours", 10 Nov 2026) with a Madrid date filter, match FDR/CS/xG/xGA and the best complete teams from your commons. Use − / + to request 1–4 teams per batch and Aim at to choose the step (one aim, shared with Pick teams, 10 Nov 2026). Each player is used once across those teams; an unavailable team shows an explanation. Date, target and batch counts are remembered in this browser for that set and board.
+Arcade → Batch shows every upcoming kickoff batch that holds a card of yours (**Without your cards (n)** adds the others, marked "no card of yours", 10 Nov 2026) with a Madrid date filter, match FDR/CS/xG/xGA and the best complete teams from your commons. Use − / + to request 1–4 teams per batch and Aim at to choose the step (one aim, shared with Pick teams, 10 Nov 2026). Each player is used once across those teams; an unavailable team shows an explanation ("None of your cards plays in this window." when none does). Date, target and batch counts are remembered in this browser for that set and board.
 
 30 October: switching pages, gameweeks or competitions shows the destination's loading layout immediately while
 its server response arrives. Navigation remains available. Recent revisits to the same address and screen width

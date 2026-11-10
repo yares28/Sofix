@@ -114,7 +114,8 @@ kept the other chain's scroll.*
    lineup). Each says what it is in a word ("by 6 Jan", "this lineup").
 6. *Done 10 Nov 2026: more than 2 days out it says "Sorare gives it from the day before its game week starts" (Sorare's help,
    "How does lineup prediction work?", updated 3 Nov 2026); closer, it still asks for a fresh read.* "5 of 5 have no start % yet" eleven days out reads as an error: say when Sorare usually gives it (days before kick-off).
-7. Batch's empty text blames "available players with scores" for windows with no card of yours.
+7. *Done 10 Nov 2026: a window with no card of yours says "None of your cards plays in this window." (Thu 12 Nov 18:00, Türkiye v
+   Belgium and Armenia v Cyprus, on your page).* Batch's empty text blames "available players with scores" for windows with no card of yours.
 8. Sorare's league names shown raw ("English League Players") beside Sofix's ("Premier League"): one name per league.
 9. Old sets' saved data never leaves this browser (glitch extras 420 kB, old Pick teams and start % keys): localStorage was 2.5 M
    characters full, so the saved climb had to move to IndexedDB. Remove keys of ended sets on load.

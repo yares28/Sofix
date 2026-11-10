@@ -1714,7 +1714,7 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-10",
-        "note": "G6: noStartNote (arcadePlan.ts) says when Sorare gives start % for a lineup over 2 days out, from Sorare's help article read 10 Nov 2026; unit cases; seen on the owner's real board",
+        "note": "G7: Batch says when no card of yours plays in the selected window; e2e Batch case; arrow-centre check now reads both arrows in one frame; seen on the owner's real board 10 Nov 2026",
         "files": {
           "frontend/lib/arcadeClimb.ts": "cc33d2707e00d9a7e9f1d7f0dad46c045b4ece724bd69ab9ba0e665d1af9d527",
           "frontend/lib/arcadePlan.ts": "f39a56a7560db05be739b4c9846b82ab835b0313362af09800e7afcee44e88b7",
@@ -1724,12 +1724,12 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/app/arcade-canvas.css": "b1f924f7c2a8a5b7604383ef82faedbde441ff298ab8d21dd5eaf937416fee34",
           "frontend/lib/arcadeTeams.ts": "a6ee5032672dd5b7fe2187295d99ac40655ca51832f40e4a87d268165848c9c7",
           "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
-          "frontend/components/arcade/ArcadeBatch.tsx": "b996739205e8acca66b325bea4acfa9099eb38f90d79e02e9bad8757fb04cb73",
+          "frontend/components/arcade/ArcadeBatch.tsx": "7b59845c1435c0f2c3666daa1388fa942f0ad1db1dadf7f89a32a487da56710b",
           "frontend/lib/arcadeClimb.test.ts": "04da5afadaf687c628b77ff24b1e9240399c7be26b3bc62b4a25408d4e87cc66",
           "frontend/lib/arcadePlan.test.ts": "664b295214417c8dda4473de5a37be40344f0785e2be26491246cbbcb06cf9ff",
           "frontend/lib/arcadeTeams.test.ts": "54b59af0e303b3509d3f8c029898c19c4c23c670966e2e0491a31739d62a1873",
           "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
-          "frontend/e2e/arcade.e2e.ts": "17880773f57a369bac86ef5b0c226a4154d05bd86d9343f61b0c533b0355978b"
+          "frontend/e2e/arcade.e2e.ts": "220f20f0df6427a29212fa6223ef739f09c678802653b31153c3f5fd2111396d"
         }
       }
     },

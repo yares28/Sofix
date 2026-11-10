@@ -114,7 +114,8 @@ test("Batch covers all games, bounds and remembers the team count, and never dra
   await page.reload();
   await expect(batch.getByRole("spinbutton", { name: "Teams in this batch" })).toHaveValue("4");
   await batch.getByRole("group", { name: "Batches" }).getByRole("button").nth(1).click();
-  await expect(batch.getByRole("status")).toContainText("No complete team");
+  // A window with no card of yours says so, not "not enough available players with scores" (9 Nov 2026).
+  await expect(batch.getByRole("status")).toHaveText("None of your cards plays in this window.");
   await expect(batch.locator(".arc-batch-lineup")).toHaveCount(0);
   await expect(batch.getByText("Other", { exact: true })).toBeVisible();
   await batch.getByLabel("Batch date").fill("2000-01-01");
@@ -628,7 +629,9 @@ test("the club row flanks all teams with arrows while the bigger pitch, compact 
     const right = await clubs.getByRole("button", { name: "Next two teams" }).boundingBox();
     expect(left!.x + left!.width).toBeLessThanOrEqual(track!.x);
     expect(right!.x).toBeGreaterThanOrEqual(track!.x + track!.width);
-    expect(left!.y + left!.height / 2).toBeCloseTo(right!.y + right!.height / 2, 0);
+    // Both arrows in one read: separate reads straddled a sub-pixel shift while the plan finished under load (10 Nov 2026).
+    const [leftMid, rightMid] = await clubs.evaluate((el) => [...el.querySelectorAll(".arc-rail-prev, .arc-rail-next")].map((b) => { const r = b.getBoundingClientRect(); return r.top + r.height / 2; }));
+    expect(leftMid).toBeCloseTo(rightMid!, 0);
     if (width === 1440) {
       const pitch = await picker.locator(".arc-pitch").boundingBox();
       const list = await tickets.boundingBox();

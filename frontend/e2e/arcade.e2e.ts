@@ -1,8 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { offline, resetBackend, smallText } from "./helpers";
+import { madridDate, whenLabel } from "../lib/arcadePlan";
 
 const GAME = "Game:11111111-2222-3333-4444-555555555555";
 const KICKOFF = new Date(Date.now() + 86_400_000).toISOString(); // tomorrow, inside the days Sorare projects
+/** The verdict's "now" or day for the games at KICKOFF: "now" is said only for a game today (9 Nov 2026). */
+const ON = madridDate(KICKOFF) === madridDate(new Date().toISOString()) ? "now" : `on ${whenLabel(Date.parse(KICKOFF), Date.now()).replace(/ \d\d:\d\d$/, "")}`;
 const SQUAD = [
   ["c1", "p", "Player One", "Forward", 1.1],
   ["c2", "gk", "Keeper Two", "Goalkeeper", 1],
@@ -324,8 +327,11 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await withExtension(page, ANSWERS, "0.4.18");
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
-  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play now");
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText(`Play ${ON}`);
   await expect(move.locator(".arc-move-why")).toContainText("No later game before the set ends.");
+  // One time for the move: the bar's Play time is the time to enter by.
+  const enterBy = await move.locator(".arc-move-times span").filter({ hasText: "Enter before" }).locator("b").textContent();
+  await expect(move.locator(".arc-split .is-pick time")).toHaveText(enterBy!);
   await expect(move.locator(".arc-split")).toContainText("Chance to clear step 2 (300 pts)");
   await expect(move.locator(".arc-split .is-pick")).toContainText("Play");
   await expect(move.locator(".arc-lineup li")).toHaveCount(5); // the five to enter
@@ -397,7 +403,7 @@ test("step one spends four resettable lives and keeps every insurance team ident
   }, "0.4.18");
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
-  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play 4 lineups now");
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText(`Play 4 lineups ${ON}`);
   await expect(move.locator(".arc-move-why")).toContainText("four fresh lives");
   await expect(move.locator(".arc-split .is-pick")).toContainText("4 lineups");
   const signature = (selector: string) => page.locator(`${selector} .arc-lineup li`).evaluateAll((items) => items.map((li) => ({ name: li.getAttribute("aria-label"), captain: !!li.querySelector(".arc-captain"), score: li.querySelector(".arc-card-score")?.textContent })));
@@ -419,7 +425,7 @@ test("step one spends four resettable lives and keeps every insurance team ident
   expect(await signature(".arc-detail")).toEqual(second);
   await show(page, "Players");
   await show(page, "Play now");
-  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play 4 lineups now");
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText(`Play 4 lineups ${ON}`);
   await show(page, "Batch");
   const batch = page.getByRole("region", { name: "Batch" });
   for (let i = 0; i < 3; i++) await batch.getByRole("button", { name: "More teams" }).click();

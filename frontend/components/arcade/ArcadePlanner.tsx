@@ -3,13 +3,13 @@
 import { memo, useCallback, useContext, useDeferredValue, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
-import { WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
+import { kickOf, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
 import { useClimb, type ClimbPlan } from "../../lib/climbClient";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
-import { bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
+import { bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
@@ -19,11 +19,12 @@ export const madridTime = (iso: string) => new Date(iso).toLocaleTimeString("en-
 export const pct = (x: number) => `${Math.round(x * 100)}%`;
 export const pts = (x: number) => Math.round(x).toLocaleString("en-GB");
 const iso = (ms: number) => new Date(ms).toISOString();
-const weekday = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { timeZone: "Europe/Madrid", weekday: "short" });
-/** "Sat 16:15", or "16:15" when it is today. */
-const when = (ms: number, now: number) => (madridDate(iso(ms)) === madridDate(iso(now)) ? madridTime(iso(ms)) : `${weekday(ms)} ${madridTime(iso(ms))}`);
+/** "16:15" today, "Sat 16:15" within six days, "Fri 20 Nov 20:30" beyond (whenLabel). */
+const when = whenLabel;
 /** A settle time beside a kick-off: the time, with the day when it is another day. */
-const settleLabel = (settles: number, at: number) => (madridDate(iso(settles)) === madridDate(iso(at)) ? madridTime(iso(settles)) : `${weekday(settles)} ${madridTime(iso(settles))}`);
+const settleLabel = (settles: number, at: number) => whenLabel(settles, at);
+/** "now" for today, else the day it is played on: "on Thu", "on Fri 20 Nov". */
+const onDay = (ms: number, now: number) => (madridDate(iso(ms)) === madridDate(iso(now)) ? "now" : `on ${whenLabel(ms, now).replace(/ \d\d:\d\d$/, "")}`);
 
 /** A card's start % with whose it is, or "no start % yet". */
 export function StartLabel({ outlook }: { outlook: Outlook }) {
@@ -226,7 +227,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
               <span className="arc-ticket-crests"><Crest team={g.home} crests={crests} /><i>v</i><Crest team={g.away} crests={crests} /></span>
               <span className="arc-ticket-name">{g.home?.name ?? "?"} v {g.away?.name ?? "?"}</span>
               <span className="arc-ticket-foot">
-                <b>{madridDay(g.kickoff).split(" ")[0]} {madridTime(g.kickoff)}</b>
+                <b>{when(Date.parse(g.kickoff), now)}</b>
                 <span>{(outlooks.get(g.id) ?? []).length} of your cards</span>
               </span>
               {f ? <span className="arc-ticket-fdr" title="Sofix's difficulty, home and away (1 easiest)"><span className={`f${f.home.bucket}`}>{f.home.bucket}</span><span className={`f${f.away.bucket}`}>{f.away.bucket}</span></span> : null}
@@ -312,7 +313,11 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
   const step = boardSteps.find((s) => s.number === current);
   const playsNow = move && move.from === 0 && v.kind !== "wait";
   const clear = move?.clear ?? 0;
-  const title = v.kind === "play" && move && move.play > 1 ? `Play ${move.play} lineups now` : v.kind === "wait" && v.waitFor ? `Wait for ${when(v.waitFor.at, now)}` : v.kind === "spend" && move ? (move.play === 1 ? "Spend your last life now" : `Spend all ${move.play} lives now`) : VERB[v.kind];
+  // "Now" only when the move is played today (9 Nov 2026: "Play now" for a game eleven days away).
+  const on = move ? onDay(kickOf(move), now) : "now";
+  const title = v.kind === "play" && move ? (move.play > 1 ? `Play ${move.play} lineups ${on}` : `Play ${on}`)
+    : v.kind === "wait" && v.waitFor ? `Wait for ${when(v.hold ? kickOf(v.hold) : v.waitFor.at, now)}`
+    : v.kind === "spend" && move ? (move.play === 1 ? `Spend your last life ${on}` : `Spend all ${move.play} lives ${on}`) : VERB[v.kind];
   // The bar (owner, 29 Oct): the step you are on, the lineup you would enter now against the best one from the games you would wait for.
   const playMove = v.playNow;
   const holdMove = v.hold;
@@ -348,19 +353,19 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
         {v.kind !== "none" ? (
           <figure className="arc-split">
             <figcaption>Chance to clear step {current} ({target(current)} pts)</figcaption>
-            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"}: ${pct(playChance)} with ${playMove?.play ?? 0} lineups now, ${holdChance === null ? "no later lineup" : `${pct(holdChance)} with ${holdMove!.play} lineups from ${when(holdMove!.at, now)}`}`}>
-              <span className={holdWins ? undefined : "is-pick"} style={{ flexGrow: share(playChance) }}><small>Play <time>{playMove ? when(playMove.at, now) : "—"}</time><em>{playMove?.play ?? 0} lineup{playMove?.play === 1 ? "" : "s"}</em></small><b>{pct(playChance)}</b></span>
-              <span className={holdWins ? "is-pick" : undefined} style={{ flexGrow: share(holdChance) }}><small>Hold <time>{holdMove ? when(holdMove.at, now) : "—"}</time><em>{holdMove ? `${holdMove.play} lineup${holdMove.play === 1 ? "" : "s"}` : "No later lineup"}</em></small><b>{holdChance === null ? "—" : pct(holdChance)}</b></span>
+            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"}: ${pct(playChance)} with ${playMove?.play ?? 0} lineups ${playMove ? `at ${when(kickOf(playMove), now)}` : "now"}, ${holdChance === null ? "no later lineup" : `${pct(holdChance)} with ${holdMove!.play} lineups from ${when(kickOf(holdMove!), now)}`}`}>
+              <span className={holdWins ? undefined : "is-pick"} style={{ flexGrow: share(playChance) }}><small>Play <time>{playMove ? when(kickOf(playMove), now) : "—"}</time><em>{playMove?.play ?? 0} lineup{playMove?.play === 1 ? "" : "s"}</em></small><b>{pct(playChance)}</b></span>
+              <span className={holdWins ? "is-pick" : undefined} style={{ flexGrow: share(holdChance) }}><small>Hold <time>{holdMove ? when(kickOf(holdMove), now) : "—"}</time><em>{holdMove ? `${holdMove.play} lineup${holdMove.play === 1 ? "" : "s"}` : "No later lineup"}</em></small><b>{holdChance === null ? "—" : pct(holdChance)}</b></span>
             </div>
           </figure>
         ) : null}
         {move ? (
           <div className="arc-move-entry">
             <div className="arc-move-entry-head">
-              {playsNow && move.play === 1 ? null : <span className="arc-move-chance"><b>{pct(lineup ? chanceOf(lineup.totals, target(move.step)) : move.clear)}</b><small>{playsNow ? "this lineup clears it" : `ready for ${when(move.at, now)}`}</small></span>}
+              {playsNow && move.play === 1 ? null : <span className="arc-move-chance"><b>{pct(lineup ? chanceOf(lineup.totals, target(move.step)) : move.clear)}</b><small>{playsNow ? "this lineup clears it" : `ready for ${when(kickOf(move), now)}`}</small></span>}
               <span className="arc-move-times">
-                {lineup ? <span>{together ? `All five play at ${madridTime(lineup.first)}: you see the official lineups before you enter.` : `Its games run ${when(Date.parse(lineup.first), now)} to ${when(Date.parse(lineup.last), now)}: the later cards' start % can still change after you enter.`}</span> : null}
-                <span>Enter before <b>{when(lineup ? Date.parse(lineup.first) : move.at, now)}</b></span>
+                {lineup ? <span>{together ? `All five play at ${when(Date.parse(lineup.first), now)}: you see the official lineups before you enter.` : `Its games run ${when(Date.parse(lineup.first), now)} to ${when(Date.parse(lineup.last), now)}: the later cards' start % can still change after you enter.`}</span> : null}
+                <span>Enter before <b>{when(lineup ? Date.parse(lineup.first) : kickOf(move), now)}</b></span>
                 <span>Settles about <b>{when(lineup ? Date.parse(lineup.last) + SETTLES_AFTER_MS : move.settles, now)}</b></span>
                 {move.play > 1 ? <span>{move.play} lineups together: <b>{pct(clear)}</b> one clears (Sorare cancels the others)</span> : null}
               </span>
@@ -412,7 +417,7 @@ function Outcomes({ plan, picked, now, onFollow }: { plan: ClimbPlan; picked: Mo
         return (
           <button key={String(cleared)} type="button" disabled={!next} aria-busy={moves === null} onClick={() => moves && onFollow(cleared, moves)}>
             <b>{cleared ? (picked.play > 1 ? "If one clears" : "If it clears") : (picked.play > 1 ? "If all miss" : "If it misses")}</b>
-            <span>{moves === null ? "working it out…" : next ? `then step ${next.step} at ${when(next.at, now)}, ${pct(next.clear)}` : "no game left to play"}</span>
+            <span>{moves === null ? "working it out…" : next ? `then step ${next.step} at ${when(kickOf(next), now)}, ${pct(next.clear)}` : "no game left to play"}</span>
           </button>
         );
       })}
@@ -429,7 +434,7 @@ const Chain = memo(function Chain({ plan, captainBonus, now, onBuild }: { plan: 
   const lineups = picked?.lineups ?? [];
   if (moves.length < 2 && !branch) return null;
   const follow = (m: Move, i: number, cleared: boolean, after: Move[]) => {
-    setBranch({ of: plan, moves: [...moves.slice(0, i + 1), ...after], label: `if ${m.play > 1 ? (cleared ? "one clears" : "all miss") : cleared ? "it clears" : "it misses"} at ${when(m.at, now)}` });
+    setBranch({ of: plan, moves: [...moves.slice(0, i + 1), ...after], label: `if ${m.play > 1 ? (cleared ? "one clears" : "all miss") : cleared ? "it clears" : "it misses"} at ${when(kickOf(m), now)}` });
     setFocus(null);
   };
   let day = "";
@@ -442,15 +447,15 @@ const Chain = memo(function Chain({ plan, captainBonus, now, onBuild }: { plan: 
       </div>
       <ol className="arc-chain-rail">
         {moves.slice(0, 12).map((m, i) => {
-          const d = madridDate(iso(m.at));
+          const d = madridDate(iso(kickOf(m)));
           const newDay = d !== day;
           day = d;
           const q = m.lineups[0];
           return (
             <li key={`${m.from}-${m.step}-${i}`} style={{ "--i": i } as CSSProperties} className={newDay ? "is-day" : undefined}>
-              {newDay ? <span className="arc-chain-day">{madridDay(iso(m.at))}</span> : <span className="arc-chain-day" aria-hidden="true" />}
+              {newDay ? <span className="arc-chain-day">{madridDay(iso(kickOf(m)))}</span> : <span className="arc-chain-day" aria-hidden="true" />}
               <button type="button" className={`arc-chain-node${m.clear >= 0.5 ? " is-likely" : " is-long"}`} aria-pressed={focus === i} onClick={() => { setFocus(focus === i ? null : i); setShown(0); }}>
-                <span className="arc-chain-time">{madridTime(iso(m.at))}</span>
+                <span className="arc-chain-time">{madridTime(iso(kickOf(m)))}</span>
                 <span className="arc-chain-step">Step {m.step}{m.play > 1 ? <small> × {m.play}</small> : null}</span>
                 <b>{pct(m.clear)}</b>
                 <span className="arc-fan" aria-hidden="true">
@@ -459,7 +464,7 @@ const Chain = memo(function Chain({ plan, captainBonus, now, onBuild }: { plan: 
                     ? <img key={p.outlook.card.slug} src={p.outlook.card.picture} alt="" width={26} height={42} loading="lazy" />
                     : null))}
                 </span>
-                <small>settles {settleLabel(m.settles, m.at)}</small>
+                <small>settles {settleLabel(m.settles, kickOf(m))}</small>
               </button>
               <span className="arc-chain-miss">{m.clear >= 0.5 ? "" : "likely miss · "}miss: {m.lives - m.play > 0 ? `${m.lives - m.play} ${m.lives - m.play === 1 ? "life" : "lives"} left` : "back to step 1"}</span>
             </li>
@@ -468,7 +473,7 @@ const Chain = memo(function Chain({ plan, captainBonus, now, onBuild }: { plan: 
       </ol>
       {picked ? (
         <div className="arc-chain-detail">
-          <p className="arc-sub">Step {picked.step} at {when(picked.at, now)}: {picked.play} lineup{picked.play > 1 ? "s" : ""}, {pct(picked.clear)} that one clears, settles about {when(picked.settles, now)}.</p>
+          <p className="arc-sub">Step {picked.step} at {when(kickOf(picked), now)}: {picked.play} lineup{picked.play > 1 ? "s" : ""}, {pct(picked.clear)} that one clears, settles about {when(picked.settles, now)}.</p>
           {lineups.length > 1 ? <div className="arc-modes" role="group" aria-label="Chain lineup">{lineups.map((_, i) => <button key={i} type="button" aria-pressed={shown === i} onClick={() => setShown(i)}>Lineup {i + 1}</button>)}</div> : null}
           {lineups[shown] ? <LineupCards lineup={lineups[shown]} captainBonus={captainBonus} /> : null}
           <button type="button" className="arc-small" onClick={() => onBuild(picked, lineups[shown] ?? null)}>Edit in Pick teams</button>

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { readArcadeLineups, type Arcade, type ArcadeLineup } from "../../lib/arcade";
-import { bigReward, cutLosses, liveLineup, madridDate, planDay, type Outlook } from "../../lib/arcadePlan";
-import { climbStep, madridTime, pct, pts } from "./ArcadePlanner";
+import { bigReward, cutLosses, liveLineup, madridDate, planDay, whenLabel, type Outlook } from "../../lib/arcadePlan";
+import { climbStep, pct, pts } from "./ArcadePlanner";
 import ArcadeAction from "./ArcadeAction";
 
 
@@ -107,7 +107,7 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus, actions }: 
                           <b>{c.state === "to play" ? "–" : pts(c.points)}</b>
                         </span>
                         <span className="arc-card-name">{c.name}</span>
-                        <span>{c.state === "to play" ? (c.outlook ? `plays ${madridTime(c.outlook.game.kickoff)}` : "to play") : c.state === "live" ? "live" : c.points === 0 ? "did not score" : "played"}</span>
+                        <span>{c.state === "to play" ? (c.outlook ? `plays ${whenLabel(Date.parse(c.outlook.game.kickoff), Date.now())}` : "to play") : c.state === "live" ? "live" : c.points === 0 ? "did not score" : "played"}</span>
                       </li>
                     );
                   })}

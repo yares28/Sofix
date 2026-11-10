@@ -54,7 +54,8 @@ games first (Bellingham, Alexander-Arnold, Livaković).*
   extension release needs the version gate and your one Reload.
 - Done when: the chain, Pick teams, Players and Batch build lineups from national games, and Batch's national windows show teams.
 
-**C · Dates that read wrong (point 6, broken)**
+**C · Dates that read wrong (point 6, broken)** · *done 9 Nov 2026: on your page the verdict, the bar's Hold side, "Enter before" and
+the first chain step all say Fri 20 Nov 20:45 (they said "Fri 20:30" and 20:45); tickets and card titles carry the date too.*
 - `when()` (`ArcadePlanner.tsx`) shows only the weekday for another day: the chain shows "Fri 20:30" for Fri 20 Nov and Fri 27 Nov
   alike. Fix: the date once a game is more than six days away ("Fri 20 Nov 20:30").
 - The verdict says "Play now" for a window eleven days away. Fix: "Play now" only when the window opens today; else "Play Fri 20 Nov".

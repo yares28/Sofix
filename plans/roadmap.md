@@ -15,7 +15,7 @@ and a check, so a session can work through it alone and stop only where you have
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
 9 Nov, first: **Arcade, six fixes and features** ([TODO.md](../TODO.md) "Arcade: six fixes and features"), one at a time:
-~~A FDR to the set's end~~ (done 9 Nov), ~~B national-team games everywhere~~ (done 9 Nov, extension 0.4.67), C dates that read wrong, D one 100% Play | Hold bar, ~~E Pick teams starts
+~~A FDR to the set's end~~ (done 9 Nov), ~~B national-team games everywhere~~ (done 9 Nov, extension 0.4.67), ~~C dates that read wrong~~ (done 9 Nov), D one 100% Play | Hold bar, ~~E Pick teams starts
 empty~~ (done 9 Nov), F chain switch Fastest | Surest, G ten consistency fixes across the tabs.
 
 30 Oct owner priority: **two independent copies, each fast and responsive**

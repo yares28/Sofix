@@ -858,6 +858,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   Ligue 1 game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
   and expected goals for the others. It is shown, not added to the card's number. Every game to the set's end is rated (9 Nov 2026:
   only the next 8 days were, so an international break left every card at "—"); a game with no board (Nations League) says so on hover.
+- Times read "20:30" today, "Sat 20:30" within six days and "Fri 20 Nov 20:30" beyond; a move's time is when its lineup must be
+  entered (its first card's kick-off), the same in the verdict, the Play | Hold bar, the chain and its outcomes; "Play now" is said only
+  for today, else "Play on Fri 20 Nov" (9 Nov 2026).
 - A card plays its club's games and its national team's (extension 0.4.67, 9 Nov 2026): Nations League and other national games Sorare
   lists for the set are in the plan, Pick teams, Players and Batch, with Sorare's start % and projection (no Sofix board for them).
 - **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (the **Refresh start percentages** icon) and saved, so the

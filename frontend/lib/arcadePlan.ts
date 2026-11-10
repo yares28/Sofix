@@ -273,6 +273,19 @@ export const settlesAt = (lineup: Pick<Lineup, "last">) => new Date(Date.parse(l
 /** The Madrid date of a kick-off ("2026-10-24"): a day runs until its last game, and none of the set's leagues plays past midnight. */
 export const madridDate = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
 
+/**
+ * A time as the page says it, in Madrid: "20:30" today, "Sat 20:30" within six days, "Fri 20 Nov 20:30" beyond, so one weekday never
+ * stands for two dates (9 Nov 2026: the chain said "Fri 20:30" for Fri 20 Nov and Fri 27 Nov).
+ */
+export function whenLabel(ms: number, now: number): string {
+  const at = new Date(ms);
+  const time = at.toLocaleTimeString("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
+  const days = Math.round((Date.parse(madridDate(at.toISOString())) - Date.parse(madridDate(new Date(now).toISOString()))) / 86_400_000);
+  if (days === 0) return time;
+  const day = at.toLocaleDateString("en-GB", Math.abs(days) <= 6 ? { timeZone: "Europe/Madrid", weekday: "short" } : { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short" });
+  return `${day} ${time}`;
+}
+
 /** A step: its target, lives left, whether its reward is big, and the cash (€) it pays each time it is cleared. */
 export type StepInfo = { number: number; target: number; lives: number; big: boolean; cash?: number };
 /** The cash in a step's rewards, from Sorare's own labels ("€1,000", "€100"); essence, gems and cards are not cash. */

@@ -115,6 +115,9 @@ export type ClimbStart = { step: number; lives: number; notBefore: number | null
 /** One played move: from window `from` to `to`, `play` lineups on `step`, the chance one clears, and when they have all settled. */
 export type Move = { from: number; to: number; at: number; step: number; lives: number; best: number; play: number; clear: number; settles: number; lineups: Lineup[]; list: Outlook[] };
 
+/** When a move is played: its lineups' first kick-off, the time to enter by (the window may open earlier with a game it does not use). */
+export const kickOf = (move: Pick<Move, "at" | "lineups">) => (move.lineups.length ? Math.min(...move.lineups.map((l) => Date.parse(l.first))) : move.at);
+
 /** The chance to clear each step at least once by the last known game (index = step number; index 0 unused). */
 export type Reach = number[];
 

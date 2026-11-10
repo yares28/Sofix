@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArcadeGame } from "./arcade";
-import { climbWindows, comparePrizes, moments, quickChance, quickLineup, windowsOf } from "./arcadeClimb";
+import { climbWindows, comparePrizes, kickOf, moments, quickChance, quickLineup, windowsOf, type Move } from "./arcadeClimb";
 import { bestLineup, chanceOf, type Outlook } from "./arcadePlan";
 
 const game = (id: string, kickoff: string): ArcadeGame => ({ id, kickoff, status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: `${id}-h`, name: "H", crest: null }, away: { slug: `${id}-a`, name: "A", crest: null } });
@@ -166,5 +166,15 @@ describe("the window planner", () => {
     expect(quickLineup(list, 0.5)!.picks.map((p) => p.outlook.card.player)).not.toContain("star");
     list[3] = { ...list[3]!, start: 0 }; // the only other forward is on the bench: the doubtful star is all that is left
     expect(quickLineup(list, 0.5)!.picks.map((p) => p.outlook.card.player)).toContain("star");
+  });
+});
+
+describe("a move's time", () => {
+  // 9 Nov 2026: the Play bar said 20:30 (the window's first game) while "Enter before" said 20:45 (the lineup's first card).
+  it("is its lineups' first kick-off, the time you must enter by, else the window's", () => {
+    const lineup = (first: string) => ({ first, last: first }) as unknown as Move["lineups"][number];
+    const move = { at: Date.parse("2026-11-20T19:30:00Z"), lineups: [lineup("2026-11-20T19:45:00Z"), lineup("2026-11-20T20:00:00Z")] } as Move;
+    expect(kickOf(move)).toBe(Date.parse("2026-11-20T19:45:00Z"));
+    expect(kickOf({ ...move, lineups: [] })).toBe(move.at);
   });
 });

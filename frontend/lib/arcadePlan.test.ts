@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, type Outlook } from "./arcadePlan";
+import { batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
@@ -274,5 +274,22 @@ describe("missions", () => {
     expect(streakTarget("Score 400+ in the LALIGA EA SPORTS Common competition")).toBe(400);
     expect(streakTarget("Score 1,200+ points")).toBe(1200);
     expect(streakTarget("Win a game")).toBeNull();
+  });
+});
+
+describe("when a time is said", () => {
+  // 9 Nov 2026: the chain said "Fri 20:30" for Fri 20 Nov and Fri 27 Nov alike.
+  const now = Date.parse("2026-11-10T09:00:00Z"); // Tue 10 Nov, 10:00 Madrid
+  it("gives the time alone today, the weekday within six days, and the date beyond", () => {
+    expect(whenLabel(Date.parse("2026-11-10T19:30:00Z"), now)).toBe("20:30");
+    expect(whenLabel(Date.parse("2026-11-12T19:45:00Z"), now)).toBe("Thu 20:45");
+    expect(whenLabel(Date.parse("2026-11-16T19:30:00Z"), now)).toBe("Mon 20:30");
+    expect(whenLabel(Date.parse("2026-11-20T19:30:00Z"), now)).toBe("Fri 20 Nov 20:30");
+    expect(whenLabel(Date.parse("2026-11-27T19:30:00Z"), now)).toBe("Fri 27 Nov 20:30");
+  });
+  it("counts days on Madrid's calendar, not 24-hour spans", () => {
+    const late = Date.parse("2026-11-10T22:30:00Z"); // 23:30 Madrid, Tue
+    expect(whenLabel(Date.parse("2026-11-16T23:30:00Z"), late)).toBe("Tue 17 Nov 00:30"); // Tue again: never a bare weekday
+    expect(whenLabel(Date.parse("2026-11-10T23:30:00Z"), late)).toBe("Wed 00:30");
   });
 });

@@ -33,23 +33,15 @@
 /* Play or hold at a glance (owner, 29 Oct): one pill split between the two, each side as wide as its chance, the advised side filled. */
 .arc-split { margin: 0; display: grid; gap: 8px; width: 100%; min-width: 0; }
 .arc-split figcaption { font-size: var(--text-sm); color: var(--ink-2); }
-/* Play and Hold share one 100% track; the labels sit above it, so a 90 | 10 split still reads at any width. */
-.arc-split-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
-.arc-split-side { display: grid; grid-template-columns: auto 1fr; align-items: end; column-gap: 12px; row-gap: 2px; color: var(--ink-2); min-width: 0; }
-.arc-split-side:last-child { grid-template-columns: 1fr auto; text-align: right; }
-.arc-split-side:last-child small { order: 2; justify-items: end; }
-.arc-split-side:last-child b { order: 1; justify-self: end; }
-.arc-split-side:last-child .arc-split-step { order: 3; }
-.arc-split-side.is-pick { color: var(--ink); }
-.arc-split-step { grid-column: 1 / -1; font-size: 12px; color: var(--ink-2); }
+.arc-split > div { display: flex; gap: 4px; width: 100%; min-height: 80px; }
+/* Each pill grows by its share of the deciding prize (9 Nov 2026), never narrower than its own labels. */
+.arc-split > div > span { flex-basis: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; border-radius: 12px; background: var(--hover); color: var(--ink-2); transform-origin: left; animation: arc-run 700ms cubic-bezier(.16, 1, .3, 1) both; }
+.arc-split > div > span:first-child { border-radius: 999px 12px 12px 999px; }
+.arc-split > div > span:last-child { border-radius: 12px 999px 999px 12px; animation-delay: 80ms; }
+.arc-split > div > span.is-pick { background: var(--move, var(--win)); color: var(--move-ink, var(--on-ink)); }
 .arc-split small { display: grid; gap: 2px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .arc-split time, .arc-split em { font-size: 11px; font-weight: 500; font-style: normal; }
-.arc-split b { font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
-.arc-split-track { display: flex; gap: 3px; height: 14px; width: 100%; }
-.arc-split-track span { border-radius: 999px; background: var(--hover); transform-origin: left; animation: arc-run 700ms cubic-bezier(.16, 1, .3, 1) both; }
-.arc-split-track span:first-child { flex: var(--play) 1 0; }
-.arc-split-track span:last-child { flex: calc(1 - var(--play)) 1 0; animation-delay: 80ms; }
-.arc-split-track span.is-pick { background: var(--move, var(--win)); }
+.arc-split b { font-size: 28px; font-variant-numeric: tabular-nums; }
 .arc-move-entry { display: grid; gap: 14px; padding-top: 16px; border-top: 1px solid var(--line); }
 .arc-move-entry-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; }
 .arc-move-chance { display: grid; }
@@ -291,13 +283,14 @@
 @media (max-width: 600px) {
   .arc-move { padding: 18px 16px 18px 20px; gap: 18px; }
   .arc-move-why { font-size: 15px; }
-  .arc-split b { font-size: 22px; }
+  .arc-split > div > span { padding: 10px; gap: 6px; }
+  .arc-split b { font-size: 18px; }
   .arc-move-entry-head .arc-small { margin-left: 0; }
   .arc-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .arc-chain-rail { grid-auto-columns: 140px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .arc-move, .arc-ladder li, .arc-chain-rail li, .arc-club, .arc-split-track span { animation: none !important; }
+  .arc-move, .arc-ladder li, .arc-chain-rail li, .arc-club, .arc-split > div > span { animation: none !important; }
   .arc-chain-node { transition: none; }
 }
 

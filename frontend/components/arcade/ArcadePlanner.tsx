@@ -345,11 +345,10 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
   const sharePct = (x: number) => (close ? `${(x * 100).toFixed(1)}%` : pct(x));
   const lineupsOf = (m: Move | null) => (m ? `${m.play} lineup${m.play === 1 ? "" : "s"}` : "");
   const side = (name: "Play" | "Hold", m: Move | null, share: number, chance: number | null, pick: boolean) => (
-    <div className={`arc-split-side${pick ? " is-pick" : ""}`}>
-      <small>{name} <time>{m ? when(kickOf(m), now) : "—"}</time><em>{m ? `${m.play} lineup${m.play === 1 ? "" : "s"}` : name === "Hold" ? "No later lineup" : "No lineup"}</em></small>
+    <span className={pick ? "is-pick" : undefined} style={{ flexGrow: share }}>
+      <small>{name} <time>{m ? when(kickOf(m), now) : "—"}</time><em>{m ? `${m.play} lineup${m.play === 1 ? "" : "s"}` : name === "Hold" ? "No later lineup" : "No lineup"}</em>{chance === null ? null : <em className="arc-split-step">{pct(chance)} clears step {current}</em>}</small>
       <b>{sharePct(share)}</b>
-      <span className="arc-split-step">{chance === null ? "—" : `${pct(chance)} clears step ${current}`}</span>
-    </div>
+    </span>
   );
   return (
     <section className={`arc-move is-${v.kind}`} aria-labelledby="arc-move-title" aria-busy={updating}>
@@ -364,14 +363,13 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
         <p className="arc-move-why">{why}</p>
         {waitingNote ? <p className="arc-warn">{waitingNote}</p> : null}
         {v.kind !== "none" && split ? (
-          <figure className="arc-split" style={{ "--play": split.play } as CSSProperties}>
+          <figure className="arc-split">
             <figcaption>{split.tie ? "Near tie at every prize: playing is as good, and faster"
               : `Who is likelier to win step ${split.step} (${prizeOf(split.step)}) by the set's end: Play ${pct(split.playChance)}, Hold ${pct(split.holdChance)}`}</figcaption>
-            <div role="img" className="arc-split-sides" aria-label={`${holdWins ? "Hold" : "Play"} advised. Play ${sharePct(split.play)}, Hold ${sharePct(split.hold)}${split.tie ? ", a near tie" : ` of the chances at step ${split.step}`}. This step: Play ${playMove ? `${pct(playChance)} with ${lineupsOf(playMove)} at ${when(kickOf(playMove), now)}` : "no lineup"}, Hold ${holdChance === null ? "no later lineup" : `${pct(holdChance)} with ${lineupsOf(holdMove)} from ${when(kickOf(holdMove!), now)}`}.`}>
+            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"} advised. Play ${sharePct(split.play)}, Hold ${sharePct(split.hold)}${split.tie ? ", a near tie" : ` of the chances at step ${split.step}`}. This step: Play ${playMove ? `${pct(playChance)} with ${lineupsOf(playMove)} at ${when(kickOf(playMove), now)}` : "no lineup"}, Hold ${holdChance === null ? "no later lineup" : `${pct(holdChance)} with ${lineupsOf(holdMove)} from ${when(kickOf(holdMove!), now)}`}.`}>
               {side("Play", playMove, split.play, playMove ? playChance : null, !holdWins)}
               {side("Hold", holdMove, split.hold, holdChance, holdWins)}
             </div>
-            <div className="arc-split-track" aria-hidden="true"><span className={holdWins ? undefined : "is-pick"} /><span className={holdWins ? "is-pick" : undefined} /></div>
           </figure>
         ) : null}
         {move ? (

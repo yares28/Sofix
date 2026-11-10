@@ -20,7 +20,7 @@ const draw = (o: Outlook = outlook) => renderToStaticMarkup(React.createElement(
   form: { player: { l5: 62, l10: 55, l40: null } },
 })));
 
-it("renders published xD as a decimal without recomputing it, while xScore retains the existing formula", () => {
+it("renders published xD as a decimal without recomputing it, while xScore shows the base number and the bonus sits apart (10 Nov 2026)", () => {
   const zero = draw();
   const full = draw({ ...outlook, start: 1 });
   expect(zero).toContain('class="arc-card-xd"');
@@ -28,9 +28,10 @@ it("renders published xD as a decimal without recomputing it, while xScore retai
   expect(full).toContain('>xD 0.02</span>');
   expect(zero).not.toContain('<small>xScore</small>');
   expect(zero).toContain('aria-label="xScore 0"');
-  expect(full).toContain('aria-label="xScore 66"');
+  expect(full).toContain('aria-label="xScore 60"');
+  expect(full).toContain('>+10%</span>');
   expect(zero).toContain('background:#c0433f;color:#ffffff');
-  expect(full).toContain('background:#46c05a;color:#0c2f16');
+  expect(full).toContain('background:#9bd227;color:#22300a'); // 60's band, not 66's
   expect(zero).toContain('<small>FDR</small><b>0</b>');
 });
 

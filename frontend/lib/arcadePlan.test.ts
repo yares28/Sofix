@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, noStartNote, type Outlook } from "./arcadePlan";
+import { baseScore, bonusPercent, batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, noStartNote, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
@@ -16,6 +16,14 @@ describe("a card's predicted score", () => {
     const o = outlook("a", ["Forward"], 60, 0.5, [], 0.09);
     expect(predicted(o)).toBeCloseTo(60 * 0.5 * 1.09);
     expect(predicted(o, true, 0.5)).toBeCloseTo(60 * 0.5 * 1.59);
+  });
+  it("draws the base xScore on the card, bonuses apart: edition, club and captain as one percentage (owner, 10 Nov 2026)", () => {
+    const o = outlook("a", ["Forward"], 60, 0.5, [], 0.09);
+    expect(baseScore(o)).toBeCloseTo(30);
+    expect(baseScore(outlook("a", ["Forward"], null, 0.9))).toBeNull();
+    expect(bonusPercent(o)).toBe("+9%");
+    expect(bonusPercent(o, true, 0.5)).toBe("+59%");
+    expect(bonusPercent(outlook("a", ["Forward"], 60, 1))).toBeNull();
   });
   it("counts a card with no start % as starting, and gives none without a projection or a past game", () => {
     expect(predicted(outlook("a", ["Forward"], 50, null))).toBe(50);

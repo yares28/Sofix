@@ -1,11 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { offline, resetBackend, smallText } from "./helpers";
-import { madridDate, whenLabel } from "../lib/arcadePlan";
 
 const GAME = "Game:11111111-2222-3333-4444-555555555555";
 const KICKOFF = new Date(Date.now() + 86_400_000).toISOString(); // tomorrow, inside the days Sorare projects
-/** The verdict's "now" or day for the games at KICKOFF: "now" is said only for a game today (9 Nov 2026). */
-const ON = madridDate(KICKOFF) === madridDate(new Date().toISOString()) ? "now" : `on ${whenLabel(Date.parse(KICKOFF), Date.now()).replace(/ \d\d:\d\d$/, "")}`;
 /** A kick-off's Madrid time, as a chain node shows it. */
 const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
 const SQUAD = [
@@ -140,6 +137,7 @@ test("Arcade shows the step you are on, its target, reward and lineups left, you
   await expect(step).toContainText("300");
   await expect(step).toContainText("10 gems");
   await expect(page.locator(".arc-move .arc-lives")).toHaveAttribute("aria-label", "3 of 4 lives");
+  await expect(page.locator(".arc-move .arc-lives")).toHaveText("3 lives left"); // words: four dots beside "Step 4" read as steps
   await expect(page.locator(".arc-wallet")).toContainText("3,200");
   await show(page, "Players");
   await expect(page.locator(".arc-grid .arc-card").first()).toHaveAttribute("aria-label", "Defender Three");
@@ -170,7 +168,7 @@ test("collection cards keep their evidence compact and all reads in the hero too
   await expect(card.locator(".arc-art .arc-card-score")).toContainText("0");
   await expect(card.locator(".arc-card-score")).toHaveText("0");
   await expect(card.locator(".arc-card-score")).toHaveCSS("background-color", "rgb(192, 67, 63)");
-  await expect(card.locator(".arc-art .arc-card-bonus")).toHaveText("+10%");
+  await expect(card.locator(".arc-art .arc-card-bonus")).toHaveText("+14%"); // edition + club, one number
   await expect(card.locator("figcaption .arc-card-start")).toHaveText("0%");
   await expect(card.locator("figcaption .arc-card-xd")).toHaveText("xD —");
   await expect(card.locator("figcaption .arc-card-xd")).toHaveAttribute("title", /its number is his recent form$/);
@@ -234,13 +232,13 @@ test("collection fixture buttons align scores and starts, filters reset paginati
   await expect(gallery.locator(".arc-card")).toHaveCount(12);
   const first = gallery.locator(".arc-card").first();
   await expect(first.locator(".arc-card-start")).toHaveText("50%");
-  await expect(first.locator(".arc-card-score b")).toHaveText("31");
+  await expect(first.locator(".arc-card-score b")).toHaveText("30");
   const buttons = first.getByRole("button");
   await expect(buttons).toHaveCount(2);
   await buttons.nth(1).click();
   await expect(buttons.nth(1)).toHaveAttribute("aria-pressed", "true");
   await expect(first.locator(".arc-card-start")).toHaveText("90%");
-  await expect(first.locator(".arc-card-score b")).toHaveText("75");
+  await expect(first.locator(".arc-card-score b")).toHaveText("72");
   await gallery.getByRole("button", { name: "Next", exact: true }).click();
   await expect(gallery.getByText("Page 2 of 3", { exact: true })).toBeVisible();
   await gallery.getByRole("combobox", { name: "Start percentage" }).selectOption("unknown");
@@ -312,10 +310,10 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { [GAME]: { p: [5000, 1792579200] } } } }));
   await withExtension(page);
   await page.goto("/arcade");
-  // Player One: no projection, so his played average (60) × 50% start × (1 + 10% Holo + 4% club) = 34.
+  // Player One: no projection, so his played average (60) × 50% start = 30 on the card; the +14% bonus (10% Holo + 4% club) is printed apart.
   await show(page, "Players");
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
-  await expect(page.locator(".arc-grid .arc-card-score b")).toHaveText("34");
+  await expect(page.locator(".arc-grid .arc-card-score b")).toHaveText("30");
   await show(page, "Play now");
   await expect(page.locator(".arc-plan")).toContainText("Pick at least one game."); // nothing picked for you
   await page.getByRole("group", { name: "Games to pick from" }).getByRole("button").click();
@@ -344,19 +342,17 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await withExtension(page, ANSWERS, "0.4.18");
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
-  await expect(move.getByRole("heading", { level: 2 })).toHaveText(`Play ${ON}`);
-  await expect(move.locator(".arc-move-why")).toContainText("No later game before the set ends.");
-  // One time for the move: the bar's Play time is the time to enter by.
-  const enterBy = await move.locator(".arc-move-times span").filter({ hasText: "Enter before" }).locator("b").textContent();
-  await expect(move.locator(".arc-split .is-pick time")).toHaveText(enterBy!);
-  // One 100% bar (owner, 9 Nov 2026): no later game, so Play holds all of it; its own chance at this step sits beneath.
-  await expect(move.locator(".arc-split figcaption")).toContainText("Who is likelier to win step");
+  // A short title and a plain bar (owner, 10 Nov 2026): no reason line, no caption, only Hold carries a date.
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play next");
+  await expect(move.locator(".arc-move-why")).toHaveCount(0);
+  await expect(move.locator(".arc-split figcaption")).toHaveCount(0);
+  // One 100% bar (owner, 9 Nov 2026): no later game, so Play holds all of it.
   const pills = move.locator(".arc-split > div > span");
-  await expect(move.locator(".arc-split .is-pick")).toContainText("Play");
+  await expect(move.locator(".arc-split .is-pick small")).toHaveText("Play");
   await expect(move.locator(".arc-split .is-pick > b")).toHaveText("100%");
   await expect(pills.last().locator("b")).toHaveText("0%");
-  await expect(move.locator(".arc-split .is-pick .arc-split-step")).toHaveText(/^\d+% clears step 2$/);
-  await expect(pills.last()).toContainText("No later lineup");
+  await expect(pills.last().locator("small")).toHaveText("Hold");
+  await expect(move.locator(".arc-split [role=img]")).toHaveAttribute("aria-label", /This step: Play \d+% with 1 lineup at .*, Hold no later lineup/);
   await expect(move.locator(".arc-lineup li")).toHaveCount(5); // the five to enter
   await expect(move.locator(".arc-art .arc-card-ratings .arc-card-fdr")).toHaveCount(5);
   await expect(move.locator(".arc-art .arc-card-ratings .arc-card-score")).toHaveCount(5);
@@ -383,8 +379,8 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
-  await expect(move).toContainText("Enter before");
-  await expect(move).toContainText("Settles about");
+  await expect(move).not.toContainText("Enter before");
+  await expect(move).not.toContainText("Settles about");
   await expect(page.locator(".arc-ladder li")).toHaveCount(2);
   await expect(page.locator(".arc-chain")).toHaveCount(0); // one game: no chain to show
   // Club plays tomorrow with six of your cards, every one a starter on Sorare's word: the team to build around, already in Pick teams.
@@ -428,9 +424,9 @@ test("step one spends four resettable lives and keeps every insurance team ident
   }, "0.4.18");
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
-  await expect(move.getByRole("heading", { level: 2 })).toHaveText(`Play 4 lineups ${ON}`);
-  await expect(move.locator(".arc-move-why")).toContainText("four fresh lives");
-  await expect(move.locator(".arc-split .is-pick")).toContainText("4 lineups");
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play next");
+  await expect(move.getByRole("group", { name: "Lineup" }).getByRole("button")).toHaveCount(4); // all four lives at once
+  await expect(move.locator(".arc-split [role=img]")).toHaveAttribute("aria-label", /This step: Play \d+% with 4 lineups/);
   // The two shares make 100%, and the larger share has the wider pill.
   // Layout widths (offsetWidth): the pills' scaleX entrance made on-screen widths wrong mid-animation under load (10 Nov 2026).
   const [play, hold] = await move.locator(".arc-split > div > span").evaluateAll((els) => els.map((el) => ({ width: (el as HTMLElement).offsetWidth, share: parseFloat(el.querySelector("b")!.textContent!) / 100 })));
@@ -440,7 +436,7 @@ test("step one spends four resettable lives and keeps every insurance team ident
   const first = await signature(".arc-move");
   await page.locator(".arc-chain-node").first().click();
   expect(await signature(".arc-chain-detail")).toEqual(first);
-  await expect(move.locator(".arc-split .is-pick .arc-split-step")).toContainText((await page.locator(".arc-chain-node").first().locator("b").textContent())!);
+  await expect(move.locator(".arc-split [role=img]")).toHaveAttribute("aria-label", new RegExp(`This step: Play ${(await page.locator(".arc-chain-node").first().locator("b").textContent())!}`));
   // Both outcomes are worked out off the page (the tap itself answers at once) and arrive in the buttons.
   const outcomes = page.getByRole("group", { name: "What comes next" });
   await expect(outcomes.getByRole("button")).toHaveCount(2);
@@ -455,7 +451,7 @@ test("step one spends four resettable lives and keeps every insurance team ident
   expect(await signature(".arc-detail")).toEqual(second);
   await show(page, "Players");
   await show(page, "Play now");
-  await expect(move.getByRole("heading", { level: 2 })).toHaveText(`Play 4 lineups ${ON}`);
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play next");
   await show(page, "Batch");
   const batch = page.getByRole("region", { name: "Batch" });
   for (let i = 0; i < 3; i++) await batch.getByRole("button", { name: "More teams" }).click();

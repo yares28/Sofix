@@ -1,7 +1,7 @@
 "use client";
 
 import { bonusLabel, type ArcadeCard, type ArcadeGame } from "../../lib/arcade";
-import { sideIn, xdTitle, type Outlook } from "../../lib/arcadePlan";
+import { bonusPercent, sideIn, xdTitle, type Outlook } from "../../lib/arcadePlan";
 import CardRatings from "./CardRatings";
 import { leagueLabel } from "../../lib/arcadeFdr";
 
@@ -12,7 +12,8 @@ export const fixtureName = (game: ArcadeGame) => `${game.home?.name ?? "?"} v ${
 export default function PlayerCard({ card, outlook, game, fixtures, crests, onSelect, unavailable = "No game before the set ends", captain = false, captainBonus = 0 }: {
   card: ArcadeCard; outlook?: Outlook; game?: ArcadeGame; fixtures: ArcadeGame[]; crests: Map<string, string>; onSelect?: (id: string) => void; unavailable?: string; captain?: boolean; captainBonus?: number;
 }) {
-  const bonus = bonusLabel(card.bonus);
+  // Edition, club and captain together (owner, 10 Nov 2026); without a game's outlook only the edition is known.
+  const bonus = outlook ? bonusPercent(outlook, captain, captainBonus) : bonusLabel(card.bonus);
   const detail = game ? fixtureName(game) : unavailable;
   const percent = outlook?.start == null ? "—" : `${Math.round(outlook.start * 100)}%`;
   const startProps = { className: "arc-card-start", "aria-label": `Start chance ${percent}`, title: `${detail} · ${outlook?.confirmed ? `Sorare announced eleven: ${outlook.start === 1 ? "in the eleven" : "not starting"}` : `${outlook?.startSource ? SOURCES[outlook.startSource] : "Unknown"} start chance`}${outlook?.start == null ? "; no start % yet" : ""}` };
@@ -28,8 +29,8 @@ export default function PlayerCard({ card, outlook, game, fixtures, crests, onSe
           // eslint-disable-next-line @next/next/no-img-element -- Original Sorare card art
           ? <img src={card.picture} alt={card.name} loading="lazy" width={240} height={388} />
           : <div className="arc-card-blank" role="img" aria-label={card.name}>{card.name}</div>}
-        <CardRatings outlook={outlook} game={game?.id} competition={game?.competition} home={!!game && sideIn(card, game) === game.home?.slug} detail={detail} captain={captain} captainBonus={captainBonus} />
-        {bonus ? <span className="arc-card-bonus" title={`${card.edition ?? "Edition"} bonus; club bonus is included separately in xScore`}>{bonus}</span> : null}
+        <CardRatings outlook={outlook} game={game?.id} competition={game?.competition} home={!!game && sideIn(card, game) === game.home?.slug} detail={detail} />
+        {bonus ? <span className="arc-card-bonus" title={`Bonus: ${card.edition ?? "edition"}${outlook ? " + club" : ""}${captain && captainBonus > 0 ? " + captain" : ""}`}>{bonus}</span> : null}
       </div>
       <figcaption>
         {outlook?.startUrl ? <a {...startProps} href={outlook.startUrl} target="_blank" rel="noreferrer">{percent}</a> : <span {...startProps}>{percent}</span>}

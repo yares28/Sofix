@@ -3,7 +3,7 @@
 import { memo, useCallback, useContext, useDeferredValue, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
-import { holdSplit, kickOf, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
+import { holdSplit, kickOf, type Move } from "../../lib/arcadeClimb";
 import { useClimb, type ClimbPlan } from "../../lib/climbClient";
 import { aimKey, useArcadeAim } from "../../lib/arcadeAim";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
@@ -25,8 +25,6 @@ const iso = (ms: number) => new Date(ms).toISOString();
 const when = whenLabel;
 /** A settle time beside a kick-off: the time, with the day when it is another day. */
 const settleLabel = (settles: number, at: number) => whenLabel(settles, at);
-/** "now" for today, else the day it is played on: "on Thu", "on Fri 20 Nov". */
-const onDay = (ms: number, now: number) => (madridDate(iso(ms)) === madridDate(iso(now)) ? "now" : `on ${whenLabel(ms, now).replace(/ \d\d:\d\d$/, "")}`);
 
 /** A card's start % with whose it is, or "no start % yet". */
 export function StartLabel({ outlook }: { outlook: Outlook }) {
@@ -301,7 +299,6 @@ export function climbStep(arcade: Arcade): number {
   return current;
 }
 
-const VERB: Record<Climb["verdict"]["kind"], string> = { play: "Play now", wait: "Wait", spend: "Spend them now", none: "Nothing to play yet" };
 
 /** Your move: play, wait or spend your lives, why, and the lineup to enter. */
 const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote, updating }: {
@@ -324,32 +321,14 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
   const v = plan.verdict;
   const step = boardSteps.find((s) => s.number === current);
   const playsNow = move && move.from === 0 && v.kind !== "wait";
-  const clear = move?.clear ?? 0;
-  // "Now" only when the move is played today (9 Nov 2026: "Play now" for a game eleven days away).
-  const on = move ? onDay(kickOf(move), now) : "now";
-  const title = v.kind === "play" && move ? (move.play > 1 ? `Play ${move.play} lineups ${on}` : `Play ${on}`)
-    : v.kind === "wait" && v.waitFor ? `Wait for ${when(v.hold ? kickOf(v.hold) : v.waitFor.at, now)}`
-    : v.kind === "spend" && move ? (move.play === 1 ? `Spend your last life ${on}` : `Spend all ${move.play} lives ${on}`) : VERB[v.kind];
   // The bar (owner, 29 Oct): the step you are on, the lineup you would enter now against the best one from the games you would wait for.
   const playMove = v.playNow;
   const holdMove = v.hold;
   const playChance = playMove?.clear ?? 0;
   const holdChance = holdMove?.clear ?? null;
   const holdWins = v.kind === "wait";
-  // The reason in one line; the numbers are in the bar below it.
-  const why = v.kind === "play" && move?.step === 1 && move.play === lives
-    ? `Use all ${lives} lives: if every lineup misses, you restart step 1 with four fresh lives. ${holdMove && holdMove.at < move.settles ? "Waiting could enter the next games sooner; this batch gives the better climb." : "Holding saves no progress."}`
-    : v.kind === "play" ? (holdMove && holdMove.at < (move?.settles ?? 0)
-      ? `The next games start before this settles. This ${move && move.play > 1 ? "batch" : "lineup"} gives the better chance through the remaining climb.`
-      : holdChance !== null && holdChance > playChance + 0.005 && lives > (move?.play ?? 1)
-      ? `The later games are stronger, but a miss now still leaves ${lives - (move?.play ?? 1)} lives for them.`
-      : holdChance === null ? "No later game before the set ends." : "Every window you skip is a try lost.")
-    : v.kind === "wait" && v.waitFor ? `Worth the ${v.skipped} window${v.skipped === 1 ? "" : "s"} it costs: those games give the better climb.`
-    : v.kind === "spend" && move ? `If all miss you restart step 1 about ${when(move.settles, now)}, and the steps below come back fast.`
-    : "Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).";
   // Whether the lineup's start % will all be known before it is entered: its games kick off together (within the 75-minute window).
   const noStart = lineup ? noStartNote(lineup.picks.filter((p) => p.outlook.start === null).length, Date.parse(lineup.first), now) : null;
-  const together = lineup ? Date.parse(lineup.last) - Date.parse(lineup.first) <= WINDOW_MS : true;
   // One bar sharing 100% between Play and Hold by the prize the advice decides on (owner, 9 Nov 2026).
   const split = holdSplit(v);
   const prizeOf = (n: number) => boardSteps.find((s) => s.number === n)?.rewards.join(" + ") || `step ${n}`;
@@ -357,9 +336,10 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
   const close = split && !split.tie && Math.abs(split.play - split.hold) < 0.05;
   const sharePct = (x: number) => (close ? `${(x * 100).toFixed(1)}%` : pct(x));
   const lineupsOf = (m: Move | null) => (m ? `${m.play} lineup${m.play === 1 ? "" : "s"}` : "");
-  const side = (name: "Play" | "Hold", m: Move | null, share: number, chance: number | null, pick: boolean) => (
+  // Only the Hold side carries a date (owner, 10 Nov 2026): the rest is in the lineup below.
+  const side = (name: "Play" | "Hold", m: Move | null, share: number, pick: boolean) => (
     <span className={pick ? "is-pick" : undefined} style={{ flexGrow: share }}>
-      <small>{name} <time>{m ? when(kickOf(m), now) : "—"}</time><em>{m ? `${m.play} lineup${m.play === 1 ? "" : "s"}` : name === "Hold" ? "No later lineup" : "No lineup"}</em>{chance === null ? null : <em className="arc-split-step">{pct(chance)} clears step {current}</em>}</small>
+      <small>{name}{name === "Hold" && m ? <time>{when(kickOf(m), now)}</time> : null}</small>
       <b>{sharePct(share)}</b>
     </span>
   );
@@ -369,19 +349,18 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
         {updating ? <p className="arc-move-updating" role="status">Updating with the latest start %…</p> : null}
         <p className="arc-move-kicker">
           <span>Step {current} · {step?.target ?? ""} pts</span>
-          <span className="arc-lives" aria-label={`${lives} of 4 lives`}>{[0, 1, 2, 3].map((i) => <i key={i} className={i < lives ? "is-on" : undefined} aria-hidden="true" />)}</span>
+          {/* Words, not four dots: dots beside "Step 4" read as steps (owner, 10 Nov 2026). */}
+          <span className="arc-lives" aria-label={`${lives} of 4 lives`}>{lives} {lives === 1 ? "life" : "lives"} left</span>
           {step?.rewards.length ? <span className="arc-move-prize">{step.rewards.join(" + ")}</span> : null}
         </p>
-        <h2 id="arc-move-title" className="arc-move-verdict">{title}</h2>
-        <p className="arc-move-why">{why}</p>
+        <h2 id="arc-move-title" className="arc-move-verdict">Play next</h2>
+        {v.kind === "none" ? <p className="arc-move-why">Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).</p> : null}
         {waitingNote ? <p className="arc-warn">{waitingNote}</p> : null}
         {v.kind !== "none" && split ? (
           <figure className="arc-split">
-            <figcaption>{split.tie ? "Near tie at every prize: playing is as good, and faster"
-              : `Who is likelier to win step ${split.step} (${prizeOf(split.step)}) by the set's end: Play ${pct(split.playChance)}, Hold ${pct(split.holdChance)}`}</figcaption>
-            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"} advised. Play ${sharePct(split.play)}, Hold ${sharePct(split.hold)}${split.tie ? ", a near tie" : ` of the chances at step ${split.step}`}. This step: Play ${playMove ? `${pct(playChance)} with ${lineupsOf(playMove)} at ${when(kickOf(playMove), now)}` : "no lineup"}, Hold ${holdChance === null ? "no later lineup" : `${pct(holdChance)} with ${lineupsOf(holdMove)} from ${when(kickOf(holdMove!), now)}`}.`}>
-              {side("Play", playMove, split.play, playMove ? playChance : null, !holdWins)}
-              {side("Hold", holdMove, split.hold, holdChance, holdWins)}
+            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"} advised. Play ${sharePct(split.play)}, Hold ${sharePct(split.hold)}${split.tie ? ", a near tie" : ` of the chances to win step ${split.step} (${prizeOf(split.step)})`}. This step: Play ${playMove ? `${pct(playChance)} with ${lineupsOf(playMove)} at ${when(kickOf(playMove), now)}` : "no lineup"}, Hold ${holdChance === null ? "no later lineup" : `${pct(holdChance)} with ${lineupsOf(holdMove)} from ${when(kickOf(holdMove!), now)}`}.`}>
+              {side("Play", playMove, split.play, !holdWins)}
+              {side("Hold", holdMove, split.hold, holdWins)}
             </div>
           </figure>
         ) : null}
@@ -389,12 +368,6 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
           <div className="arc-move-entry">
             <div className="arc-move-entry-head">
               {playsNow && move.play === 1 ? null : <span className="arc-move-chance"><b>{pct(lineup ? chanceOf(lineup.totals, target(move.step)) : move.clear)}</b><small>{playsNow ? "this lineup clears it" : `ready for ${when(kickOf(move), now)}`}</small></span>}
-              <span className="arc-move-times">
-                {lineup ? <span>{together ? `All five play at ${when(Date.parse(lineup.first), now)}: you see the official lineups before you enter.` : `Its games run ${when(Date.parse(lineup.first), now)} to ${when(Date.parse(lineup.last), now)}: the later cards' start % can still change after you enter.`}</span> : null}
-                <span>Enter before <b>{when(lineup ? Date.parse(lineup.first) : kickOf(move), now)}</b></span>
-                <span>Settles about <b>{when(lineup ? Date.parse(lineup.last) + SETTLES_AFTER_MS : move.settles, now)}</b></span>
-                {move.play > 1 ? <span>{move.play} lineups together: <b>{pct(clear)}</b> one clears (Sorare cancels the others)</span> : null}
-              </span>
               <button type="button" className="arc-small" onClick={() => onBuild(move, lineup)} disabled={!lineup}>Edit in Pick teams</button>
             </div>
             {lineups.length > 1 ? (

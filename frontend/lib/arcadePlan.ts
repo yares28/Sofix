@@ -63,6 +63,15 @@ export function predicted(o: Outlook, captain = false, captainBonus = 0): number
   return o.score * (o.start ?? 1) * multiplier(o, captain, captainBonus);
 }
 
+/** What a card shows (owner, 10 Nov 2026): his projection × start chance, no bonus; the bonus is printed apart by bonusPercent. */
+export const baseScore = (o: Outlook): number | null => (o.score === null ? null : o.score * (o.start ?? 1));
+
+/** Edition, club and captain bonuses added, as "+59%"; null when there is none. */
+export function bonusPercent(o: Pick<Outlook, "bonus">, captain = false, captainBonus = 0): string | null {
+  const percent = Math.round((multiplier(o, captain, captainBonus) - 1) * 100);
+  return percent > 0 ? `+${percent}%` : null;
+}
+
 const quantile = (sorted: number[], q: number) => {
   const at = (sorted.length - 1) * q;
   const lo = Math.floor(at);

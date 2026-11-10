@@ -8,8 +8,9 @@ import { batchChances, chanceOf, simulation, type Outlook } from "../../lib/arca
 import { climbStart, climbStep, Crest, crestsOf, LineupCards, madridDay, madridTime, pct, pts, stepInfos } from "./ArcadePlanner";
 import { FdrContext } from "./Fdr";
 import { fdrOf, type FdrSide } from "../../lib/arcadeFdr";
+import { aimKey, useArcadeAim } from "../../lib/arcadeAim";
 
-const Saved = z.object({ day: z.string(), selected: z.string(), aim: z.number().int(), counts: z.record(z.string(), z.number().int().min(1).max(4)), empty: z.boolean().default(false) });
+const Saved = z.object({ day: z.string(), selected: z.string(), counts: z.record(z.string(), z.number().int().min(1).max(4)), empty: z.boolean().default(false) });
 const number = (value: number | null | undefined, percent = false) => value == null ? "—" : percent ? pct(value) : value.toFixed(2);
 
 function Match({ game, crests }: { game: ArcadeGame; crests: Map<string, string> }) {
@@ -39,7 +40,7 @@ export default function ArcadeBatch({ arcade, outlooks }: { arcade: Arcade; outl
   const current = climbStep(arcade);
   const [saved, setSaved] = useState<z.infer<typeof Saved>>(() => {
     try { const read = Saved.safeParse(JSON.parse(localStorage.getItem(key) ?? "null")); if (read.success) return read.data; } catch { /* Retain choices for this visit when storage is unavailable. */ }
-    return { day: "", selected: "", aim: current, counts: {}, empty: false };
+    return { day: "", selected: "", counts: {}, empty: false };
   });
   useEffect(() => { try { localStorage.setItem(key, JSON.stringify(saved)); } catch { /* Storage unavailable. */ } }, [key, saved]);
   const [page, setPage] = useState(0);
@@ -52,7 +53,9 @@ export default function ArcadeBatch({ arcade, outlooks }: { arcade: Arcade; outl
   const filtered = dated.filter(b => saved.empty || mine(b));
   const selected = filtered.find(b => b.id === saved.selected) ?? filtered[0];
   const steps = arcade.board?.steps ?? [];
-  const step = steps.find(s => s.number === saved.aim && !["CLAIMED", "CLAIMABLE"].includes(s.state)) ?? steps.find(s => s.number === current) ?? steps[0];
+  // The same aim as Pick teams (useArcadeAim).
+  const [aim, setAim] = useArcadeAim(aimKey(arcade.set.slug, arcade.board?.id ?? ""));
+  const step = steps.find(s => s.number === aim && !["CLAIMED", "CLAIMABLE"].includes(s.state)) ?? steps.find(s => s.number === current) ?? steps[0];
   const count = selected ? saved.counts[selected.id] ?? 1 : 1;
   const captain = step?.captain ?? steps[0]?.captain ?? 0;
   const held = useMemo(() => climbStart(arcade, stepInfos(arcade), current).start.held, [arcade, current]);
@@ -70,7 +73,7 @@ export default function ArcadeBatch({ arcade, outlooks }: { arcade: Arcade; outl
       <label>Date<input type="date" name="batch-date" autoComplete="off" aria-label="Batch date" value={saved.day} onChange={e => { setSaved(s => ({ ...s, day: e.target.value })); setPage(0); setGamePage(0); }} /></label>
       <button type="button" className="arc-small" onClick={() => { setSaved(s => ({ ...s, day: "" })); setPage(0); }} disabled={!saved.day}>All dates</button>
       <button type="button" className="arc-small" aria-pressed={saved.empty} disabled={!emptyCount && !saved.empty} onClick={() => { setSaved(s => ({ ...s, empty: !s.empty })); setPage(0); }}>Without your cards ({emptyCount})</button>
-      {step ? <label>Aim at<select aria-label="Batch target" value={step.number} onChange={e => setSaved(s => ({ ...s, aim: Number(e.target.value) }))}>{steps.filter(s => !["CLAIMED", "CLAIMABLE"].includes(s.state)).map(s => <option key={s.id} value={s.number}>Step {s.number} · {s.target} pts</option>)}</select></label> : null}
+      {step ? <label>Aim at<select aria-label="Batch target" value={step.number} onChange={e => setAim(Number(e.target.value))}>{steps.filter(s => !["CLAIMED", "CLAIMABLE"].includes(s.state)).map(s => <option key={s.id} value={s.number}>Step {s.number} · {s.target} pts</option>)}</select></label> : null}
     </div></div>
     {filtered.length ? <>
       <ol className="arc-chain-rail arc-batch-rail" role="group" aria-label="Batches">

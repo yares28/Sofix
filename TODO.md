@@ -105,7 +105,8 @@ kept the other chain's scroll.*
 3. *Done 10 Nov 2026: Batch skips windows with no card of yours (6 on your board, 8 pages instead of 9); "Without your cards (6)"
    brings them back, each marked "no card of yours".* Game lists differ: Batch lists every game, Pick teams and the chain only games with your cards, Players' day filter only next-game
    days. Batch marks windows with no card of yours and skips them by default.
-4. Two "Aim at" pickers with separate saved values (Pick teams and Batch): one shared aim.
+4. *Done 10 Nov 2026: one aim per set and board, saved once; checked on your page (Batch to step 5 showed in Pick teams, and back
+   to 4).* Two "Aim at" pickers with separate saved values (Pick teams and Batch): one shared aim.
 5. Chances on different bases side by side with no label: the ladder's "91%" (step 4 by the set's end) beside the bar's 40% (this
    lineup). Each says what it is in a word ("by 6 Jan", "this lineup").
 6. "5 of 5 have no start % yet" eleven days out reads as an error: say when Sorare usually gives it (days before kick-off).

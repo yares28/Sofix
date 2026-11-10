@@ -509,6 +509,19 @@ test("the chain's Surest switch waits for the window that clears the step most s
   await modes.getByRole("button", { name: "Fastest" }).click();
   await expect(node.locator(".arc-chain-time")).toHaveText(clock(KICKOFF));
   await expect(chain.locator(".arc-chain-detail")).toHaveCount(0);
+  // One aim for Pick teams and Batch (9 Nov 2026: two pickers, two saved values).
+  const teamsAim = page.locator(".arc-plan .arc-aim select");
+  await teamsAim.selectOption("2");
+  await show(page, "Batch");
+  const batchAim = page.getByRole("region", { name: "Batch" }).getByLabel("Batch target");
+  await expect(batchAim).toHaveValue("2");
+  await batchAim.selectOption("1");
+  await show(page, "Play now");
+  await expect(teamsAim).toHaveValue("1");
+  await page.reload();
+  await expect(teamsAim).toHaveValue("1");
+  await show(page, "Batch");
+  await expect(batchAim).toHaveValue("1");
 });
 
 /** Fourteen games, one forward of yours in each but the first (Club, the full squad): two pages of tickets. */

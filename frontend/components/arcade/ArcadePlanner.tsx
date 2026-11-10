@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
 import { holdSplit, kickOf, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
 import { useClimb, type ClimbPlan } from "../../lib/climbClient";
+import { aimKey, useArcadeAim } from "../../lib/arcadeAim";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
 import { fdrOf } from "../../lib/arcadeFdr";
@@ -540,20 +541,23 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
     // Starts empty (owner, 9 Nov 2026: "prepick the teams instead of letting me pick"): only your picks, kept between visits.
     return new Set([...(selection?.chosen ?? [])].filter((id) => available.has(id)));
   }, [games, selection?.chosen]);
-  const wantedAim = selection?.aim ?? plan?.path[0]?.step ?? current;
+  // One aim with Batch (useArcadeAim); the one saved with your picks before 10 Nov 2026 counts until you choose again.
+  const [sharedAim, setSharedAim] = useArcadeAim(aimKey(arcade.set.slug, arcade.board?.id ?? ""));
+  const wantedAim = sharedAim ?? selection?.aim ?? plan?.path[0]?.step ?? current;
   const aim = aimStep(arcade.board?.steps ?? [], wantedAim, current, !!selection?.fromMove);
   const preset = selection?.preset?.plan === plan ? selection.preset.lineup : null;
   // A move's step stays the aim while you change its games (it may be a step claimed before the climb restarts).
   const setChosen = (next: Set<string>) => setSelection({ chosen: next, aim, preset: null, fromMove: selection?.fromMove });
-  const setAim = (next: number) => setSelection({ chosen, aim: next, preset: null, fromMove: selection?.fromMove });
+  const setAim = (next: number) => { setSharedAim(next); setSelection({ chosen, aim: next, preset: null, fromMove: selection?.fromMove }); };
   const lives = start.step === current ? start.lives : 0;
   const waitingNote = after
     ? `Your ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} on step ${current} settle${waiting.length > 1 ? "" : "s"} first (about ${when(after.at, now)}); the plan goes on as if one clears it.`
     : waiting.length ? `You have ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} waiting on step ${current}: if one clears it, Sorare cancels any other you entered on the step.` : null;
   const build = useCallback((move: Move, lineup: Lineup | null) => {
+    setSharedAim(move.step);
     setSelection({ chosen: new Set(move.list.map((o) => o.game.id)), aim: move.step, preset: lineup && plan ? { plan, lineup } : null, fromMove: true });
     document.getElementById("arc-teams-title")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
-  }, [plan]);
+  }, [plan, setSharedAim]);
   if (!games.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;
   return (
     <>

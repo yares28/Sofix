@@ -16,7 +16,7 @@ and a check, so a session can work through it alone and stop only where you have
 
 9 Nov, first: **Arcade, six fixes and features** ([TODO.md](../TODO.md) "Arcade: six fixes and features"), one at a time:
 ~~A FDR to the set's end~~ (done 9 Nov), ~~B national-team games everywhere~~ (done 9 Nov, extension 0.4.67), ~~C dates that read wrong~~ (done 9 Nov), ~~D one 100% Play | Hold bar~~ (done 9 Nov), ~~E Pick teams starts
-empty~~ (done 9 Nov), ~~F chain switch Fastest | Surest~~ (done 10 Nov), G ten consistency fixes across the tabs (G1 one FDR form, done 10 Nov).
+empty~~ (done 9 Nov), ~~F chain switch Fastest | Surest~~ (done 10 Nov), G ten consistency fixes across the tabs (G1 one FDR form, G2 horizons, done 10 Nov).
 
 30 Oct owner priority: **two independent copies, each fast and responsive**
 ([current plan](independent-installs-performance.md), [setup](../docs/independent-install.md)). Each person has their own

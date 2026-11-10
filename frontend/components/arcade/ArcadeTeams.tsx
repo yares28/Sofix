@@ -3,11 +3,12 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import type { Arcade } from "../../lib/arcade";
 import { madridDate, type Outlook } from "../../lib/arcadePlan";
-import { clubsToBuildAround, type PlayerStatus, type Signal } from "../../lib/arcadeTeams";
+import { clubsToBuildAround, firstDays, type PlayerStatus, type Signal } from "../../lib/arcadeTeams";
 import { FdrChip } from "./Fdr";
 import TeamRail from "./TeamRail";
 import { Crest, crestsOf, madridDay, madridTime, pct, pts } from "./ArcadePlanner";
 
+/** The first four days that have a club worth building around, however far (an international break no longer empties it). */
 const DAYS = 4;
 const BADGE: Record<Signal, string> = { sofix: "", sorare: "Sorare: starter", doubt: "In doubt", out: "Out", unknown: "No word yet" };
 const TIER: Record<string, string> = { GOAT: "Icon", STAR: "Star", STAR_PLUS: "Star+" };
@@ -20,7 +21,7 @@ export default function ArcadeTeams({ arcade, outlooks, status, chosen, onToggle
   arcade: Arcade; outlooks: Map<string, Outlook[]>; status: Record<string, PlayerStatus>; chosen: Set<string>; onToggle: (game: string) => void; now: number;
 }) {
   const crests = useMemo(() => crestsOf(arcade), [arcade]);
-  const picks = useMemo(() => clubsToBuildAround(outlooks, arcade.games ?? [], status, now, now + DAYS * 86_400_000), [outlooks, arcade.games, status, now]);
+  const picks = useMemo(() => firstDays(clubsToBuildAround(outlooks, arcade.games ?? [], status, now, Infinity), DAYS), [outlooks, arcade.games, status, now]);
   const days = [...new Set(picks.map((p) => p.day))].sort();
   const [day, setDay] = useState<string | null>(null);
   const shownDay = day && days.includes(day) ? day : days[0] ?? null;

@@ -60,3 +60,9 @@ export function clubsToBuildAround(outlooks: Map<string, Outlook[]>, games: Arca
   }
   return out.sort((a, b) => b.value - a.value);
 }
+
+/** The picks on the first `n` days that have any, however far (9 Nov 2026: a fixed four days went empty over an international break). */
+export function firstDays(picks: ClubPick[], n: number): ClubPick[] {
+  const days = new Set([...new Set(picks.map((p) => p.day))].sort().slice(0, n));
+  return picks.filter((p) => days.has(p.day));
+}

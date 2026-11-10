@@ -159,6 +159,7 @@ test("collection cards keep their evidence compact and all reads in the hero too
   await expect(card.locator(".arc-art .arc-card-bonus")).toHaveText("+10%");
   await expect(card.locator("figcaption .arc-card-start")).toHaveText("0%");
   await expect(card.locator("figcaption .arc-card-xd")).toHaveText("xD —");
+  await expect(card.locator("figcaption .arc-card-xd")).toHaveAttribute("title", /its number is his recent form$/);
   await expect(card.locator("figcaption")).not.toContainText(/Player One|if he plays|pts|start|kick-off/);
   await expect(card.getByRole("button", { name: /Club v Rival/ })).toBeVisible();
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("");

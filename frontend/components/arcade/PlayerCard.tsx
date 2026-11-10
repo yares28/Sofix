@@ -1,7 +1,7 @@
 "use client";
 
 import { bonusLabel, type ArcadeCard, type ArcadeGame } from "../../lib/arcade";
-import { sideIn, type Outlook } from "../../lib/arcadePlan";
+import { sideIn, xdTitle, type Outlook } from "../../lib/arcadePlan";
 import CardRatings from "./CardRatings";
 
 const SOURCES = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
@@ -39,7 +39,7 @@ export default function PlayerCard({ card, outlook, game, fixtures, crests, onSe
               : <span key={g.id} className="arc-card-fixture" role="img" aria-label={fixtureName(g)} title={fixtureName(g)}>{badges(g)}</span>)
               : <span className="arc-no-fixture" title={detail} aria-label={detail}>—</span>}
           </div>
-          <span className="arc-card-xd" title={`${detail} · Expected decisive contribution, including starter and substitute chances; mission odds are separate`}>xD {outlook?.xd == null ? "—" : outlook.xd.toFixed(2)}</span>
+          <span className="arc-card-xd" title={`${detail} · ${xdTitle(outlook) ?? "Expected decisive contribution, including starter and substitute chances; mission odds are separate"}`}>xD {outlook?.xd == null ? "—" : outlook.xd.toFixed(2)}</span>
         </div>
       </figcaption>
     </figure>

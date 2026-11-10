@@ -97,7 +97,9 @@ kept the other chain's scroll.*
 1. *Done 10 Nov 2026: one form (`fdrOf`): out of 100 in its band colour on cards, Players, Batch and Teams to build around; a
    ticket's two dots carry the band, the number on hover (Tottenham 65, Brighton 43 on your page).* FDR in three forms: Pick teams tickets and Teams to build around show the 1-5 band; cards, Players and Batch show difficulty out of
    100. One form everywhere: the out-of-100 number in its band colour (the band alone where space is a chip).
-2. Horizons disagree: Teams to build around looks 4 days ahead (empty during this break, so it vanishes), FDR 8 days (A), Sofix's
+2. *Done 10 Nov 2026: Teams to build around shows the next four days with games (Thu 12 to Sun 15 Nov on your board, was Thu and
+   Fri). A far card keeps "xD —" (your choice: "Sorare's projection" did not fit the 66 px line); its hover names the number's source,
+   which on your board is recent form, since Sorare does not project 10 days out.* Horizons disagree: Teams to build around looks 4 days ahead (empty during this break, so it vanishes), FDR 8 days (A), Sofix's
    start % and xD only for each player's next fixture (the `laliga` map is keyed by next kick-off), the plan to the set's end. Teams
    to build around shows the next days that have games; a far game says "Sorare's projection" instead of a blank xD.
 3. Game lists differ: Batch lists every game, Pick teams and the chain only games with your cards, Players' day filter only next-game

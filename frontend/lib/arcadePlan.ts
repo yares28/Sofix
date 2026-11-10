@@ -446,3 +446,12 @@ export const streakTarget = (description: string | null) => {
 export function aimStep(steps: { number: number; state: string }[], wanted: number, current: number, fromMove: boolean): number {
   return steps.some((s) => s.number === wanted && (fromMove || !["CLAIMED", "CLAIMABLE"].includes(s.state))) ? wanted : current;
 }
+
+/**
+ * What a card's "xD —" says on hover: Sofix's xD exists only for his next game, so a later one names where the card's number comes
+ * from (owner, 10 Nov 2026: the line itself stays "xD —").
+ */
+export function xdTitle(o: Pick<Outlook, "xd" | "scoreSource"> | undefined): string | null {
+  if (o?.xd != null) return null;
+  return o?.scoreSource === "sorare" ? "No Sofix xD for this game: its number is Sorare's projection" : o?.scoreSource === "form" ? "No Sofix xD or Sorare projection for this game yet: its number is his recent form" : null;
+}

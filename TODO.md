@@ -16,6 +16,46 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Review board: six fixes (you, 10 Nov 2026)
+
+Your comments on the review board of every page (desktop and phone screenshots, 10 Nov 2026). The seventh, "Arcade image is
+taken before Sofix planned the climb", was about the board itself: Arcade got its own board, shot after the plan settles.
+Order: broken first (A), then what you use most (B to D), then the redesigns (E, F). Each step ships alone with its test, the
+page's spec and the 1440 + 390 px look.
+
+**A · Stats "Who sticks out" shows nothing (broken)**: "Whos sticks out no longer shows anything for some reason, find the reason and fix it".
+- Cause (found 10 Nov): the `stat_charts` block has had 0 players since 7 Nov. `stat_charts.refresh_people` asks Sorare who each
+  player is with one `anyPlayer` alias per player in one query; Sorare now refuses that ("Duplicated root field: anyPlayer",
+  reproduced with two slugs). Every batch fails into a logged warning, the people block stays `{}`, and `build` drops every
+  player with no name. The page then says "Nobody has three starts this season yet" for every window, which is also wrong.
+- Fix: ask for many players with one root field (Sorare's plural player lookup, checked against the schema first) or one
+  query per batch without repeated root fields; a failed lookup keeps the last known people instead of publishing an empty chart;
+  the empty message says what is missing rather than blaming starts. Check the other aliased queries for the same refusal.
+- Done when: a regression test feeds Sorare's refusal and the chart keeps its players; after the next league-history run the
+  block holds ~660 players and every window draws dots on /stats.
+
+**B · Arcade Pick teams: say why no team is built, and keep the five slots**: "the banner should say why the team is not built
+(If no game is selected it says something like 'Select games') and it should keep the 5 man team even if empty instead of nothing."
+- Each reason gets its own line: no game picked, games picked but too few of your cards play in them, no slot for a goalkeeper,
+  the start % not read yet. The pitch keeps its five slots, empty ones drawn as card-shaped spaces, so nothing moves when cards arrive.
+- Done when: the Arcade spec covers no game picked, too few cards and a built team, and the empty pitch has the full team's size.
+
+**C · Missions History is paginated**: "History list has to have pagination". Twelve days a page (owner's rule: more than 12
+items is paginated), Previous / Next with the page shown, the open editor kept on its day.
+
+**D · Audit Rewards, "Your lineups against the plan at lock": closed by default, paginated**: every gameweek's `<details>` starts
+closed (now `open`), twelve gameweeks a page, newest first.
+
+**E · Team page "Points per game" chart redesigned**: "very badly designed, redesign it." Redesign `TeamSeason.tsx`'s trend chart
+from the user's side (what the season's form looks like at a glance, each game readable, the league's average for scale), in
+Sofix's style, desktop and phone. A canvas first if it changes the layout around it.
+
+**F · Arcade's yellow alerts restyled**: "I don't like the yellow alerts change them to something more original and personalized,
+minimalistic and easy to see but it doesn't stick out". `.arc-note`, `.arc-advice`, `.arc-warn` and `.arc-dead` (amber fill/ink in
+`app/arcade.css`) become one quiet Sofix notice: neutral surface, a small coloured mark for its kind, the same type as the page.
+
+---
+
 ## Arcade: six fixes and features (you, 9 Nov 2026) · *done 10 Nov 2026*
 
 Your words: "1. The 40% play and 30% hold is very misleading, isn't it better to have a 100% bar and have both fighting for more %?

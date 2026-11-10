@@ -3,7 +3,7 @@
 import { memo, useCallback, useContext, useDeferredValue, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
-import { kickOf, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
+import { holdSplit, kickOf, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
 import { useClimb, type ClimbPlan } from "../../lib/climbClient";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
@@ -337,7 +337,20 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
     : "Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).";
   // Whether the lineup's start % will all be known before it is entered: its games kick off together (within the 75-minute window).
   const together = lineup ? Date.parse(lineup.last) - Date.parse(lineup.first) <= WINDOW_MS : true;
-  const share = (p: number | null) => Math.max(0.25, p ?? 0);
+  // One bar sharing 100% between Play and Hold by the prize the advice decides on (owner, 9 Nov 2026).
+  const split = holdSplit(v);
+  const prizeOf = (n: number) => boardSteps.find((s) => s.number === n)?.rewards.join(" + ") || `step ${n}`;
+  // A close split keeps a decimal, so 50.6 | 49.4 never reads as an even 50 | 50 beside a clear verdict.
+  const close = split && !split.tie && Math.abs(split.play - split.hold) < 0.05;
+  const sharePct = (x: number) => (close ? `${(x * 100).toFixed(1)}%` : pct(x));
+  const lineupsOf = (m: Move | null) => (m ? `${m.play} lineup${m.play === 1 ? "" : "s"}` : "");
+  const side = (name: "Play" | "Hold", m: Move | null, share: number, chance: number | null, pick: boolean) => (
+    <div className={`arc-split-side${pick ? " is-pick" : ""}`}>
+      <small>{name} <time>{m ? when(kickOf(m), now) : "—"}</time><em>{m ? `${m.play} lineup${m.play === 1 ? "" : "s"}` : name === "Hold" ? "No later lineup" : "No lineup"}</em></small>
+      <b>{sharePct(share)}</b>
+      <span className="arc-split-step">{chance === null ? "—" : `${pct(chance)} clears step ${current}`}</span>
+    </div>
+  );
   return (
     <section className={`arc-move is-${v.kind}`} aria-labelledby="arc-move-title" aria-busy={updating}>
       <div className="arc-move-main">
@@ -350,13 +363,15 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
         <h2 id="arc-move-title" className="arc-move-verdict">{title}</h2>
         <p className="arc-move-why">{why}</p>
         {waitingNote ? <p className="arc-warn">{waitingNote}</p> : null}
-        {v.kind !== "none" ? (
-          <figure className="arc-split">
-            <figcaption>Chance to clear step {current} ({target(current)} pts)</figcaption>
-            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"}: ${pct(playChance)} with ${playMove?.play ?? 0} lineups ${playMove ? `at ${when(kickOf(playMove), now)}` : "now"}, ${holdChance === null ? "no later lineup" : `${pct(holdChance)} with ${holdMove!.play} lineups from ${when(kickOf(holdMove!), now)}`}`}>
-              <span className={holdWins ? undefined : "is-pick"} style={{ flexGrow: share(playChance) }}><small>Play <time>{playMove ? when(kickOf(playMove), now) : "—"}</time><em>{playMove?.play ?? 0} lineup{playMove?.play === 1 ? "" : "s"}</em></small><b>{pct(playChance)}</b></span>
-              <span className={holdWins ? "is-pick" : undefined} style={{ flexGrow: share(holdChance) }}><small>Hold <time>{holdMove ? when(kickOf(holdMove), now) : "—"}</time><em>{holdMove ? `${holdMove.play} lineup${holdMove.play === 1 ? "" : "s"}` : "No later lineup"}</em></small><b>{holdChance === null ? "—" : pct(holdChance)}</b></span>
+        {v.kind !== "none" && split ? (
+          <figure className="arc-split" style={{ "--play": split.play } as CSSProperties}>
+            <figcaption>{split.tie ? "Near tie at every prize: playing is as good, and faster"
+              : `Who is likelier to win step ${split.step} (${prizeOf(split.step)}) by the set's end: Play ${pct(split.playChance)}, Hold ${pct(split.holdChance)}`}</figcaption>
+            <div role="img" className="arc-split-sides" aria-label={`${holdWins ? "Hold" : "Play"} advised. Play ${sharePct(split.play)}, Hold ${sharePct(split.hold)}${split.tie ? ", a near tie" : ` of the chances at step ${split.step}`}. This step: Play ${playMove ? `${pct(playChance)} with ${lineupsOf(playMove)} at ${when(kickOf(playMove), now)}` : "no lineup"}, Hold ${holdChance === null ? "no later lineup" : `${pct(holdChance)} with ${lineupsOf(holdMove)} from ${when(kickOf(holdMove!), now)}`}.`}>
+              {side("Play", playMove, split.play, playMove ? playChance : null, !holdWins)}
+              {side("Hold", holdMove, split.hold, holdChance, holdWins)}
             </div>
+            <div className="arc-split-track" aria-hidden="true"><span className={holdWins ? undefined : "is-pick"} /><span className={holdWins ? "is-pick" : undefined} /></div>
           </figure>
         ) : null}
         {move ? (

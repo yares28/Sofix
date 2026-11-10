@@ -161,6 +161,22 @@ export function comparePrizes(a: Reach, b: Reach, tie: number): number {
 }
 
 /**
+ * The Play | Hold bar (owner, 9 Nov 2026: "a 100% bar and have both fighting for more %"): the two sides share 100% by their chances at
+ * the prize the advice decides on, the biggest one where they differ by more than PLAY_TIE (comparePrizes). A tie splits evenly; null
+ * when neither side can win any prize.
+ */
+export function holdSplit(v: Pick<Verdict, "now" | "wait">): { step: number; play: number; hold: number; playChance: number; holdChance: number; tie: boolean } | null {
+  const top = Math.max(v.now.length, v.wait.length) - 1;
+  let tied: number | null = null;
+  for (let k = top; k >= 1; k--) {
+    const a = v.now[k] ?? 0, b = v.wait[k] ?? 0;
+    if (a + b > 0 && tied === null) tied = k;
+    if (Math.abs(a - b) > PLAY_TIE) return { step: k, play: a / (a + b), hold: b / (a + b), playChance: a, holdChance: b, tie: false };
+  }
+  return tied === null ? null : { step: tied, play: 0.5, hold: 0.5, playChance: v.now[tied] ?? 0, holdChance: v.wait[tied] ?? 0, tie: true };
+}
+
+/**
  * The plan from now to the last game Sorare lists. At every window, on every step, with every number of lives, it chooses between
  * playing 1 to `lives` lineups and holding, for the best chances at the prizes (`comparePrizes`). Lineups come from the window's own
  * games first: a wider span (the next 3 hours, the rest of the day, up to 26 hours) is used only when it is clearly better, because

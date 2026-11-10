@@ -62,7 +62,9 @@ the first chain step all say Fri 20 Nov 20:45 (they said "Fri 20:30" and 20:45);
 - The Play bar shows the window time (20:30) while "Enter before" shows the lineup's first kick-off (20:45). Fix: one time, the lineup's
   first kick-off, everywhere for the same move (bar, entry, chain node).
 
-**D · One 100% Play | Hold bar (point 1)**
+**D · One 100% Play | Hold bar (point 1)** · *done 9 Nov 2026. On your board it shows Hold 50.3% | Play 49.7% for step 5 (53% vs
+52% by the set's end): Thursday's 1% lineup costs one life and keeps the Fri 20 Nov one, so the advice to wait is close, and the bar
+now says so instead of 1% against 42%.*
 - Today: two independent chances to clear the step (Play 40%, Hold 31%), drawn as widths that do not add up.
 - New: one bar, Play and Hold sharing 100%, split by the number the advice actually decides on: `comparePrizes` reads the biggest prize
   first, so the share is each side's chance at the deciding prize, `now[k] / (now[k] + wait[k])`, with the prize named ("for the

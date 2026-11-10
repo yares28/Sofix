@@ -1714,22 +1714,22 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-10",
-        "note": "Dates (9 Nov): whenLabel gives the date beyond six days; a move's time is its lineups' first kick-off (kickOf) in the bar, entry, chain and outcomes; the verdict says now only for today",
+        "note": "Play | Hold bar (9 Nov): holdSplit shares 100% by the deciding prize (comparePrizes order, PLAY_TIE); caption gives both chances there; step chances stay beneath",
         "files": {
-          "frontend/lib/arcadeClimb.ts": "c6e7fffdca1f217c8e5bb501ce2f0655881610cccab86ad144ade07f6bcb970a",
+          "frontend/lib/arcadeClimb.ts": "9783768bb51f09b9619b19ade0b6e81b004f63f5bc6892bfb1042abf4c86d765",
           "frontend/lib/arcadePlan.ts": "af6426875e6beac143537e3133959262f7ca617ca2f40c7d8b23f44e97e38a1f",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "cbd403c2273270ddae6e52aabb9270c429c4f617dce496084c5599a3cef0cdb0",
+          "frontend/components/arcade/ArcadePlanner.tsx": "dcd6becab66a5cbd7bc010486b72f84f82eaf0840e38fe10a9365ba5ef7f2c16",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
-          "frontend/app/arcade-canvas.css": "35833ef6c996640d05fba699164e5d25c8900ec6a2b867ede86220bb69616e09",
+          "frontend/app/arcade-canvas.css": "21f7dbed5614c502003ae8dd3765387fde6afcbf2ef7eb5e1e72b5573a327338",
           "frontend/lib/arcadeTeams.ts": "f586d4ac14469d5fdbc02272989ba212a0e84d530739d127e31deb411a9b8646",
           "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
           "frontend/components/arcade/ArcadeBatch.tsx": "61a39850e308fedafd2619b5c8dab547151788cd7b51b7d5ad2315cdc9c61948",
-          "frontend/lib/arcadeClimb.test.ts": "90d68f72cf32a627d14277d806c39e9fd48d9cba70ccf7d29cd83f58d87fd9ca",
+          "frontend/lib/arcadeClimb.test.ts": "b330fdcc641ce3032b310c50f4e0224d5b9a389a14b2605538d2cfbe60a41a26",
           "frontend/lib/arcadePlan.test.ts": "e9fffaea0fc884eb04594e29b5012d8876f387dca9a76b16babd246d0aea5823",
           "frontend/lib/arcadeTeams.test.ts": "cf0d58177712224c0267c9fd5b1f1f397597e5b704f0035f0ea7713868d9e181",
           "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
-          "frontend/e2e/arcade.e2e.ts": "488d73ae781bd12a1ed233bcb09a7e04dc5f5a25a1cd9a8c9cd8369d3f05fe63"
+          "frontend/e2e/arcade.e2e.ts": "d88481e5b40c857e1f72622a74babb45a9ddbd925f59122053aa6cceddeef2ba"
         }
       }
     },

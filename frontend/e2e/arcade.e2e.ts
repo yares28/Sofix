@@ -332,8 +332,13 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   // One time for the move: the bar's Play time is the time to enter by.
   const enterBy = await move.locator(".arc-move-times span").filter({ hasText: "Enter before" }).locator("b").textContent();
   await expect(move.locator(".arc-split .is-pick time")).toHaveText(enterBy!);
-  await expect(move.locator(".arc-split")).toContainText("Chance to clear step 2 (300 pts)");
-  await expect(move.locator(".arc-split .is-pick")).toContainText("Play");
+  // One 100% bar (owner, 9 Nov 2026): no later game, so Play holds all of it; its own chance at this step sits beneath.
+  await expect(move.locator(".arc-split figcaption")).toContainText("Who is likelier to win step");
+  await expect(move.locator(".arc-split-side.is-pick")).toContainText("Play");
+  await expect(move.locator(".arc-split-side.is-pick > b")).toHaveText("100%");
+  await expect(move.locator(".arc-split-side").last().locator("b")).toHaveText("0%");
+  await expect(move.locator(".arc-split-side.is-pick .arc-split-step")).toHaveText(/^\d+% clears step 2$/);
+  await expect(move.locator(".arc-split-side").last()).toContainText("No later lineup");
   await expect(move.locator(".arc-lineup li")).toHaveCount(5); // the five to enter
   await expect(move.locator(".arc-art .arc-card-ratings .arc-card-fdr")).toHaveCount(5);
   await expect(move.locator(".arc-art .arc-card-ratings .arc-card-score")).toHaveCount(5);
@@ -352,7 +357,7 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   expect(await page.locator(".arc-detail .arc-lineup li").evaluateAll((items) => items.map((li) => ({ name: li.getAttribute("aria-label"), captain: !!li.querySelector(".arc-captain") })))).toEqual(team);
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    const bar = await move.locator(".arc-split > div").evaluate((el) => ({ width: el.getBoundingClientRect().width, parent: el.parentElement!.getBoundingClientRect().width, labels: [...el.querySelectorAll("small")].map((s) => ({ width: s.clientWidth, scroll: s.scrollWidth, nowrap: getComputedStyle(s).whiteSpace })) }));
+    const bar = await move.locator(".arc-split-sides").evaluate((el) => ({ width: el.getBoundingClientRect().width, parent: el.parentElement!.getBoundingClientRect().width, labels: [...el.querySelectorAll("small")].map((s) => ({ width: s.clientWidth, scroll: s.scrollWidth, nowrap: getComputedStyle(s).whiteSpace })) }));
     expect(bar.width).toBeGreaterThanOrEqual(bar.parent - 1);
     expect(bar.width).toBeGreaterThan(width === 390 ? 260 : 500);
     expect(bar.labels.every((l) => l.scroll <= l.width && l.nowrap === "nowrap")).toBe(true);
@@ -405,12 +410,17 @@ test("step one spends four resettable lives and keeps every insurance team ident
   const move = page.locator(".arc-move");
   await expect(move.getByRole("heading", { level: 2 })).toHaveText(`Play 4 lineups ${ON}`);
   await expect(move.locator(".arc-move-why")).toContainText("four fresh lives");
-  await expect(move.locator(".arc-split .is-pick")).toContainText("4 lineups");
+  await expect(move.locator(".arc-split-side.is-pick")).toContainText("4 lineups");
+  // The two shares fill the track: its two parts are as wide as their percentages.
+  const parts = await move.locator(".arc-split-track span").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width));
+  const shares = (await move.locator(".arc-split-side b").allTextContents()).map((s) => parseInt(s, 10) / 100);
+  expect(shares[0]! + shares[1]!).toBeCloseTo(1, 1);
+  expect(parts[0]! / (parts[0]! + parts[1]!)).toBeCloseTo(shares[0]!, 1);
   const signature = (selector: string) => page.locator(`${selector} .arc-lineup li`).evaluateAll((items) => items.map((li) => ({ name: li.getAttribute("aria-label"), captain: !!li.querySelector(".arc-captain"), score: li.querySelector(".arc-card-score")?.textContent })));
   const first = await signature(".arc-move");
   await page.locator(".arc-chain-node").first().click();
   expect(await signature(".arc-chain-detail")).toEqual(first);
-  await expect(page.locator(".arc-chain-node").first().locator("b")).toHaveText((await move.locator(".arc-split .is-pick > b").textContent())!);
+  await expect(move.locator(".arc-split-side.is-pick .arc-split-step")).toContainText((await page.locator(".arc-chain-node").first().locator("b").textContent())!);
   // Both outcomes are worked out off the page (the tap itself answers at once) and arrive in the buttons.
   const outcomes = page.getByRole("group", { name: "What comes next" });
   await expect(outcomes.getByRole("button")).toHaveCount(2);

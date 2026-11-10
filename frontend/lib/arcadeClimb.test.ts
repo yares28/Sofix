@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArcadeGame } from "./arcade";
-import { climbWindows, comparePrizes, kickOf, moments, quickChance, quickLineup, windowsOf, type Move } from "./arcadeClimb";
+import { climbWindows, comparePrizes, holdSplit, kickOf, moments, quickChance, quickLineup, windowsOf, type Move } from "./arcadeClimb";
 import { bestLineup, chanceOf, type Outlook } from "./arcadePlan";
 
 const game = (id: string, kickoff: string): ArcadeGame => ({ id, kickoff, status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: `${id}-h`, name: "H", crest: null }, away: { slug: `${id}-a`, name: "A", crest: null } });
@@ -176,5 +176,24 @@ describe("a move's time", () => {
     const move = { at: Date.parse("2026-11-20T19:30:00Z"), lineups: [lineup("2026-11-20T19:45:00Z"), lineup("2026-11-20T20:00:00Z")] } as Move;
     expect(kickOf(move)).toBe(Date.parse("2026-11-20T19:45:00Z"));
     expect(kickOf({ ...move, lineups: [] })).toBe(move.at);
+  });
+});
+
+describe("the Play | Hold bar", () => {
+  // 9 Nov 2026: "40% play and 31% hold is very misleading": one bar, Play and Hold sharing 100% by the prize that decides.
+  const verdict = (now: number[], wait: number[]) => ({ now: [0, ...now], wait: [0, ...wait] });
+  it("splits by the biggest prize where the two differ, the one the advice decides on", () => {
+    const split = holdSplit(verdict([1, 1, 0.6, 0.30, 0.10, 0.03], [1, 1, 0.5, 0.25, 0.08, 0.01]));
+    expect(split).toMatchObject({ step: 6, play: 0.75, hold: 0.25, playChance: 0.03, holdChance: 0.01 });
+  });
+  it("skips prizes within half a point and goes down to the next", () => {
+    expect(holdSplit(verdict([1, 0.6, 0.3, 0.012], [1, 0.4, 0.3, 0.010]))).toMatchObject({ step: 2, play: 0.6, hold: 0.4 });
+  });
+  it("is an even split marked as a tie when no prize differs, and nothing when neither can win anything", () => {
+    expect(holdSplit(verdict([1, 0.5, 0.2], [1, 0.5, 0.198]))).toMatchObject({ tie: true, play: 0.5, hold: 0.5 });
+    expect(holdSplit(verdict([0, 0, 0], [0, 0, 0]))).toBeNull();
+  });
+  it("gives Play everything when holding wins nothing", () => {
+    expect(holdSplit(verdict([0.4, 0.1], [0, 0]))).toMatchObject({ step: 2, play: 1, hold: 0 });
   });
 });

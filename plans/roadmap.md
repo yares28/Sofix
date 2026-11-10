@@ -14,10 +14,6 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
-9 Nov, first: **Arcade, six fixes and features** ([TODO.md](../TODO.md) "Arcade: six fixes and features"), one at a time:
-~~A FDR to the set's end~~ (done 9 Nov), ~~B national-team games everywhere~~ (done 9 Nov, extension 0.4.67), ~~C dates that read wrong~~ (done 9 Nov), ~~D one 100% Play | Hold bar~~ (done 9 Nov), ~~E Pick teams starts
-empty~~ (done 9 Nov), ~~F chain switch Fastest | Surest~~ (done 10 Nov), G ten consistency fixes across the tabs (G1 one FDR form, G2 horizons, G3 Batch skips windows without your cards, G4 one aim, G5 the ladder's week and a step's top 5, G6 the start % note, G7 Batch's empty text, G8 one name per league, G9 old saved data cleared, done 10 Nov).
-
 30 Oct owner priority: **two independent copies, each fast and responsive**
 ([current plan](independent-installs-performance.md), [setup](../docs/independent-install.md)). Each person has their own
 Vercel/Neon/R2 and enters one Sorare username. The shared ten-account proposal is superseded. Explicit installation
@@ -609,6 +605,13 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+10 Nov: **Arcade, six fixes and features: done** ([TODO.md](../TODO.md) "Arcade: six fixes and features"). A to E on 9 Nov (FDR to the
+set's end, national-team games everywhere, dates, one 100% Play | Hold bar, Pick teams starts empty). F: the chain's Fastest | Surest
+switch. G: one FDR form, Teams to build around's next four days with games, Batch skips windows without your cards, one aim, the
+ladder's next 7 days with each step's five likeliest lineups (your change), the start % note, Batch's empty text, one name per league,
+ended sets' saved data cleared (0.5 M characters freed), and the hydration warning answered: it is Next 15.5.28's own metadata
+wrapper on every page, not Arcade's. Each checked on your real board in Chrome; the Arcade spec passes 27 of 27.
 
 2 Nov: **all Neon projects into one.** Sofix D (live) got 2,228 read models (newest write wins), 79 refresh runs and 837 player
 games from Sofix C (20–25 Oct) and Sofix (12–14 Oct), all uploaded to R2; FDR and Sofix B held nothing more. The refresh's

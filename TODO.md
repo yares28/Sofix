@@ -16,7 +16,7 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
-## Arcade: six fixes and features (you, 9 Nov 2026)
+## Arcade: six fixes and features (you, 9 Nov 2026) · *done 10 Nov 2026*
 
 Your words: "1. The 40% play and 30% hold is very misleading, isn't it better to have a 100% bar and have both fighting for more %?
 2. Cards have no fdr 3. Have a switch button in the chain section that lets me switch current chain to show all lineups with +15% of
@@ -122,7 +122,9 @@ kept the other chain's scroll.*
    past their 6 hours; your browser went from 2.71 M to 2.20 M characters (glitch extras 421 kB, old Divination extras 93 kB). The
    rest is today's cards (546 k) and the last read's copy (675 k), both in use.* Old sets' saved data never leaves this browser (glitch extras 420 kB, old Pick teams and start % keys): localStorage was 2.5 M
    characters full, so the saved climb had to move to IndexedDB. Remove keys of ended sets on load.
-10. Dev console: a hydration mismatch on /arcade (metadata boundary); find whether it is Arcade's and fix it if so.
+10. *Answered 10 Nov 2026, not Arcade's: the same mismatch shows on the home page, inside Next 15.5.28's own
+   `__next_metadata_boundary__` (server `display: contents`, client `hidden` + Suspense); our pages export only a static title. No
+   change made.* Dev console: a hydration mismatch on /arcade (metadata boundary); find whether it is Arcade's and fix it if so.
 - Done when: each item is fixed or answered on the real page at 1440 and 390 px, and the Arcade spec covers the date, FDR and
   aim rules.
 

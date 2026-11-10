@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { baseScore, bonusPercent, batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, noStartNote, type Outlook } from "./arcadePlan";
+import { baseScore, bonusPercent, partialFive, batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, noStartNote, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
@@ -70,6 +70,19 @@ describe("the chance a lineup reaches a target", () => {
     expect(chance).toBeGreaterThan(0.45);
     expect(chance).toBeLessThan(0.55);
     expect(chanceOf(simulate(picks, 0), 300)).toBe(chance);
+  });
+});
+
+describe("a five that cannot be completed (owner, 10 Nov 2026: fill what you can, keep the rest empty)", () => {
+  it("puts the best card that fits in each slot it can fill, once per player, and leaves the others empty", () => {
+    const five = partialFive([
+      outlook("fwd", ["Forward"], 70, 1), outlook("mid", ["Midfielder"], 50, 1), outlook("fwd2", ["Forward"], 40, 1),
+      outlook("fwd", ["Forward"], 90, null), // the same player again: counted once
+    ]);
+    expect(five.map((p) => [p.slot, p.outlook?.card.player ?? null])).toEqual([["GK", null], ["DEF", null], ["MID", "mid"], ["FWD", "fwd"], ["EXTRA", "fwd2"]]);
+  });
+  it("is all empty with no card", () => {
+    expect(partialFive([]).every((p) => p.outlook === null)).toBe(true);
   });
 });
 

@@ -11,7 +11,7 @@ import { FdrContext } from "./Fdr";
 import { fdrOf, leagueLabel } from "../../lib/arcadeFdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
-import { aimStep, noStartNote, SLOTS, bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
+import { aimStep, noStartNote, partialFive, SLOTS, bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Slot, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
@@ -116,15 +116,24 @@ const SPOT: Record<string, [number, number]> = { FWD: [32, 17], EXTRA: [72, 22],
 
 /** The lineup on a pitch: the card art where each slot stands, its points and start %. With no lineup, the same pitch keeps its five
  * empty slots and says why no team is built (owner, 10 Nov 2026), so nothing moves when the cards arrive. */
-function Pitch({ lineup, captainBonus, title }: { lineup: Lineup | null; captainBonus: number; title: string }) {
+function Pitch({ lineup, partial = [], captainBonus, title }: { lineup: Lineup | null; partial?: { slot: Slot; outlook: Outlook | null }[]; captainBonus: number; title: string }) {
   if (!lineup) return (
     <div className="arc-pitch is-empty">
       <div className="arc-pitch-lines" aria-hidden="true" />
       <div className="arc-pitch-head"><b className="arc-pitch-why" role="status">{title}</b></div>
-      <ol aria-label="Empty team">
+      <ol aria-label="Team so far">
         {SLOTS.map((slot, i) => {
           const [left, top] = SPOT[slot] ?? [50, 50];
-          return <li key={slot} data-slot={slot} style={{ left: `var(--pitch-x, ${left}%)`, top: `${top}%`, "--i": i } as CSSProperties}><i className="arc-slot-empty" aria-hidden="true" /><span><b>{SLOT[slot] === "Extra" ? "+1" : slot}</b></span></li>;
+          const o = partial.find((p) => p.slot === slot)?.outlook ?? null;
+          return (
+            <li key={slot} data-slot={slot} aria-label={o ? o.card.name : `${SLOT[slot]}: empty`} style={{ left: `var(--pitch-x, ${left}%)`, top: `${top}%`, "--i": i } as CSSProperties}>
+              {o ? (o.card.picture
+                // eslint-disable-next-line @next/next/no-img-element -- Sorare's card art, as on the other pages
+                ? <img src={o.card.picture} alt={o.card.name} width={96} height={155} loading="lazy" />
+                : <div className="arc-card-blank">{o.card.name}</div>) : <i className="arc-slot-empty" aria-hidden="true" />}
+              <span><b>{SLOT[slot] === "Extra" ? "+1" : slot}</b>{o ? <> ~{pts(predicted(o) ?? 0)} <small>{o.start === null ? "no %" : pct(o.start)}</small></> : null}</span>
+            </li>
+          );
         })}
       </ol>
     </div>
@@ -183,6 +192,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
   // The ticket flips at once; the five follow when worked out (a second with 200 games picked on 9 Nov 2026).
   const pending = useDeferredValue(chosen);
   const lineup = useMemo(() => preset ?? bestLineup([...pending].flatMap((id) => outlooks.get(id) ?? []).filter((o) => !busy.has(o.card.slug)), target, captainBonus), [pending, outlooks, target, captainBonus, busy, preset]);
+  const partial = useMemo(() => (lineup ? [] : partialFive([...pending].flatMap((id) => outlooks.get(id) ?? []).filter((o) => !busy.has(o.card.slug)))), [lineup, pending, outlooks, busy]);
   const five = (l: Lineup | null) => (l ? l.picks.map((p) => p.outlook.card.slug).sort().join() : "");
   // The last tap, so one that leaves the five as they were says so instead of looking broken.
   const [tap, setTap] = useState<{ name: string; added: boolean; before: string } | null>(null);
@@ -270,7 +280,8 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
         </div>
       ) : (
         <div className="arc-pitch-wrap">
-          <Pitch lineup={null} captainBonus={captainBonus} title={chosen.size ? "These games cannot fill a goalkeeper, defender, midfielder, forward and one more outfield card from your free cards." : "Pick at least one game."} />
+          {/* Fill what the games can, keep the rest empty (owner, 10 Nov 2026); the line names only what is missing. */}
+          <Pitch lineup={null} partial={partial} captainBonus={captainBonus} title={!chosen.size ? "Pick at least one game." : `No ${partial.filter((p) => !p.outlook).map((p) => SLOT[p.slot]!.toLowerCase()).join(", ")} in these games`} />
         </div>
       )}
     </div>

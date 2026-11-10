@@ -63,6 +63,20 @@ export function predicted(o: Outlook, captain = false, captainBonus = 0): number
   return o.score * (o.start ?? 1) * multiplier(o, captain, captainBonus);
 }
 
+/**
+ * When no full five can be built from the games picked (owner, 10 Nov 2026): each slot in turn takes the best card that fits, likely
+ * starters first and each player once; a slot no card fits stays empty (null). Nothing is simulated: it cannot be entered as it is.
+ */
+export function partialFive(outlooks: Outlook[]): { slot: Slot; outlook: Outlook | null }[] {
+  const ranked = outlooks.filter((o) => predicted(o) !== null).sort((a, b) => Number(likely(b)) - Number(likely(a)) || predicted(b)! - predicted(a)!);
+  const used = new Set<string>();
+  return SLOTS.map((slot) => {
+    const o = ranked.find((c) => !used.has(c.card.player) && fits(c.card, slot)) ?? null;
+    if (o) used.add(o.card.player);
+    return { slot, outlook: o };
+  });
+}
+
 /** What a card shows (owner, 10 Nov 2026): his projection × start chance, no bonus; the bonus is printed apart by bonusPercent. */
 export const baseScore = (o: Outlook): number | null => (o.score === null ? null : o.score * (o.start ?? 1));
 

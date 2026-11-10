@@ -587,6 +587,22 @@ test("Pick teams starts empty, every pick shows across pages, and a tap that lea
   await expect(picker.getByRole("button", { name: "Picked (1)", exact: true })).toBeVisible();
 });
 
+test("games that cannot fill five put the cards they can on the pitch and keep the other slots empty", async ({ page }) => {
+  // Owner, 10 Nov 2026: "just fill and keep empty where you can't fill".
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page, pickerAnswers(), "0.4.18");
+  await page.goto("/arcade");
+  const picker = page.locator(".arc-plan");
+  await picker.getByRole("button", { name: "Next page" }).click();
+  await picker.getByRole("group", { name: "Games to pick from", exact: true }).getByRole("button", { name: /Club 13 v Rival 13/ }).click(); // one forward
+  const pitch = picker.locator(".arc-pitch.is-empty");
+  await expect(pitch.locator("li")).toHaveCount(5);
+  await expect(pitch.locator("li[data-slot=FWD] img, li[data-slot=FWD] .arc-card-blank")).toHaveCount(1);
+  await expect(pitch.locator(".arc-slot-empty")).toHaveCount(4);
+  await expect(pitch.getByRole("status")).toHaveText("No goalkeeper, defender, midfielder, extra in these games");
+  await expect(picker).not.toContainText("cannot fill a goalkeeper");
+});
+
 test("the club row flanks all teams with arrows while the bigger pitch, compact chances and game matrix remember selections", async ({ page }) => {
   const answers = pickerAnswers();
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));

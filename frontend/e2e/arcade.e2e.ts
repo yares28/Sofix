@@ -138,6 +138,9 @@ test("Arcade shows the step you are on, its target, reward and lineups left, you
   await expect(step).toContainText("10 gems");
   await expect(page.locator(".arc-move .arc-lives")).toHaveAttribute("aria-label", "3 of 4 lives");
   await expect(page.locator(".arc-move .arc-lives")).toHaveText("3 lives left"); // words: four dots beside "Step 4" read as steps
+  // The set's end leads the wallet row; a read that worked says nothing (owner, 10 Nov 2026).
+  await expect(page.locator(".arc-wallet .arc-ends dt")).toContainText("ends");
+  await expect(page.locator(".arc-main")).not.toContainText("Your board as read");
   await expect(page.locator(".arc-wallet")).toContainText("3,200");
   await show(page, "Players");
   await expect(page.locator(".arc-grid .arc-card").first()).toHaveAttribute("aria-label", "Defender Three");
@@ -316,6 +319,9 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   await expect(page.locator(".arc-grid .arc-card-score b")).toHaveText("30");
   await show(page, "Play now");
   await expect(page.locator(".arc-plan")).toContainText("Pick at least one game."); // nothing picked for you
+  // The empty pitch keeps its five card-shaped spaces and says why it is empty.
+  await expect(page.locator(".arc-pitch.is-empty .arc-slot-empty")).toHaveCount(5);
+  await expect(page.locator(".arc-pitch.is-empty [role=status]")).toHaveText("Pick at least one game.");
   await page.getByRole("group", { name: "Games to pick from" }).getByRole("button").click();
   await expect(page.locator(".arc-pitch li")).toHaveCount(5); // the five on the pitch
   await expect(page.locator(".arc-scale-tick.is-aim")).toContainText("Step 2");
@@ -1024,7 +1030,7 @@ test("coming back to the tab after opening packs reads your cards again, at most
   await page.clock.install();
   await withExtension(page);
   await page.goto("/arcade");
-  await expect(page.locator(".arc-wallet")).toContainText("6");
+  await expect(page.locator(".arc-wallet > div").last().locator("dd")).toHaveText("6");
   const cards = (ANSWERS["arcade-cards"] as { currentUser: { cards: { nodes: Record<string, unknown>[] } } }).currentUser.cards;
   const pack = { ...cards, nodes: [
     { ...cards.nodes[0], slug: "new-card", anyPlayer: { slug: "n", displayName: "Packed Player" } }, // a card from today's pack
@@ -1035,10 +1041,10 @@ test("coming back to the tab after opening packs reads your cards again, at most
   const back = () => page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   await back(); // under 3 minutes: no new read
   await page.waitForTimeout(300);
-  await expect(page.locator(".arc-wallet")).not.toContainText("7");
+  await expect(page.locator(".arc-wallet > div").last().locator("dd")).toHaveText("6");
   await page.clock.fastForward("03:01");
   await back();
-  await expect(page.locator(".arc-wallet")).toContainText("7"); // the packed card counts; the other set's does not
+  await expect(page.locator(".arc-wallet > div").last().locator("dd")).toHaveText("7"); // the packed card counts; the other set's does not
   await show(page, "Players");
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("packed");
   await expect(page.locator(".arc-count")).toHaveText("1–1 of 1");

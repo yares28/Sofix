@@ -131,10 +131,11 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
   return (
     <FdrContext.Provider value={boards}>
       <header className="arc-hero">
-        <p className="arc-kicker">{arcade.set.name} · {setEnded(arcade) ? "ended" : "ends"} {madrid(arcade.set.end)}</p>
         <div className="arc-hero-top">
           <h1>{current === null ? "No step started" : `Step ${current}`}{arcade.board ? ` of ${arcade.board.steps.length}` : ""}{step && current !== null ? <span> · {step.target.toLocaleString("en-GB")} pts</span> : null}</h1>
           <dl className="arc-wallet">
+            {/* The set's end leads the row, as large as the wallet (owner, 10 Nov 2026: the end date is important). */}
+            <div className="arc-ends"><dt>{arcade.set.name} {setEnded(arcade) ? "ended" : "ends"}</dt><dd>{madrid(arcade.set.end)}</dd></div>
             <div><dt>Gems</dt><dd>{count(arcade.gems)}</dd></div>
             <div><dt>Essence</dt><dd>{count(arcade.essence)}</dd></div>
             <div><dt>{arcade.set.name} commons</dt><dd>{arcade.cards.length.toLocaleString("en-GB")}{arcade.cardsCut ? "+" : ""}</dd></div>
@@ -175,8 +176,8 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
           </p>
         ) : null}
       </section>
-      {unread.length ? <p className="arc-note" role="status">Not read this time: {unread.join(", ")}.</p> : null}
-      {arcade.cards.length && arcade.cards.every((c) => c.nation === undefined) ? <p className="arc-note" role="status">National-team games need extension {ARCADE_NATION_VERSION}: reload it on chrome://extensions.</p> : null}
+      {unread.length ? <p className="arc-note is-warn" role="status">Not read this time: {unread.join(", ")}.</p> : null}
+      {arcade.cards.length && arcade.cards.every((c) => c.nation === undefined) ? <p className="arc-note is-warn" role="status">National-team games need extension {ARCADE_NATION_VERSION}: reload it on chrome://extensions.</p> : null}
       <p className="arc-read-state" role="status">
         {extras === "reading" ? "Reading projections, past scores and club bonuses from Sorare…"
           : extras === null ? `Predictions need extension ${ARCADE_PLAN_VERSION}: reload it on chrome://extensions. Until then cards are scored on nothing.`
@@ -253,12 +254,11 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
             <p className="arc-note" role="status">
               {board.arcade.set.name} has ended: your last board{at ? `, as read ${at}` : ""}. {read === null ? "Asking Sorare for the next set…" : read.state === "no-set" ? "The next set shows here as soon as Sorare opens it." : read.state === "ok" ? null : whyNot(read)}
             </p>
-          ) : at ? (
-            <p className="arc-note" role="status">
-              {read === null || read.state === "ok" ? `Your board as read ${at}; asking Sorare for what changed…` : `Your board as read ${at}. ${whyNot(read)}`}
-            </p>
+          ) : at && read && read.state !== "ok" && read.state !== "chrome-copy" ? (
+            // Only a read that failed is worth a line; "as read at…" and "copied from your Chrome" said nothing to act on (owner, 10 Nov 2026).
+            <p className="arc-note is-warn" role="status">Your board as read {at}. {whyNot(read)}</p>
           ) : null}
-          {!ended && !at && read && read.state !== "ok" ? <p className="arc-note" role="status">{whyNot(read)} Showing the last successful read.</p> : null}
+          {!ended && !at && read && read.state !== "ok" ? <p className="arc-note is-warn" role="status">{whyNot(read)} Showing the last successful read.</p> : null}
           <Loaded arcade={board.arcade} unread={board.unread} laliga={laliga} fdr={fdr} onReload={() => void load()} busy={busy} />
         </>
       ) : (

@@ -1,7 +1,17 @@
 /* Arcade (plans/set.md, step 1): the read, shown plainly. Scoped to .arc-main. */
 .arc-main { max-width: 1600px; margin: 0 auto; padding: 24px 24px 64px; color: var(--ink); }
-.arc-kicker { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
-.arc-note { font-size: var(--text-sm); color: var(--amber-ink, #8a5a00); background: var(--amber-bg, #fff5e0); border-radius: 12px; padding: 10px 14px; }
+/* Notices (owner, 10 Nov 2026: no yellow boxes): one quiet line led by a signal dot, like the top bar's status light.
+   Grey for information, amber with a halo for a problem (is-warn, .arc-warn), blue for advice to act on (.arc-advice). */
+.arc-main { --arc-heads-up: #e3a008; --arc-dot: var(--ink-3); }
+.arc-note, .arc-advice, .arc-warn { display: block; position: relative; padding: 0 0 0 17px; background: none; font-size: var(--text-sm); line-height: 1.45; color: var(--ink-2); }
+.arc-note::before, .arc-advice::before, .arc-warn::before { content: ""; position: absolute; left: 0; top: calc(0.725em - 3.5px); width: 7px; height: 7px; border-radius: 50%; background: var(--arc-dot); }
+.arc-note.is-warn, .arc-warn { --arc-dot: var(--arc-heads-up); color: var(--ink); }
+.arc-advice, .arc-warn { margin: 0; }
+.arc-advice { --arc-dot: var(--accent); }
+.arc-note.is-warn::before, .arc-warn::before, .arc-advice::before { box-shadow: 0 0 0 3px color-mix(in srgb, var(--arc-dot) 22%, transparent); animation: arc-signal 900ms cubic-bezier(.16, 1, .3, 1) both; }
+/* A problem or a piece of advice arriving lights its dot once, so the change is seen without a box around it. */
+@keyframes arc-signal { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--arc-dot) 60%, transparent); transform: scale(.4); } }
+@media (prefers-reduced-motion: reduce) { .arc-note::before, .arc-advice::before, .arc-warn::before { animation: none; } }
 .arc-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px 18px; margin-bottom: 24px; }
 .arc-card { margin: 0; text-align: center; container: arcade-player / inline-size; }
 .arc-card img, .arc-card-blank { width: 100%; height: auto; aspect-ratio: 120 / 194; border-radius: 10px; display: block; }
@@ -77,8 +87,6 @@
 .arc-climb li { display: grid; gap: 2px; min-width: 88px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface, transparent); }
 .arc-climb li span, .arc-climb li small { color: var(--ink-2); font-size: var(--text-xs, 12px); }
 .arc-climb li b { color: var(--ink); font-size: 24px; font-variant-numeric: tabular-nums; }
-.arc-advice { margin: 0; font-size: var(--text-sm); color: var(--ink-2); padding: 10px 14px; border-radius: 12px; background: var(--amber-bg, #fff5e0); }
-.arc-advice.is-play { background: var(--hover); }
 .arc-advice b { color: var(--ink); }
 .arc-days .arc-branch-back { border-style: dashed; }
 .arc-outcomes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 8px; }
@@ -91,8 +99,7 @@
 .arc-schedule > li:first-child { border-top: 0; padding-top: 0; }
 .arc-when { margin: 0; font-size: var(--text-base); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
 .arc-when span { color: var(--ink-2); font-size: var(--text-sm); }
-.arc-warn, .arc-sub { margin: 0; font-size: var(--text-sm); }
-.arc-warn { color: var(--amber-ink, #8a5a00); }
+.arc-sub { margin: 0; font-size: var(--text-sm); }
 .arc-sub { color: var(--ink-2); }
 /* Step 5: packs */
 .arc-packs h2 { font-size: var(--text-md); margin: 24px 0 10px; }
@@ -110,8 +117,8 @@
 .arc-small:disabled { opacity: 0.6; cursor: default; }
 .arc-live-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .arc-live-list > li { background: var(--surface); box-shadow: var(--shadow-card); border-radius: 16px; padding: 14px 16px; display: grid; gap: 8px; }
-.arc-live-list > li.is-dead { outline: 2px solid var(--amber-ink, #8a5a00); }
-.arc-dead { color: var(--amber-ink, #8a5a00); }
+.arc-live-list > li.is-dead { outline: 1px solid var(--arc-heads-up); }
+.arc-dead { color: var(--ink); }
 .arc-live-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 16px; font-size: var(--text-sm); }
 .arc-live-cards li { display: flex; justify-content: space-between; gap: 8px; color: var(--ink); }
 .arc-live-cards li span:last-child { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -126,6 +133,7 @@
 .arc-wallet div { background: var(--surface); box-shadow: var(--shadow-card); border-radius: 14px; padding: 8px 14px; min-width: 92px; }
 .arc-wallet dt { font-size: var(--text-xs); color: var(--ink-2); }
 .arc-wallet dd { margin: 0; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.arc-wallet .arc-ends dd { white-space: nowrap; }
 .arc-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .arc-step { display: flex; flex-direction: column; gap: 4px; background: var(--surface); box-shadow: var(--shadow-card); border-radius: 14px; padding: 10px 12px; font-size: var(--text-sm); min-width: 0; }
 .arc-step strong { font-variant-numeric: tabular-nums; }

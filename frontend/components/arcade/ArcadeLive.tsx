@@ -51,14 +51,14 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus, actions }: 
   const infos = useMemo(() => steps.map((s) => ({ number: s.number, target: s.target, lives: s.lineups?.remaining ?? 4, big: bigReward(s.rewards) })), [steps]);
 
   const action = actions ? createPortal(<ArcadeAction label="Refresh scores" kind="scores" onClick={() => void refresh()} busy={state === "reading"} />, actions) : null;
-  if (!open.length) return <>{action}{state === "failed" ? <p className="arc-note" role="status">Sorare did not answer; scores could not be refreshed.</p> : null}</>;
+  if (!open.length) return <>{action}{state === "failed" ? <p className="arc-note is-warn" role="status">Sorare did not answer; scores could not be refreshed.</p> : null}</>;
   return (
     <>{action}
     <section className="arc-live" aria-labelledby="arc-live-title">
       <div className="arc-plan-head">
         <h2 id="arc-live-title">Your lineups on Sorare</h2>
       </div>
-      {state === "failed" ? <p className="arc-note" role="status">Sorare did not answer; the scores below are from the last read.</p> : null}
+      {state === "failed" ? <p className="arc-note is-warn" role="status">Sorare did not answer; the scores below are from the last read.</p> : null}
       <ul className="arc-races">
         {open.map(({ step, lineup }, index) => {
           const verdict = liveLineup(lineup.cards, step.target, find(lineup), now);

@@ -1714,14 +1714,14 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-10",
-        "note": "10 Nov 2026: Your move titled Play next, lives in words, bar shows shares and Hold date only (counts and chances in its accessible label), reason and times lines removed; cards show base xScore (no bonus) above FDR with one bonus % at lower right. Planner logic unchanged.",
+        "note": "10 Nov 2026: Pick teams with no team keeps the pitch's five empty slots and its reason; set end date moved into the wallet row; info notices removed, problem notices restyled as an amber-dot line. Planner logic unchanged.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "cc33d2707e00d9a7e9f1d7f0dad46c045b4ece724bd69ab9ba0e665d1af9d527",
           "frontend/lib/arcadePlan.ts": "b23b13109e74a335032de3f4298f3b53f11b6859bfcb65ec22824b0e02a3badd",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "718f4191b75ebfe4344daede1bc2aad40728585c9b2e1f39d75d2d05ad7bbf99",
+          "frontend/components/arcade/ArcadePlanner.tsx": "28e4071bbce8b42abc3419975cc95dd7c8f7a0039dad7752513802078eb8db9b",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
-          "frontend/app/arcade-canvas.css": "e494dbab95a9f504c75af04dfd674ced23b1703adf2798ecda27fa2a50a20afa",
+          "frontend/app/arcade-canvas.css": "5a3438f88e7ae2bc2dbfa8e32b2e51a7f69ddd6b52338877478b4c8a9e8f5312",
           "frontend/lib/arcadeTeams.ts": "a6ee5032672dd5b7fe2187295d99ac40655ca51832f40e4a87d268165848c9c7",
           "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
           "frontend/components/arcade/ArcadeBatch.tsx": "bcf0b26f431552889828ba2590f3efd3e85a5be2c3c0b23383b0d5c7fe466f65",
@@ -1729,7 +1729,7 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/arcadePlan.test.ts": "b0fb19497b5c79bc2ca71030affaee74752616156604d968d318a4c8a5794283",
           "frontend/lib/arcadeTeams.test.ts": "54b59af0e303b3509d3f8c029898c19c4c23c670966e2e0491a31739d62a1873",
           "frontend/lib/arcadeBatch.test.ts": "fbe2c290fb26f8e17378ada47be6a5ebe724789a1395dae2a4e5840e301d236c",
-          "frontend/e2e/arcade.e2e.ts": "88afc7b8dcb06c24d3a939f02feefc851a4f09ba134bd5c7fd16fb351e0f098c"
+          "frontend/e2e/arcade.e2e.ts": "02d404a358b0012554ab01b2f246f6bf2b4945015d4db65b91ed26fbe65d2bfe"
         }
       }
     },

@@ -107,7 +107,10 @@ kept the other chain's scroll.*
    days. Batch marks windows with no card of yours and skips them by default.
 4. *Done 10 Nov 2026: one aim per set and board, saved once; checked on your page (Batch to step 5 showed in Pick teams, and back
    to 4).* Two "Aim at" pickers with separate saved values (Pick teams and Batch): one shared aim.
-5. Chances on different bases side by side with no label: the ladder's "91%" (step 4 by the set's end) beside the bar's 40% (this
+5. *Done 10 Nov 2026, as you asked instead: the ladder is the chance within the next 7 days ("Next 7 days"; your board: step 4
+   25%, steps 5 and 6 0%, from 97 / 53 / 6% by the set's end), and a tapped step lists its five likeliest lineups that week (step 4:
+   14, 14, 13, 11, 9%) with Edit in Pick teams. The bar and entry already say what their chances are ("clears step 4", "ready for").*
+   Chances on different bases side by side with no label: the ladder's "91%" (step 4 by the set's end) beside the bar's 40% (this
    lineup). Each says what it is in a word ("by 6 Jan", "this lineup").
 6. "5 of 5 have no start % yet" eleven days out reads as an error: say when Sorare usually gives it (days before kick-off).
 7. Batch's empty text blames "available players with scores" for windows with no card of yours.

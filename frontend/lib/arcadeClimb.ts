@@ -1,4 +1,4 @@
-import { batchChances, bestLineup, fits, likely, madridDate, multiplier, phi, predicted, simulation, RUNS, SETTLES_AFTER_MS, SLOTS, type Lineup, type LineupSearchCache, type Outlook, type Slot, type StepInfo } from "./arcadePlan";
+import { batchChances, bestLineup, chanceOf, fits, likely, madridDate, multiplier, phi, predicted, simulation, RUNS, SETTLES_AFTER_MS, SLOTS, type Lineup, type LineupSearchCache, type Outlook, type Slot, type StepInfo } from "./arcadePlan";
 
 /**
  * The climb, as Sorare's board really runs (plans/arcade-rework.md, read 29 Oct 2026): a lineup is entered on the step you are on,
@@ -42,6 +42,7 @@ const LONG_SHOT_TIE = 0.03;
  * sacrificing speed"): a step waits for the nearest window whose best lineup beats the Fastest chain's chance by this much (15 points).
  */
 export const SUREST_GAIN = 0.15;
+const WEEK_MS = 7 * 86_400_000;
 
 export type Window = { at: number; list: Outlook[] };
 
@@ -150,6 +151,8 @@ export type Climb = {
   /** Chance to clear each step at least once by the last known game, playing the plan. */
   odds: Record<number, number>;
   verdict: Verdict;
+  /** The ladder's numbers: each step's chance within the next 7 days (until), and its five likeliest lineups in them. */
+  week: { until: number; odds: Record<number, number>; best: Record<number, Move[]> };
   /** The Surest chain: step by step from the step you are on, each step's surest nearby window (SUREST_GAIN). */
   surest: Move[];
   /** The path after a played move's outcome, by the Fastest rule or, with `surest`, the Surest one. */
@@ -250,10 +253,12 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
   };
 
   type Choice = { reach: Reach; to: number; play: number; clear: number; next: number; settles: number; lineups: Lineup[]; list: Outlook[] };
+  // The plan over the windows before `end`: all of them for the climb, the next 7 days' for the ladder (owner, 10 Nov 2026).
+  const solver = (end: number) => {
   const memo = new Map<string, Choice>();
   const value = (i: number, n: number, lives: number, best: number): Choice => {
     const hold: Choice = { reach: done(best), to: i, play: 0, clear: 0, next: i + 1, settles: 0, lineups: [], list: [] };
-    if (i >= W) return hold;
+    if (i >= end) return hold;
     // The top cleared: that prize is won, and the climb starts again from step 1 for the next one (every clear pays again).
     if (best >= top) return { ...value(i, n, lives, 0), reach: done(top) };
     const key = `${i}:${n}:${lives}:${best}`;
@@ -262,8 +267,8 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     let choice: Choice = { ...hold, reach: value(i + 1, n, lives, best).reach };
     // The chance of the next lineup the plan would play if this window is held.
     let nextShot = 0;
-    for (let j = i + 1; j < W;) { const c = value(j, n, lives, best); if (c.play) { nextShot = c.clear; break; } j = c.next; }
-    for (const leg of legsFrom(i)) {
+    for (let j = i + 1; j < end;) { const c = value(j, n, lives, best); if (c.play) { nextShot = c.clear; break; } j = c.next; }
+    for (const leg of legsFrom(i).filter((l) => l.to < end)) {
       const ranked = teamsFor(i, leg, n);
       let settles = 0;
       for (let k = 1; k <= Math.min(lives, ranked.length); k++) {
@@ -285,8 +290,34 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     memo.set(key, choice);
     return choice;
   };
+  return value;
+  };
+  const value = solver(W);
 
   const startBest = start.best ?? start.step - 1;
+
+  /**
+   * The ladder's week (owner, 10 Nov 2026): each step's chance to be cleared using only the next 7 days' games, and its five likeliest
+   * distinct lineups in them, from every window's own games and wider spans, insurance teams included (cards held stay out).
+   */
+  const until = now + WEEK_MS;
+  const weekEnd = firstAfter(until, 0);
+  const weekOdds = (W ? solver(weekEnd)(0, start.step, start.lives, startBest).reach : done(startBest));
+  const weekBest: Record<number, Move[]> = {};
+  for (const s of steps) {
+    const found = new Map<string, Move>();
+    for (let i = 0; i < weekEnd; i++) {
+      for (const leg of legsFrom(i).filter((l) => l.to < weekEnd)) {
+        for (const lineup of teamsFor(i, leg, s.number)) {
+          const id = lineup.picks.map((p) => p.outlook.card.slug).sort().join();
+          const clear = chanceOf(lineup.totals, s.target);
+          if ((found.get(id)?.clear ?? -1) >= clear) continue;
+          found.set(id, { from: i, to: leg.to, at: windows[i]!.at, step: s.number, lives: start.lives, best: startBest, play: 1, clear, settles: Date.parse(lineup.last) + SETTLES_AFTER_MS, lineups: [lineup], list: leg.list });
+        }
+      }
+    }
+    weekBest[s.number] = [...found.values()].sort((a, b) => b.clear - a.clear || a.at - b.at).slice(0, 5);
+  }
   const outcome = (m: Pick<Move, "step" | "lives" | "best" | "play">, cleared: boolean) =>
     cleared ? { n: up(m.step), lives: upLives(m.step), best: Math.max(m.best, m.step) }
       : m.lives - m.play > 0 ? { n: m.step, lives: m.lives - m.play, best: m.best } : { n: 1, lives: LIVES, best: m.best };
@@ -376,6 +407,7 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     path,
     odds,
     verdict: { kind, now: nowReach, wait: held?.reach ?? done(startBest), chanceNow, waitFor, skipped, playNow, hold: holdMove },
+    week: { until, odds: Object.fromEntries(weekOdds.flatMap((p, k) => (k ? [[k, p]] : []))), best: weekBest },
     surest: W ? surestWalk(0, start.step, start.lives, startBest) : [],
     after: (move, cleared, surest) => { const next = outcome(move, cleared); return (surest ? surestWalk : walk)(firstAfter(move.settles, move.from + 1), next.n, next.lives, next.best); },
   };

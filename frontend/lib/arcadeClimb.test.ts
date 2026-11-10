@@ -214,6 +214,35 @@ describe("the Surest chain", () => {
   });
 });
 
+describe("the ladder's week", () => {
+  // Owner, 10 Nov 2026: "show only the % of games for the next 7 days", and a step's "top 5 lineups ... with the highest odds".
+  const DAY = 86_400_000;
+  const list = [
+    ...squad(game("A", "2026-10-31T11:00:00Z"), "a", 60), ...squad(game("B", "2026-11-02T17:30:00Z"), "b", 62),
+    ...squad(game("C", "2026-11-04T17:30:00Z"), "c", 58), ...squad(game("L", "2026-11-09T17:30:00Z"), "l", 95),
+  ];
+  it("counts only games in the next 7 days", () => {
+    const plan = climbWindows(list, steps, from(2, 4, 1), 0.5, NOW);
+    expect(plan.week.until).toBe(NOW + 7 * DAY);
+    expect(plan.week.odds[2]).toBeLessThan(plan.odds[2]!); // the strong game on 9 Nov is beyond the week
+    expect(plan.week.odds[2]).toBeGreaterThan(0);
+    expect(plan.week.odds[1]).toBe(1); // cleared already
+    const none = climbWindows(list.filter((o) => o.game.id === "L"), steps, from(2, 4, 1), 0.5, NOW);
+    expect(none.week.odds[2]).toBe(0);
+  }, 30_000);
+  it("lists each step's five likeliest distinct lineups in the week, best first", () => {
+    const plan = climbWindows(list, steps, from(2, 4, 1), 0.5, NOW);
+    const best = plan.week.best[3]!;
+    expect(best.length).toBeGreaterThan(1);
+    expect(best.length).toBeLessThanOrEqual(5);
+    expect(best.every((m) => m.at < NOW + 7 * DAY && m.step === 3 && m.lineups.length === 1)).toBe(true);
+    expect(best.map((m) => m.clear)).toEqual([...best.map((m) => m.clear)].sort((a, b) => b - a));
+    expect(best[0]!.clear).toBe(chanceOf(best[0]!.lineups[0]!.totals, steps[2]!.target));
+    const fives = best.map((m) => m.lineups[0]!.picks.map((p) => p.outlook.card.slug).sort().join());
+    expect(new Set(fives).size).toBe(fives.length);
+  }, 30_000);
+});
+
 describe("a move's time", () => {
   // 9 Nov 2026: the Play bar said 20:30 (the window's first game) while "Enter before" said 20:45 (the lineup's first card).
   it("is its lineups' first kick-off, the time you must enter by, else the window's", () => {

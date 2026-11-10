@@ -312,6 +312,15 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
   const lineups = move?.lineups ?? [];
   const [shown, setShown] = useState(0);
   const lineup = lineups[Math.min(shown, lineups.length - 1)] ?? null;
+  // A tapped step of the ladder: its five likeliest lineups in the next 7 days (owner, 10 Nov 2026).
+  const [stepPick, setStepPick] = useState<{ step: number; shown: number } | null>(null);
+  const stepBest = stepPick ? plan.week.best[stepPick.step] ?? [] : [];
+  const stepMove = stepPick ? stepBest[Math.min(stepPick.shown, stepBest.length - 1)] ?? null : null;
+  // The list opens under the move, out of sight of the ladder that was tapped: bring it into view.
+  useEffect(() => {
+    if (stepPick?.shown !== 0) return;
+    document.getElementById("arc-step-best")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "nearest" });
+  }, [stepPick?.step, stepPick?.shown]);
   const v = plan.verdict;
   const step = boardSteps.find((s) => s.number === current);
   const playsNow = move && move.from === 0 && v.kind !== "wait";
@@ -397,19 +406,34 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
           </div>
         ) : null}
       </div>
-      <ol className="arc-ladder" aria-label="Your board: chance to clear each step at least once by the last game Sorare lists; every clear pays again">
+      {/* The chance to clear each step within the next 7 days, not by the set's end (owner, 10 Nov 2026); a tap lists its best lineups. */}
+      <ol className="arc-ladder" data-caption="Next 7 days" aria-label={`Your board: chance to clear each step at least once by ${when(plan.week.until, now)}; every clear pays again. Tap a step for its five likeliest lineups.`}>
         {[...boardSteps].reverse().map((s) => {
           const done = s.number < current || s.state === "CLAIMED" || s.state === "CLAIMABLE";
-          const odds = plan.odds[s.number] ?? 0;
+          const odds = plan.week.odds[s.number] ?? 0;
           return (
             <li key={s.id} className={`${s.number === current ? "is-current" : ""}${done ? " is-done" : ""}`} aria-current={s.number === current ? "step" : undefined}>
-              <span className="arc-ladder-n">{done ? "✓" : s.number}</span>
-              <span className="arc-ladder-t"><b>{s.target}</b><small>{s.rewards.join(" + ") || "no reward"}{s.number === boardSteps.at(-1)?.number ? " · each time" : ""}</small></span>
-              <span className="arc-ladder-odds" style={{ "--p": done ? 1 : odds } as CSSProperties}><b>{done ? "✓" : pct(odds)}</b></span>
+              <button type="button" className="arc-ladder-pick" aria-pressed={stepPick?.step === s.number} onClick={() => setStepPick(stepPick?.step === s.number ? null : { step: s.number, shown: 0 })}>
+                <span className="arc-ladder-n">{done ? "✓" : s.number}</span>
+                <span className="arc-ladder-t"><b>{s.target}</b><small>{s.rewards.join(" + ") || "no reward"}{s.number === boardSteps.at(-1)?.number ? " · each time" : ""}</small></span>
+                <span className="arc-ladder-odds" style={{ "--p": done ? 1 : odds } as CSSProperties}><b>{done ? "✓" : pct(odds)}</b></span>
+              </button>
             </li>
           );
         })}
       </ol>
+      {stepPick ? (
+        <div id="arc-step-best" className="arc-step-best" role="region" aria-label={`Step ${stepPick.step}: five likeliest lineups`}>
+          <p className="arc-sub">Step {stepPick.step} · {target(stepPick.step)} pts: {stepBest.length ? `the ${stepBest.length === 1 ? "likeliest lineup" : `${stepBest.length} likeliest lineups`} from the next 7 days' games.` : "no lineup can be built from the next 7 days' games."}</p>
+          {stepBest.length ? <div className="arc-modes" role="group" aria-label="Step lineups">
+            {stepBest.map((m, i) => <button key={i} type="button" aria-pressed={m === stepMove} onClick={() => setStepPick({ step: stepPick.step, shown: i })}>{when(kickOf(m), now)} · {pct(m.clear)}</button>)}
+          </div> : null}
+          {stepMove ? <>
+            <LineupCards lineup={stepMove.lineups[0]!} captainBonus={captainBonus} />
+            <button type="button" className="arc-small" onClick={() => onBuild(stepMove, stepMove.lineups[0]!)}>Edit in Pick teams</button>
+          </> : null}
+        </div>
+      ) : null}
     </section>
   );
 });

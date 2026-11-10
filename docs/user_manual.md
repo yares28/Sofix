@@ -829,7 +829,7 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   every card's start % is known before you enter; a wider span of games is used only when it is clearly better. A card under 50%
   to start (a benched one reads 0%) is left out while a likely starter can take his slot. Below, the
   lineup to enter (more than one when insurance pays), its chance, when to enter and when it settles, and **Edit in Pick teams**.
-  Beside it, every step's chance to be cleared at least once by the last game Sorare lists,. A card with no start % counts as starting, is never
+  Beside it, every step's chance to be cleared at least once in the **next 7 days** ("Next 7 days" above it; the advice itself still plans to the set's end); tap a step for its five likeliest lineups in that week, each with its time and chance, a tap away from Pick teams (10 Nov 2026). A card with no start % counts as starting, is never
   captain while another has one, and a card with under 3 played games gets the usual spread (a third of his score) instead of a sure number.
 - **The chain**: the next moves window by window, each settling before the next starts; a tap shows that move's lineup and opens
   **If it clears** / **If it misses** (back to the likely plan with one tap). The climb and both outcomes are worked out in the background (2 Nov 2026), so a tap never freezes the page; an outcome still being worked out says so. A new read restarts the plan once reads have been quiet 1.5 s, stopping the older one, and the last plan stays shown under "Updating with the latest start %…" (9 Nov 2026). Its cards, captain and chance are the same as Your move; insurance teams can each be opened in Pick teams without rebuilding them.

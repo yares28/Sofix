@@ -26,7 +26,7 @@ self.onmessage = (event: MessageEvent<ClimbRequest>) => {
   if (message.kind === "plan") {
     climb = climbWindows(...message.args);
     moves = new Map();
-    reply = { id: message.id, kind: "plan", plan: { windows: climb.windows, path: tag(climb.path), surest: tag(climb.surest), odds: climb.odds, verdict: { ...climb.verdict, playNow: tagOne(climb.verdict.playNow), hold: tagOne(climb.verdict.hold) } } };
+    reply = { id: message.id, kind: "plan", plan: { windows: climb.windows, path: tag(climb.path), surest: tag(climb.surest), week: { ...climb.week, best: Object.fromEntries(Object.entries(climb.week.best).map(([n, moves]) => [n, tag(moves)])) }, odds: climb.odds, verdict: { ...climb.verdict, playNow: tagOne(climb.verdict.playNow), hold: tagOne(climb.verdict.hold) } } };
   } else {
     const move = moves.get(message.move);
     reply = { id: message.id, kind: "after", moves: climb && move ? tag(climb.after(move, message.cleared, message.surest)) : [] };

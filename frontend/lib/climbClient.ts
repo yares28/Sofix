@@ -21,8 +21,8 @@ const inline = (args: ClimbArgs): ClimbPlan => {
  */
 const SETTLE_MS = 1_500;
 
-/** What a saved plan holds; a plan saved before a change to it (10 Nov 2026: the Surest chain) is worked out again. */
-const PLAN_VERSION = 3;
+/** What a saved plan holds; a plan saved before a change to it (10 Nov 2026: the Surest chain, then the ladder's week) is worked out again. */
+const PLAN_VERSION = 4;
 
 /** Everything a plan is worked out from except the clock, as one short text. */
 export function climbSignature([outlooks, steps, start, captainBonus]: ClimbArgs): string {

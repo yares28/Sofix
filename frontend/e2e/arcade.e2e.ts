@@ -509,6 +509,26 @@ test("the chain's Surest switch waits for the window that clears the step most s
   await modes.getByRole("button", { name: "Fastest" }).click();
   await expect(node.locator(".arc-chain-time")).toHaveText(clock(KICKOFF));
   await expect(chain.locator(".arc-chain-detail")).toHaveCount(0);
+  // The ladder is the next 7 days, and a tapped step lists its likeliest lineups (owner, 10 Nov 2026).
+  const ladder = page.locator(".arc-ladder");
+  await expect(ladder).toHaveAttribute("data-caption", "Next 7 days");
+  await ladder.locator("li").filter({ hasText: "300" }).getByRole("button").click();
+  const best = page.getByRole("region", { name: "Step 2: five likeliest lineups" });
+  const options = best.getByRole("group", { name: "Step lineups" }).getByRole("button");
+  await expect(options.first()).toBeVisible();
+  expect(await options.count()).toBeGreaterThanOrEqual(2); // each game's own, and a span over both
+  expect(await options.count()).toBeLessThanOrEqual(5);
+  const odds = (await options.allTextContents()).map((t) => Number(t.match(/(\d+)%$/)![1]));
+  expect(odds).toEqual([...odds].sort((a, b) => b - a));
+  await options.nth(1).click();
+  await expect(options.nth(1)).toHaveAttribute("aria-pressed", "true");
+  const five = await best.locator(".arc-lineup li").evaluateAll((items) => items.map((li) => li.getAttribute("aria-label")));
+  expect(five).toHaveLength(5);
+  await best.getByRole("button", { name: "Edit in Pick teams" }).click();
+  await expect(page.locator(".arc-plan .arc-aim select")).toHaveValue("2");
+  expect(await page.locator(".arc-pitch li img, .arc-pitch li .arc-card-blank").evaluateAll((items) => items.map((el) => el.getAttribute("alt") ?? el.textContent))).toEqual(expect.arrayContaining(five));
+  await ladder.locator("li").filter({ hasText: "300" }).getByRole("button").click();
+  await expect(best).toHaveCount(0);
   // One aim for Pick teams and Batch (9 Nov 2026: two pickers, two saved values).
   const teamsAim = page.locator(".arc-plan .arc-aim select");
   await teamsAim.selectOption("2");

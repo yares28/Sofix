@@ -80,7 +80,11 @@ tap cost about 1 s with 240 games), and Easiest games limited to the first day w
   fill it on purpose. The empty state invites a tap, and "Easiest games" stays one tap away.
 - Edges: saved picks whose games have kicked off drop out (already filtered); a saved aim on a step since cleared.
 
-**F · Chain switch: Fastest | Surest (point 3)**
+**F · Chain switch: Fastest | Surest (point 3)** · *done 10 Nov 2026. On your board Surest matches Fastest for steps 4 to 6 (no window
+is 15 points likelier: step 4's best later window, Sat 28 Nov, is 45% against Friday's 42%), then the next climb waits for +21, +29 and
++16 at steps 1 to 3. When no window clears the bar Surest plays Fastest's own move (the "best window left" was 8 days later for 3
+points). Also fixed: Edit in Pick teams on a step claimed before a restart aimed at step 4 (it keeps the move's step now), and the rail
+kept the other chain's scroll.*
 - Fastest is today's chain. Surest puts the chance of clearing each step (and its reward) ahead of speed: for each step from the one
   you are on, the nearest window you can actually play (lives, cards held by a running lineup, settle times) whose best lineup beats
   the fastest chain's chance for that step by at least 15 points, else the best window left before the set ends; then the next step.

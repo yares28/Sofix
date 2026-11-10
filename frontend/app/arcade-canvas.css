@@ -80,6 +80,8 @@
 .arc-chain-node > b { font-size: 28px; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .arc-chain-node.is-likely > b { color: var(--win); }
 .arc-chain-node > small, .arc-chain-miss { font-size: 11px; color: var(--ink-2); }
+.arc-chain-node > .arc-chain-gain { font-weight: 700; color: var(--win); }
+.arc-chain-node > .arc-chain-gain.is-same { font-weight: 400; color: var(--ink-2); }
 .arc-chain-detail { display: grid; gap: 12px; padding: 18px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); }
 
 /* Teams to build around */

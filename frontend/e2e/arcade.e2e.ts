@@ -6,6 +6,8 @@ const GAME = "Game:11111111-2222-3333-4444-555555555555";
 const KICKOFF = new Date(Date.now() + 86_400_000).toISOString(); // tomorrow, inside the days Sorare projects
 /** The verdict's "now" or day for the games at KICKOFF: "now" is said only for a game today (9 Nov 2026). */
 const ON = madridDate(KICKOFF) === madridDate(new Date().toISOString()) ? "now" : `on ${whenLabel(Date.parse(KICKOFF), Date.now()).replace(/ \d\d:\d\d$/, "")}`;
+/** A kick-off's Madrid time, as a chain node shows it. */
+const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
 const SQUAD = [
   ["c1", "p", "Player One", "Forward", 1.1],
   ["c2", "gk", "Keeper Two", "Goalkeeper", 1],
@@ -444,6 +446,55 @@ test("step one spends four resettable lives and keeps every insurance team ident
   expect(await signature(".arc-batch-lineup:first-child")).toEqual(first);
   const players = await batch.locator(".arc-lineup > li").evaluateAll(items => items.map(item => item.getAttribute("aria-label")));
   expect(new Set(players).size).toBe(20);
+});
+
+test("the chain's Surest switch waits for the window that clears the step most surely, and says by how much", async ({ page }) => {
+  // Owner, 10 Nov 2026: "the closest best lineups I can actually play for that step ... sacrificing speed".
+  const later = new Date(Date.parse(KICKOFF) + 26 * 3600000).toISOString();
+  const games = [KICKOFF, later].map((date, i) => ({ id: `Game:sure-${i}`, date, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: `club-${i}`, name: `Club ${i}` }, awayTeam: { slug: `rival-${i}`, name: `Rival ${i}` } }));
+  const cards = games.flatMap((_, i) => SQUAD.map(([slug, player, name, position]) => ({ slug: `${slug}-${i}`, pictureUrl: null, anyPositions: [position], cardSet: { slug: "glitch" }, skinEdition: { bonus: 1 }, anyPlayer: { slug: `${player}-${i}`, displayName: `${name} ${i}` }, anyTeam: { slug: `club-${i}`, name: `Club ${i}` } })));
+  const board = structuredClone(ANSWERS.arcade) as { currentUser: { setBoard: { myCurrentStep: { id: string; level: number }; steps: Record<string, unknown>[] } } };
+  board.currentUser.setBoard.myCurrentStep = { id: "s1", level: 1 };
+  board.currentUser.setBoard.steps[0] = { ...board.currentUser.setBoard.steps[0], state: "PLAYABLE", engineConfiguration: { captain: 0.5 }, remainingLineupsCount: 4, maxLineupsCount: 4 };
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page, { ...ANSWERS, arcade: board,
+    "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: games.map((game) => ({ game })), pageInfo: { hasNextPage: false } } } } },
+    "arcade-cards": { currentUser: { cards: { nodes: cards, pageInfo: { hasNextPage: false } } } },
+    "arcade-past": { players: cards.map((c) => ({ slug: c.anyPlayer.slug, playerGameScores: [40, 50, 60].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })) },
+    ...Object.fromEntries(games.map((game, i) => [`arcade-projections:${game.id}`, { anyGame: { id: game.id, playerGameScores: cards.filter((c) => c.anyTeam.slug === `club-${i}`).map((c) => ({ projection: { score: i ? 75 : 46 } , anyPlayer: c.anyPlayer })) } }])),
+  }, "0.4.18");
+  await page.goto("/arcade");
+  const chain = page.locator(".arc-chain");
+  const modes = chain.getByRole("group", { name: "Chain" });
+  await expect(modes.getByRole("button", { name: "Fastest" })).toHaveAttribute("aria-pressed", "true");
+  const node = chain.locator(".arc-chain-node").first();
+  await expect(node.locator(".arc-chain-time")).toHaveText(clock(KICKOFF));
+  await expect(chain.locator(".arc-chain-gain")).toHaveCount(0);
+  await modes.getByRole("button", { name: "Surest" }).click();
+  await expect(modes.getByRole("button", { name: "Surest" })).toHaveAttribute("aria-pressed", "true");
+  await expect(node.locator(".arc-chain-time")).toHaveText(clock(later));
+  const gain = Number((await node.locator(".arc-chain-gain").textContent())!.match(/^\+(\d+) vs fastest$/)![1]);
+  expect(gain).toBeGreaterThanOrEqual(15);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    expect(await smallText(page, width === 390 ? 10 : 11)).toEqual([]);
+    if (process.env.ARCADE_PLAN_SHOT) await chain.screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-surest-${width}.png` });
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await node.click();
+  const detail = chain.locator(".arc-chain-detail");
+  await expect(detail).toContainText(`+${gain} points over the fastest chain`);
+  const names = await detail.locator(".arc-lineup li").evaluateAll((items) => items.map((li) => li.getAttribute("aria-label")));
+  expect(names.every((n) => n!.endsWith(" 1"))).toBe(true); // the later game's cards
+  const outcomes = page.getByRole("group", { name: "What comes next" });
+  await expect(outcomes).not.toContainText("working it out", { timeout: 30_000 });
+  await detail.getByRole("button", { name: "Edit in Pick teams" }).click();
+  await page.getByText("Each card's numbers").click();
+  expect(await page.locator(".arc-detail .arc-lineup li").evaluateAll((items) => items.map((li) => li.getAttribute("aria-label")))).toEqual(names);
+  await modes.getByRole("button", { name: "Fastest" }).click();
+  await expect(node.locator(".arc-chain-time")).toHaveText(clock(KICKOFF));
+  await expect(chain.locator(".arc-chain-detail")).toHaveCount(0);
 });
 
 /** Fourteen games, one forward of yours in each but the first (Club, the full squad): two pages of tickets. */

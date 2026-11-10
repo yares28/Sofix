@@ -438,3 +438,11 @@ export const streakTarget = (description: string | null) => {
   const found = /(\d[\d,]*)\s*\+/.exec(description ?? "");
   return found ? Number(found[1]!.replace(/,/g, "")) : null;
 };
+
+/**
+ * The step Pick teams aims at: the one asked for when the board has it and it is still open, else the step you are on. A move sent from
+ * the chain keeps its own step even when claimed: the chain plays steps again after the top restarts the climb (10 Nov 2026).
+ */
+export function aimStep(steps: { number: number; state: string }[], wanted: number, current: number, fromMove: boolean): number {
+  return steps.some((s) => s.number === wanted && (fromMove || !["CLAIMED", "CLAIMABLE"].includes(s.state))) ? wanted : current;
+}

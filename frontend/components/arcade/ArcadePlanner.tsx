@@ -9,7 +9,7 @@ import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
-import { bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
+import { aimStep, bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
@@ -200,7 +200,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
       <div className="arc-teams-bar">
         <label className="arc-aim">Aim at
           <select value={aim} onChange={(e) => { setTap(null); setAim(Number(e.target.value)); }}>
-            {(open.length ? open : steps).map((s) => <option key={s.id} value={s.number}>Step {s.number} · {s.target} pts</option>)}
+            {(open.length ? steps.filter((s) => open.includes(s) || s.number === aim) : steps).map((s) => <option key={s.id} value={s.number}>Step {s.number} · {s.target} pts</option>)}
           </select>
         </label>
         <button type="button" className="arc-small" onClick={() => { setTap(null); setChosen(new Set(easy.map((g) => g.id))); }} disabled={!easy.length} title={`Games on ${easyDay ? madridDay(`${easyDay}T12:00:00Z`) : "the first day"} where Sofix's board makes one of your clubs favourite (difficulty 1 or 2)`}>
@@ -413,15 +413,15 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
 
 /** The chain: the next moves, window by window, each settling before the next starts; the other outcome of each a tap away. */
 /** A move's two outcomes, asked of the worker when the move is opened; each button waits for its own answer. */
-function Outcomes({ plan, picked, now, onFollow }: { plan: ClimbPlan; picked: Move; now: number; onFollow: (cleared: boolean, after: Move[]) => void }) {
+function Outcomes({ plan, picked, now, surest, onFollow }: { plan: ClimbPlan; picked: Move; now: number; surest: boolean; onFollow: (cleared: boolean, after: Move[]) => void }) {
   const [after, setAfter] = useState<{ of: Move; cleared: Move[] | null; missed: Move[] | null }>({ of: picked, cleared: null, missed: null });
   useEffect(() => {
     let live = true;
     setAfter({ of: picked, cleared: null, missed: null });
-    void plan.after(picked, true).then((m) => { if (live) setAfter((a) => (a.of === picked ? { ...a, cleared: m } : a)); });
-    void plan.after(picked, false).then((m) => { if (live) setAfter((a) => (a.of === picked ? { ...a, missed: m } : a)); });
+    void plan.after(picked, true, surest).then((m) => { if (live) setAfter((a) => (a.of === picked ? { ...a, cleared: m } : a)); });
+    void plan.after(picked, false, surest).then((m) => { if (live) setAfter((a) => (a.of === picked ? { ...a, missed: m } : a)); });
     return () => { live = false; };
-  }, [plan, picked]);
+  }, [plan, picked, surest]);
   return (
     <div className="arc-outcomes" role="group" aria-label="What comes next">
       {([true, false] as const).map((cleared) => {
@@ -439,13 +439,18 @@ function Outcomes({ plan, picked, now, onFollow }: { plan: ClimbPlan; picked: Mo
 }
 
 const Chain = memo(function Chain({ plan, captainBonus, now, onBuild }: { plan: ClimbPlan; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void }) {
+  // Fastest is the plan's own path; Surest waits, step by step, for a window 15 points surer (owner, 10 Nov 2026).
+  const [surest, setSurest] = useState(false);
   const [branch, setBranch] = useState<{ of: ClimbPlan; moves: Move[]; label: string } | null>(null);
-  const moves = branch?.of === plan ? branch.moves : plan.path;
+  const moves = branch?.of === plan ? branch.moves : surest ? plan.surest : plan.path;
   const [focus, setFocus] = useState<number | null>(null);
   const [shown, setShown] = useState(0);
   const picked = focus !== null ? moves[focus] ?? null : null;
   const lineups = picked?.lineups ?? [];
-  if (moves.length < 2 && !branch) return null;
+  if (plan.path.length < 2 && plan.surest.length < 2 && !branch) return null;
+  const pickMode = (sure: boolean) => { setSurest(sure); setBranch(null); setFocus(null); };
+  // The difference of the two rounded chances, so "+22" always matches the 98% shown and the fastest chain's 76%.
+  const gainOf = (m: Move) => Math.round(m.clear * 100) - Math.round((m.clear - (m.gain ?? 0)) * 100);
   const follow = (m: Move, i: number, cleared: boolean, after: Move[]) => {
     setBranch({ of: plan, moves: [...moves.slice(0, i + 1), ...after], label: `if ${m.play > 1 ? (cleared ? "one clears" : "all miss") : cleared ? "it clears" : "it misses"} at ${when(kickOf(m), now)}` });
     setFocus(null);
@@ -455,10 +460,15 @@ const Chain = memo(function Chain({ plan, captainBonus, now, onBuild }: { plan: 
     <section className="arc-chain" aria-labelledby="arc-chain-title">
       <div className="arc-plan-head">
         <h2 id="arc-chain-title">The chain</h2>
+        <div className="arc-modes" role="group" aria-label="Chain">
+          <button type="button" aria-pressed={!surest} onClick={() => pickMode(false)}>Fastest</button>
+          <button type="button" aria-pressed={surest} onClick={() => pickMode(true)}>Surest</button>
+        </div>
         {branch?.of === plan ? <span className="arc-sub">The plan {branch.label}.</span> : null}
         {branch?.of === plan ? <button type="button" className="arc-small" onClick={() => { setBranch(null); setFocus(null); }}>Back to the likely plan</button> : null}
       </div>
-      <ol className="arc-chain-rail">
+      {/* A new chain starts at its first move: the rail is drawn afresh, not left scrolled where the other one was. */}
+      <ol className="arc-chain-rail" key={`${surest}:${branch?.label ?? ""}`}>
         {moves.slice(0, 12).map((m, i) => {
           const d = madridDate(iso(kickOf(m)));
           const newDay = d !== day;
@@ -478,6 +488,7 @@ const Chain = memo(function Chain({ plan, captainBonus, now, onBuild }: { plan: 
                     : null))}
                 </span>
                 <small>settles {settleLabel(m.settles, kickOf(m))}</small>
+                {m.gain !== undefined ? <small className={`arc-chain-gain${m.same ? " is-same" : ""}`}>{m.same ? "same as fastest" : `+${gainOf(m)} vs fastest`}</small> : null}
               </button>
               <span className="arc-chain-miss">{m.clear >= 0.5 ? "" : "likely miss · "}miss: {m.lives - m.play > 0 ? `${m.lives - m.play} ${m.lives - m.play === 1 ? "life" : "lives"} left` : "back to step 1"}</span>
             </li>
@@ -487,10 +498,13 @@ const Chain = memo(function Chain({ plan, captainBonus, now, onBuild }: { plan: 
       {picked ? (
         <div className="arc-chain-detail">
           <p className="arc-sub">Step {picked.step} at {when(kickOf(picked), now)}: {picked.play} lineup{picked.play > 1 ? "s" : ""}, {pct(picked.clear)} that one clears, settles about {when(picked.settles, now)}.</p>
+          {picked.gain !== undefined ? <p className="arc-sub">{picked.same
+            ? "No window before the set ends beats the fastest chain by 15 points here, so this step plays the fastest chain's move."
+            : `+${gainOf(picked)} points over the fastest chain (${pct(picked.clear - picked.gain)}), the nearest window that beats it by 15.`}</p> : null}
           {lineups.length > 1 ? <div className="arc-modes" role="group" aria-label="Chain lineup">{lineups.map((_, i) => <button key={i} type="button" aria-pressed={shown === i} onClick={() => setShown(i)}>Lineup {i + 1}</button>)}</div> : null}
           {lineups[shown] ? <LineupCards lineup={lineups[shown]} captainBonus={captainBonus} /> : null}
           <button type="button" className="arc-small" onClick={() => onBuild(picked, lineups[shown] ?? null)}>Edit in Pick teams</button>
-          <Outcomes plan={plan} picked={picked} now={now} onFollow={(cleared, after) => follow(picked, moves.indexOf(picked), cleared, after)} />
+          <Outcomes plan={plan} picked={picked} now={now} surest={surest} onFollow={(cleared, after) => follow(picked, moves.indexOf(picked), cleared, after)} />
         </div>
       ) : null}
     </section>
@@ -508,7 +522,7 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
   const busy = useMemo(() => new Set(start.held.filter((h) => h.until > now).map((h) => h.card)), [start.held, now]);
   const games = useMemo(() => (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now && (outlooks.get(g.id) ?? []).length), [arcade.games, outlooks, now]);
   const storageKey = `sofix-arcade-teams:${arcade.set.slug}:${arcade.board?.id ?? ""}`;
-  const [selection, setSelection] = useState<{ chosen: Set<string>; aim: number; preset: { plan: ClimbPlan; lineup: Lineup } | null } | null>(() => {
+  const [selection, setSelection] = useState<{ chosen: Set<string>; aim: number; preset: { plan: ClimbPlan; lineup: Lineup } | null; fromMove?: boolean } | null>(() => {
     try {
       const saved = SavedTeams.safeParse(JSON.parse(localStorage.getItem(storageKey) ?? "null"));
       return saved.success ? { chosen: new Set(saved.data.games), aim: saved.data.aim, preset: null } : null;
@@ -525,16 +539,17 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
     return new Set([...(selection?.chosen ?? [])].filter((id) => available.has(id)));
   }, [games, selection?.chosen]);
   const wantedAim = selection?.aim ?? plan?.path[0]?.step ?? current;
-  const aim = arcade.board?.steps.some((s) => s.number === wantedAim && !["CLAIMED", "CLAIMABLE"].includes(s.state)) ? wantedAim : current;
+  const aim = aimStep(arcade.board?.steps ?? [], wantedAim, current, !!selection?.fromMove);
   const preset = selection?.preset?.plan === plan ? selection.preset.lineup : null;
-  const setChosen = (next: Set<string>) => setSelection({ chosen: next, aim, preset: null });
-  const setAim = (next: number) => setSelection({ chosen, aim: next, preset: null });
+  // A move's step stays the aim while you change its games (it may be a step claimed before the climb restarts).
+  const setChosen = (next: Set<string>) => setSelection({ chosen: next, aim, preset: null, fromMove: selection?.fromMove });
+  const setAim = (next: number) => setSelection({ chosen, aim: next, preset: null, fromMove: selection?.fromMove });
   const lives = start.step === current ? start.lives : 0;
   const waitingNote = after
     ? `Your ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} on step ${current} settle${waiting.length > 1 ? "" : "s"} first (about ${when(after.at, now)}); the plan goes on as if one clears it.`
     : waiting.length ? `You have ${waiting.length} lineup${waiting.length > 1 ? "s" : ""} waiting on step ${current}: if one clears it, Sorare cancels any other you entered on the step.` : null;
   const build = useCallback((move: Move, lineup: Lineup | null) => {
-    setSelection({ chosen: new Set(move.list.map((o) => o.game.id)), aim: move.step, preset: lineup && plan ? { plan, lineup } : null });
+    setSelection({ chosen: new Set(move.list.map((o) => o.game.id)), aim: move.step, preset: lineup && plan ? { plan, lineup } : null, fromMove: true });
     document.getElementById("arc-teams-title")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
   }, [plan]);
   if (!games.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;

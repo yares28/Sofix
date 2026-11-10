@@ -169,6 +169,51 @@ describe("the window planner", () => {
   });
 });
 
+describe("the Surest chain", () => {
+  // Owner, 10 Nov 2026: "the closest best lineups I can actually play for that step ... sacrificing speed".
+  it("plays the nearest window whose lineup beats the fastest chain's by 15 points, step by step", () => {
+    const list = [
+      ...squad(game("A", "2026-10-31T11:00:00Z"), "a", 60), ...squad(game("B", "2026-10-31T14:30:00Z"), "b", 62),
+      ...squad(game("C", "2026-11-01T17:30:00Z"), "c", 90), ...squad(game("D", "2026-11-02T17:30:00Z"), "d", 95),
+    ];
+    const plan = climbWindows(list, steps, from(2, 4, 1), 0.5, NOW);
+    expect(plan.path[0]!.at).toBe(Date.parse("2026-10-31T11:00:00Z")); // fastest plays at once
+    const [first, second] = plan.surest;
+    expect(first).toMatchObject({ step: 2, at: Date.parse("2026-11-01T17:30:00Z"), same: false }); // C, not the later D
+    expect(first!.gain).toBeGreaterThanOrEqual(0.15);
+    expect(first!.clear - first!.gain!).toBeCloseTo(plan.path[0]!.clear, 5);
+    expect(second).toMatchObject({ step: 3, at: Date.parse("2026-11-02T17:30:00Z") });
+    expect(second!.from).toBeGreaterThan(first!.from);
+  }, 30_000);
+
+  it("plays the fastest chain's own move, marked, when no window beats it by 15 points", () => {
+    // His board, 10 Nov 2026: 42% on Fri 20 Nov, and the best window left was Sat 28 Nov at 45%: a week's wait for 3 points.
+    const list = [...squad(game("A", "2026-10-31T11:00:00Z"), "a", 74), ...squad(game("B", "2026-11-01T17:30:00Z"), "b", 76)];
+    const plan = climbWindows(list, steps, from(2, 4, 1), 0.5, NOW);
+    const first = plan.surest[0]!;
+    expect(first).toMatchObject({ same: true, gain: 0, at: plan.path[0]!.at, clear: plan.path[0]!.clear, play: plan.path[0]!.play });
+    expect(first.lineups).toEqual(plan.path[0]!.lineups);
+  });
+
+  it("never uses a card before its running lineup settles", () => {
+    const list = [...squad(game("A", "2026-10-31T11:00:00Z"), "a", 95), ...squad(game("B", "2026-11-01T17:30:00Z"), "b", 60)];
+    const held = squad(game("A", "2026-10-31T11:00:00Z"), "a", 95).map((o) => ({ card: o.card.slug, until: Date.parse("2026-10-31T13:00:00Z") }));
+    const plan = climbWindows(list, steps, { ...from(2, 4, 1), held }, 0.5, NOW);
+    expect(plan.surest[0]!.at).toBe(Date.parse("2026-11-01T17:30:00Z"));
+  });
+
+  it("starts again from step 1 after the top step, and its outcomes follow the Surest rule", () => {
+    const easy = [1, 2].map((number) => ({ number, target: 200, lives: 4, big: false }));
+    const hours = ["08", "11", "14", "17", "20"];
+    const list = hours.map((h) => squad(game(`G${h}`, `2026-10-31T${h}:00:00Z`), `g${h}`, 80)).flat();
+    const plan = climbWindows(list, easy, from(1), 0.5, NOW);
+    expect(plan.surest.slice(0, 3).map((m) => m.step)).toEqual([1, 2, 1]);
+    const missed = plan.after(plan.surest[0]!, false, true);
+    expect(missed[0]).toMatchObject({ step: 1 });
+    expect(missed[0]!.gain).toBeDefined();
+  });
+});
+
 describe("a move's time", () => {
   // 9 Nov 2026: the Play bar said 20:30 (the window's first game) while "Enter before" said 20:45 (the lineup's first card).
   it("is its lineups' first kick-off, the time you must enter by, else the window's", () => {

@@ -5,14 +5,14 @@ import { climbWindows, type Climb, type Move } from "./arcadeClimb";
 
 export type ClimbArgs = Parameters<typeof climbWindows>;
 /** The plan as the page holds it: the other outcome of a move is asked for, and arrives when it is worked out. */
-export type ClimbPlan = Omit<Climb, "after"> & { after: (move: Move, cleared: boolean) => Promise<Move[]> };
-export type ClimbRequest = { id: number; kind: "plan"; args: ClimbArgs } | { id: number; kind: "after"; move: string; cleared: boolean };
+export type ClimbPlan = Omit<Climb, "after"> & { after: (move: Move, cleared: boolean, surest?: boolean) => Promise<Move[]> };
+export type ClimbRequest = { id: number; kind: "plan"; args: ClimbArgs } | { id: number; kind: "after"; move: string; cleared: boolean; surest: boolean };
 export type ClimbReply = { id: number; kind: "plan"; plan: Omit<Climb, "after"> } | { id: number; kind: "after"; moves: Move[] };
 
 /** Without a worker (tests, an old browser) the climb is worked out here, as before. */
 const inline = (args: ClimbArgs): ClimbPlan => {
   const climb = climbWindows(...args);
-  return { ...climb, after: async (move, cleared) => climb.after(move, cleared) };
+  return { ...climb, after: async (move, cleared, surest) => climb.after(move, cleared, surest) };
 };
 
 /**
@@ -21,9 +21,12 @@ const inline = (args: ClimbArgs): ClimbPlan => {
  */
 const SETTLE_MS = 1_500;
 
+/** What a saved plan holds; a plan saved before a change to it (10 Nov 2026: the Surest chain) is worked out again. */
+const PLAN_VERSION = 3;
+
 /** Everything a plan is worked out from except the clock, as one short text. */
 export function climbSignature([outlooks, steps, start, captainBonus]: ClimbArgs): string {
-  const text = JSON.stringify([outlooks, steps, start, captainBonus]);
+  const text = JSON.stringify([PLAN_VERSION, outlooks, steps, start, captainBonus]);
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
   return `${text.length}:${(h >>> 0).toString(36)}`;
@@ -66,11 +69,11 @@ function startWorker(request: ClimbArgs) {
   const ask = (message: ClimbRequest) => new Promise<ClimbReply>((resolve) => { waiting.set(message.id, resolve); w.postMessage(message); });
   const plan = ask({ id: next++, kind: "plan", args: request });
   const cache = new Map<string, Promise<Move[]>>();
-  const after = (move: Move, cleared: boolean) => {
+  const after = (move: Move, cleared: boolean, surest = false) => {
     const id = (move as Move & { id?: string }).id ?? "";
-    const key = `${id}:${cleared}`;
+    const key = `${id}:${cleared}:${surest}`;
     // The plan is worked out first: the worker names its moves in order, the same names the page holds (the climb is seeded).
-    if (!cache.has(key)) cache.set(key, plan.then(() => ask({ id: next++, kind: "after", move: id, cleared })).then((r) => (r.kind === "after" ? r.moves : [])));
+    if (!cache.has(key)) cache.set(key, plan.then(() => ask({ id: next++, kind: "after", move: id, cleared, surest })).then((r) => (r.kind === "after" ? r.moves : [])));
     return cache.get(key)!;
   };
   return { w, plan, after };
@@ -99,10 +102,10 @@ export function useClimb(...args: ClimbArgs): { plan: ClimbPlan | null; updating
       if (saved && reusable(saved, sig, outlooks, now) && typeof Worker !== "undefined") {
         // Its other outcomes come from a worker started only when one is asked for, on the clock the plan was worked out at.
         let lazy: ReturnType<typeof startWorker> | null = null;
-        setPlan({ ...saved.plan, after: (move, cleared) => {
+        setPlan({ ...saved.plan, after: (move, cleared, surest) => {
           try { lazy ??= startWorker([outlooks, steps, start, captainBonus, saved.now]); } catch { return Promise.resolve([]); }
           worker = lazy.w;
-          return lazy.after(move, cleared);
+          return lazy.after(move, cleared, surest);
         } });
         setUpdating(false);
         return;

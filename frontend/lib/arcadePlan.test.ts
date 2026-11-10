@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, type Outlook } from "./arcadePlan";
+import { batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
@@ -291,5 +291,17 @@ describe("when a time is said", () => {
     const late = Date.parse("2026-11-10T22:30:00Z"); // 23:30 Madrid, Tue
     expect(whenLabel(Date.parse("2026-11-16T23:30:00Z"), late)).toBe("Tue 17 Nov 00:30"); // Tue again: never a bare weekday
     expect(whenLabel(Date.parse("2026-11-10T23:30:00Z"), late)).toBe("Wed 00:30");
+  });
+});
+
+describe("Pick teams' aim", () => {
+  const board = [1, 2, 3, 4].map((number) => ({ number, state: number < 4 ? "CLAIMED" : "PLAYABLE" }));
+  // 10 Nov 2026: "Edit in Pick teams" on a chain move at step 2, after a restart, aimed at step 4: claimed steps were not offered.
+  it("keeps a chain move's own step, even one claimed before the climb restarts", () => {
+    expect(aimStep(board, 2, 4, true)).toBe(2);
+  });
+  it("drops a saved aim on a step since cleared, and one the board does not have", () => {
+    expect(aimStep(board, 2, 4, false)).toBe(4);
+    expect(aimStep(board, 9, 4, true)).toBe(4);
   });
 });

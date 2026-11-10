@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel
 from app.sorare import stat_charts
+from app.sorare.client import SorareError
 from tests.test_pipeline import db  # noqa: F401  (fixture)
 
 NOW = datetime(2026, 10, 26, 12, tzinfo=UTC)
@@ -103,20 +105,23 @@ def test_season_window_needs_three_starts_this_season() -> None:
 
 def test_people_query_checks_slugs_and_reads_the_answer() -> None:
     query = stat_charts.people_query(["bukayo-saka"], 2026)
-    assert 'anyPlayer(slug: "bukayo-saka")' in query and "seasonStartYears: [2026]" in query
+    assert 'players(slugs: ["bukayo-saka"])' in query and "seasonStartYears: [2026]" in query
     with pytest.raises(ValueError):
         stat_charts.people_query(['x") { id } evil: anyPlayer(slug: "y'], 2026)
     answer = {
-        "p0": {
-            "displayName": "Bukayo Saka",
-            "activeClub": {
-                "name": "Arsenal FC",
-                "shortName": "Arsenal",
-                "pictureUrl": "https://assets.sorare.com/team/a.png",
-                "domesticLeague": {"slug": "premier-league-gb-eng"},
+        "players": [
+            {
+                "slug": "bukayo-saka",
+                "displayName": "Bukayo Saka",
+                "activeClub": {
+                    "name": "Arsenal FC",
+                    "shortName": "Arsenal",
+                    "pictureUrl": "https://assets.sorare.com/team/a.png",
+                    "domesticLeague": {"slug": "premier-league-gb-eng"},
+                },
             },
-        },
-        "p1": None,
+            None,
+        ],
         "football": {"c0": {"nodes": [{"pictureUrl": "https://evil.example/x.png"}]}, "c1": {"nodes": []}},
     }
     people = stat_charts.read_people(answer, ["bukayo-saka", "nobody"])
@@ -131,16 +136,31 @@ def test_people_query_checks_slugs_and_reads_the_answer() -> None:
     }
 
 
+def test_people_query_has_no_repeated_root_field() -> None:
+    """Sorare refuses a root field asked twice ("Duplicated root field: anyPlayer", 10 Nov 2026): the chart went empty."""
+    query = stat_charts.people_query(["a-b", "c-d", "e-f"], 2026)
+    roots = re.findall(r"(?:^query \{ |\} )(\w+)\(", query)
+    assert query.count("players(slugs:") == 1 and "anyPlayer(" not in query, roots
+
+
 class FakeClient:
-    def __init__(self) -> None:
+    """Answers as Sorare does, including its refusal of a root field asked twice."""
+
+    def __init__(self, fail: bool = False) -> None:
         self.asked: list[str] = []
+        self.fail = fail
 
     def query(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
         self.asked.append(query)
+        if self.fail or query.count("anyPlayer(") > 1:
+            raise SorareError("Duplicated root field: anyPlayer")
+        slugs = re.findall(r'"([a-z0-9-]+)"', query[query.index("players(slugs:") : query.index("])")])
         card = [] if "[2026]" in query else [{"pictureUrl": "https://assets.sorare.com/card/old.png"}]
-        n = query.count("anyPlayer(")
-        who = {"displayName": "Someone", "activeClub": {"shortName": "Getafe", "domesticLeague": {"slug": "laliga-es"}}}
-        return {**{f"p{i}": who for i in range(n)}, "football": {f"c{i}": {"nodes": card} for i in range(n)}}
+        club = {"shortName": "Getafe", "domesticLeague": {"slug": "laliga-es"}}
+        return {
+            "players": [{"slug": s, "displayName": "Someone", "activeClub": club} for s in reversed(slugs)],
+            "football": {f"c{i}": {"nodes": card} for i in range(len(slugs))},
+        }
 
 
 def test_people_are_asked_once_a_week_and_fall_back_to_last_seasons_card(db: Session) -> None:  # noqa: F811
@@ -160,3 +180,15 @@ def test_publish_writes_the_chart_model(db: Session) -> None:  # noqa: F811
     row = db.get(ReadModel, stat_charts.KEY)
     assert row is not None and row.payload == model
     assert [p["slug"] for p in model["players"]] == ["fwd", "mid"]
+
+
+def test_a_failed_lookup_keeps_the_last_chart(db: Session) -> None:  # noqa: F811
+    """A Sorare refusal must not publish an empty chart over a good one (10 Nov 2026: "Who sticks out" showed nothing)."""
+    good = stat_charts.publish(db, FakeClient(), history(), NOW)  # type: ignore[arg-type]
+    db.commit()
+    db.delete(db.get(ReadModel, stat_charts.PEOPLE_KEY))
+    db.commit()
+    stat_charts.publish(db, FakeClient(fail=True), history(), NOW + timedelta(days=8))  # type: ignore[arg-type]
+    db.commit()
+    row = db.get(ReadModel, stat_charts.KEY)
+    assert row is not None and row.payload == good and good["players"]

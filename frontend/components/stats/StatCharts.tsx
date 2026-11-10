@@ -55,7 +55,7 @@ export default function StatCharts({ initial }: { initial: { chart?: string; win
       <div id="sc-panel" role="tabpanel" aria-labelledby={`sc-tab-${view}`} className={`sc-panel${loading && data ? " sc-loading" : ""}`} aria-busy={loading}>
         {failed && !data ? <p className="sc-plot sc-empty" role="status">The charts could not be read just now</p>
           : !data ? <Skeleton />
-          : !data.players.length ? <p className="sc-plot sc-empty" role="status">{window === "cur" ? "Nobody has three starts this season yet" : "The charts appear after the next league-history run"}</p>
+          : !data.players.length ? <p className="sc-plot sc-empty" role="status">{!data.charted ? "Player stats are not published yet: they come with the next daily stats run" : window === "cur" ? "Nobody has three starts this season yet" : "Nobody has enough starts in this window yet"}</p>
           : <Chart key={view} data={data} />}
       </div>
     </section>

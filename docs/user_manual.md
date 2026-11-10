@@ -764,7 +764,7 @@ in it; click a club to zoom. **Face-off**: up to three players of one position f
 each against every player of that position. **Look-alikes**: pick any player and his twelve closest look-alikes gather round, closer when
 more alike; click one to see his. A stat a position's sheet does not have (no "possession won" for forwards) leaves those players out
 instead of putting them at 0. The league-history job builds them daily (read model `stat_charts`, backend `app/sorare/stat_charts.py`);
-each player's name, club, league and real Sorare card come from Sorare's public API, asked again once a week. The tab and window stay in
+each player's name, club, league and real Sorare card come from Sorare's public API, asked again once a week, in one `players(slugs:)` question per 20 players (10 Nov 2026: Sorare began refusing the old one, and the charts were empty from 7 Nov). A run that can describe nobody keeps the last chart; with no chart published at all the page says so instead of "Nobody has three starts". The tab and window stay in
 the address (`?chart=&cw=`).
 
 **Prices** (`/prices`, the Gallery's fourth view) says how far your gallery is up or down on what you paid ("Your gallery is up +€43.50"),

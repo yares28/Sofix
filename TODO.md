@@ -23,7 +23,7 @@ taken before Sofix planned the climb", was about the board itself: Arcade got it
 Order: broken first (A), then what you use most (B to D), then the redesigns (E, F). Each step ships alone with its test, the
 page's spec and the 1440 + 390 px look.
 
-**A · Stats "Who sticks out" shows nothing (broken)**: "Whos sticks out no longer shows anything for some reason, find the reason and fix it".
+**A · Stats "Who sticks out" shows nothing (broken)** · *fixed 10 Nov 2026: one `players(slugs:)` question (20 of 20 real players described in a read-only check), the test fake now refuses a repeated root field as Sorare does, a run that describes nobody keeps the last chart; the charts fill at the next league-history run (after the push)*: "Whos sticks out no longer shows anything for some reason, find the reason and fix it".
 - Cause (found 10 Nov): the `stat_charts` block has had 0 players since 7 Nov. `stat_charts.refresh_people` asks Sorare who each
   player is with one `anyPlayer` alias per player in one query; Sorare now refuses that ("Duplicated root field: anyPlayer",
   reproduced with two slugs). Every batch fails into a logged warning, the people block stays `{}`, and `build` drops every

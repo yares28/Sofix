@@ -30,7 +30,8 @@ export type ChartPlayer = {
   slug: string; name: string; pos: Position; league: string; club: string; crest: string | null; card: string | null;
   mine: boolean; starts: number; avg: number; values: (number | null)[];
 };
-export type ChartWindow = { asOf: string; window: WindowKey; keys: string[]; players: ChartPlayer[] };
+/** charted: players in the model over every window; 0 means the chart data itself is missing, not a quiet window (10 Nov 2026). */
+export type ChartWindow = { asOf: string; window: WindowKey; keys: string[]; players: ChartPlayer[]; charted: number };
 
 const RARITY = ["unique", "super_rare", "rare", "limited"];
 const rank = (card: CollectionCard) => (RARITY.indexOf(card.rarity) + 1 || 9) * 2 + (card.inSeason ? 0 : 1);
@@ -49,7 +50,7 @@ export function chartWindow(model: ChartModel, window: WindowKey, collection: Co
     const own = yours.get(p.slug);
     players.push({ slug: p.slug, name: p.name, pos: p.pos, league: p.league, club: p.club, crest: p.crest, card: own?.pic ?? p.card, mine: !!own, starts: w.starts, avg: w.avg, values: w.values });
   }
-  return { asOf: model.asOf, window, keys: model.keys, players };
+  return { asOf: model.asOf, window, keys: model.keys, players, charted: model.players.length };
 }
 
 /** "avg" is the mean score per start; anything else an action of the stat sheet. */

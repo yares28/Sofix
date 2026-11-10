@@ -115,14 +115,18 @@ def wanted(games: Sequence[dict[str, Any]]) -> list[str]:
 
 # ---------------------------------------------------------------------------------------------------------------- who is who
 def people_query(slugs: Sequence[str], season: int) -> str:
-    """One question for each player's name, club and league, and the first Limited card of the season; a slug is checked."""
+    """One question for each player's name, club and league, and the first Limited card of the season; a slug is checked.
+
+    One `players(slugs:)` root: Sorare refuses a root field asked twice ("Duplicated root field: anyPlayer", 10 Nov 2026),
+    which emptied the Stats charts from 7 Nov. Its answer is not in the asked order, so read_people matches by slug.
+    """
     for slug in slugs:
         if not SLUG.fullmatch(slug):
             raise ValueError(f"not a player slug: {slug!r}")
-    who = " ".join(
-        f'p{i}: anyPlayer(slug: "{slug}") {{ displayName ... on Player {{ activeClub {{ name shortName pictureUrl '
-        f"domesticLeague {{ slug }} }} }} }}"
-        for i, slug in enumerate(slugs)
+    asked = ", ".join(f'"{slug}"' for slug in slugs)
+    who = (
+        f"players(slugs: [{asked}]) {{ slug displayName ... on Player {{ activeClub {{ name shortName pictureUrl "
+        "domesticLeague { slug } } } }"
     )
     cards = " ".join(
         f'c{i}: allCards(playerSlugs: ["{slug}"], rarities: [limited], seasonStartYears: [{int(season)}], first: 1) '
@@ -136,9 +140,10 @@ def read_people(data: Mapping[str, Any], slugs: Sequence[str]) -> dict[str, dict
     """The answer by player; a player Sorare does not know is left out, a picture that is not Sorare's own is None."""
     out: dict[str, dict[str, Any]] = {}
     football = data.get("football") or {}
+    found = {p["slug"]: p for p in data.get("players") or [] if isinstance(p, dict) and p.get("slug")}
     for i, slug in enumerate(slugs):
-        player = data.get(f"p{i}")
-        if not isinstance(player, dict) or not player.get("displayName"):
+        player = found.get(slug)
+        if not player or not player.get("displayName"):
             continue
         club = player.get("activeClub") or {}
         nodes = (football.get(f"c{i}") or {}).get("nodes") or []
@@ -191,8 +196,17 @@ def refresh_people(db: Session, client: SorareClient, now: datetime, slugs: Sequ
 
 
 def publish(db: Session, client: SorareClient, games: Sequence[dict[str, Any]], now: datetime) -> dict[str, Any]:
-    """Describe the wanted players and publish the chart model; returns it."""
-    people = refresh_people(db, client, now, wanted(games))
+    """Describe the wanted players and publish the chart model; returns it.
+
+    A model with nobody in it while players are wanted means Sorare could not be asked (10 Nov 2026): the last chart stays.
+    """
+    wanted_now = wanted(games)
+    people = refresh_people(db, client, now, wanted_now)
     model = build(games, people, now)
+    if wanted_now and not model["players"]:
+        row = db.get(ReadModel, KEY)
+        if row and isinstance(row.payload, dict) and row.payload.get("players"):
+            logger.error("stat charts: no player described (%d wanted); the last chart is kept", len(wanted_now))
+            return dict(row.payload)
     put(db, KEY, model, now)
     return model

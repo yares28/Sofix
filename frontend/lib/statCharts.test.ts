@@ -33,6 +33,8 @@ describe("chartWindow", () => {
     expect(mine.players.find((p) => p.slug === "a")).toMatchObject({ mine: true, card: "rare.png" });
     expect(mine.players.find((p) => p.slug === "b")).toMatchObject({ mine: false, card: "https://assets.sorare.com/card/b.png" });
     expect(chartWindow(model, "cur").players).toEqual([]); // nobody has three starts this season
+    expect(chartWindow(model, "cur").charted).toBe(model.players.length); // but players are charted: the page tells the two apart
+    expect(chartWindow({ ...model, players: [] }, "cur").charted).toBe(0);
   });
 });
 

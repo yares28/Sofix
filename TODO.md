@@ -102,7 +102,8 @@ kept the other chain's scroll.*
    which on your board is recent form, since Sorare does not project 10 days out.* Horizons disagree: Teams to build around looks 4 days ahead (empty during this break, so it vanishes), FDR 8 days (A), Sofix's
    start % and xD only for each player's next fixture (the `laliga` map is keyed by next kick-off), the plan to the set's end. Teams
    to build around shows the next days that have games; a far game says "Sorare's projection" instead of a blank xD.
-3. Game lists differ: Batch lists every game, Pick teams and the chain only games with your cards, Players' day filter only next-game
+3. *Done 10 Nov 2026: Batch skips windows with no card of yours (6 on your board, 8 pages instead of 9); "Without your cards (6)"
+   brings them back, each marked "no card of yours".* Game lists differ: Batch lists every game, Pick teams and the chain only games with your cards, Players' day filter only next-game
    days. Batch marks windows with no card of yours and skips them by default.
 4. Two "Aim at" pickers with separate saved values (Pick teams and Batch): one shared aim.
 5. Chances on different bases side by side with no label: the ladder's "91%" (step 4 by the set's end) beside the bar's 40% (this

@@ -85,7 +85,20 @@ test("Batch covers all games, bounds and remembers the team count, and never dra
   await page.getByRole("link", { name: "Arcade", exact: true }).click();
   await show(page, "Batch");
   const batch = page.getByRole("region", { name: "Batch" });
+  // A window with no card of yours is skipped by default and marked when shown (9 Nov 2026: Batch listed games the others did not).
+  await expect(batch.getByRole("group", { name: "Batches" }).getByRole("button")).toHaveCount(1);
+  const empty = batch.getByRole("button", { name: "Without your cards (1)" });
+  await expect(empty).toHaveAttribute("aria-pressed", "false");
+  await empty.click();
   await expect(batch.getByRole("group", { name: "Batches" }).getByRole("button")).toHaveCount(2);
+  await expect(batch.getByRole("group", { name: "Batches" }).getByRole("button").nth(1)).toContainText("no card of yours");
+  await expect(batch.getByRole("group", { name: "Batches" }).getByRole("button").first()).not.toContainText("no card of yours");
+  if (process.env.ARCADE_PLAN_SHOT) for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await batch.locator(".arc-plan-head").screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-batch-head-${width}.png` });
+    await batch.getByRole("group", { name: "Batches" }).screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-batch-rail-${width}.png` });
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
   expect(await smallText(page, 11)).toEqual([]);
   await expect(batch.getByRole("button", { name: "Fewer teams" })).toBeDisabled();
   await expect(batch.locator(".arc-batch-lineup")).toHaveCount(1);

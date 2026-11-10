@@ -4,14 +4,14 @@ import { useContext } from "react";
 import { predicted, type Outlook } from "../../lib/arcadePlan";
 import { scoreColour } from "../../lib/cards";
 import { FdrContext, sideOf } from "./Fdr";
-import { BOARD_OF, fdrOf } from "../../lib/arcadeFdr";
+import { BOARD_OF, fdrOf, leagueLabel } from "../../lib/arcadeFdr";
 
 /** The same fixture ratings on collection and lineup art; captain points belong to that lineup's xScore. */
 export default function CardRatings({ outlook, game, competition, home, detail, captain = false, captainBonus = 0 }: {
   outlook?: Outlook; game?: string; competition?: { slug: string; name: string }; home: boolean; detail: string; captain?: boolean; captainBonus?: number;
 }) {
   // No rating says why: a league Sofix has no board for, or a board game not rated (yet).
-  const missing = !game ? "FDR unavailable" : competition && !BOARD_OF[competition.slug] ? `no Sofix board for ${competition.name}` : "not rated on Sofix's board yet";
+  const missing = !game ? "FDR unavailable" : competition && !BOARD_OF[competition.slug] ? `no Sofix board for ${leagueLabel(competition)}` : "not rated on Sofix's board yet";
   const fixture = useContext(FdrContext).get(game ?? "");
   const side = sideOf(fixture, home)?.mine;
   const fdr = fdrOf(side);

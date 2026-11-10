@@ -6,6 +6,7 @@ import SegmentedControl from "../SegmentedControl";
 import { ARCADE_TIERS_VERSION, readArcadeCollection, readPackOdds, type Arcade, type ArcadeCollection, type ArcadePack } from "../../lib/arcade";
 import { completePackOdds, ICON, missionGoal, openBundle, openMany, packRow, packsToFinish, spendGems, TIER_GOALS, type Goal, type TierOdds } from "../../lib/arcadePacks";
 import { loadPackSnapshot, savePackSnapshot, type PackSnapshot } from "../../lib/arcadePackStore";
+import { leagueLabel } from "../../lib/arcadeFdr";
 
 const TIERS = ["All", "Bronze", "Silver", "Gold", "Special"] as const;
 export const tierOf = (title: string) => (["Bronze", "Silver", "Gold"].includes(title.trim()) ? title.trim() : "Special");
@@ -81,7 +82,7 @@ export default function ArcadePacks({ arcade, busy = false }: { arcade: Arcade; 
     : goal === "new" ? { label: "New players", need: 1, distinct: true, owned }
     : { label: tierGoal?.label ?? "Icon", need: 1, distinct: false, tiers: tierGoal?.tiers ?? ICON, owned }, [mission, owned, leagueOf, goal, tierGoal]);
   const label = mission?.title ?? (goal === "new" ? "New players" : tierGoal?.label ?? "Icon");
-  const name = (p: { title: string; league: string | null }) => `${p.title}${p.league ? ` · ${arcade.set.leagues.find(l => l.slug === p.league)?.name ?? p.league}` : ""}`;
+  const name = (p: { title: string; league: string | null }) => `${p.title}${p.league ? ` · ${leagueLabel(arcade.set.leagues.find(l => l.slug === p.league) ?? { slug: p.league, name: p.league })}` : ""}`;
   const usable = useCallback((p: ArcadePack) => completePackOdds(snapshot?.odds[p.slug], p.cards), [snapshot]);
   const rows = useMemo(() => packs.filter(usable).map(p => packRow(p, snapshot!.odds[p.slug]!, goalFor(p))).sort((a, b) => (a.perHit ?? Infinity) - (b.perHit ?? Infinity)), [packs, usable, snapshot, goalFor]);
   const pack = packs.find(p => p.slug === selected) ?? packs.find(p => p.currency === "COMMON_GEM") ?? packs[0];

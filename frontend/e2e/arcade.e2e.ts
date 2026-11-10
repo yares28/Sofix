@@ -396,6 +396,8 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await expect(page.locator(".arc-plan")).toContainText("Pick at least one game.");
   await club.getByRole("button").click();
   await expect(page.locator(".arc-pitch li")).toHaveCount(5);
+  // One name per league: Sofix's where it has a board, not Sorare's "LALIGA EA Sports" (9 Nov 2026).
+  await expect(page.locator(".arc-ticket small").first()).toHaveText("LaLiga");
   expect(await smallText(page, 11)).toEqual([]);
   if (process.env.ARCADE_PLAN_SHOT) {
     await page.emulateMedia({ reducedMotion: "reduce" }); // still pictures, not mid-animation

@@ -3,9 +3,10 @@
 import { bonusLabel, type ArcadeCard, type ArcadeGame } from "../../lib/arcade";
 import { sideIn, xdTitle, type Outlook } from "../../lib/arcadePlan";
 import CardRatings from "./CardRatings";
+import { leagueLabel } from "../../lib/arcadeFdr";
 
 const SOURCES = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
-export const fixtureName = (game: ArcadeGame) => `${game.home?.name ?? "?"} v ${game.away?.name ?? "?"} · ${new Date(game.kickoff).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${game.competition.name}`;
+export const fixtureName = (game: ArcadeGame) => `${game.home?.name ?? "?"} v ${game.away?.name ?? "?"} · ${new Date(game.kickoff).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${leagueLabel(game.competition)}`;
 
 /** Shared card art and evidence for the collection and the exact game picked in a lineup. */
 export default function PlayerCard({ card, outlook, game, fixtures, crests, onSelect, unavailable = "No game before the set ends", captain = false, captainBonus = 0 }: {

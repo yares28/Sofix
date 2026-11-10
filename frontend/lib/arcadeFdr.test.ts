@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ARCADE_FDR_DAYS, boardFixtures, matchFixture, nameMatch, fdrOf, type FdrFixture } from "./arcadeFdr";
+import { ARCADE_FDR_DAYS, boardFixtures, matchFixture, nameMatch, fdrOf, leagueLabel, type FdrFixture } from "./arcadeFdr";
 import type { FixtureGrid } from "./types";
 
 const side = (code: string, name: string, bucket: 1 | 2 | 3 | 4 | 5) => ({ code, name, bucket, label: "Even", cleanSheet: 0.3, xgFor: 1.4, xgAgainst: 1.1 });
@@ -65,5 +65,14 @@ describe("one FDR form across Arcade", () => {
   it("says it is missing rather than inventing one", () => {
     expect(fdrOf({ ...side, difficulty: undefined })).toEqual({ value: null, band: 1, title: "Very favourite · difficulty unknown" });
     expect(fdrOf(null)).toEqual({ value: null, band: null, title: "FDR unavailable" });
+  });
+});
+
+describe("one name per league", () => {
+  // 9 Nov 2026: Sorare's "English League Players" beside Sofix's "Premier League".
+  it("uses Sofix's name for a league it has a board for, else Sorare's", () => {
+    expect(leagueLabel({ slug: "premier-league-gb-eng", name: "English League Players" })).toBe("Premier League");
+    expect(leagueLabel({ slug: "laliga-es", name: "LALIGA EA Sports" })).toBe("LaLiga");
+    expect(leagueLabel({ slug: "uefa-nations-league", name: "UEFA Nations League" })).toBe("UEFA Nations League");
   });
 });

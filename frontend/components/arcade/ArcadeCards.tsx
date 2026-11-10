@@ -7,6 +7,7 @@ import { madridDate, predicted, sideIn, type Outlook } from "../../lib/arcadePla
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import PlayerCard from "./PlayerCard";
 import { FdrContext, sideOf } from "./Fdr";
+import { leagueLabel } from "../../lib/arcadeFdr";
 
 const PAGE_SIZE = 12;
 const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
@@ -38,7 +39,7 @@ export default function ArcadeCards({ cards, games, outlooks, status, form }: { 
   const [page, setPage] = useState(0);
   const windows = { l5, l10, l40 };
   const setWindow = { l5: setL5, l10: setL10, l40: setL40 };
-  const leagues = useMemo(() => [...new Map(cards.flatMap((c) => c.league ? [[c.league.slug, c.league.name] as const] : [])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [cards]);
+  const leagues = useMemo(() => [...new Map(cards.flatMap((c) => c.league ? [[c.league.slug, leagueLabel(c.league)] as const] : [])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [cards]);
   const editions = useMemo(() => [...new Set(cards.map((c) => c.edition ?? "Standard"))].sort(), [cards]);
   const crests = useMemo(() => new Map(cards.flatMap((c) => c.teamSlug && c.teamPicture ? [[c.teamSlug, c.teamPicture] as const] : [])), [cards]);
   const indexed = useMemo(() => new Map([...outlooks].map(([id, list]) => [id, new Map(list.map((o) => [o.card.slug, o]))])), [outlooks]);

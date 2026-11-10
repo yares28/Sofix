@@ -8,7 +8,7 @@ import { useClimb, type ClimbPlan } from "../../lib/climbClient";
 import { aimKey, useArcadeAim } from "../../lib/arcadeAim";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
-import { fdrOf } from "../../lib/arcadeFdr";
+import { fdrOf, leagueLabel } from "../../lib/arcadeFdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
 import { aimStep, noStartNote, bestLineup, bigReward, cashOf, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
@@ -225,7 +225,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
           const on = chosen.has(g.id);
           return (
             <button key={g.id} type="button" className="arc-ticket" aria-pressed={on} onClick={() => toggle(g)} style={{ "--i": Math.min(i, 12) } as CSSProperties}>
-              <small>{g.competition.name}</small>
+              <small>{leagueLabel(g.competition)}</small>
               <span className="arc-ticket-crests"><Crest team={g.home} crests={crests} /><i>v</i><Crest team={g.away} crests={crests} /></span>
               <span className="arc-ticket-name">{g.home?.name ?? "?"} v {g.away?.name ?? "?"}</span>
               <span className="arc-ticket-foot">

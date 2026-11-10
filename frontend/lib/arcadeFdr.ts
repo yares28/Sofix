@@ -1,4 +1,4 @@
-import type { Competition } from "./competitions";
+import { COMPETITIONS, type Competition } from "./competitions";
 import type { FixtureGrid } from "./types";
 
 /**
@@ -71,3 +71,6 @@ export function fdrOf(side: FdrSide | null | undefined): { value: number | null;
   const value = side.difficulty == null ? null : Math.round(side.difficulty);
   return { value, band: side.bucket, title: `${side.label} · difficulty ${value === null ? "unknown" : `${value} of 100 (lower is easier)`}` };
 }
+
+/** A Sorare competition's name as Sofix says it where it has a board ("English League Players" is the Premier League), else Sorare's. */
+export const leagueLabel = (c: { slug: string; name: string }) => (BOARD_OF[c.slug] ? COMPETITIONS[BOARD_OF[c.slug]!] : c.name);

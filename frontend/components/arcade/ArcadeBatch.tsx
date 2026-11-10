@@ -7,7 +7,7 @@ import { batchesOf, teamsInBatch } from "../../lib/arcadeBatch";
 import { batchChances, chanceOf, simulation, type Outlook } from "../../lib/arcadePlan";
 import { climbStart, climbStep, Crest, crestsOf, LineupCards, madridDay, madridTime, pct, pts, stepInfos } from "./ArcadePlanner";
 import { FdrContext } from "./Fdr";
-import { fdrOf, type FdrSide } from "../../lib/arcadeFdr";
+import { fdrOf, leagueLabel, type FdrSide } from "../../lib/arcadeFdr";
 import { aimKey, useArcadeAim } from "../../lib/arcadeAim";
 
 const Saved = z.object({ day: z.string(), selected: z.string(), counts: z.record(z.string(), z.number().int().min(1).max(4)), empty: z.boolean().default(false) });
@@ -27,7 +27,7 @@ function Match({ game, crests }: { game: ArcadeGame; crests: Map<string, string>
     </div>
   );
   return <article className="arc-batch-match" aria-label={`${game.home?.name ?? "Unknown"} v ${game.away?.name ?? "Unknown"}`}>
-    <header><span>{game.competition.name}</span><time dateTime={game.kickoff}>{madridDay(game.kickoff)} · {madridTime(game.kickoff)}</time></header>
+    <header><span>{leagueLabel(game.competition)}</span><time dateTime={game.kickoff}>{madridDay(game.kickoff)} · {madridTime(game.kickoff)}</time></header>
     <div>{side(game.home, f?.home)}{side(game.away, f?.away)}</div>
   </article>;
 }

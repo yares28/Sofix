@@ -145,7 +145,11 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
   `backend/artifacts/team_decisives.json`; rebuild with `python -m app.sorare.team_decisives` after the games export) and clean-sheet chance under it; between them one bar of win, draw and win (Sorare's colours) with
   both-score under it. The favourite is in bold; a played match shows its score. On a phone the bar goes first, the sides below.
 - **Table after round N**: the table once the round is played as expected: points now, points after and places gained or lost.
-- **Your lineups**: every entered lineup, followed by every lineup of the best Sofix plan. Each compares expected team
+- **Your lineups** (since 11 Nov 2026): a switch between **Entered** and **Sofix plan**. Each row is the competition with
+  Sorare's icon on its colour (PRO pill for Pro, the in-season "27" or Classic "C" mark), the cards as an overlapping hand that
+  spreads on hover, a score track (the score against the xS mark, a Pro step's target line; striped while games are still to come)
+  and **xR** (the prize expected before the lock) with **Won** (Sorare's pay; the plan's row says **Would win** once checked).
+  Before 11 Nov: every entered lineup, followed by every lineup of the best Sofix plan. Each compares expected team
   xScore with the actual score; missing scores stay blank, and partial plan results say **Actual so far**. The best plan
   has the highest expected essence. Under each card the big hexagon is what he scored on Sorare, a grey "-" until he has
   played (or when he did not; the hover says which), and the small hexagon beside it is his xScore, on Home and Play alike. The big

@@ -142,7 +142,7 @@ test("Play fits a phone: the plans, a lineup's sheet and the cards inside it", a
 
 test("the phone's Recap lineups and the gameweek just played fit without sideways scrolling", async ({ page }) => {
   for (const [path, ready] of [
-    ["/", ".rc-lu"],
+    ["/", ".rc-lu >> visible=true"], // one side at a time: with nothing entered, the Sofix plan's rows
     ["/play?plan=2", ".pl-lu"],
     ["/play?gw=15&after=1", ".pl-lu .rc-score-pair b"],
   ] as const) {

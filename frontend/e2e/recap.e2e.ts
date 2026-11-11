@@ -74,7 +74,7 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   await expect(mine.locator(".rc-team")).toHaveCount(2);
   await expect(mine.locator(".rc-score-pair")).toHaveCount(2);
   await expect(mine.locator(".pl-entered-expected b").first()).toHaveText(String(Math.round(lineup.x)));
-  await expect(mine.locator(".pl-entered-expected").last()).toContainText("xScore estimate");
+  await expect(mine.locator(".pl-entered-expected").last()).toContainText("xS");
   await expect(mine.locator(".pl-entered-result b").first()).toHaveText("0");
   await expect(mine.locator(".pl-entered-result b").last()).toHaveText("313");
   await expect(mine).toContainText("Latest lineups saved in Sofix");
@@ -82,6 +82,9 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   const first = mine.locator(".pl-entered-lineup").first();
   await expect(first.locator(".rc-hex").first()).toHaveText("-");
   await expect(first.locator(".rc-xs").first()).toHaveText(String(Math.round(lineup.starters[0]!.x)));
+  // Your lineups shows what you entered or the Sofix plan, one at a time (plans/recap-matchnight.md).
+  await page.getByRole("tab", { name: /^Sofix plan/ }).click();
+  await expect(mine).toBeHidden();
   const plan = page.getByRole("region", { name: "Best Sofix plan" });
   await expect(plan.locator(".rc-lu").first().locator(".rc-xs").first()).toHaveText(String(Math.round(lineup.starters[0]!.x)));
   await expect(plan.locator(".rc-lu")).toHaveCount(best.lineups.length);
@@ -215,7 +218,7 @@ test("a saved custom estimate survives closed Sorare tabs and follows the select
   await page.goto(`/?w=${week.id}`);
   const mine = page.getByRole("region", { name: "Your Sorare lineups", exact: true });
   await expect(mine).toContainText("Final lineups saved in Sofix");
-  await expect(mine.locator(".pl-entered-expected")).toContainText("xScore estimate");
+  await expect(mine.locator(".pl-entered-expected")).toContainText("xS");
   const expected = await mine.locator(".pl-entered-expected b").textContent();
   expect(expected).toMatch(/^\d+$/);
   await expect(mine.locator(".pl-entered-result b")).toHaveText("0");

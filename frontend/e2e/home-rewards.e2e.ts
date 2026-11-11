@@ -39,7 +39,7 @@ test("Home compares the selected GW's checked rewards with the Sofix plan's with
   const hand = page.getByRole("list", { name: "Your best cards this week, by xS" });
   await expect(hand.getByRole("listitem")).toHaveCount(Math.min(10, week.playing.players.length));
   const second = [...week.playing.players].sort((a, b) => b.x - a.x || a.name.localeCompare(b.name))[1]!;
-  await hand.getByRole("link", { name: new RegExp(`^2\. ${second.name},`) }).hover();
+  await hand.getByRole("link", { name: new RegExp(`^2\. ${second.name},`) }).focus(); // the lifted best card covers its neighbours' middles, so a pointer reaches them by their edges
   await expect(page.locator(".rx-plate")).toContainText(second.name);
   await expect.poll(() => reads).toBe(1); // one entered-lineup read (Your season, with its archive reads, moved to Audit · Rewards on 2 Nov 2026)
   for (const width of [1440, 390]) {

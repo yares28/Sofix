@@ -403,3 +403,70 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
   .rx-hero, .rx-fc, .rx-status i, .rx-skel, .rx-big-skel { animation: none; }
   .rx-art, .rx-foil { transition: none; }
 }
+
+/* ---------------------------------------------------------------- Matchnight lineups (plans/recap-matchnight.md, step 2) */
+.rx-seg { display: inline-flex; align-self: flex-start; width: max-content; background: var(--hover); border-radius: 999px; padding: 4px; margin: 2px 0 10px; }
+.rx-seg button { height: 38px; border: 0; background: transparent; border-radius: 999px; padding: 0 16px; font: inherit; font-size: 13px; color: var(--ink-seg); cursor: pointer; transition: background .2s, color .2s; }
+.rx-seg button.on { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(0, 0, 0, .1); }
+.rx-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rc-lu.rx-lu { grid-template-columns: 196px minmax(0, 1fr) minmax(240px, 340px) 172px; grid-template-areas: "cp team trk rwd"; align-items: center; gap: 12px 26px; padding: 18px 4px 20px; }
+.rx-lu > .rx-cp, .rx-lu > .rx-cpw { grid-area: cp; min-width: 0; }
+.rx-lu > .rc-team { grid-area: team; }
+.rx-lu > .rx-trk { grid-area: trk; }
+.rx-lu > .rx-rwd, .rx-lu > .rx-rwd-wrap { grid-area: rwd; }
+.rx-cp { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.rx-disc { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #fff; font-size: 12px; font-weight: 800; }
+.rx-disc img { width: 22px; height: 22px; display: block; }
+.rx-cpt { min-width: 0; }
+.rx-cpt b { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 700; }
+.rx-cpt .tg-pro { padding: 4px 8px; border-radius: 7px; background: #1d1d1f; color: #f4f1ea; font-size: 11px; font-weight: 800; letter-spacing: .14em; line-height: 1; }
+.rx-mode { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12px; color: var(--ink-2); }
+.rx-mode .season-ic { color: var(--ink); flex: none; }
+.rx-protags { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 0 52px; }
+.rx-protags .pro-step { display: none; }
+/* the cards as a hand: they overlap and spread apart on hover */
+.rx-lu .rc-team { flex-wrap: nowrap; gap: 0; padding-left: 16px; }
+.rx-lu .rc-team li { flex: none; width: 62px; min-width: 0; max-width: none; margin-left: -16px; transition: margin .35s var(--ease); }
+.rx-lu .rc-team:hover li { margin-left: -4px; }
+.rx-lu .rc-team li:not(.bench) + li.bench { margin-left: 8px; }
+.rx-lu .rc-team li:not(.bench) + li.bench::before { display: none; }
+.rx-lu .rc-team li.bench > .rc-art { opacity: .55; }
+.rx-lu .rc-team .rc-art { box-shadow: 0 0 0 2px var(--surface), 0 8px 14px -8px rgba(0, 0, 0, .45); }
+/* the score track */
+.rx-trk { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; min-width: 0; }
+.rx-rail { position: relative; height: 18px; border-radius: 999px; background: linear-gradient(180deg, var(--track), var(--hover)); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .08); }
+.rx-rail::before { content: ""; position: absolute; inset: 0; border-radius: 999px; background: repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), color-mix(in srgb, var(--ink) 7%, transparent) calc(25% - 1px) 25%); }
+.rx-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 65%, transparent), var(--c)); box-shadow: 0 6px 14px -6px var(--c), inset 0 1px 0 rgba(255, 255, 255, .45); transform-origin: left center; animation: rx-grow 1.1s var(--ease) both; }
+.rx-fill::after { content: ""; position: absolute; right: -4px; top: 50%; width: 24px; height: 24px; margin-top: -12px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px var(--c), 0 6px 14px -4px rgba(0, 0, 0, .35); }
+.rx-fill.live { background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, .35) 0 6px, transparent 6px 12px), linear-gradient(90deg, color-mix(in srgb, var(--c) 65%, transparent), var(--c)); }
+.rx-xm { position: absolute; top: -12px; bottom: -12px; width: 2px; margin-left: -1px; background: repeating-linear-gradient(180deg, var(--ink) 0 4px, transparent 4px 7px); }
+.rx-xm span, .rx-gate span { position: absolute; bottom: 100%; left: 50%; translate: -50% -4px; height: 20px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 700; display: grid; place-items: center; white-space: nowrap; }
+.rx-xm span { background: var(--ink); color: var(--on-ink); }
+.rx-gate { position: absolute; top: -12px; bottom: -12px; border-left: 2px dashed var(--ink); }
+.rx-gate span { top: 100%; bottom: auto; translate: -50% 4px; background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.rx-act { display: flex; flex-direction: column; align-items: flex-end; min-width: 84px; text-align: right; }
+.rx-act .pl-entered-result b { display: block; font-size: 30px; font-weight: 900; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.rx-act small { font-size: 12px; font-weight: 700; margin-top: 3px; white-space: nowrap; }
+.rx-act .rc-xd { margin-top: 3px; font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+/* xR and Won */
+.rx-rwd { display: grid; grid-template-columns: auto auto; align-items: center; column-gap: 10px; row-gap: 6px; justify-content: end; margin: 0; }
+.rx-rwd dt { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); text-align: right; }
+.rx-rwd dd { margin: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 10px; font-size: 14px; font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rx-rwd dd > span { display: inline-flex; align-items: center; gap: 5px; }
+.rx-rwd dd.x { font-weight: 600; color: var(--ink-2); }
+.rx-rwd dd.none { font-weight: 500; color: var(--ink-3); }
+.rx-xp { height: 18px; padding: 0 5px; border-radius: 5px; background: #2a2f86; color: #fff; font-size: 11px; font-weight: 900; font-style: normal; display: grid; place-items: center; }
+.rx-rwd dd.x .rx-xp { background: color-mix(in srgb, #2a2f86 18%, var(--surface)); color: #2a2f86; }
+.rx-rwd-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.rx-rwd-wrap .rc-rew { display: flex; align-items: center; gap: 8px; }
+.rx-rwd-wrap .rc-any { display: flex; align-items: baseline; gap: 6px; }
+.rx-rwd-wrap .rc-any b { font-size: 15px; }
+@keyframes rx-grow { from { transform: scaleX(0); } }
+@media (max-width: 1100px) {
+  .rc-lu.rx-lu { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "cp rwd" "team team" "trk trk"; gap: 14px 16px; }
+  .rx-lu .rc-team { overflow-x: auto; padding-bottom: 4px; }
+}
+@media (prefers-reduced-motion: reduce) { .rx-fill { animation: none; } .rx-lu .rc-team li { transition: none; } }
+.rx-trk.rc-score-pair { display: grid; gap: 16px; align-items: center; }
+.rx-trk.rc-score-pair > .rx-act { flex-direction: column; gap: 0; }
+.rx-trk.rc-score-pair > .rx-rail { display: block; }

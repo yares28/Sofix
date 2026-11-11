@@ -12,7 +12,9 @@ import { readEnteredWeek, type EnteredRead } from "../../lib/myWeeksClient";
 import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import { chanceLabel, type GameweekPlan } from "../../lib/play";
 import { enteredScore, playerKey, type ActualScores } from "../../lib/lineupScores";
-import { ComparisonCards, ComparisonScores } from "../recap/LineupComparison";
+import { ComparisonCards, ComparisonScores, type ComparisonCard } from "../recap/LineupComparison";
+import { CompTag, RewardPair, ScoreTrack } from "../recap/LineupStrip";
+import { useEnteredCount } from "../recap/LineupsSwitch";
 import DataAction from "../ui/DataAction";
 import { proNeeds, scoreState, type NeedBadge } from "../../lib/pointsNeeded";
 
@@ -53,6 +55,7 @@ type LoadState =
 /** `scores`: the week's own player scores (lib/planScoresData.ts), so a card shows his score apart from its bonuses. */
 export default function EnteredLineups({ week, forecast = null, variant = "play", scores = {}, comparison, rewardCheck }: { week: Week; forecast?: GameweekPlan | null; variant?: "play" | "recap"; scores?: ActualScores; comparison?: PlayComparisonProps; rewardCheck?: EnteredRewardCheck | null }) {
   const setRewards = useWeekRewards()?.setOwn;
+  const report = useEnteredCount();
   const [load, setLoad] = useState<LoadState>({ state: "loading", lineups: [] });
   const [asked, setAsked] = useState(0); // a new ask: Check again, or coming back to this tab
   const last = useRef<{ slug: string; lineups: GameweekLineup[] } | null>(null);
@@ -105,6 +108,10 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
       actual: rows[i]!.won ?? paidBySorare(l.result, estimates.get(l.id)?.prizeLine),
     })), rewardCheck?.you) });
   }, [setRewards, load, estimates, rewardCheck, locked]);
+  // The Recap's switch learns how many you entered once the read is done (none: it opens on the Sofix plan).
+  useEffect(() => {
+    if (report && load.state !== "loading") report(load.lineups.filter((l) => !l.draft).length);
+  }, [report, load]);
   // Each entered lineup's projected prize and what it won or reaches so far: the rows the header adds up.
   const enteredOnly = load.lineups.filter((l) => !l.draft);
   const prizeRows = enteredRewardRows(enteredOnly, estimates, comparison?.rewards, locked);
@@ -196,27 +203,38 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
             const live = !week.end || Date.parse(week.end) > now.getTime();
             const result = lineup.draft || pending ? null : lineup.result;
             const prize = prizes.get(lineup.id);
+            const shown: ComparisonCard[] = cards.map((c, i) => {
+              const total = result && c.score ? c.score : null;
+              // His own score from the week's published scores, whether or not Sorare's saved read has one (2 Nov 2026: a
+              // browser without the extension showed a read saved before the games, every card "Not played yet").
+              const own = c.player ? scores[playerKey(c.player)] : undefined;
+              return { ...c, score: own?.played ? own.score : total, total, need: c.bench ? undefined : needs?.[i],
+              why: (own && !own.played && own.complete !== false) || (result && !live) ? "Did not play" : "Not played yet" };
+            });
+            // Sorare's score when it has one; else the score worked out from the week's published scores, "so far" until every game is in.
+            const sorare = lineup.result && lineup.result.score > 0 ? lineup.result.score : null;
+            const worked = sorare === null && expected.actual !== undefined ? expected.actual : null;
+            const actual = pending || lineup.draft ? null : sorare ?? worked ?? lineup.result?.score ?? null;
+            const soFar = worked !== null ? !expected.actualComplete : lineup.result?.rank === null;
+            if (variant === "recap") {
+              // The Recap's row (plans/recap-matchnight.md): competition, the cards as a hand, the score track, xR and Won.
+              const mode = lineup.draft ? { kind: "pro" as const, text: "Draft" } : lineup.pro ? { kind: "pro" as const, text: `Step ${lineup.pro.level}` }
+                : lineup.scoring ? { kind: lineup.scoring.minInSeason > 0 ? "in-season" as const : "classic" as const, text: lineup.scoring.minInSeason > 0 ? "In season" : "Classic" }
+                : /season/i.test(lineup.name ?? "") ? { kind: "in-season" as const, text: "In season" } : /classic/i.test(lineup.name ?? "") ? { kind: "classic" as const, text: "Classic" } : null;
+              return <article className="rc-lu pl-entered-lineup rx-lu" key={lineup.id}>
+                <CompTag comp={lineup.competition} pro={Boolean(lineup.pro)} mode={mode} />
+                <ComparisonCards cards={shown} />
+                <ScoreTrack expected={expected.value} actual={actual} soFar={soFar} target={lineup.pro?.target ?? null} />
+                <RewardPair expected={lineup.draft ? "—" : rewardShort(prize?.projected)} won={!locked || lineup.draft ? null : rewardShort(prize?.won)} wonLabel={prize?.won && !prize.soFar ? "Won" : "So far"} />
+              </article>;
+            }
             return <article className="rc-lu pl-entered-lineup" key={lineup.id}>
                 <div className="rc-lu-c"><b>{lineup.competition}</b><span>{lineup.name ?? "Untitled lineup"}</span><span>{lineup.draft ? "Draft" : "Entered"} · {cards.length} cards</span></div>
                 {/* Sorare gives a card 0 until his game is in, and 0 to one who did not play */}
                 {/* Sorare's card score counts the card's bonus and the captain's: his own score shows, that total on hover */}
-                <ComparisonCards cards={cards.map((c, i) => {
-                  const total = result && c.score ? c.score : null;
-                  // His own score from the week's published scores, whether or not Sorare's saved read has one (2 Nov 2026: a
-                  // browser without the extension showed a read saved before the games, every card "Not played yet").
-                  const own = c.player ? scores[playerKey(c.player)] : undefined;
-                  return { ...c, score: own?.played ? own.score : total, total, need: c.bench ? undefined : needs?.[i],
-                  why: (own && !own.played && own.complete !== false) || (result && !live) ? "Did not play" : "Not played yet" };
-                })} />
+                <ComparisonCards cards={shown} />
                 <div className="rc-score">
-                  {(() => {
-                    // Sorare's score when it has one; else the score worked out from the week's published scores, "so far" until every game is in.
-                    const sorare = lineup.result && lineup.result.score > 0 ? lineup.result.score : null;
-                    const worked = sorare === null && expected.actual !== undefined ? expected.actual : null;
-                    const actual = pending || lineup.draft ? null : sorare ?? worked ?? lineup.result?.score ?? null;
-                    const soFar = worked !== null ? !expected.actualComplete : lineup.result?.rank === null;
-                    return <ComparisonScores expected={expected.value} estimated={expected.estimated} actual={actual} actualLabel={soFar ? "Actual so far" : "Actual"} entered />;
-                  })()}
+                  <ComparisonScores expected={expected.value} estimated={expected.estimated} actual={actual} actualLabel={soFar ? "Actual so far" : "Actual"} entered />
                   {expected.value === null ? <span>{forecast ? "Forecast unavailable" : "Not recorded"}</span> : null}
                 </div>
                 <div className="rc-rew">

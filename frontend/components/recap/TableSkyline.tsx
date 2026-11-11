@@ -19,9 +19,9 @@ export default function TableSkyline({ after, now, round, latest, href }: { afte
       <div className="rx-sh">
         <h2 id="rx-sky-h">{view === "now" ? "Table now" : `Table after round ${round}`}</h2>
         {now ? (
-          <div className="rx-seg" role="tablist" aria-label="Which table">
-            <button type="button" role="tab" aria-selected={view === "after"} className={view === "after" ? "on" : undefined} onClick={() => setView("after")}>After round {round}</button>
-            <button type="button" role="tab" aria-selected={view === "now"} className={view === "now" ? "on" : undefined} onClick={() => setView("now")}>Now</button>
+          <div className="rx-seg" role="group" aria-label="Which table">
+            <button type="button" aria-pressed={view === "after"} className={view === "after" ? "on" : undefined} onClick={() => setView("after")}>After round {round}</button>
+            <button type="button" aria-pressed={view === "now"} className={view === "now" ? "on" : undefined} onClick={() => setView("now")}>Now</button>
           </div>
         ) : null}
         {view === "now" && latest !== null ? <span className="rx-meta">Latest round played: {latest}</span> : null}

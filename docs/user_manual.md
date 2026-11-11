@@ -135,7 +135,8 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
   card to name him under the fan. Under the hero, **You vs Sofix plan**: Rewards % and every reward, what was paid when checked
   (else expected), the better value of each column lit, and who won more. A perfect 100 is drawn in Sorare's pearl wherever a
   score is coloured.
-- **Missions** come right after the hero.
+- **Missions** come right after the hero: each open mission's best picks with their chances and, once played, Sorare's verdict
+  on each pick (✓ did it, ✕ did not) and how many did it. A national-team week's hero number is how many of your cards play.
 - **Your season** (on Audit · Rewards since 2 Nov 2026, no longer on the Recap): choose a season to see Limited essence, cash, card rewards and distinct GWs with entered lineups.
   **Week by week** shows rewarded GWs only; expand one to see its actual essence-winning lineups and captains.
   Zero-reward GWs still count as played. Open Home in Chrome with a signed-in Sorare tab to save missing finished

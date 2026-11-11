@@ -149,7 +149,8 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               </span>
             </p>
             <h1 id="rx-h">{gwNumber ? `Gameweek ${gwNumber}` : `LaLiga round ${md.number}`}</h1>
-            {plan || selectedSorare ? <HeroNumber plan={recommendation} expectedEssence={best ? best.essence : null} hasEntries={Boolean(selectedSorare)} /> : null}
+            {plan || selectedSorare ? <HeroNumber plan={recommendation} expectedEssence={best ? best.essence : null} hasEntries={Boolean(selectedSorare)}
+              fallback={away && hand.length ? { n: hand.length, label: `of your cards play for their country` } : null} /> : null}
             {plan ? (
               <div className="rx-acts">
                 <Link className="rc-btn" href={href("/play")}>Open the plan</Link>

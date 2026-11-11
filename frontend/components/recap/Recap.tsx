@@ -312,23 +312,31 @@ export function MissionsGlance({ plans, day, current, href }: { plans: MissionPl
       {current ? null : <p className="rc-none">Today&rsquo;s missions aren&rsquo;t loaded yet. Load them on the Missions page.</p>}
       {open.length ? (
         <div className="rc-msn">
-          {open.map((one) => (
+          {open.map((one) => {
+            // Sorare's verdict on each pick once its game is played (your own picks of the same player).
+            const verdict = new Map((one.mission.appearances ?? []).flatMap((a) => (a.status === "SUCCESS" || a.status === "FAILURE" ? [[a.player, a.status] as const] : [])));
+            const shown = one.picks.slice(0, 3), judged = shown.filter((p) => verdict.has(p.slug));
+            const hits = judged.filter((p) => verdict.get(p.slug) === "SUCCESS").length;
+            return (
             <div className="rc-ms" key={one.mission.id}>
-              <b>{one.mission.title}</b>
+              <div className="rx-mtop"><b>{one.mission.title}</b>{judged.length ? <span className={`rx-hits${hits ? " y" : ""}`}>{hits} of {judged.length} did it</span> : null}</div>
               <span>{one.rule.label}{one.reward ? `. ${one.reward}` : ""}</span>
               <ol>
                 {one.picks.slice(0, 3).map((pick) => (
-                  <li key={pick.slug}>
-                    <Link className="rc-art" href={playerHref(pick.slug)} tabIndex={-1} aria-hidden="true"><CardArt src={pick.pic} name={pick.name} /></Link>
+                  <li key={pick.slug} className={verdict.get(pick.slug) === "FAILURE" ? "miss" : undefined}>
+                    <Link className="rc-art" href={playerHref(pick.slug)} tabIndex={-1} aria-hidden="true"><CardArt src={pick.pic} name={pick.name} />
+                      {verdict.has(pick.slug) ? <span className={`rx-mk ${verdict.get(pick.slug) === "SUCCESS" ? "y" : "n"}`}>{verdict.get(pick.slug) === "SUCCESS" ? "✓" : "✕"}</span> : null}</Link>
                     <strong>{pct(pick.chance)}</strong>
                     <Link href={`/players/${pick.slug}`}>{pick.name}</Link>
                     <span>{pick.venue === "H" ? "v" : "at"} {pick.opponent}, {formatShortKickoff(pick.kickoff).split(" ")[1]}</span>
                     {pick.average ? <span className="rc-l5">{one.rule.kind === "decisive" || one.rule.kind === "booked" ? pct(pick.average.l5) : pick.average.l5.toFixed(1)} last 5</span> : null}
+                    {verdict.has(pick.slug) ? <span className="visually-hidden">{verdict.get(pick.slug) === "SUCCESS" ? "Did it" : "Did not"}</span> : null}
                   </li>
                 ))}
               </ol>
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <p className="rc-none">{plans.length ? "No ranked suggestions. Review your eligible cards on Missions." : current ? "No missions on Sorare today." : null}</p>

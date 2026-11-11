@@ -27,6 +27,13 @@ The owner's redesign of the Recap (home), approved on the design canvas "Sofix R
   score band colour is drawn; "xS", never "xScore", in UI copy.
 - Phone 390 px: hand smaller, stubs and skyline scroll sideways, lineups stack. National-team week keeps AwayWeek.
 
+## Built (11 Nov 2026, local commits)
+
+All five steps are built on `main` (not pushed): hero, hand and You vs Sofix; lineups; the round; the table skyline;
+mission verdicts and the national-team week. Checked on the local dev server with real data at 1440 and 375 px (the
+built-in browser: Claude in Chrome was not connected). Follow-ups: the plan named here for reading lineups after each
+game (TODO.md); the Recap reads six more competition grids per view (watch Vercel CPU).
+
 ## Steps (each ships alone)
 
 1. Hero, hand, You vs Sofix, missions moved up, 100 pearl, xS wording.

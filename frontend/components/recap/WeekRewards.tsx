@@ -15,7 +15,7 @@ export function WeekRewardsProvider({ children }: { children: ReactNode }) {
 export const useWeekRewards = () => useContext(RewardsContext);
 
 /** "LaLiga essence · limited" → "LaLiga essence": the rarity is the week's own, the Recap's columns are narrow. */
-export const shortReward = (key: string) => rewardName(key).replace(/ · .*$/, "");
+export const shortReward = (key: string) => (key === "essence:unknown:unknown" ? "Essence" : rewardName(key).replace(/ · .*$/, ""));
 
 /** A summary's number for one reward: what was paid when anything is checked, else what was expected; null when unknown. */
 function amount(summary: WeekRewards | undefined, key: string, paid: boolean): number | null {
@@ -36,7 +36,8 @@ function keysOf(...summaries: (WeekRewards | undefined)[]) {
  * The hero's one number: what you won this GW, largest essence first, or before anything is paid the Sofix plan's expected
  * essence. The other paid rewards sit under it.
  */
-export function HeroNumber({ plan, expectedEssence, hasEntries }: { plan: WeekRewards; expectedEssence: number | null; hasEntries: boolean }) {
+/** `fallback`: the number a week with nothing to win or expect still has (a national-team week: how many of your cards play). */
+export function HeroNumber({ plan, expectedEssence, hasEntries, fallback = null }: { plan: WeekRewards; expectedEssence: number | null; hasEntries: boolean; fallback?: { n: number; label: string } | null }) {
   const own = useWeekRewards()?.own;
   const mine = own?.summary;
   const paid = Boolean(mine?.actual.checked);
@@ -56,7 +57,8 @@ export function HeroNumber({ plan, expectedEssence, hasEntries }: { plan: WeekRe
     );
   }
   if (paid) return <div className="rx-big"><p className="rx-num">0</p><p className="rx-num-l"><b>No prize this week</b></p></div>;
-  return expectedEssence === null ? null : (
+  if (expectedEssence === null) return fallback ? <div className="rx-big"><p className="rx-num">{fallback.n}</p><p className="rx-num-l"><b>{fallback.label}</b></p></div> : null;
+  return (
     <div className="rx-big">
       <p className="rx-num">{rewardNumber("essence", Math.round(expectedEssence))}</p>
       <p className="rx-num-l"><b>Expected essence</b> · Sofix plan</p>
@@ -81,6 +83,8 @@ export function RewardsDuel({ recommendation, hasEntries }: { recommendation: We
     return (values[0] as number) > (values[1] as number) ? 0 : 1;
   };
   const youEss = essenceTotal(mine, keys, true), sofixEss = essenceTotal(recommendation, keys, true);
+  // Nothing entered and no plan (a national-team week): no grid of dashes.
+  if (!loading && !mine?.total && !recommendation.total) return null;
   const verdict = youPaid && sofixPaid
     ? youEss > sofixEss ? "You won more than the Sofix plan would have" : youEss < sofixEss ? "The Sofix plan would have won more" : "You and the Sofix plan won the same essence"
     : null;

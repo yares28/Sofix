@@ -587,3 +587,12 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
   .rx-menu { width: min(280px, calc(100vw - 48px)); }
 }
 @media (prefers-reduced-motion: reduce) { .rx-stub, .rx-wt, .rx-sheet, .rx-bar, .rx-bf i, .rx-menu { animation: none; } .rx-stub, .rx-bar { transition: none; } }
+
+/* missions (plans/recap-matchnight.md, step 5): Sorare's verdict on each pick once played */
+.rx-mtop { display: flex; align-items: center; gap: 10px; }
+.rx-hits { margin-left: auto; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; white-space: nowrap; background: color-mix(in srgb, #c4312a 14%, var(--surface)); color: var(--ink); }
+.rx-hits.y { background: color-mix(in srgb, #2f9e4f 14%, var(--surface)); color: var(--win); }
+.rx-mk { position: absolute; right: -6px; top: -6px; z-index: 3; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 900; color: #fff; box-shadow: 0 0 0 2px var(--hover); }
+.rx-mk.y { background: #1f8a3a; } .rx-mk.n { background: #c0433f; }
+.rc-ms li.miss .rc-art img { filter: grayscale(.85); opacity: .75; }
+.rc-ms .rc-art { position: relative; overflow: visible; }

@@ -39,14 +39,14 @@ function Picker({ label, value, count, options, open, onToggle, onPick }: {
   const id = useId();
   return (
     <div className="rx-pick">
-      <button type="button" className={open ? "rx-pickbtn open" : "rx-pickbtn"} aria-haspopup="listbox" aria-expanded={open} aria-controls={id} onClick={onToggle}>
+      <button type="button" className={open ? "rx-pickbtn open" : "rx-pickbtn"} aria-expanded={open} aria-controls={id} onClick={onToggle}>
         {options.find((o) => o.key === value)?.name ?? label} <span>{count}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
       </button>
       {open ? (
-        <div className="rx-menu" id={id} role="listbox" aria-label={label}>
+        <div className="rx-menu" id={id} role="group" aria-label={label}>
           {options.map((o) => (
-            <button key={o.key} type="button" role="option" aria-selected={o.key === value} className={o.key === value ? "on" : undefined} onClick={() => onPick(o.key)}>
+            <button key={o.key} type="button" aria-pressed={o.key === value} className={o.key === value ? "on" : undefined} onClick={() => onPick(o.key)}>
               <i aria-hidden="true">{o.key === value ? "✓" : ""}</i>{o.name}<span>{o.n}</span>
             </button>
           ))}

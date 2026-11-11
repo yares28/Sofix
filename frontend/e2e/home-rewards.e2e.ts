@@ -50,7 +50,7 @@ test("Home compares the selected GW's checked rewards with the Sofix plan's with
   await page.reload(); await expect(cell(page, "S", "cash:USD")).toHaveText("$5.00");
   const other = weeks.find(w => w.gw && w.gw !== week.gameweek.id)!;
   await page.goto(`/?w=${other.id}`);
-  await expect(page.locator(".rx-duel")).not.toContainText("$5.00");
+  await expect(page.locator(".rx-duel", { hasText: "$5.00" })).toHaveCount(0); // that week has its own grid, or none when nothing is entered or planned
 });
 
 test("Home holds the hero number and your reward cells in place while a cold saved-lineup read is pending", async ({ page, request, context }) => {
@@ -111,7 +111,7 @@ test("Home's table skyline gives each club its next game's FDR after the selecte
   await expect(col.locator(".difficulty-chip")).toHaveText(next.prediction ? String(Math.round(next.prediction.difficulty)) : "—");
   if (next.prediction) await expect(col.locator(".difficulty-chip")).toHaveClass(new RegExp(`f${next.prediction.bucket}`));
   await expect(sky.locator(".rx-bar").first()).toHaveClass(/zone-ucl/); // Champions League places wear UEFA's blue
-  await sky.getByRole("tab", { name: "Now" }).click();
+  await sky.getByRole("button", { name: "Now", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Table now" })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -129,13 +129,13 @@ test("Home's round shows every competition's games of the week, one competition 
   expect(total).toBeGreaterThan(0);
   // The competition menu offers All and only competitions with games; the day menu only days with games.
   await round.getByRole("button", { name: /^All competitions/ }).click();
-  const options = round.getByRole("listbox", { name: "Competition" }).getByRole("option");
+  const options = round.getByRole("group", { name: "Competition" }).getByRole("button");
   await expect(options.first()).toContainText("All competitions");
   for (const text of await options.allInnerTexts()) expect(Number(text.match(/(\d+)\s*$/)?.[1])).toBeGreaterThan(0);
   await page.keyboard.press("Escape");
-  await expect(round.getByRole("listbox")).toHaveCount(0);
+  await expect(round.getByRole("group", { name: "Competition" })).toHaveCount(0);
   await round.getByRole("button", { name: /^All days/ }).click();
-  const day = round.getByRole("listbox", { name: "Day" }).getByRole("option").nth(1);
+  const day = round.getByRole("group", { name: "Day" }).getByRole("button").nth(1);
   const dayCount = Number((await day.innerText()).match(/(\d+)\s*$/)![1]);
   await day.click();
   await expect(stubs).toHaveCount(dayCount);

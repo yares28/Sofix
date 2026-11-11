@@ -28,7 +28,7 @@ function Scores({ x, sorare, actual, difference, actualLabel, by, averages = fal
   return <dl className="au-score-values">
     <div><dt>xScore</dt><dd>{value(x)}{by ? <small>{by}</small> : x === null && !averages ? <small>Not saved</small> : null}</dd></div>
     <div><dt>Sorare</dt><dd>{value(sorare)}{sorare === null && !averages ? <small>Not saved</small> : null}</dd></div>
-    <div><dt>Actual</dt><dd><b style={actual !== null ? { background: scoreColour(actual).fill, color: scoreColour(actual).ink } : undefined}>{actualLabel ?? value(actual)}</b></dd></div>
+    <div><dt>Actual</dt><dd><b style={actual !== null ? { background: scoreColour(actual, { perfect: true }).fill, color: scoreColour(actual, { perfect: true }).ink } : undefined}>{actualLabel ?? value(actual)}</b></dd></div>
     <div><dt>Diff</dt><dd>{diff(difference)}</dd></div>
   </dl>;
 }

@@ -18,8 +18,9 @@ export type ComparisonCard = { slug: string; player?: string | null; name: strin
   /** A Pro lineup's points-needed pill (lib/pointsNeeded.ts). */
   need?: NeedBadge };
 
-const fill = (value: number | null): CSSProperties => value === null ? { background: "var(--track)", color: "var(--ink-2)" }
-  : { background: scoreColour(value).fill, color: scoreColour(value).ink };
+// `perfect`: a score Sorare can draw in its pearl (a perfect 100); never a total with bonuses or an xS.
+const fill = (value: number | null, perfect = false): CSSProperties => value === null ? { background: "var(--track)", color: "var(--ink-2)" }
+  : { background: scoreColour(value, { perfect }).fill, color: scoreColour(value, { perfect }).ink };
 
 /** Shared by entered teams and Sofix teams so both sides of the comparison read alike. */
 /** `linked`: each card opens his page; off where the whole row is already a button (Play, whose sheet links each card). */
@@ -38,12 +39,12 @@ export function ComparisonCards({ cards, linked = true }: { cards: ComparisonCar
         <span className="rc-hexes">
           {total === null ? null : <span className="rc-cell rc-cell-total" style={fill(total)} aria-hidden="true"><b>{Math.round(total)}</b><small>total</small></span>}
           {xd === null ? null : <span className="rc-cell rc-cell-xd" aria-hidden="true"><b>{xd.toFixed(2)}</b><small>xD</small></span>}
-          <span className={`rc-hex sm${card.score === null ? "" : " scored"}`} style={fill(card.score)} title={card.score === null ? (card.why ?? "No score yet") : total === null ? "His score" : "His score, before bonuses"}>
+          <span className={`rc-hex sm${card.score === null ? "" : " scored"}`} style={fill(card.score, true)} title={card.score === null ? (card.why ?? "No score yet") : total === null ? "His score" : "His score, before bonuses"}>
             {card.score === null ? "-" : Math.round(card.score)}
           </span>
-          {card.x === undefined ? null : <span className="rc-xs" style={fill(x)} title="His xScore">{x === null ? "-" : Math.round(x)}</span>}
+          {card.x === undefined ? null : <span className="rc-xs" style={fill(x)} title="His xS">{x === null ? "-" : Math.round(x)}</span>}
         </span>
-        <span className="visually-hidden">{card.name}{card.bench ? ", bench" : ""}{card.score === null ? `, ${card.why ?? "no score yet"}` : `, scored ${Math.round(card.score)}`}{total === null ? "" : `, ${Math.round(total)} with bonuses`}{x === null ? "" : `, xScore ${Math.round(x)}`}{xd === null ? "" : `, ${xd.toFixed(2)} xD`}</span>
+        <span className="visually-hidden">{card.name}{card.bench ? ", bench" : ""}{card.score === null ? `, ${card.why ?? "no score yet"}` : `, scored ${Math.round(card.score)}`}{total === null ? "" : `, ${Math.round(total)} with bonuses`}{x === null ? "" : `, xS ${Math.round(x)}`}{xd === null ? "" : `, ${xd.toFixed(2)} xD`}</span>
       </li>;
     })}
   </ol>;

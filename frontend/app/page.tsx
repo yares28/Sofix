@@ -4,11 +4,12 @@ import Link from "../components/navigation/NavigationLink";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import AwayWeek from "../components/AwayWeek";
-import { BestCards, MissionsGlance, PlanLineups, RoundBoard, TableAfter, WeekNews } from "../components/recap/Recap";
+import { MissionsGlance, PlanLineups, RoundBoard, TableAfter, WeekNews } from "../components/recap/Recap";
+import BestHand from "../components/recap/BestHand";
 import { WaitingTile } from "../components/home/SorareTiles";
 import TeamNewsTile from "../components/home/TeamNewsTile";
 import EnteredLineups from "../components/play/EnteredLineups";
-import RewardsCard, { WeekRewardsProvider } from "../components/recap/WeekRewards";
+import { HeroNumber, RewardsDuel, WeekRewardsProvider } from "../components/recap/WeekRewards";
 import { planForRewards, weekRewards } from "../lib/weekRewards";
 import { projectedPrize, rewardSignature } from "../lib/playRewards";
 import SiteNav from "../components/SiteNav";
@@ -27,7 +28,7 @@ import { loadFrozenPlan, loadPlayRewards, loadProjectedWeek, loadSorare, loadSor
 import { weekContext, weekDates } from "../lib/weeks";
 import { loadSystem } from "../lib/system";
 import { loadPlanActuals } from "../lib/planScoresData";
-import { withLineupRules } from "../lib/lineupScores";
+import { playerKey, withLineupRules, type ActualScores } from "../lib/lineupScores";
 
 export const metadata: Metadata = { title: "Sofix" };
 
@@ -103,10 +104,18 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const frozen = await frozenRead;
   const enteredForecast = frozen ? withLineupRules(frozen, plan) : plan;
   const rows = best ? planRows(best) : [];
-  const [actuals, today, rewards] = await Promise.all([plan ? loadPlanActuals(plan) : {}, missionsToday(sorare, missions, undefined, now, pool), rewardsRead]);
+  const [actuals, today, rewards] = await Promise.all([plan ? loadPlanActuals(plan) : Promise.resolve<ActualScores>({}), missionsToday(sorare, missions, undefined, now, pool), rewardsRead]);
   const rewardPlan = planForRewards(best, frozen?.plans ?? [], rewards);
   const recommendation = weekRewards((rewardPlan?.lineups ?? []).map(line => ({ chance: line.pReturn, expected: projectedPrize(line), actual: rewards?.sofix?.find(r => r.signature === rewardSignature(line))?.rewards })));
-  const rewardsCard = <RewardsCard recommendation={recommendation} gw={selectedSorare?.number ?? (plan && !plan.projected ? plan.gameweek.number : null)} href={href("/play")} hasEntries={Boolean(selectedSorare)} />;
+  const gwNumber = selectedSorare?.number ?? (plan && !plan.projected ? plan.gameweek.number : null);
+  // The hand: the week's best cards by xS, each with what he scored once his game is over ("dnp" when he did not play).
+  const hand = plan ? bestCards(plan.playing.players).map((card) => {
+    const got = actuals[playerKey(card.player)];
+    return { ...card, scored: !got ? null : got.played ? got.score : ("dnp" as const) };
+  }) : [];
+  const end = selectedSorare && "end" in selectedSorare ? selectedSorare.end : null;
+  const status = !plan ? null : Date.parse(plan.gameweek.lock) > now.getTime() ? { tone: "soon", text: lockText(plan.gameweek.lock, now) }
+    : end && Date.parse(end) <= now.getTime() ? { tone: "final", text: "Final" } : { tone: "live", text: "Live" };
   const news = plan ? weekNews(plan.playing.players, week.current?.md ?? null, now) : { hurt: [], back: [] };
   const md = grid.matchdays[column]!;
   const lineupsHref = href("/lineups");
@@ -115,36 +124,42 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="hm rc">
-        <header className="rc-head">
-          <div>
-            <h1>{selectedSorare || (plan && !plan.projected) ? `Gameweek ${selectedSorare?.number ?? plan!.gameweek.number}` : `LaLiga round ${md.number}`}</h1>
-            <p>
-              {away ? "LaLiga is away · " : `LaLiga round ${md.number} · `}
-              {away ? weekDates(away) : dateRange(md.date_from, md.date_to)}
-              {sorare?.generatedAt ? <span className="rc-synced"> · {sorare.user} · synced {freshLabel(sorare.generatedAt, now)}</span> : null}
+        <WeekRewardsProvider key={selectedSorare?.slug ?? week.current?.id ?? "none"}>
+        <section className="rx-hero" aria-labelledby="rx-h">
+          {gwNumber ? <span className="rx-ghost" aria-hidden="true">{gwNumber}</span> : null}
+          <div className="rx-lead">
+            <p className="rx-eyebrow">
+              {status ? <span className={`rx-status ${status.tone}`}><i aria-hidden="true" />{status.text}</span> : null}
+              <span>
+                {away ? "LaLiga is away · " : `LaLiga round ${md.number} · `}
+                {away ? weekDates(away) : dateRange(md.date_from, md.date_to)}
+                {sorare?.user ? ` · ${sorare.user}` : ""}
+              </span>
             </p>
+            <h1 id="rx-h">{gwNumber ? `Gameweek ${gwNumber}` : `LaLiga round ${md.number}`}</h1>
+            {plan || selectedSorare ? <HeroNumber plan={recommendation} expectedEssence={best ? best.essence : null} hasEntries={Boolean(selectedSorare)} /> : null}
+            {plan ? (
+              <div className="rx-acts">
+                <Link className="rc-btn" href={href("/play")}>Open the plan</Link>
+                {sorare?.generatedAt ? <span className="rx-synced">Synced {freshLabel(sorare.generatedAt, now)}</span> : null}
+              </div>
+            ) : null}
           </div>
-          {plan ? (
-            <div className="rc-act">
-              <span className="rc-pill">{lockText(plan.gameweek.lock, now)}</span>
-              <Link className="rc-btn" href={href("/play")}>Open the plan</Link>
-            </div>
-          ) : null}
-        </header>
+          {hand.length ? <BestHand cards={hand} /> : null}
+          {plan || selectedSorare ? <RewardsDuel recommendation={recommendation} hasEntries={Boolean(selectedSorare)} /> : null}
+        </section>
+        {sorare && (plan || selectedSorare) ? <MissionsGlance plans={today.plans} day={today.day} current={today.status === "today"} href={href("/missions")} /> : null}
         {away ? <AwayWeek plan={plan} variant="recap" dates={weekDates(away)} href={href("/fixtures")} /> : null}
-        {plan ? <BestCards cards={bestCards(plan.playing.players)} gw={plan.gameweek.number} /> : null}
-        <LiveRefresh from={selectedSorare && "lock" in selectedSorare ? selectedSorare.lock : null} to={selectedSorare && "end" in selectedSorare ? selectedSorare.end : null} />
-        <WeekRewardsProvider key={selectedSorare?.slug ?? week.current?.id ?? "none"}><div className="rc-grid">
+        <LiveRefresh from={selectedSorare && "lock" in selectedSorare ? selectedSorare.lock : null} to={end} />
+        <div className="rc-grid">
           {!away ? (
             <>
               <RoundBoard matches={roundBoard(grid, column)} href={href("/fixtures")} />
               <div className="rc-sidebar">
                 <TableAfter rows={tableAfter(grid, column)} round={md.number} href={href("/table")} showFdr />
-                {rewardsCard}
               </div>
             </>
           ) : null}
-          {away ? rewardsCard : null}
           {sorare && (plan || selectedSorare) ? (
             <>
               <section className="hm-tile rc-lineups" aria-labelledby="rc-lu-h">
@@ -164,7 +179,6 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   <WaitingTile week={plan} now={now} meta={`Sorare GW${plan.gameweek.number}`} />
                 ) : <p className="rc-none">Plan not recorded for this GW.</p>}
               </section>
-              <MissionsGlance plans={today.plans} day={today.day} current={today.status === "today"} href={href("/missions")} />
               {plan ? <WeekNews hurt={news.hurt} back={news.back} readAt={plan.teamNews?.readAt ? readLabel(plan.teamNews.readAt, now) : null} href={lineupsHref} /> : null}
               {/* How the plan's players look for the round, who moved since yesterday, or why Futbol Fantasy has said nothing yet. */}
               {plan ? <TeamNewsTile week={plan} now={now} glance={lineupsGlance(lineups, now)} /> : null}

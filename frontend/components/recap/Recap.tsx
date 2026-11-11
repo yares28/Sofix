@@ -3,8 +3,8 @@ import { cardTotal, lineupActual, type ActualScores } from "../../lib/lineupScor
 import { useId, type CSSProperties, type ReactNode } from "react";
 import { scoreColour } from "../../lib/cards";
 import type { MissionPlan } from "../../lib/missions";
-import { SOURCE_SHORT, SOURCE_NAME, cashLabel, chanceLabel, essenceLabel, rewardSplit, type Tier } from "../../lib/play";
-import type { AfterRow, BestCard, BoardMatch, NewsItem, PlanRow } from "../../lib/recap";
+import { cashLabel, chanceLabel, essenceLabel, rewardSplit, type Tier } from "../../lib/play";
+import type { AfterRow, BoardMatch, NewsItem, PlanRow } from "../../lib/recap";
 import type { GridTeam } from "../../lib/types";
 import { formatDay, formatShortKickoff } from "../../lib/grid";
 import { playerHref } from "../../lib/links";
@@ -25,35 +25,6 @@ const band = (value: number | null): CSSProperties => {
   const { fill, ink } = scoreColour(value);
   return { background: fill, color: ink };
 };
-
-// ------------------------------------------------------------------------------------------------- best cards
-export function BestCards({ cards, gw }: { cards: BestCard[]; gw: number | null }) {
-  if (!cards.length) return null;
-  return (
-    <section className="rc-best" aria-label={`Your best cards${gw ? `, Sorare GW${gw}` : ""}, by xScore`}>
-      {cards.map((card, i) => (
-        <figure className="rc-card" key={card.name} style={{ animationDelay: `${i * 45}ms` }}>
-          <Link className={`rc-art ${card.rarity}`} href={playerHref(card.player)} aria-label={`${card.name}: open his page`}>
-            <CardArt src={card.pic} name={card.name} />
-            <span className="rc-rank" aria-hidden="true">{i + 1}</span>
-          </Link>
-          <span className="rc-hex" style={band(card.x)} title={`xScore ${card.x.toFixed(1)}`}>
-            {Math.round(card.x)}
-          </span>
-          <figcaption>
-            <b>{card.name}</b>
-            {card.game ? <span>{card.game}</span> : null}
-            {card.start !== null ? (
-              <span className="rc-chip" style={band(card.start * 100)} title={card.source ? `${pct(card.start)} to start · ${SOURCE_SHORT[card.source]}: ${SOURCE_NAME[card.source]}` : undefined}>
-                {pct(card.start)} start
-              </span>
-            ) : null}
-          </figcaption>
-        </figure>
-      ))}
-    </section>
-  );
-}
 
 // ----------------------------------------------------------------------------------------------- the round
 export type RowSide = { team: GridTeam; win: number | null; xg: number | null; xd: number | null; cleanSheet: number | null };

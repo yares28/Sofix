@@ -18,7 +18,8 @@ GW selection and forecast views are unchanged.
 beside the fixtures on desktop. The round's table adds each fixture's backend FDR number in a coloured rectangle at the
 far right; two fixtures show two rectangles, and missing forecasts stay blank.
 
-27 October: Home splits the right column into the round's table and **Rewards** for the selected Sorare GW. You and
+27 October: Home splits the right column into the round's table and **Rewards** for the selected Sorare GW (since 11 Nov
+the hero's **You vs Sofix plan** grid: one row per side, paid when checked, else expected). You and
 Sofix show the attainable prizes at each lineup's projected score beside checked actual rewards (Sofix: **Would win**).
 Cash, each essence competition/rarity and XP remain separate; card prizes are omitted. A dash means unavailable or pending; an actual zero is a checked zero.
 A `+` marks a partial total, with checked-lineup coverage below. Your existing lineup read updates both sections. While the GW is played (2 Nov 2026) your Actual is the prize each lineup reaches so far, as its row says, until Sorare pays; Recap and Play read their data again every 5 minutes while the tab is in front.
@@ -127,9 +128,14 @@ remain visible rather than being invented locally.
 
 The Recap is about the week in the top bar (since 5 Oct 2026; design canvas board 1). From the top:
 
-- **Header**: the Sorare gameweek, its LaLiga round and days, when it locks ("Locks Fri 16:00, in 4 days") and **Open the plan**.
-- **Best cards**: your ten best cards of the week by xScore, all positions together, each with its xScore in a hexagon of Sorare's
-  colour, his first game and his chance to start (whose number it is on hover).
+- **Hero** (Matchnight, 11 Nov 2026, [plans/recap-matchnight.md](../plans/recap-matchnight.md)): the gameweek, its state (when it
+  locks, Live, Final), and one big number: what you won (largest essence first, the other prizes under it), or the Sofix plan's
+  expected essence before anything is paid. Beside it your ten best cards of the week by xS, fanned like a hand with the best in
+  the middle: each card's xS hexagon, start % and, once played, a stamp with what he scored (DNP when he did not play); hover a
+  card to name him under the fan. Under the hero, **You vs Sofix plan**: Rewards % and every reward, what was paid when checked
+  (else expected), the better value of each column lit, and who won more. A perfect 100 is drawn in Sorare's pearl wherever a
+  score is coloured.
+- **Missions** come right after the hero.
 - **Your season** (on Audit · Rewards since 2 Nov 2026, no longer on the Recap): choose a season to see Limited essence, cash, card rewards and distinct GWs with entered lineups.
   **Week by week** shows rewarded GWs only; expand one to see its actual essence-winning lineups and captains.
   Zero-reward GWs still count as played. Open Home in Chrome with a signed-in Sorare tab to save missing finished

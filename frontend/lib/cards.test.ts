@@ -291,6 +291,14 @@ describe("scoreBand and scoreColour", () => {
     expect([76, 79, 80, 90].map((score) => scoreColour(score).fill)).toEqual([top, top, top, top]);
     expect(scoreColour(72).fill).not.toBe(top);
   });
+
+  it("gives a perfect 100 Sorare's pearl, but only to a score: a 100% chance keeps the top band", () => {
+    expect(scoreColour(100, { perfect: true }).fill).toMatch(/^linear-gradient\(.*#e4cbe7/);
+    expect(scoreColour(99.6, { perfect: true }).fill).toMatch(/^linear-gradient/);
+    expect(scoreColour(99, { perfect: true }).fill).toBe(scoreColour(98).fill);
+    expect(scoreColour(100).fill).toBe(scoreColour(98).fill);
+    expect(scoreColour(null, { perfect: true })).toEqual({ fill: "#55555c", ink: "#ffffff" });
+  });
 });
 
 describe("cardWindows", () => {

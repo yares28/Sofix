@@ -47,10 +47,17 @@ const BAND_COLOURS: Record<ScoreBand, { fill: string; ink: string }> = {
 };
 
 /**
+ * Sorare's pearl for a perfect 100 (a background, not a colour): pearl, ice blue, lavender, pink and mint, sampled from
+ * its own score chart on 11 Nov 2026. Only a score gets it (`perfect: true`), never a 100% chance.
+ */
+export const PERFECT = { fill: "linear-gradient(115deg, #eae3da 0%, #c0e6ef 26%, #d8e4f4 46%, #e4cbe7 66%, #e8f6ef 90%)", ink: "#1d1d1f" };
+
+/**
  * The colour of a score hexagon: Sorare's band for the score, in the board's tone, with a grey for "not enough
  * games". `ink` is the number's colour on that fill.
  */
-export function scoreColour(score: number | null): { fill: string; ink: string } {
+export function scoreColour(score: number | null, { perfect = false } = {}): { fill: string; ink: string } {
+  if (perfect && score !== null && Math.round(score) >= 100) return PERFECT;
   const band = scoreBand(score);
   return band ? BAND_COLOURS[band] : { fill: "#55555c", ink: "#ffffff" };
 }

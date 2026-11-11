@@ -772,6 +772,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/points-needed.md` | [open](../plans/points-needed.md) |
 | document (check authority) | `plans/pro.md` | [open](../plans/pro.md) |
 | document (check authority) | `plans/recap-lineup-scores.md` | [open](../plans/recap-lineup-scores.md) |
+| document (check authority) | `plans/recap-matchnight.md` | [open](../plans/recap-matchnight.md) |
 | document (check authority) | `plans/restructure.md` | [open](../plans/restructure.md) |
 | document (check authority) | `plans/review-fixes.md` | [open](../plans/review-fixes.md) |
 | document (check authority) | `plans/roadmap.md` | [open](../plans/roadmap.md) |

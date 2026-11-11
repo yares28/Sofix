@@ -23,7 +23,7 @@ function Cards({ cards, pics }: { cards: BoardCard[]; pics: Record<string, strin
     <ol className="au-cd" aria-label={`${cards.length} cards`}>
       {cards.map((card) => {
         const tint: CSSProperties =
-          card.score === null || !card.played ? { background: "var(--track)", color: "var(--ink-2)" } : { background: scoreColour(card.score).fill, color: scoreColour(card.score).ink };
+          card.score === null || !card.played ? { background: "var(--track)", color: "var(--ink-2)" } : { background: scoreColour(card.score, { perfect: true }).fill, color: scoreColour(card.score, { perfect: true }).ink };
         return (
           <li key={card.slug} className={card.sub ? "bench" : undefined}>
             <Link prefetch={false} className="au-cd-art" href={playerHref(card.player)} aria-label={`${card.name}: open his page`}>

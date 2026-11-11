@@ -18,6 +18,10 @@ and a check, so a session can work through it alone and stop only where you have
 paginated, E Team "Points per game" redesigned. *A (Stats charts: one `players(slugs:)` question, the last chart kept on a failure), B (Pick teams fills what it can, the rest empty) and F (notices: a dot line, only
 for problems; the set's end in the wallet) done 10 Nov 2026.*
 
+11 Nov, after the review board: **your lineups read after each game** ([TODO.md](../TODO.md) "Your lineups read after each game"):
+the extension reads and saves your entered lineups after each of your games and after payout, with only Chrome open, so Recap,
+Play and the phone never show a mid-week read. *Planned, not started.*
+
 30 Oct owner priority: **two independent copies, each fast and responsive**
 ([current plan](independent-installs-performance.md), [setup](../docs/independent-install.md)). Each person has their own
 Vercel/Neon/R2 and enters one Sorare username. The shared ten-account proposal is superseded. Explicit installation

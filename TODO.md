@@ -16,6 +16,26 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Your lineups read after each game (you, 11 Nov 2026)
+
+"Why isn't the scores updated? The gameweek ended yesterday and it should check after each game." Then: "Add it to a plan for now."
+
+- **What happens today:** your entered lineups, their scores, ranks and rewards are private, so only the extension reads them,
+  and only while Recap or Play is open in Chrome beside a signed-in Sorare tab (`/api/my-week` saves each read as
+  `entered_week:<slug>`). GW29 (6-10 Nov) was read on Sun 8 Nov 12:18 Madrid, before Sunday's games, and not again until
+  Wed 11 Nov 13:10. In between, Recap and Play (and a phone) showed the Sunday-noon numbers: one Champion lineup read
+  "Actual 30" while its cards had scored over 230, and every lineup said "no reward paid". The 11 Nov read has the final
+  scores (546, 406, 357, 303, 271, 262, 255; Pro 333 against 320 needed) and rewards (254 + 510 essence, 1,000 + 500 XP).
+- **Wanted:** the extension reads your lineups by itself after each game that one of your lineup's cards plays in, and
+  once more after Sorare pays out, then saves the read to Sofix. It needs only Chrome open (no Sofix or Sorare tab, no
+  clicks), so Recap, Play and the phone are current after every game.
+- **Limits that stay:** reads only, through the existing allowlisted operations; no login handling. A read is a few minutes
+  after a game ends, not a timer that polls, and a failed read is tried again later instead of hammering Sorare. One small
+  save per read (Vercel CPU, "Limits" in AGENTS.md). A saved read says when it was taken; until the week's final read it is
+  marked "not final" on Recap and Play.
+- **Done when:** a test week shows a read saved after each game slot and after payout with no page open; Recap shows the
+  final scores and rewards the morning after the week ends; an extension release (configure, then Reload once).
+
 ## Review board: six fixes (you, 10 Nov 2026)
 
 Your comments on the review board of every page (desktop and phone screenshots, 10 Nov 2026). The seventh, "Arcade image is

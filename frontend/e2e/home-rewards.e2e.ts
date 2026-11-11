@@ -97,21 +97,56 @@ test("Home keeps settled rewards attached to the retained plan when replay and p
   await expect(page.locator(".rx-big")).toContainText("$2.50");
 });
 
-test("Home's FDR rectangles follow the selected round", async ({ page, request }) => {
+test("Home's table skyline gives each club its next game's FDR after the selected round, and switches to the table now", async ({ page, request }) => {
+  await resetBackend(request); await offline(page);
+  const served = (await (await request.get(`${MOCK}/api/sorare`)).json()).data as Sorare;
+  const grid = await servedGrid(request), weeks = seasonWeeks(grid, served, new Date());
+  const selected = weeks.find(w => w.column !== null && grid.teams.some(t => t.cells[w.column! + 1]?.some(c => c.prediction)))!;
+  await page.goto(`/?w=${selected.id}`);
+  const sky = page.getByRole("region", { name: /^Table after round/ });
+  await expect(sky.locator(".rx-col")).toHaveCount(grid.teams.length);
+  const team = grid.teams.find(t => t.cells[selected.column! + 1]?.some(c => c.prediction))!;
+  const next = team.cells.slice(selected.column! + 1).find(c => c.length)![0]!;
+  const col = sky.locator(".rx-col").filter({ hasText: `${team.name}, place` });
+  await expect(col.locator(".difficulty-chip")).toHaveText(next.prediction ? String(Math.round(next.prediction.difficulty)) : "—");
+  if (next.prediction) await expect(col.locator(".difficulty-chip")).toHaveClass(new RegExp(`f${next.prediction.bucket}`));
+  await expect(sky.locator(".rx-bar").first()).toHaveClass(/zone-ucl/); // Champions League places wear UEFA's blue
+  await sky.getByRole("tab", { name: "Now" }).click();
+  await expect(page.getByRole("heading", { name: "Table now" })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test("Home's round shows every competition's games of the week, one competition or one day at a time, and the picked game's sheet", async ({ page, request }) => {
   await resetBackend(request); await offline(page);
   const served = (await (await request.get(`${MOCK}/api/sorare`)).json()).data as Sorare;
   const grid = await servedGrid(request), weeks = seasonWeeks(grid, served, new Date());
   const selected = weeks.find(w => w.column !== null && grid.teams.some(t => t.cells[w.column!]?.some(c => c.prediction)))!;
   await page.goto(`/?w=${selected.id}`);
-  const table = page.locator('.rc-table');
-  await expect(table.getByRole('columnheader').last()).toHaveText('FDR');
-  const team = grid.teams.find(t => t.cells[selected.column!]?.some(c => c.prediction))!, games = team.cells[selected.column!]!;
-  const row = table.getByRole('row').filter({ has: page.getByText(team.name, { exact: true }) });
-  await expect(row.locator('.rc-fdr .difficulty-chip')).toHaveCount(games.length);
-  for (const [i, game] of games.entries()) {
-    await expect(row.locator('.rc-fdr .difficulty-chip').nth(i)).toHaveText(game.prediction ? String(Math.round(game.prediction.difficulty)) : '—');
-    if (game.prediction) await expect(row.locator('.rc-fdr .difficulty-chip').nth(i)).toHaveClass(new RegExp(`f${game.prediction.bucket}`));
+  const round = page.getByRole("region", { name: "The round" });
+  const stubs = round.locator(".rx-stub, .rx-wt");
+  const total = await stubs.count();
+  expect(total).toBeGreaterThan(0);
+  // The competition menu offers All and only competitions with games; the day menu only days with games.
+  await round.getByRole("button", { name: /^All competitions/ }).click();
+  const options = round.getByRole("listbox", { name: "Competition" }).getByRole("option");
+  await expect(options.first()).toContainText("All competitions");
+  for (const text of await options.allInnerTexts()) expect(Number(text.match(/(\d+)\s*$/)?.[1])).toBeGreaterThan(0);
+  await page.keyboard.press("Escape");
+  await expect(round.getByRole("listbox")).toHaveCount(0);
+  await round.getByRole("button", { name: /^All days/ }).click();
+  const day = round.getByRole("listbox", { name: "Day" }).getByRole("option").nth(1);
+  const dayCount = Number((await day.innerText()).match(/(\d+)\s*$/)![1]);
+  await day.click();
+  await expect(stubs).toHaveCount(dayCount);
+  // A picked game opens its match sheet.
+  const first = stubs.first();
+  await first.click();
+  await expect(first).toHaveAttribute("aria-pressed", "true");
+  await expect(round.getByRole("region", { name: /^Match sheet:/ })).toBeVisible();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    expect(await smallText(page, width === 390 ? 10 : 11)).toEqual([]);
   }
-  await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });

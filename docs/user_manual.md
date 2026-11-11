@@ -140,7 +140,15 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
   **Week by week** shows rewarded GWs only; expand one to see its actual essence-winning lineups and captains.
   Zero-reward GWs still count as played. Open Home in Chrome with a signed-in Sorare tab to save missing finished
   weeks; failed reads can be retried. Saved lineups and rewards also work on your phone without the extension.
-- **This round** (and **The N games** on Fixtures, which adds the bookmakers' odds): one row per match. Each side's name carries its
+- **The round** (since 11 Nov 2026, [plans/recap-matchnight.md](../plans/recap-matchnight.md)): every game of the week's days in
+  every competition Sofix follows, a row of ticket stubs per competition that always fills the width (three games or fewer become
+  wide tickets). One menu picks the competition (All, then only those with games), one the day (All, then only days with games).
+  A stub has both crests, xG and xD chips coloured by how good they are (xD is LaLiga's only), the score or kick-off, the
+  win/draw/win bar, **Upset** when the favourite lost and **No forecast** when there is none; the picked game opens its match
+  sheet below. **Table after round N**, beside a **Now** switch, is a skyline: a bar per club as tall as its points, in UEFA's
+  colours for the European places (from their logos) and red for relegation, places moved in that round above, the next game's
+  FDR below.
+- Before 11 Nov, **This round** (and **The N games** on Fixtures, which adds the bookmakers' odds): one row per match. Each side's name carries its
   own expected goals (xG), expected decisives (xD: its xG times the club's decisive actions per goal this season, from
   `backend/artifacts/team_decisives.json`; rebuild with `python -m app.sorare.team_decisives` after the games export) and clean-sheet chance under it; between them one bar of win, draw and win (Sorare's colours) with
   both-score under it. The favourite is in bold; a played match shows its score. On a phone the bar goes first, the sides below.

@@ -2,8 +2,9 @@ import { absenceText } from "./absence";
 import { formatShortKickoff } from "./grid";
 import { gameweekMatches } from "./matches";
 import { paidTiers, type FfStatus, type Lineup, type Plan, type PlayerGame, type PlayingPlayer, type StartSource } from "./play";
-import { predictedTable } from "./table";
+import { predictedTable, zone } from "./table";
 import type { Bucket, FixtureGrid, GridTeam } from "./types";
+import type { Competition } from "./competitions";
 
 /**
  * The Recap (home) of the restructure (plans/restructure.md, R2): pure reshaping of what the payloads already hold.
@@ -90,6 +91,44 @@ export function roundBoard(grid: FixtureGrid, column: number): BoardMatch[] {
   });
 }
 
+/** A game's day in Madrid, YYYY-MM-DD: the Recap's day filter and the week window are Madrid days. */
+export const madridDay = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
+
+type Side = { name: string; code: string; crest: string | null; color: string | null };
+/**
+ * One game of the week as the Recap's ticket stubs draw it (plans/recap-matchnight.md, step 3): only the fields they show, so a
+ * client component gets a few kilobytes, not the competition's grid. `xd` is LaLiga's only (team decisives per goal).
+ */
+export type WeekGame = {
+  id: number; comp: Competition; kickoff: string; day: string; confirmed: boolean; live: boolean; score: string | null;
+  home: Side; away: Side; win: number | null; draw: number | null; loss: number | null; both: number | null;
+  xg: [number, number] | null; xd: [number, number] | null; cs: [number | null, number | null] | null;
+};
+const side = (team: GridTeam): Side => ({ name: team.name, code: team.code, crest: team.crest_url ?? null, color: team.color ?? null });
+
+/** Every game of a competition whose Madrid day falls between `from` and `to` (inclusive), from whichever rounds hold them. */
+export function weekGames(grid: FixtureGrid, comp: Competition, from: string, to: string): WeekGame[] {
+  const seen = new Map<number, WeekGame>();
+  grid.matchdays.forEach((_, column) => {
+    for (const match of gameweekMatches(grid, column).matches) {
+      const day = madridDay(match.kickoff);
+      if (day < from || day > to || seen.has(match.fixtureId)) continue;
+      const h = match.homeCell.prediction, a = match.awayCell.prediction, result = match.homeCell.result;
+      const xgA = a?.xg_for ?? h?.xg_against ?? null;
+      seen.set(match.fixtureId, {
+        id: match.fixtureId, comp, kickoff: match.kickoff, day, confirmed: match.homeCell.date_confirmed,
+        live: /IN_PLAY|PAUSED|LIVE/i.test(match.homeCell.status), score: result ? `${result.goals_for}–${result.goals_against}` : null,
+        home: side(match.home), away: side(match.away),
+        win: h?.probabilities.win ?? null, draw: h?.probabilities.draw ?? null, loss: h?.probabilities.loss ?? null, both: h?.both_score ?? null,
+        xg: h?.xg_for != null && xgA != null ? [h.xg_for, xgA] : null,
+        xd: h?.xd_for != null && a?.xd_for != null ? [h.xd_for, a.xd_for] : null,
+        cs: h ? [h.clean_sheet ?? null, a?.clean_sheet ?? null] : null,
+      });
+    }
+  });
+  return [...seen.values()].sort((x, y) => Date.parse(x.kickoff) - Date.parse(y.kickoff) || x.home.name.localeCompare(y.home.name));
+}
+
 export type AfterRow = { team: GridTeam; position: number; now: number; after: number; moved: number; fdr: { id: number; value: number | null; bucket: Bucket | null; label: string }[] };
 
 /** The table once this round is played as expected: points now, points after, places gained (+) or lost (-). */
@@ -102,6 +141,37 @@ export function tableAfter(grid: FixtureGrid, column: number): AfterRow[] {
     moved: row.currentPosition - row.position,
     fdr: (row.team.cells[column] ?? []).map(cell => ({ id: cell.fixture_id, value: cell.prediction?.difficulty ?? null, bucket: cell.prediction?.bucket ?? null, label: `${cell.venue === "H" ? "v" : "at"} ${cell.opponent_code}: ${cell.prediction?.label ?? "FDR unavailable"}` })),
   }));
+}
+
+/** One club of the table skyline: its place and points once round `column` is played, places moved in that round, its next game's FDR. */
+export type SkyRow = {
+  team: Side; position: number; points: number; moved: number;
+  zone: string | null; next: { value: number | null; bucket: Bucket | null; label: string } | null;
+};
+
+/** The last round with a finished game: the table "now". -1 before the season starts. */
+export function latestPlayed(grid: FixtureGrid): number {
+  let latest = -1;
+  for (const team of grid.teams) team.cells.forEach((cells, column) => { if (column > latest && cells.some((cell) => cell.status === "finished")) latest = column; });
+  return latest;
+}
+
+/**
+ * The table once round `column` is played (as expected where it is not yet), each club's places moved in that round, and the FDR
+ * of its next game after it. A played round's points are the real ones.
+ */
+export function skyline(grid: FixtureGrid, column: number): SkyRow[] {
+  const after = predictedTable(grid, { through: column, simulations: 0 });
+  const before = column > 0 ? new Map(predictedTable(grid, { through: column - 1, simulations: 0 }).map((row) => [row.team.code, row.position])) : null;
+  return after.map((row) => {
+    const next = row.team.cells.slice(column + 1).find((cells) => cells.length)?.[0] ?? null;
+    return {
+      team: side(row.team), position: row.position, points: Math.round(row.projectedPoints * 10) / 10,
+      moved: before ? (before.get(row.team.code) ?? row.position) - row.position : 0,
+      zone: zone(row.position, after.length, grid.competition ?? "PD")?.className ?? null,
+      next: next ? { value: next.prediction?.difficulty ?? null, bucket: next.prediction?.bucket ?? null, label: `${next.venue === "H" ? "v" : "at"} ${next.opponent_code}: ${next.prediction?.label ?? "FDR unavailable"}` } : null,
+    };
+  });
 }
 
 // ------------------------------------------------------------------------------------------------- the plan

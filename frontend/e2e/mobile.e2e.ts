@@ -89,7 +89,7 @@ test("the Control Center fits a phone, with the map drawn as a column", async ({
 
 test("the home fits a phone, and the tab bar moves between pages", async ({ page }) => {
   await page.goto(`/?gw=${openingMatchday}`);
-  await expect(page.locator(".rc-mt").first()).toBeVisible();
+  await expect(page.locator(".rx-stub, .rx-wt").first()).toBeVisible(); // the round's ticket stubs (plans/recap-matchnight.md)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const tabs = page.getByRole("navigation", { name: "Sections" });
   await expect(tabs.getByRole("link", { name: "This week" })).toHaveAttribute("aria-current", "page");

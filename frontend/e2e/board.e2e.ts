@@ -559,38 +559,40 @@ test("the status pill opens the Control Center: status, install with a QR code, 
   expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
 });
 
-test("home (Recap): the gameweek, the best cards, the round as a scoreboard, the table after it and the Sorare blocks", async ({ page }) => {
+test("home (Recap): the hero with the best cards as a hand, the round's ticket stubs, the table skyline and the Sorare blocks", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(`/?gw=${openingMatchday}`);
-  await expect(page.locator(".rc-head h1")).toHaveText(`LaLiga round ${openingMatchday}`);
-  await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${openingMatchday}`);
-  await expect(page.locator(".rc-pill")).toContainText(/^Locks? /);
-  for (const title of ["This round", `Table after round ${openingMatchday}`, "Your lineups", "Missions", "News this week", "Team news"]) {
+  await expect(page.locator(".rx-hero h1")).toHaveText(`LaLiga round ${openingMatchday}`);
+  await expect(page.locator(".rx-eyebrow")).toContainText(`LaLiga round ${openingMatchday}`);
+  await expect(page.locator(".rx-status")).toContainText(/^Locks? /);
+  for (const title of ["The round", `Table after round ${openingMatchday}`, "Your lineups", "Missions", "News this week", "Team news"]) {
     await expect(page.getByRole("heading", { level: 2, name: title, exact: true })).toBeVisible();
   }
+  // The round: LaLiga's games of the week as ticket stubs, each side's xG and xD, the win/draw/win bar, and the picked game's sheet.
   const matches = gameweekMatches(grid, column(openingMatchday)).matches.length;
-  await expect(page.locator(".rc-mt")).toHaveCount(matches);
-  // Each match: both win chances in the bar, each side's own xG and clean sheet under its name, both-score under the bar.
-  const first = page.locator(".rc-mt").first();
-  await expect(first.locator(".rc-win")).toHaveCount(2);
-  await expect(first.locator(".rc-sts")).toHaveCount(2);
-  await expect(first.locator(".rc-sts").first()).toContainText("xG");
-  await expect(first.locator(".rc-sts").first()).toContainText("xD");
-  await expect(first.locator(".rc-sts").first()).toContainText("clean sheet");
-  await expect(first.locator(".rc-both")).toContainText("both score");
-  await expect(page.locator(".rc-table tbody tr")).toHaveCount(grid.teams.length);
-  // The narrow table keeps its Now and After columns inside its tile (a global min-width once pushed them out).
-  expect(await page.locator(".rc-table").evaluate((tile) => tile.querySelector("table")!.getBoundingClientRect().right <= tile.getBoundingClientRect().right + 1)).toBe(true);
-  const best = page.locator(".rc-best .rc-card");
-  expect(await best.count()).toBeGreaterThan(0);
-  expect(await best.count()).toBeLessThanOrEqual(10);
-  await expect(best.first().locator(".rc-hex")).toHaveText(/^\d+$/);
-  await expect(page.locator(".rc-lu").first().locator(".rc-any b")).toContainText("%");
+  const laliga = page.locator(".rx-lane").filter({ has: page.getByText("LaLiga", { exact: true }) });
+  await expect(laliga.locator(".rx-stub, .rx-wt")).toHaveCount(matches);
+  const first = laliga.locator(".rx-stub, .rx-wt").first();
+  await expect(first.locator(".rx-xgs")).toHaveCount(2);
+  await expect(first.locator(".rx-xgs").first()).toContainText("xG");
+  await expect(first.locator(".rx-xgs").first()).toContainText("xD");
+  await expect(first.locator(".rx-tri > span, .rx-nofc")).not.toHaveCount(0);
+  const sheet = page.getByRole("region", { name: /^Match sheet:/ });
+  await expect(sheet).toContainText("both score");
+  await expect(sheet).toContainText("Clean sheet");
+  // The table as a skyline: a bar per club.
+  await expect(page.locator(".rx-sky .rx-col")).toHaveCount(grid.teams.length);
+  // The hero's hand: the best cards, each with its xS hexagon.
+  const hand = page.getByRole("list", { name: "Your best cards this week, by xS" }).getByRole("listitem");
+  expect(await hand.count()).toBeGreaterThan(0);
+  expect(await hand.count()).toBeLessThanOrEqual(10);
+  await expect(hand.first().locator(".rx-hx")).toHaveText(/^\d+$/);
+  await expect(page.locator(".rc-lu >> visible=true").first().locator(".rc-any b")).toContainText("%");
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
 
   // A block opens its page for the same gameweek.
-  await page.locator(".rc-table").getByRole("link", { name: /Season/ }).click();
+  await page.locator(".rx-sky").getByRole("link", { name: /Season/ }).click();
   await expect(page).toHaveURL(/\/table$/, { timeout: 30_000 });
 });
 
@@ -599,19 +601,19 @@ test("home: the week in the bar moves to a played gameweek and the round follows
   // The address carries the round (the mock's dates move with the clock, so its month in the picker is not fixed).
   await page.goto(`/?gw=${past}`);
   const picker = page.getByRole("group", { name: "Choose gameweek" });
-  await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${past}`);
+  await expect(page.locator(".rx-eyebrow")).toContainText(`LaLiga round ${past}`);
   await expect(page.getByRole("heading", { level: 2, name: `Table after round ${past}` })).toBeVisible();
   // A played match shows its score where the kickoff was.
-  await expect(page.locator(".rc-mt time").first()).toHaveText(/^\d+-\d+$/);
+  await expect(page.locator(".rx-stub .rx-score, .rx-wt .rx-score").first()).toHaveText(/^\d+–\d+$/);
 
   await page.getByRole("button", { name: "Next gameweek" }).click();
   // The bar has to show the round that was picked before the blocks are asked to follow it: one Sorare
   // game week can hold two LaLiga rounds, and each is its own week (lib/weeks.ts).
   await expect(picker.getByRole("radio", { checked: true })).toHaveAttribute("aria-label", new RegExp(`^LaLiga round ${past + 1}\\b`));
-  await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${past + 1}`);
+  await expect(page.locator(".rx-eyebrow")).toContainText(`LaLiga round ${past + 1}`);
   const selectedWeek = new URL(page.url()).searchParams.get("w");
   expect(selectedWeek).toBeTruthy();
-  await page.locator(".rc-round").getByRole("link", { name: /All games/ }).click();
+  await page.locator(".rx-round").getByRole("link", { name: /All games/ }).click();
   await expect(page).toHaveURL(new RegExp(`/fixtures\\?w=${selectedWeek}$`), { timeout: 30_000 });
   await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${past + 1}` })).toBeVisible();
 });
@@ -625,7 +627,7 @@ test("home restores the selected week's frozen plan instead of showing the next 
   frozen.gameweek = { ...frozen.gameweek, ...served.timeline.find((week) => week.id === selected.gw)! };
   await request.post(`${MOCK}/__test/my-weeks`, { data: { livePlan: frozen } });
   await page.goto(`/?w=${selected.id}`);
-  await expect(page.locator(".rc-head h1")).toHaveText(`Gameweek ${selected.number}`);
+  await expect(page.locator(".rx-hero h1")).toHaveText(`Gameweek ${selected.number}`);
   await expect(page.getByRole("link", { name: "Open the plan", exact: true })).toHaveAttribute("href", `/play?w=${selected.id}`);
   await expect(page.locator(".rc-lineups > .rc-th")).toContainText(`Sorare GW${selected.number}`);
   await expect(page.locator(".rc-lu").first()).toBeVisible();
@@ -637,9 +639,9 @@ test("home keeps entered lineups available when the selected GW has no recorded 
   const selected = weeks.find((week) => week.column !== null && week.gw && !week.kept && !served.weeks.some((plan) => plan.gameweek.id === week.gw))!;
   expect(selected).toBeTruthy();
   await page.goto(`/?w=${selected.id}`);
-  await expect(page.locator(".rc-head h1")).toHaveText(`Gameweek ${selected.number}`);
+  await expect(page.locator(".rx-hero h1")).toHaveText(`Gameweek ${selected.number}`);
   await expect(page.getByRole("region", { name: "Your Sorare lineups", exact: true })).toBeVisible();
-  await expect(page.locator(".rc-best")).toHaveCount(0);
+  await expect(page.locator(".rx-hand")).toHaveCount(0);
 });
 
 test("home: a Sorare-only week says LaLiga is away and identifies each player's real fixture", async ({ page, request }) => {

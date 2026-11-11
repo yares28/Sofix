@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import * as table from "./table";
 import recorded from "../e2e/fixtures/grid-response.json";
-import { bestCards, daysSince, lockText, planRows, roundBoard, tableAfter, weekNews } from "./recap";
+import { bestCards, daysSince, latestPlayed, lockText, madridDay, planRows, roundBoard, skyline, tableAfter, weekGames, weekNews } from "./recap";
 import type { Lineup, Plan, PlayerGame, PlayingPlayer } from "./play";
 import type { ApiResponse, FixtureGrid } from "./types";
 
@@ -19,6 +19,57 @@ describe("bestCards", () => {
     const cards = bestCards([player("B", 40), player("A", 40), player("C", 55, { pStart: 0.6, games: [game({ pStart: 0.95, startSource: "futbolfantasy", venue: "A", opponent: "Elche" })] })], 2);
     expect(cards.map((c) => c.name)).toEqual(["C", "A"]);
     expect(cards[0]).toMatchObject({ start: 0.95, source: "futbolfantasy", game: "at Elche, Sat" });
+  });
+});
+
+describe("skyline", () => {
+  it("counts places moved in the round: the place after it against the place after the round before", () => {
+    const column = col(8);
+    const after = table.predictedTable(grid, { through: column, simulations: 0 });
+    const before = new Map(table.predictedTable(grid, { through: column - 1, simulations: 0 }).map((r) => [r.team.code, r.position]));
+    const rows = skyline(grid, column);
+    expect(rows.map((r) => r.position)).toEqual(after.map((r) => r.position));
+    for (const row of rows) expect(row.moved).toBe(before.get(row.team.code)! - row.position);
+    expect(rows.reduce((sum, r) => sum + r.moved, 0)).toBe(0);
+  });
+  it("marks LaLiga's European places and relegation, and gives each club its next game's FDR after the round", () => {
+    const rows = skyline(grid, col(8));
+    expect(rows.slice(0, 4).every((r) => r.zone === "zone-ucl")).toBe(true);
+    expect(rows[4]!.zone).toBe("zone-uel");
+    expect(rows[5]!.zone).toBe("zone-uecl");
+    expect(rows.slice(-3).every((r) => r.zone === "zone-rel")).toBe(true);
+    const team = grid.teams.find((t) => t.code === rows[0]!.team.code)!;
+    const next = team.cells.slice(col(8) + 1).find((c) => c.length)?.[0];
+    expect(rows[0]!.next?.value ?? null).toBe(next?.prediction?.difficulty ?? null);
+  });
+  it("finds the latest round with a finished game", () => {
+    const latest = latestPlayed(grid);
+    expect(grid.teams.some((t) => t.cells[latest]?.some((c) => c.status === "finished"))).toBe(true);
+    expect(grid.teams.some((t) => t.cells.slice(latest + 1).some((cells) => cells.some((c) => c.status === "finished")))).toBe(false);
+  });
+});
+
+describe("weekGames", () => {
+  it("takes every game of the week's days from any round, once, in kickoff order, with only what the stubs draw", () => {
+    const round = roundBoard(grid, col(8));
+    const days = round.map((m) => madridDay(m.kickoff)).sort();
+    const games = weekGames(grid, "PD", days[0]!, days.at(-1)!);
+    expect(games.map((g) => g.id).sort()).toEqual(round.map((m) => m.fixtureId).sort());
+    expect(new Set(games.map((g) => g.id)).size).toBe(games.length);
+    expect(games.map((g) => Date.parse(g.kickoff))).toEqual([...games.map((g) => Date.parse(g.kickoff))].sort((a, b) => a - b));
+    const forecast = games.find((g) => g.win !== null)!;
+    expect(forecast.win! + forecast.draw! + forecast.loss!).toBeCloseTo(1, 2);
+    expect(forecast.home).toMatchObject({ name: expect.any(String), code: expect.any(String) });
+    expect(Object.keys(forecast).sort()).toEqual(["away", "both", "comp", "confirmed", "cs", "day", "draw", "home", "id", "kickoff", "live", "loss", "score", "win", "xd", "xg"]);
+  });
+  it("leaves out games outside the window and gives none for a week without games", () => {
+    const round = roundBoard(grid, col(8));
+    const first = madridDay(round[0]!.kickoff);
+    expect(weekGames(grid, "PD", first, first).every((g) => g.day === first)).toBe(true);
+    expect(weekGames(grid, "PD", "1999-01-01", "1999-01-07")).toEqual([]);
+  });
+  it("says a game Madrid's day, not UTC's: 23:30 UTC on a Saturday is Sunday in Madrid", () => {
+    expect(madridDay("2026-11-07T23:30:00Z")).toBe("2026-11-08");
   });
 });
 

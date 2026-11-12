@@ -1,4 +1,5 @@
 import Link from "../FootballLink";
+import LoadMissions from "../missions/LoadMissions";
 import { cardTotal, lineupActual, type ActualScores } from "../../lib/lineupScores";
 import { useId, type CSSProperties, type ReactNode } from "react";
 import { scoreColour } from "../../lib/cards";
@@ -307,9 +308,10 @@ export function MissionsGlance({ plans, day, current, href }: { plans: MissionPl
       <div className="rc-th">
         <h2 id="rc-ms-h">Missions</h2>
         <span>{day ? new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`)) : "today"}{plans.length ? `, ${plans.length} open` : ""}</span>
+        <LoadMissions stale={false} day={day ?? "today"} />
         <Link href={href}>Missions ›</Link>
       </div>
-      {current ? null : <p className="rc-none">Today&rsquo;s missions aren&rsquo;t loaded yet. Load them on the Missions page.</p>}
+      {current ? null : <p className="rc-none">Today&rsquo;s missions aren&rsquo;t loaded yet.</p>}
       {open.length ? (
         <div className="rc-msn">
           {open.map((one) => {

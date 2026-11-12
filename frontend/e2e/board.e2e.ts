@@ -580,6 +580,11 @@ test("home (Recap): the hero with the best cards as a hand, the round's ticket s
   const sheet = page.getByRole("region", { name: /^Match sheet:/ });
   await expect(sheet).toContainText("both score");
   await expect(sheet).toContainText("Clean sheet");
+  // The sheet opens right under the picked game's row, not at the bottom of the round.
+  await first.click();
+  await expect(laliga.getByRole("region", { name: /^Match sheet:/ })).toBeVisible();
+  // The Missions card reads today's missions from Sorare itself.
+  await expect(page.locator(".rc-missions").getByRole("button", { name: /Load today's missions|Check extension and load/ })).toBeVisible();
   // The table as a skyline: a bar per club.
   await expect(page.locator(".rx-sky .rx-col")).toHaveCount(grid.teams.length);
   // The hero's hand: the best cards, each with its xS hexagon.

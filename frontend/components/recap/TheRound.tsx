@@ -11,7 +11,7 @@ import type { WeekGame } from "../../lib/recap";
 /**
  * The round (plans/recap-matchnight.md, step 3): every game of the week, a row of ticket stubs per competition. One competition
  * picker (All, then only competitions with games) and one day picker (All, then only days with games); each row always fills
- * the width, and three games or fewer become wide tickets. The picked game opens its match sheet below.
+ * the width, and three games or fewer become wide tickets. The picked game opens its match sheet right under its own row.
  */
 
 const ORDER: Competition[] = ["PD", "PL", "BL1", "FL1", "CL", "EL", "CONF"];
@@ -215,10 +215,10 @@ export default function TheRound({ games, href, title }: { games: WeekGame[]; hr
                 <div className="rx-stubs" style={cols}>{lane.games.map((g, i) => <Stub key={g.id} g={g} index={i} on={sel?.id === g.id} onPick={() => setPicked(g.id)} />)}</div>
               </>
             )}
+            {sel && sel.comp === lane.comp ? <Sheet key={sel.id} g={sel} /> : null}
           </div>
         );
       })}
-      {sel ? <Sheet g={sel} /> : null}
     </section>
   );
 }

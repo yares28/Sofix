@@ -79,6 +79,14 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
 .rc-th h2 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
 .rc-th > span { color: var(--ink-2); font-size: 13px; }
 .rc-th > a { margin-left: auto; color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.rc-missions .rc-th { align-items: center; }
+/* The load button sits in the title row beside Missions ›; its note takes its own line under the row. */
+.rc-missions .rc-th .ms-load { display: contents; }
+.rc-missions .rc-th .ms-load > button { margin-left: auto; }
+.rc-missions .rc-th > a { margin-left: 0; }
+.rc-missions .rc-th .ms-extension-help { order: 10; flex: 1 0 100%; }
+.rc-missions .rc-th .ms-load-note { order: 9; flex: 1 0 100%; margin: 0; }
+.rc-missions .rc-th .ms-load-note:empty { display: none; }
 .rc-none { margin: 0; color: var(--ink-2); font-size: 13px; }
 
 /* A match (This round, and the games on Fixtures): each side's name with its own xG and clean sheet under it, the win / draw / win bar between, both-score under the bar. */

@@ -146,7 +146,8 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
   wide tickets). One menu picks the competition (All, then only those with games), one the day (All, then only days with games).
   A stub has both crests, xG and xD chips coloured by how good they are (xD is LaLiga's only), the score or kick-off, the
   win/draw/win bar, **Upset** when the favourite lost and **No forecast** when there is none; the picked game opens its match
-  sheet below. **Table after round N**, beside a **Now** switch, is a skyline: a bar per club as tall as its points, in UEFA's
+  sheet right under its own competition's row (since 12 Nov). The **Missions** card has the Missions page's load button in its
+  title row, so today's missions are read from Sorare without leaving Home or Play. **Table after round N**, beside a **Now** switch, is a skyline: a bar per club as tall as its points, in UEFA's
   colours for the European places (from their logos) and red for relegation, places moved in that round above, the next game's
   FDR below.
 - Before 11 Nov, **This round** (and **The N games** on Fixtures, which adds the bookmakers' odds): one row per match. Each side's name carries its

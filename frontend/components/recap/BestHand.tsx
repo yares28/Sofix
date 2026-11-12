@@ -41,10 +41,11 @@ export default function BestHand({ cards }: { cards: HandCard[] }) {
                 <CardArt src={card.pic} name={card.name} />
                 <span className="rx-foil" aria-hidden="true" />
                 <span className="rx-rk" aria-hidden="true">{index + 1}</span>
-                {card.start !== null ? <span className="rx-st" style={band(card.start * 100)} aria-hidden="true">{pct(card.start)}</span> : null}
-                {card.scored === "dnp" ? <span className="rx-stamp dnp" aria-hidden="true"><b>DNP</b></span>
-                  : card.scored !== null ? <span className="rx-stamp" style={{ borderColor: scoreColour(card.scored).fill }} aria-hidden="true"><b>{Math.round(card.scored)}</b><small>scored</small></span> : null}
-                <span className="rx-hx" style={band(card.x)} aria-hidden="true">{Math.round(card.x)}</span>
+                {/* Once his game is played the corner chip carries the xS and the hexagon what he scored; until then, the start % and the xS. */}
+                {card.scored !== null ? <span className="rx-st" style={band(card.x)} aria-hidden="true">xS {Math.round(card.x)}</span>
+                  : card.start !== null ? <span className="rx-st" style={band(card.start * 100)} aria-hidden="true">{pct(card.start)}</span> : null}
+                {card.scored === "dnp" ? <span className="rx-hx dnp" aria-hidden="true">DNP</span>
+                  : <span className="rx-hx" style={card.scored === null ? band(card.x) : band(card.scored, true)} aria-hidden="true">{Math.round(card.scored ?? card.x)}</span>}
               </Link>
             </li>
           );

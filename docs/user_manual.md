@@ -131,7 +131,7 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **Hero** (Matchnight, 11 Nov 2026, [plans/recap-matchnight.md](../plans/recap-matchnight.md)): the gameweek, its state (when it
   locks, Live, Final), and one big number: what you won (largest essence first, the other prizes under it), or the Sofix plan's
   expected essence before anything is paid. Beside it your ten best cards of the week by xS, fanned like a hand with the best in
-  the middle: each card's xS hexagon, start % and, once played, a stamp with what he scored (DNP when he did not play); hover a
+  the middle: each card's start % and xS hexagon; once played, the corner chip shows his xS and the hexagon what he scored (DNP when he did not play); hover a
   card to name him under the fan. Under the hero, **You vs Sofix plan**: Rewards % and every reward, what was paid when checked
   (else expected), the better value of each column lit, and who won more. An essence gap of up to 10 per paid reward counts as
   a tie: it is Sorare's collection bonus on your rewards, which the plan's numbers lack (since 12 Nov). A perfect 100 is drawn in Sorare's pearl wherever a

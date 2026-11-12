@@ -143,7 +143,8 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
   weeks; failed reads can be retried. Saved lineups and rewards also work on your phone without the extension.
 - **The round** (since 11 Nov 2026, [plans/recap-matchnight.md](../plans/recap-matchnight.md)): every game of the week's days in
   every competition Sofix follows, a row of ticket stubs per competition that always fills the width (three games or fewer become
-  wide tickets). One menu picks the competition (All, then only those with games), one the day (All, then only days with games).
+  wide tickets). One menu picks the competition (All, then only those with games; it opens on LaLiga, or All in a week without LaLiga),
+  one the day (All, the default, then only days with games).
   A stub has both crests, xG and xD chips coloured by how good they are (xD is LaLiga's only), the score or kick-off, the
   win/draw/win bar, **Upset** when the favourite lost and **No forecast** when there is none; the picked game opens its match
   sheet right under its own competition's row (since 12 Nov). The **Missions** card has the Missions page's load button in its

@@ -10,7 +10,7 @@ import type { WeekGame } from "../../lib/recap";
 
 /**
  * The round (plans/recap-matchnight.md, step 3): every game of the week, a row of ticket stubs per competition. One competition
- * picker (All, then only competitions with games) and one day picker (All, then only days with games); each row always fills
+ * picker (All, then only competitions with games; LaLiga by default) and one day picker (All, the default, then only days with games); each row always fills
  * the width, and three games or fewer become wide tickets. The picked game opens its match sheet right under its own row.
  */
 
@@ -157,7 +157,9 @@ function Sheet({ g }: { g: WeekGame }) {
 }
 
 export default function TheRound({ games, href, title }: { games: WeekGame[]; href?: string; title: string }) {
-  const [comp, setComp] = useState<Competition | "all">("all");
+  // LaLiga first, every day of the week; a week without LaLiga (an international break) opens on All.
+  const [chosen, setComp] = useState<Competition | "all" | null>(null);
+  const comp = chosen ?? (games.some((g) => g.comp === "PD") ? "PD" : "all");
   const [day, setDay] = useState<string>("all");
   const [menu, setMenu] = useState<"comp" | "day" | null>(null);
   const [picked, setPicked] = useState<number | null>(null);

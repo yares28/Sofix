@@ -570,7 +570,11 @@ test("home (Recap): the hero with the best cards as a hand, the round's ticket s
   }
   // The round: LaLiga's games of the week as ticket stubs, each side's xG and xD, the win/draw/win bar, and the picked game's sheet.
   const matches = gameweekMatches(grid, column(openingMatchday)).matches.length;
-  const laliga = page.locator(".rx-lane").filter({ has: page.getByText("LaLiga", { exact: true }) });
+  // The round opens on LaLiga alone, every day.
+  await expect(page.getByRole("button", { name: /^LaLiga/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^All days/ })).toBeVisible();
+  await expect(page.locator(".rx-lane")).toHaveCount(1);
+  const laliga = page.locator(".rx-lane");
   await expect(laliga.locator(".rx-stub, .rx-wt")).toHaveCount(matches);
   const first = laliga.locator(".rx-stub, .rx-wt").first();
   await expect(first.locator(".rx-xgs")).toHaveCount(2);

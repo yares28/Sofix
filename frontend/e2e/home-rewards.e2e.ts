@@ -127,13 +127,14 @@ test("Home's round shows every competition's games of the week, one competition 
   const stubs = round.locator(".rx-stub, .rx-wt");
   const total = await stubs.count();
   expect(total).toBeGreaterThan(0);
-  // The competition menu offers All and only competitions with games; the day menu only days with games.
-  await round.getByRole("button", { name: /^All competitions/ }).click();
+  // It opens on LaLiga alone; the competition menu offers All and only competitions with games; the day menu only days with games.
+  await round.getByRole("button", { name: /^LaLiga/ }).click();
   const options = round.getByRole("group", { name: "Competition" }).getByRole("button");
   await expect(options.first()).toContainText("All competitions");
   for (const text of await options.allInnerTexts()) expect(Number(text.match(/(\d+)\s*$/)?.[1])).toBeGreaterThan(0);
-  await page.keyboard.press("Escape");
+  await options.first().click();
   await expect(round.getByRole("group", { name: "Competition" })).toHaveCount(0);
+  expect(await stubs.count()).toBeGreaterThanOrEqual(total);
   await round.getByRole("button", { name: /^All days/ }).click();
   const day = round.getByRole("group", { name: "Day" }).getByRole("button").nth(1);
   const dayCount = Number((await day.innerText()).match(/(\d+)\s*$/)![1]);

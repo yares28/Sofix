@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { checkedWeekRewards, planForRewards, weekRewards } from "./weekRewards";
+import { betterSide, checkedWeekRewards, planForRewards, weekRewards } from "./weekRewards";
 import type { Plan } from "./play";
 import { projectedPrize, rewardSignature } from "./playRewards";
 
@@ -48,4 +48,18 @@ it("adds attainable prize tiers, including known no-prize lineups, without proba
   expect(summary.expected["essence:limited:laliga"]).toBe(250);
   expect(summary.expected["xp:FOOTBALL_XP"]).toBe(0);
   expect(summary.coverage["cash:USD"]).toBe(2);
+});
+
+it("reads an essence gap of up to 10 per paid reward as Sorare's collection bonus, not a better lineup", () => {
+  expect(betterSide("essence:limited:champion", 254, 250)).toBe(-1);
+  expect(betterSide("essence:limited:laliga", 260, 250)).toBe(-1);
+  expect(betterSide("essence:limited:laliga", 261, 250)).toBe(0);
+  expect(betterSide("essence:limited:laliga", 240, 251)).toBe(1);
+  expect(betterSide("essence", 509, 500, 2)).toBe(-1);
+  expect(betterSide("essence", 540, 500, 2)).toBe(0);
+  // Cash, XP and the chance keep their exact comparison; an unknown side is no winner.
+  expect(betterSide("cash:USD", 1, 0)).toBe(0);
+  expect(betterSide("xp:FOOTBALL_XP", 1500, 1500)).toBe(-1);
+  expect(betterSide("chance", .26, .32)).toBe(1);
+  expect(betterSide("essence:limited:laliga", null, 250)).toBe(-1);
 });

@@ -133,7 +133,8 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
   expected essence before anything is paid. Beside it your ten best cards of the week by xS, fanned like a hand with the best in
   the middle: each card's xS hexagon, start % and, once played, a stamp with what he scored (DNP when he did not play); hover a
   card to name him under the fan. Under the hero, **You vs Sofix plan**: Rewards % and every reward, what was paid when checked
-  (else expected), the better value of each column lit, and who won more. A perfect 100 is drawn in Sorare's pearl wherever a
+  (else expected), the better value of each column lit, and who won more. An essence gap of up to 10 per paid reward counts as
+  a tie: it is Sorare's collection bonus on your rewards, which the plan's numbers lack (since 12 Nov). A perfect 100 is drawn in Sorare's pearl wherever a
   score is coloured.
 - **Missions** come right after the hero: each open mission's best picks with their chances and, once played, Sorare's verdict
   on each pick (✓ did it, ✕ did not) and how many did it. A national-team week's hero number is how many of your cards play.

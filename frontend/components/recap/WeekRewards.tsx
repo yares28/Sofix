@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode, type Dispatch, type SetStateAction } from "react";
 import { rewardKeys, rewardName, rewardNumber } from "../../lib/playRewards";
-import type { WeekRewards } from "../../lib/weekRewards";
+import { betterSide, type WeekRewards } from "../../lib/weekRewards";
 import { chanceLabel } from "../../lib/play";
 
 type Own = { summary: WeekRewards; state: "loading" | "ready" | "unavailable" };
@@ -78,15 +78,16 @@ export function RewardsDuel({ recommendation, hasEntries }: { recommendation: We
     { who: "Sofix plan", summary: recommendation, paid: sofixPaid, count: recommendation.total, mark: "S" },
   ];
   const best = (key: string | "chance") => {
-    const values = rows.map((row) => (key === "chance" ? row.summary?.chance ?? null : amount(row.summary, key, row.paid)));
-    if (values.some((v) => v === null) || values[0] === values[1]) return -1;
-    return (values[0] as number) > (values[1] as number) ? 0 : 1;
+    const [you, sofix] = rows.map((row) => (key === "chance" ? row.summary?.chance ?? null : amount(row.summary, key, row.paid)));
+    return betterSide(key, you ?? null, sofix ?? null);
   };
   const youEss = essenceTotal(mine, keys, true), sofixEss = essenceTotal(recommendation, keys, true);
   // Nothing entered and no plan (a national-team week): no grid of dashes.
   if (!loading && !mine?.total && !recommendation.total) return null;
+  const paidEssence = keys.filter((key) => key.startsWith("essence:") && rows.some((row) => (amount(row.summary, key, true) ?? 0) > 0)).length;
+  const lead = betterSide("essence", youEss, sofixEss, paidEssence);
   const verdict = youPaid && sofixPaid
-    ? youEss > sofixEss ? "You won more than the Sofix plan would have" : youEss < sofixEss ? "The Sofix plan would have won more" : "You and the Sofix plan won the same essence"
+    ? lead === 0 ? "You won more than the Sofix plan would have" : lead === 1 ? "The Sofix plan would have won more" : "You and the Sofix plan won the same essence"
     : null;
   const cell = (key: string, i: number) => {
     const row = rows[i]!;

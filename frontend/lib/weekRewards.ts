@@ -9,6 +9,17 @@ export function weekRewards(rows: RewardRow[]) {
 }
 export type WeekRewards = ReturnType<typeof weekRewards>;
 
+/**
+ * Which side did better on one reward: 0 you, 1 the Sofix plan, -1 neither. Sorare adds your collection bonus to the essence
+ * you are paid, and the plan's numbers have none, so an essence gap of up to 10 per paid reward is that bonus, not a better
+ * lineup (owner, 12 Nov 2026; cheaper than reading each card's bonus).
+ */
+export function betterSide(key: string, you: number | null, sofix: number | null, rewards = 1): -1 | 0 | 1 {
+  if (you === null || sofix === null) return -1;
+  const slack = key.startsWith("essence") ? 10 * rewards : 0;
+  return you - sofix > slack ? 0 : sofix - you > slack ? 1 : -1;
+}
+
 /** Checked results remain evidence even if a later private snapshot contains fewer entries. */
 export function checkedWeekRewards(rows: (RewardRow & { id: string })[], checks: PlayRewardBlock["you"] = []) {
   const byId = new Map(rows.map(row => [row.id, row]));

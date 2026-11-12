@@ -20,7 +20,7 @@ import numpy as np
 from app.services.european_fdr import CONFERENCE_NOTE
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
 from app.services.timeutil import Laps
-from app.sorare import expected, pro, projection, rules, strategies, xg
+from app.sorare import expected, pro, projection, rules, sofix_v1, strategies, xg
 from app.sorare.forecast import GameStart, PlayerWeek, bench_record, cup_dates, own_start
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
@@ -203,16 +203,25 @@ def _with_chances(games: list[dict[str, Any]], forecast: Forecast | None) -> lis
     ]
 
 
-def _game_numbers(games: list[dict[str, Any]], forecast: Forecast | None) -> dict[str, dict[str, float]]:
+def _game_numbers(games: list[dict[str, Any]], forecast: Forecast | None) -> dict[str, dict[str, Any]]:
     """Each game's own numbers by game id: `x` what he is expected to score in it, `start` if he starts it (the forecast holds them in
     kickoff order). A Pro or Arcade card plays one game, so the overlay shows that game's; the week's numbers stay for the rest."""
     if not forecast or len(forecast.game_x) != len(games) or len(forecast.game_start) != len(games):
         return {}
     ordered = sorted(games, key=lambda g: g.get("kickoff") or "")
     return {
-        g["id"]: {"x": x, "start": start}
-        for g, x, start in zip(ordered, forecast.game_x, forecast.game_start, strict=True)
+        g["id"]: {
+            "x": x,
+            "start": start,
+            **(
+                {"modelVersion": sofix_v1.VERSION, "startPoint": model.point, "subPoint": model.sub.point}
+                if model
+                else {}
+            ),
+        }
+        for i, (g, x, start) in enumerate(zip(ordered, forecast.game_x, forecast.game_start, strict=True))
         if g.get("id")
+        for model in [forecast.game_models[i] if i < len(forecast.game_models) else None]
     }
 
 
@@ -445,6 +454,7 @@ def player_weeks(
             game_ids=[g["id"] for g in ordered] if told else [],
             game_starts=told,
             game_scores=tuple(o.start if o is not None else None for o in made.outcomes),
+            game_models=tuple(o if isinstance(o, sofix_v1.GameScore) else None for o in made.outcomes),
             shape=next((o for o in made.outcomes if o is not None), None),
             sub=made.sub,
             game_dec=tuple(o.p_decisive if o is not None else (own_decisive(past, pos) or 0.0) for o in made.outcomes),
@@ -1947,6 +1957,9 @@ def score_record(
         f = forecasts.get(slug)
         listed: list[dict[str, Any]] = []
         for i, game in enumerate(mine):
+            versioned = w.game_models[i] if i < len(w.game_models) else None
+            start_score = w.game_scores[i] if i < len(w.game_scores) else None
+            on_score = (f.previous_on if f.previous_on is not None else f.on) if f else None
             said = (projections.get(game.get("id")) or {}).get(slug) or {}
             told = next((one for one in w.game_starts if one.game == game.get("id")), None)
             alone = own_start(replace(w, banned=False)) if i and w.banned else own_start(w)
@@ -1976,15 +1989,24 @@ def score_record(
                     "sorare": said.get("score", w.projection if i == 0 else None),
                     "grade": said.get("grade"),
                     # Sofix's number only for a game Sofix worked out; the game's own source says whose it is (B5)
-                    "sofix": round(score, 1)
-                    if i < len(w.game_scores) and (score := w.game_scores[i]) is not None
-                    else None,
+                    "sofix": round(start_score, 1) if start_score is not None else None,
                     "scoreSource": f.game_sources[i]
                     if f and i < len(f.game_sources)
                     else (f.score_source if f else None),
                     **({"waiting": "board"} if i in w.waiting else {}),
                     # his score if he comes on: what a substitute's game is judged against (the owner, 13 Oct 2026)
-                    "sofixOn": f.on if f and f.on else None,
+                    "sofixOn": round(versioned.sub.outcome.start, 1) if versioned else on_score,
+                    **(
+                        {
+                            "modelVersion": sofix_v1.VERSION,
+                            "sofixPoint": versioned.point,
+                            "sofixOnPoint": versioned.sub.point,
+                            "previousSofix": round(versioned.previous, 1) if versioned.previous is not None else None,
+                            "previousSofixOn": f.previous_on if f else None,
+                        }
+                        if versioned
+                        else {}
+                    ),
                 }
             )
         players[slug] = {

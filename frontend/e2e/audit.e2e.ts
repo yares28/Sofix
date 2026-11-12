@@ -12,6 +12,15 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
+test("Sofix v1 shows the starter and substitute replays apart from live results", async ({ page }) => {
+  await page.goto("/audit");
+  const model = page.getByRole("region", { name: "Sofix v1 · LaLiga xScore" });
+  await expect(model.getByRole("heading", { name: "Starters", exact: true })).toBeVisible();
+  await expect(model.getByRole("heading", { name: "Played substitutes" })).toBeVisible();
+  await expect(model.getByText("1,506 / 937")).toBeVisible();
+  await expect(model.getByText("Awaiting results")).toHaveCount(2);
+});
+
 test("player comparisons cover every saved GW, an all-time summary and URL-restored history; analysis comes first", async ({ page, request, context }) => {
   const model = (await (await request.get(`${MOCK}/api/sorare`)).json()).data;
   const live = model.timeline.find((w: { id: string }) => w.id === model.nextId);
@@ -244,7 +253,7 @@ test("the league figures draw every chart from the committed replay: how close, 
   await expect(close).toContainText(league.miss.n.toLocaleString("en-GB"));
   await expect(page.getByRole("region", { name: /When Sofix says 30%/ }).locator(".lg-plot .pt")).not.toHaveCount(0);
   const vs = page.getByRole("list", { name: "Share of starts within 7 points" }).getByRole("listitem");
-  await expect(vs).toHaveText([/^Sorare's projection/, /^Sofix before/, /^Sofix now/]);
+  await expect(vs).toHaveText([/^Sorare's projection/, /^Early Sofix/, /^Previous Sofix/]);
 
   // The historical replay remains available separately from the live three-source header.
   await page.goto("/audit/starts");

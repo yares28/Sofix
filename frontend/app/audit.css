@@ -526,6 +526,7 @@
 .ax-facts strong { color: var(--ink); font-weight: 650; }
 .ax-hero > .lg-card { margin: 0; }
 .ax-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; align-items: start; }
+#sofix-model { scroll-margin-top: 100px; }
 .ax-grid > .lg-card { margin: 0; }
 .ax-8 { grid-column: span 8; } .ax-4 { grid-column: span 4; } .ax-6 { grid-column: span 6; }
 .au-starts { margin-top: 20px; }

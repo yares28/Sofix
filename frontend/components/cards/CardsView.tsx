@@ -86,6 +86,7 @@ function InfoButton({ card, next, earned }: { card: CollectionCard; next?: NextG
       <b>{card.name}</b>
       <p>Level {card.level} · {tier}{card.stars ? <Stars n={card.stars} /> : null} · {card.inSeason ? "In season" : "Classic"}</p>
       <span className="s5-hexrow" role="group" aria-label="Average score by window">{cardWindows(card).map(w => <span className="s5-hex" key={w.window}><small className="win">{w.window}</small><Hexagon score={w.score} /><small className="pct">{w.started === null ? "—" : `${Math.round(w.started)}%`}</small></span>)}</span>
+      {next?.game.modelVersion && next.game.startPoint != null && next.game.subPoint != null ? <p><b>{next.game.modelVersion}</b><br />{next.game.startPoint} if starting · {next.game.subPoint} if coming on</p> : null}
       {next ? <><p>{gameLine(next.game)} · Sorare GW{next.week}</p><div role="group" aria-label="Chance to start">{next.chances.list.map(one => <p key={one.source} data-used={one.source === next.chances.used ? "" : undefined}>{SOURCE_NAME[one.source]} <b>{one.percent}%</b></p>)}</div><p>Score before competition and captain bonuses. Bonuses vary by competition.</p></> : <p>No game yet</p>}
       <p>{earned ? <><b>{essenceLabel(earned.essence)} essence · {cashLabel(earned.cash)}</b><br />In {earned.lineups} saved lineup{earned.lineups === 1 ? "" : "s"}. Rewards belong to the whole lineup; do not add them across cards.</> : earned === null ? "Saved rewards unavailable" : "No saved lineup yet"}</p>
     </div>}>
@@ -313,7 +314,7 @@ function CardTile({ card, index, stack, anchor, target, next, earned }: { card: 
         <SeasonMark card={card} />
         <span className="s5-card-ratings">
           <span className={`s5-card-fdr${next?.fdr ? ` f${next.fdr.bucket}` : ""}`} title={next?.fdr?.difficulty != null ? `${gameLine(next.game)} · ${next.fdr.label} · FDR ${Math.round(next.fdr.difficulty)} of 100 (lower is easier)` : "FDR unavailable for this fixture"}><small>FDR</small><b>{next?.fdr?.difficulty == null ? "—" : Math.round(next.fdr.difficulty)}</b></span>
-          <span className="s5-card-score" style={{ background: colour.fill, color: colour.ink }} aria-label={score === null ? "xScore unavailable for this fixture" : `xScore ${Math.round(score)}`} title="Published player xScore, before competition and captain bonuses"><b>{score === null ? "—" : Math.round(score)}</b></span>
+          <span className="s5-card-score" style={{ background: colour.fill, color: colour.ink }} aria-label={score === null ? "xScore unavailable for this fixture" : `xScore ${Math.round(score)}`} title={next?.game.modelVersion ? `${next.game.modelVersion} · Expected points before bonuses. Score prediction: ${next.game.startPoint} if starting, ${next.game.subPoint} if coming on.` : "Published player xScore, before competition and captain bonuses"}><b>{score === null ? "—" : Math.round(score)}</b></span>
         </span>
       </Link>
       <InfoButton card={card} next={next} earned={earned} />

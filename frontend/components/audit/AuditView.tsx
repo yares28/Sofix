@@ -13,6 +13,7 @@ import StartsAudit from "./StartsAudit";
 import { selection } from "../../lib/startsBoard";
 import type { LeagueAudit as League } from "../../lib/leagueAudit";
 import LeagueAudit, { StartsCheck } from "./LeagueAudit";
+import XscoreModel from "./XscoreModel";
 import type { SavedWeek } from "../../lib/myWeeks";
 import PlayerScores from "./PlayerScores";
 import type { PlayerScoreWeek } from "../../lib/audit";
@@ -69,6 +70,7 @@ export default function AuditView({
     return (
       <>
         <VersusAudit versus={data.versus} updated={updated} />
+        <XscoreModel live={data.xscore.models} />
         {league ? <LeagueAudit data={league} /> : null}
         <MatchAudit data={data.matches} />
         <PlayerScores week={playerWeek} number={playerWeekNumber} weeks={playerWeeks} />

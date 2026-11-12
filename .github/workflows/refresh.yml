@@ -64,7 +64,7 @@ jobs:
           if [ "$event" != "push" ] && [ "$event" != "schedule" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           # A validated league-model release must replan owned cards as well as publishing its new player blocks.
           if [ "$event" = "push" ]; then
-            promoted=$(gh api "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}" --jq '[.files[] | select(.filename | test("^backend/artifacts/(league_xscore/(PL|BL1|FL1)|european_xscore/(CL|EL|CONF))[.]json$"))] | length')
+            promoted=$(gh api "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}" --jq '[.files[] | select(.filename | test("^backend/artifacts/((league_xscore/(PL|BL1|FL1)|european_xscore/(CL|EL|CONF))[.]json|sofix_v1[.]json[.]gz)$"))] | length')
             if [ "$promoted" != "0" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           fi
           # A failed/cancelled run did not finish publication; a corrective backend push can retry.

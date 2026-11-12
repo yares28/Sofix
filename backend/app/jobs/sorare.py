@@ -61,6 +61,7 @@ from app.sorare import (
     score_checks,
     score_fixes,
     scores,
+    sofix_v1,
     start_fixes,
     starts,
 )
@@ -722,7 +723,13 @@ def run(
         lambda: foreign_scores.scores_for(
             active_models,
             foreign_grids,
-            scores.scores_for(keeper.load(), outfield.load(), keeper.numbers_for(db, fetched), outfield.load_subs()),
+            scores.scores_for(
+                keeper.load(),
+                outfield.load(),
+                keeper.numbers_for(db, fetched),
+                outfield.load_subs(),
+                v1=sofix_v1.load(),
+            ),
             european_games=(european_state or {}).get("games")
             if (european_state or {}).get("complete") is True
             else None,

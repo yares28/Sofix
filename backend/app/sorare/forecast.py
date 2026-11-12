@@ -21,7 +21,7 @@ import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, NamedTuple
 
-from app.sorare import outfield
+from app.sorare import outfield, sofix_v1
 from app.sorare.model import Forecast, GameChance
 from app.sorare.planner import SCORE_SD
 
@@ -78,6 +78,7 @@ class PlayerWeek:
     # his score if he starts in each game, worked out from the game itself (scores.py), kickoff order; None for a game in a
     # league Sofix has no model for, which takes Sorare's number or his average (plans/multi-competition-review.md B5)
     game_scores: tuple[float | None, ...] = ()
+    game_models: tuple[sofix_v1.GameScore | None, ...] = ()
     shape: Any = None  # the picture of his first game behind that score (`keeper.Outcome`)
     sub: Any = None  # his position's picture of a substitute (`outfield.SubShape`)
     game_dec: tuple[float, ...] = ()  # the chance of a decisive action if he starts, for each game of `game_scores`
@@ -333,6 +334,19 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
             0.0 if i == 0 and available < week.games else plays for i in range(week.games)
         ]  # a ban takes his first game
     # A double gameweek: he has to miss both to score nothing, and the better of the two games counts.
+    # Use the conditional means of both v1 distributions for expected points.
+    # A game's within-seven points are stored separately for the score audit.
+    first_v1 = week.game_models[0] if week.game_models else None
+    if any(week.game_models):
+        for index, modeled in enumerate(week.game_models):
+            if modeled is None:
+                continue
+            ps, po = (per_game[index].p_start, per_game[index].p_on) if per_game else (p_start, p_on)
+            game_mu[index] = (
+                (ps * modeled.start + po * modeled.sub.outcome.start) / (ps + po) if ps + po else modeled.start
+            )
+        total = sum(played)
+        mu = sum(m * p for m, p in zip(game_mu, played, strict=True)) / total if total else sum(game_mu) / len(game_mu)
     if week.games > 1 and p_any > 0:
         mu += 0.56 * sd * both / p_any
     # Expected decisives: each game's own chance when it is worked out, else his record; a substitute's is his position's. With two
@@ -340,7 +354,14 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
     if_starts = week.game_dec if shape is not None else (() if week.dec is None else (week.dec,) * week.games)
     if_on = week.sub.p if week.sub is not None else 0.0
     starts = [(c.p_start, c.p_on) for c in per_game] or [(p_start, p_on)] * len(if_starts)
-    xd = max((round(ps * dec + po * if_on, 3) for (ps, po), dec in zip(starts, if_starts, strict=False)), default=None)
+    xd = max(
+        (
+            round(ps * dec + po * (model.sub.outcome.p_decisive if model else if_on), 3)
+            for i, ((ps, po), dec) in enumerate(zip(starts, if_starts, strict=False))
+            for model in [week.game_models[i] if i < len(week.game_models) else None]
+        ),
+        default=None,
+    )
     return Forecast(
         xd=xd,
         p_play=round(p_any, 4),
@@ -351,8 +372,8 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         source=source,
         actual=week.actual,
         start=round(start, 1),
-        bench=round(bench, 1),
-        on=round(split.on, 1),
+        bench=round(split.benched_on * first_v1.sub.outcome.start if first_v1 else bench, 1),
+        on=round(first_v1.sub.outcome.start if first_v1 else split.on, 1),
         p_start=round(p_start, 3),
         p_on=round(p_on, 3),
         per_game=per_game,
@@ -360,13 +381,15 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         by_source=by_source,
         benched_on=round(split.benched_on, 3),
         shape=shape,
-        on_shape=on_shape,
+        on_shape=first_v1.sub.outcome if first_v1 else on_shape,
         score_source="sofix" if week.game_scores else ("sorare" if week.projection is not None else "form"),
         game_sources=game_sources,
         game_x=tuple(
             round(round(p, 4) * round(min(max(m, 0.0), 100.0), 2), 1) for p, m in zip(played, game_mu, strict=False)
         ),
         game_start=tuple(round(s, 1) for s in game_start),
+        game_models=week.game_models,
+        previous_on=round(split.on, 1) if any(week.game_models) else None,
         waiting=bool(week.waiting),
         sorare=week.projection,
         bench_record=week.bench_record,

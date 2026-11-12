@@ -1,0 +1,113 @@
+{
+  "sourceSha256": "d929567d90aba106c17a7caf958a3aaeefc21749f11efe6dca4ea90d374f39d0",
+  "phases": [
+    {
+      "from": "2024-01-01",
+      "to": "2024-07-01",
+      "trainCases": 5623,
+      "start": {
+        "cases": 4400,
+        "previousHits": 1307,
+        "hits": 1684,
+        "meanHits": 1291,
+        "gained": 940,
+        "spoiled": 563,
+        "previousMAE": 13.594427272727271,
+        "mae": 14.21695,
+        "meanMAE": 13.66198265025327
+      },
+      "bench": {
+        "cases": 1865,
+        "previousHits": 1209,
+        "hits": 1479,
+        "meanHits": 1378,
+        "gained": 352,
+        "spoiled": 82,
+        "previousMAE": 7.1824450402144775,
+        "mae": 5.783302949061661,
+        "meanMAE": 6.301287908653354
+      }
+    },
+    {
+      "from": "2024-07-01",
+      "to": "2025-07-01",
+      "trainCases": 11888,
+      "start": {
+        "cases": 8360,
+        "previousHits": 2555,
+        "hits": 3235,
+        "meanHits": 2513,
+        "gained": 1832,
+        "spoiled": 1152,
+        "previousMAE": 13.48203110047847,
+        "mae": 14.045442583732056,
+        "meanMAE": 13.505014177240556
+      },
+      "bench": {
+        "cases": 3540,
+        "previousHits": 2181,
+        "hits": 2709,
+        "meanHits": 2599,
+        "gained": 708,
+        "spoiled": 180,
+        "previousMAE": 7.670242937853108,
+        "mae": 6.349683615819209,
+        "meanMAE": 6.637699894992898
+      }
+    },
+    {
+      "from": "2025-07-01",
+      "to": "2026-01-01",
+      "trainCases": 23788,
+      "start": {
+        "cases": 3762,
+        "previousHits": 1137,
+        "hits": 1402,
+        "meanHits": 1108,
+        "gained": 812,
+        "spoiled": 547,
+        "previousMAE": 13.76511961722488,
+        "mae": 14.719484316852737,
+        "meanMAE": 13.810110326775105
+      },
+      "bench": {
+        "cases": 1621,
+        "previousHits": 1053,
+        "hits": 1289,
+        "meanHits": 1204,
+        "gained": 318,
+        "spoiled": 82,
+        "previousMAE": 7.122085132634178,
+        "mae": 5.892375077112894,
+        "meanMAE": 6.285433416817558
+      }
+    },
+    {
+      "from": "2026-01-01",
+      "to": "2026-11-01",
+      "trainCases": 29171,
+      "start": {
+        "cases": 6754,
+        "previousHits": 2027,
+        "hits": 2596,
+        "meanHits": 2036,
+        "gained": 1506,
+        "spoiled": 937,
+        "previousMAE": 13.843879182706544,
+        "mae": 14.49637548119633,
+        "meanMAE": 13.865899195689506
+      },
+      "bench": {
+        "cases": 2925,
+        "previousHits": 1729,
+        "hits": 2176,
+        "meanHits": 2029,
+        "gained": 595,
+        "spoiled": 148,
+        "previousMAE": 8.161039316239314,
+        "mae": 6.939548717948718,
+        "meanMAE": 7.210792386356469
+      }
+    }
+  ]
+}

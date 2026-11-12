@@ -89,6 +89,8 @@ Payload version is 5 at review. Cards/Players/value are latest-sync snapshots, n
 
 ## S4 — xScore 🚧
 
+The LaLiga [Sofix v1 release](../plans/sofix-v1.md) records live model versions and tracks within-seven predictions separately for starts and played substitutes. See the [research handover](xscore-research-handover.md) for the original tests and the open 50% target.
+
 Current heuristic: last-five smoothed play/conditional score; replace with Sorare projection and starter+sub odds when
 available; multi-game chance of any appearance plus best-of-two uplift; `xScore=P(play)×conditional score`; common SD
 17.6. Source/history/range are published.

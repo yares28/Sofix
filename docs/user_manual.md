@@ -597,6 +597,8 @@ doubt; hover the mark for the name.
 
 ## 7b. Audit — how often the numbers were right
 
+**Sofix v1** is the LaLiga xScore model. Its Audit section shows the historical comparison and the results of forecasts saved before future locks, with separate rows for starters and players who came on. A hit is a prediction within seven points of the actual Sorare score. Card xScore shows expected points with the chance of playing included. Its score tooltip gives the model and its best guess for each role when available.
+
 **Your players (11 Oct 2026).** On **xScore**, the replay charts, calibration, pre-lock record and match-forecast
 checks come first. Below them, larger Sorare cards and the actual match sides' crests accompany **xScore**, **Sorare**,
 **Actual** and **Diff** (actual minus xScore). **Gameweek** follows the GW selected in the top bar;

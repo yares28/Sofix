@@ -43,6 +43,9 @@ export type XscoreLive = {
   hi: number | null;
 };
 
+export type XscoreModelCounts = { cases: number; hits: number; paired: number; gained: number; spoiled: number };
+export type XscoreModels = Record<string, Partial<Record<"start" | "bench", XscoreModelCounts>>>;
+
 export type Scores = { right: number | null; brier: number | null; mean: number | null; started: number | null; buckets: Band[] | null };
 /** One competition's share of a source's record: how many games it gave a number for, how many are checked, and how right it was once there are enough. */
 export type CompetitionLine = { competition: string; recorded: number; settled: number; right: number | null; brier: number | null };
@@ -180,7 +183,7 @@ export type Audit = {
   floor: number;
   /** What the replay file covers: when it was made, the games it holds and how many of the owner's players. */
   replay: { builtAt: string | null; from: string | null; to: string | null; players: number } | null;
-  xscore: { replay: XscoreReplay | null; live: XscoreLive };
+  xscore: { replay: XscoreReplay | null; live: XscoreLive; models?: XscoreModels };
   starts: { replay: { sofix?: SofixReplay } | null; live: Record<StartSource, LiveSource>; weeks: RecordWeek[] };
   rewards: Rewards;
   missions: Missions;
@@ -232,7 +235,7 @@ export function readable(value: unknown): Audit | null {
     generatedAt: data.generatedAt ?? "",
     floor: data.floor ?? 100,
     replay: data.replay ?? null,
-    xscore: { replay: data.xscore.replay ?? null, live: { ...NO_LIVE, ...(data.xscore.live ?? {}) } },
+    xscore: { replay: data.xscore.replay ?? null, live: { ...NO_LIVE, ...(data.xscore.live ?? {}) }, models: data.xscore.models },
     starts: {
       replay: data.starts.replay ?? null,
       weeks: data.starts.weeks ?? [],

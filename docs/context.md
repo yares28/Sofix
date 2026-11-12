@@ -64,6 +64,8 @@ The planner weights essence by the share of its leagues the owner plays, searche
 
 Conditional score, chance of starting, chance of coming on, chance of any appearance, and unconditional expectation are different quantities. When `game_scores` exists, the own-score branch in `forecast` removes Sorare’s projection from its score calculation. Without own game scores, the generic forecast path can still use Sorare projection/form; do not claim all paths are independent just because the LaLiga model is. The alternative Sorare-projection strategy stays separately identified.
 
+[Sofix v1](../plans/sofix-v1.md) uses distinct starter and substitute distributions for covered LaLiga fixtures. Expected points use their means and the role chances. The game also carries `modelVersion`, `startPoint` and `subPoint` for the separate accuracy target of landing within seven.
+
 **Exceptions/limits:** in a double GW, per-game chances preserve each source and game; chance of any appearance combines misses, while the week-level start display follows the first game. The score includes a best-of-two adjustment, not a sum of two scores. Each game also carries its own expectation and start score (`game_x`, `game_start`, published as game `x`/`start`) with no best-of-two lift: the overlay shows them for one-game cards (Pro, Arcade); plans and Classic keep the week number. No eligible game means no forecast. No known game IDs uses the legacy week-level path; do not imply equivalent per-game evidence.
 
 **Why/examples:** FF start `0` must beat Sorare start `0.7`, whereas absent FF may use Sorare. With game-appearance chances `0.5` and `0.5`, the combination is `0.75`; this formula for a player’s appearances is not the formula for a whole plan’s reward probability. Existing FF tests cover zero, unavailable FF, out players, double games and source retention. They do not establish that a live source is calibrated.
@@ -74,6 +76,8 @@ Conditional score, chance of starting, chance of coming on, chance of any appear
 **Scope/status:** Sorare publisher and score correction; implemented. **Requires:** FORECAST-SOURCES-001, FORECAST-PRELOCK-001.
 
 **Rule:** construct `score_record` from raw forecasts before applying `score_fix` to copies used in planning. The record and Lineups comparison retain the raw number so future measurement evaluates the underlying model. Planning can apply `a + b * mu`, clipped to `[0, 100]`, only when the correction is enabled. Do not write adjusted means back into raw capture evidence.
+
+For Sofix v1, `sofix` and `sofixOn` remain conditional means. The versioned `sofixPoint` and `sofixOnPoint` are for the within-seven Audit and never train the planning adjustment.
 
 Correction needs at least 200 settled starting cases; each usable held-out week and its training complement need 30 cases. The bootstrap slope interval must exclude 1 and held-out mean squared error must improve. The case loader uses dates at least 26 hours old, a known actual score, a start and captured Sofix evidence; it depends on the upstream pre-lock writer, rather than independently reconstructing every lock. Residual spread may be measured even with correction off. Publisher uses measured spread only when the forecast has no own `sd`; `17.6` is a fallback, not a universal current per-player spread.
 
@@ -204,6 +208,8 @@ Play’s `sorareWrittenAt` version lookup caches for one hour, while split paylo
 Scope: aggregate Audit evidence, independent of the top-bar week. Preserve player/game/source identity and pre-lock capture. A known start result can count before the whole GW ends; full-GW score comparison retains its settlement boundary. FINAL, REVIEWING and explicit DID_NOT_PLAY rows still require internally consistent played/started evidence. An explicit nonappearance is different from an unknown appearance. Permanent game rows and legacy records must not double count overlap. Late score-record values are cleared; saved per-game values are used only with pre-lock said_at.
 
 The owner requires starters and substitutes apart, the within-seven-points comparison, and a too-few-to-tell label below 100 cases except the Sofix-versus-Sorare rates shown from the first game. Source-specific denominators must remain visible. Existing tests cover partial double GWs, sold players, unknown appearance, idle publication and overlap. They do not establish prospective calibration. Never borrow the reward receipt clock to finalize Audit scores.
+
+The Sofix v1 section distinguishes the dated replay from pre-lock versioned live scores. The latter use settled game records, match the point forecast to the player's actual role, and show gains and losses on the games with a previous-model prediction on file.
 
 <a id="extension-actions-001"></a>
 ## EXTENSION-ACTIONS-001
@@ -669,6 +675,8 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `docs/sorare_plan.md` | [open](../docs/sorare_plan.md) |
 | document (check authority) | `docs/upgrade_audit.md` | [open](../docs/upgrade_audit.md) |
 | document (check authority) | `docs/user_manual.md` | [open](../docs/user_manual.md) |
+| document (check authority) | `docs/xscore-research-handover.md` | [open](../docs/xscore-research-handover.md) |
+| document (check authority) | `docs/xscore-sorare-scoring.md` | [open](../docs/xscore-sorare-scoring.md) |
 | document (check authority) | `docs/xscore_success_rate.md` | [open](../docs/xscore_success_rate.md) |
 | page | `/difficulty` | `frontend/app/(board)/difficulty/page.tsx` |
 | page | `/fixtures` | `frontend/app/(board)/fixtures/page.tsx` |
@@ -779,6 +787,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/score-engine.md` | [open](../plans/score-engine.md) |
 | document (check authority) | `plans/set.md` | [open](../plans/set.md) |
 | document (check authority) | `plans/single-play-plan.md` | [open](../plans/single-play-plan.md) |
+| document (check authority) | `plans/sofix-v1.md` | [open](../plans/sofix-v1.md) |
 | document (check authority) | `plans/sorare-data-repair.md` | [open](../plans/sorare-data-repair.md) |
 | document (check authority) | `plans/sorare-repair-2026-10-09.md` | [open](../plans/sorare-repair-2026-10-09.md) |
 | document (check authority) | `plans/sorare-start-chances.md` | [open](../plans/sorare-start-chances.md) |
@@ -889,14 +898,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-09",
-        "note": "Reviewed the 9 Nov overlay change: with_now copies the round's FF match and sources onto market rows; MarketPlayer.now type gains those fields. No selection, forecast or reward logic changed.",
+        "date": "2026-11-12",
+        "note": "Inspected the forecast callback and raw score record passed through the planner; versioned conditional points are audit evidence only.",
         "files": {
-          "backend/app/sorare/publish.py": "668c2cd4e207ac77b92db56c03d0aa0e5c81dae963ac7671e387a905f38bb70a",
+          "backend/app/sorare/publish.py": "259339d7e1a81dd8f96bb15b6c1440b09d36c3f5f23394b020aab2c1421ab149",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "0b23337836defeb6abf0d3e58e2d3e5e3fbabfe843906ff4f311424b95f720b2",
+          "backend/app/jobs/sorare.py": "8962f2ea1ca3b8ace7a3fab93e4a0d9adfa18a9845df13d8b12c4584d52b974b",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "8fbe107bd6eb5f1ae45d19128a1b759d690dbe2decf3c1fd99d0a5a90f715241"
         }
@@ -914,7 +923,8 @@ This block is the single machine-readable index for the sections above. Test ref
         "own xScore"
       ],
       "paths": [
-        "backend/app/sorare/forecast.py"
+        "backend/app/sorare/forecast.py",
+        "backend/app/sorare/sofix_v1.py"
       ],
       "requires": [
         "WEEK-IDENTITY-001",
@@ -928,6 +938,10 @@ This block is the single machine-readable index for the sections above. Test ref
         {
           "path": "backend/app/sorare/forecast.py",
           "symbol": "_per_game"
+        },
+        {
+          "path": "backend/app/sorare/sofix_v1.py",
+          "symbol": "Model"
         }
       ],
       "tests": [
@@ -942,14 +956,20 @@ This block is the single machine-readable index for the sections above. Test ref
         {
           "path": "backend/tests/test_sorare_ff_forecast.py",
           "symbol": "test_two_games_each_take_the_source_that_has_them_and_combine_as_one_minus_the_misses"
+        },
+        {
+          "path": "backend/tests/test_sofix_v1.py",
+          "symbol": "test_expected_points_and_frozen_predictions_are_published_together"
         }
       ],
       "review": {
-        "date": "2026-11-04",
-        "note": "4 Nov 2026: added the overlay-only benchRecord (forecast.bench_record from past games, carried on Forecast and published on playing and market rows; play.ts types). The planner, raw record, chances and their sources are unchanged; the record is a separate quantity (came on / (came on + unused)), not the chance of coming on.",
+        "date": "2026-11-12",
+        "note": "Compared starter and substitute means, score-window points, pre-lock history and the existing availability source order.",
         "files": {
-          "backend/app/sorare/forecast.py": "fe92cd2509f03012c1e8608be877429995233601056b456608905538c6f521d3",
-          "backend/tests/test_sorare_ff_forecast.py": "cbc230010a5956ec2250c97434b7357451d11abbfa1200dc6f510f3f44b1f12a"
+          "backend/app/sorare/forecast.py": "7eff5d487fd1df31f5507bd43538a27ff37ea60ba758af671c95fc155bfa0edf",
+          "backend/app/sorare/sofix_v1.py": "b75ee23862da7cc4604670d0f91a3dbf200e44d1e974a62d4151c28e3e4c8180",
+          "backend/tests/test_sorare_ff_forecast.py": "cbc230010a5956ec2250c97434b7357451d11abbfa1200dc6f510f3f44b1f12a",
+          "backend/tests/test_sofix_v1.py": "d452e532d794740f6d647b8f0eb1eea0e06d4683ca9f241481cde1ad16d1c525"
         }
       }
     },
@@ -1011,10 +1031,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-09",
-        "note": "Reviewed the 9 Nov overlay change: with_now copies the round's FF match and sources onto market rows; MarketPlayer.now type gains those fields. No selection, forecast or reward logic changed.",
+        "date": "2026-11-12",
+        "note": "Inspected raw means, immutable versioned point forecasts and the planning correction boundary.",
         "files": {
-          "backend/app/sorare/publish.py": "668c2cd4e207ac77b92db56c03d0aa0e5c81dae963ac7671e387a905f38bb70a",
+          "backend/app/sorare/publish.py": "259339d7e1a81dd8f96bb15b6c1440b09d36c3f5f23394b020aab2c1421ab149",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "8fbe107bd6eb5f1ae45d19128a1b759d690dbe2decf3c1fd99d0a5a90f715241"
@@ -1067,11 +1087,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-09",
-        "note": "Reviewed the 9 Nov overlay change: with_now copies the round's FF match and sources onto market rows; MarketPlayer.now type gains those fields. No selection, forecast or reward logic changed.",
+        "date": "2026-11-12",
+        "note": "Inspected the optional per-game frontend fields; they describe score forecasts independently of the reward simulation.",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "0377b0ce4a5761954c64b6fa78f9678e90408007caa69edbcc3a683f9e828d32",
+          "frontend/lib/play.ts": "59cc1f95df8ed4bb4a174185f6f30f2959980c44cd8e35e0b8e3baaafd1c7c07",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1494,12 +1514,12 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "schedule-clock-001",
       "status": "implemented",
       "review": {
-        "date": "2026-11-02",
-        "note": "refresh.yml gains a quick input passed as --quick by the near-lock workflow; schedule and trigger rules unchanged.",
+        "date": "2026-11-12",
+        "note": "Inspected the existing automatic model-release exception: it includes the frozen Sofix v1 artifact; the timetable, near-lock dispatch and ordinary cooldown are untouched.",
         "files": {
           "clock/src/clock.js": "d1c9ca65b5e06c59a38d9dbacbdce72d3e3bbd2e5faafeb0db581727d297ebca",
           "clock/timetable.json": "86241a108823e509f86904ba9005f21cb0307f369871b6ee1cfccd5960a54eca",
-          ".github/workflows/refresh.yml": "103f3a258e046acf9a6cadfde245918e90840872481d0c273486d568eb8996bb",
+          ".github/workflows/refresh.yml": "933947dfee6f7b8eeb0cb8a8605aedae88a3835b86b79f79c9a1d191f0bb206f",
           "clock/test/clock.test.js": "642c93350966e1b89b1080e6602804e44e3b92a23d3d1070823eda6c36e3184c"
         }
       }
@@ -1515,7 +1535,8 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "paths": [
         "backend/app/sorare/player_audit.py",
-        "frontend/lib/auditData.ts"
+        "frontend/lib/auditData.ts",
+        "frontend/components/audit/XscoreModel.tsx"
       ],
       "requires": [
         "FORECAST-PRELOCK-001"
@@ -1526,20 +1547,30 @@ This block is the single machine-readable index for the sections above. Test ref
         },
         {
           "path": "backend/app/sorare/audit.py"
+        },
+        {
+          "path": "backend/app/sorare/versus.py",
+          "symbol": "model_versions"
         }
       ],
       "tests": [
         {
           "path": "backend/tests/test_player_audit.py"
+        },
+        {
+          "path": "backend/tests/test_sofix_v1.py",
+          "symbol": "test_live_version_uses_actual_role_and_does_not_require_sorare_projection"
         }
       ],
       "review": {
-        "date": "2026-10-30",
-        "note": "Reviewed only explicit fixture-manager setup for idle score-job tests after removing the production username default. Audit computation and boundaries unchanged; focused idle publication regressions passed. No new calibration or live-account claim.",
+        "date": "2026-11-12",
+        "note": "Inspected the pre-lock timestamp guard, settled records, starter and substitute denominators, and previous-model pairs.",
         "files": {
           "backend/app/sorare/player_audit.py": "3436b64cf197d937aefbd51a213af0e28c396ebab23ff8b883e52091bea89427",
-          "backend/app/sorare/audit.py": "d41db332566ac8bfac5d589399fd0c4f106fe09e3f1e5f24081eef4ced9a49b1",
-          "backend/tests/test_player_audit.py": "2712237e9be35154a26790e59acceaeeb6c921ca0fd1b5990f0f47f7e42f2a63"
+          "backend/app/sorare/audit.py": "990ba4ee4989da1185ce3a61f2f53bdfc13047b977dd91804fb335aa8b6beb03",
+          "backend/app/sorare/versus.py": "ad0be0ef1df498aa9f6a842b63d36bd25e39e86a1f0c86d42d993938660a6b09",
+          "backend/tests/test_player_audit.py": "2712237e9be35154a26790e59acceaeeb6c921ca0fd1b5990f0f47f7e42f2a63",
+          "backend/tests/test_sofix_v1.py": "d452e532d794740f6d647b8f0eb1eea0e06d4683ca9f241481cde1ad16d1c525"
         }
       }
     },

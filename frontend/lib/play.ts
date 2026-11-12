@@ -253,6 +253,9 @@ export type PlayerGame = {
   /** This game on its own (payloads from 3 Nov 2026): what he is expected to score in it and if he starts it. A Pro or Arcade card plays one game. */
   x?: number;
   start?: number;
+  modelVersion?: string;
+  startPoint?: number;
+  subPoint?: number;
   /**
    * His chance of starting this game and of coming on in it, once Futbol Fantasy speaks about one of his games
    * (plans/futbolfantasy.md): every game of such a player carries them, each with the source of its number. Absent

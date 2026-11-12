@@ -130,6 +130,8 @@ class Forecast:
     # it. A Pro or Arcade card plays one game, so its number is that game's; the week's `mu` keeps the lift for the better of two.
     game_x: tuple[float, ...] = ()
     game_start: tuple[float, ...] = ()
+    game_models: tuple[Any, ...] = ()
+    previous_on: float | None = None
     # a game of his waits for a European board not checked in six hours: his number is Sorare's or his average (B7)
     waiting: bool = False
     sorare: float | None = None

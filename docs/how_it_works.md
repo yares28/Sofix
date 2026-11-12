@@ -170,6 +170,8 @@ week, position and whole-week expected-score metadata; `start_chances` is a read
 
 ## 8. xScore
 
+**LaLiga uses [Sofix v1](../plans/sofix-v1.md).** For each fixture, the model estimates separate score distributions for a start and a played substitute appearance from the board's football forecast and settled prior appearances. The lineup xScore still measures expected points with availability included. For score accuracy, the game record also saves the single best guess for each role, the point with the most estimated probability within seven, and the model version. The [scoring reference](xscore-sorare-scoring.md) covers decisive events, all-around points and the position-specific weights.
+
 1. Last five with priors estimates P(play) and conditional score (priors 0.60 and 45).
 2. Sorare conditional projection replaces score when present.
 3. Sorare starter+sub odds replace P(play) when present.

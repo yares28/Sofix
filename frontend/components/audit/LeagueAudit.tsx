@@ -28,7 +28,7 @@ export default function LeagueAudit({ data }: { data: League }) {
   const w7 = data.within7;
   return (
     <>
-      <h2 className="au-label ax-past">Past games, replayed</h2>
+      <h2 className="au-label ax-past">Earlier Sofix models, replayed</h2>
       <div className="ax-grid">
         <section className="au-w lg-card ax-4" aria-labelledby="lg-miss-h">
           <p className="au-label">How close</p>
@@ -68,8 +68,8 @@ export default function LeagueAudit({ data }: { data: League }) {
           <ul className="lg-vs" aria-label="Share of starts within 7 points">
             {[
               { name: "Sorare's projection", v: w7.sorare, cls: "sorare" },
-              { name: "Sofix before", v: w7.before, cls: "before" },
-              { name: "Sofix now", v: w7.now, cls: "now" },
+              { name: "Early Sofix", v: w7.before, cls: "before" },
+              { name: "Previous Sofix", v: w7.now, cls: "now" },
             ].map((r) => (
               <li key={r.name}>
                 <span>{r.name}</span>

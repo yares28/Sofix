@@ -139,6 +139,40 @@ def starts_of(record: dict[str, Any], started: bool = True) -> list[dict[str, An
     return out
 
 
+def model_versions(records: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, int]]]:
+    """Versioned, pre-lock LaLiga forecasts, including players without a Sorare forecast."""
+    versions: dict[str, dict[str, dict[str, int]]] = {}
+    for record in records:
+        lock, written = (record.get("gameweek") or {}).get("lock"), record.get("writtenAt")
+        if not record.get("settledAt") or not lock or not written or _dt(written) >= _dt(lock):
+            continue
+        for entry in (record.get("players") or {}).values():
+            for game in entry.get("games") or []:
+                version = game.get("modelVersion")
+                actual = game.get("actual") or {}
+                if not version or not actual.get("played") or actual.get("score") is None:
+                    continue
+                started = actual.get("started")
+                if type(started) is not bool:
+                    continue
+                score = game.get("sofixPoint" if started else "sofixOnPoint")
+                previous = game.get("previousSofix" if started else "previousSofixOn")
+                if score is None:
+                    continue
+                counts = versions.setdefault(version, {}).setdefault(
+                    "start" if started else "bench", {"cases": 0, "hits": 0, "paired": 0, "gained": 0, "spoiled": 0}
+                )
+                hit = abs(score - actual["score"]) <= CLOSE + 1e-9
+                counts["cases"] += 1
+                counts["hits"] += hit
+                if previous is not None:
+                    old_hit = abs(previous - actual["score"]) <= CLOSE + 1e-9
+                    counts["paired"] += 1
+                    counts["gained"] += hit and not old_hit
+                    counts["spoiled"] += old_hit and not hit
+    return versions
+
+
 def _pair_rate(rows: list[dict[str, Any]], key: str) -> tuple[float | None, int]:
     """Of every two starters of one position in one week who scored differently, how often the number rated the better one higher."""
     groups: dict[tuple[Any, Any], list[dict[str, Any]]] = {}

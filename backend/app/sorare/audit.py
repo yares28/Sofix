@@ -448,7 +448,11 @@ def build(
         "nextSettlementAt": next_settlement(record, score_records or [], now),
         "floor": FLOOR,
         "replay": ({key: replayed.get(key) for key in ("builtAt", "from", "to", "players")} if replayed else None),
-        "xscore": {"replay": replayed.get("xscore") if replayed else None, "live": xscore_record(record)},
+        "xscore": {
+            "replay": replayed.get("xscore") if replayed else None,
+            "live": xscore_record(record),
+            "models": versus.model_versions(score_records or []),
+        },
         "starts": {
             "replay": replayed.get("starts") if replayed else None,
             "live": starts_record(record),

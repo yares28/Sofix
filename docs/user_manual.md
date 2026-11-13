@@ -1045,7 +1045,8 @@ colour for that score. Under it is one thing that drives the score, chosen by po
   (very favourite) to red (big underdog). It is the same number as the difficulty page, and since 3 Nov 2026 the same in
   Sofix's plans: wherever a Sofix board rates the game its number wins, Sorare's odds only where none does.
   Tiles no longer vanish minutes after you press Reload on the extension (extension 0.4.30): the old copy left in an open tab
-  now takes only its own drawings with it.
+  now takes only its own drawings with it. Since extension 0.4.68 (13 Nov 2026) an update no longer blanks the cards already on
+  an open sorare.com page: the new copy keeps what the old one learned about them instead of waiting for Sorare to ask again.
 - **Every card answers for its own game** (extension 0.4.31, 3 Nov 2026): on a lineup page, the game Sorare put that card in
   (a lineup mixing two gameweeks shows all five); on a competition's builder, his next game that counts there (Ezzalzouli on Pro
   Spain: Elche, not Dortmund); anywhere else, his next game, moving on to the week after once this week's is played or when he

@@ -1619,12 +1619,12 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-09",
-        "note": "Extension 0.4.67 (9 Nov): the Arcade card read (SofixArcadeCards, read-only) also asks each player's activeNationalTeam slug; no operation, allowlist or write path touched",
+        "date": "2026-11-13",
+        "note": "13 Nov 2026: bridge.js keeps its card index on the page (window.__sofixIndex) so a bridge re-injected by an update inherits it; allowlists, read-only questions and the no-write overlay unchanged; manifest version 0.4.68. Real signed-in sorare.com not checked (Chrome not connected).",
         "files": {
           "extension/background.js": "8ca7c9a1d09c855d76334d8db8f4d5e5c8342e8240875af0257855f290608781",
-          "extension/bridge.js": "5849247b702130cdda1a3d35c3432be073f6c968ab28e74e8f464e744631181b",
-          "extension/manifest.template.json": "4ae84cab97137dc5cb14b7f1b6228495bf89b64788c797c3556297e44e775447",
+          "extension/bridge.js": "d5a039c26fff38d524ef910d361c14ff15bc5f79292c87a0def5d02600e43837",
+          "extension/manifest.template.json": "e3ed3cbf305d2887956aabbee71d6165daef9c113c3485d9a45fa5047e19ea2b",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

@@ -957,6 +957,43 @@ test.describe("the sorare.com overlay", () => {
     expect(await text(page, "big")).toEqual(["53", "45", "88%"]);
   });
 
+  test("after an update the fresh bridge still knows the cards already on the page (13 Nov 2026: tiles gone until Sorare refetched)", async ({ page }) => {
+    // The worker's self-update puts a new bridge in the page and a new overlay beside it (background.js ensureBridge). Sorare does
+    // not ask again for cards it already drew, so the new bridge must know what the old one learned.
+    await openPage(page, { url: BUILDER_URL });
+    await settled(page);
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    for (const file of ["core.js", "bridge.js"]) await page.evaluate(readFileSync(path.join(EXTENSION, file), "utf8"));
+    const cdp = await page.context().newCDPSession(page);
+    const { frameTree } = await cdp.send("Page.getFrameTree");
+    const { executionContextId } = await cdp.send("Page.createIsolatedWorld", { frameId: frameTree.frame.id, worldName: "sofix-updated" });
+    const stub = `(() => {
+      const numbers = ${JSON.stringify(NUMBERS)};
+      const answer = (m) => m.type !== "overlay-numbers" ? (m.type === "ff-live" ? { state: "ok", live: {} } : undefined)
+        : { state: "ok", cards: {}, players: Object.fromEntries((m.players || []).filter((s) => s in numbers.players).map((s) => [s, numbers.players[s]])) };
+      globalThis.chrome = {
+        runtime: { id: "e2e-updated", lastError: undefined, onMessage: { addListener() {} }, sendMessage(m, reply) { if (reply) setTimeout(() => reply(answer(m)), 15); } },
+        storage: { sync: { get: async (d) => ({ ...d, overlay: true }) }, onChanged: { addListener() {} } },
+      };
+    })();`;
+    // The old copy loses its extension first and takes its own tiles with it, as it does when Chrome reloads the extension.
+    await page.evaluate(() => {
+      const runtime = (window as unknown as { chrome: { runtime: { id?: string; sendMessage: () => void } } }).chrome.runtime;
+      runtime.id = undefined;
+      runtime.sendMessage = () => {
+        throw new Error("Extension context invalidated.");
+      };
+    });
+    for (const source of [stub, ...["core.js", "content.js", "overlay.js"].map((file) => readFileSync(path.join(EXTENSION, file), "utf8"))]) {
+      const result = await cdp.send("Runtime.evaluate", { expression: source, contextId: executionContextId });
+      expect(result.exceptionDetails).toBeUndefined();
+    }
+    await page.evaluate(() => window.dispatchEvent(new PopStateEvent("popstate")));
+    await page.waitForTimeout(1500); // the old copy has taken its tiles away by now: what is left is the new copy's
+    await expect(tileOf(page, "big")).toHaveCount(1);
+    expect(await text(page, "big")).toEqual(["53", "45", "88%"]);
+  });
+
   test("never doubles a tile when the page re-renders, and follows an element that is given another card", async ({ page }) => {
     await openPage(page);
     await settled(page);

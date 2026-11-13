@@ -26,10 +26,13 @@
 
   // Which card a picture is. Keyed by the picture's own id (core.cardImageKey), and by the player's name as an
   // image's alt text spells it, for a picture whose id was never seen in an answer. Capped, oldest out first.
+  // Kept on the page, not in this copy: an update puts a new bridge in an open tab, and Sorare never asks again for the cards it
+  // already drew, so a new copy starting empty left them blank until a reload (13 Nov 2026).
   const INDEX_MAX = 2000;
-  const cards = new Map(); // key -> { cardSlug, playerSlug, name }
-  const byName = new Map(); // normalised name -> playerSlug, or null when two players share the name
-  const startingOdds = new Map(); // exact game/player -> native reading; this tab only, expires in 15 minutes
+  const index = (window.__sofixIndex ??= { cards: new Map(), byName: new Map(), startingOdds: new Map() });
+  const cards = index.cards; // key -> { cardSlug, playerSlug, name }
+  const byName = index.byName; // normalised name -> playerSlug, or null when two players share the name
+  const startingOdds = index.startingOdds; // exact game/player -> native reading; this tab only, expires in 15 minutes
   // Sorare gives start % only to its own registered questions (seen 21 Oct 2026: the Arcade compose page's bench is asked by id, and the
   // same id with other dates and positions answers with every card's start % days ahead). The id seen on 21 Oct; a newer one replaces it.
   const BENCH = "SeriesComposeBenchQuery";

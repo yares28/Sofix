@@ -9,6 +9,26 @@ Checkpoint: 12 November 2026. The independent research target remains open. Rese
 - Read [the existing score engine plan](../plans/score-engine.md), [the xScore plan](../plans/xscore.md), [the forecast contract](context.md#forecast-sources-001) and [pre-lock contract](context.md#forecast-prelock-001). The [v7 scoring reference](xscore-sorare-scoring.md) gives the scoring rules and observed per-position weights. Check the live model version separately before interpreting any result.
 - [Sofix v1 release](../plans/sofix-v1.md) records the deployable LaLiga formula, the four-period comparison, and how Audit will follow new pre-lock forecasts. Its later replay is 38.44% for starters and 74.39% for played substitutes. The research bests below use different inputs.
 
+## Next attempt: start here (13 Nov 2026)
+
+1. **[LaLiga accuracy evidence](../plans/laliga-accuracy-evidence.md)**: tests 1-39 of 12-13 Nov, each with its numbers and verdict.
+   In short: decisive actions cause 37% of starter misses; a decisive-chance model built from the match outlook, the
+   player's record, the opponent's record by position and the official eleven ranks players (AUC 0.65-0.68) but switching to
+   the decisive score lost hits (test 38), because a decisive score lands within 7 only 57% of the time; the best new
+   starter model reached 2,722 / 6,754, below the 2,765 here. Owner's bar: better than 2,765 starters and 2,201
+   substitutes, and above 50%. Any data known before kick-off is allowed (owner, 13 Nov), not only before the Sorare lock.
+2. **Scripts** in `backend/reports/experiments/laliga_accuracy/`: `v2_features.py` builds one pre-kick-off input table for
+   all 38,850 appearances (rows in the same order as the research tables and the frozen vectors here, checked);
+   `v2_models.py <round>` and `v2_decisive.py` rerun the candidates; `confidence_replay.py` reproduces the live v1 replay
+   (2,596 / 6,754 and 2,176 / 2,925), the before number for any live change.
+3. **Bookmakers' player prices, recorded from 13 Nov 2026.** Each refresh saves each LaLiga game's anytime scorer, assist
+   and shots-on-target prices once in its last 30 hours: read model `scorer_odds:<event id>` = {eventId, home, away, kickoff,
+   capturedAt, hoursBefore, markets: {market: {player as the bookmaker names him: [[bookmaker, outcome, line, decimal
+   price]]}}} (`backend/app/jobs/scorer_odds.py`; US bookmakers only; Neon and R2). No history exists before that date, so
+   they can only be judged on games after it. To use them: remove each bookmaker's margin, match names to Sorare slugs,
+   then rerun tests 37-39 with the price chance in place of, then beside, the built odds. Switching pays only where a
+   start's honest decisive chance is about 47% or more.
+
 ## What counts as success
 
 The task is strictly **more than 50%** within **inclusive ±7 points** for **all 6,754 LaLiga starts** in the fixed later comparison. That takes **3,378 hits**. The best frozen starter vector hits 2,765, leaving **613 net extra hits**. The **2,925 played substitutes** are a separate cohort. DNPs do not enter either conditional score denominator. Cold players, transfers, missing external coverage and forecasts that cannot be overridden remain in the fixed denominators using the appropriate declared fallback. Report MAE, large misses, hits gained and hits spoiled alongside the hit rate. Where possible, show uncertainty by resampling whole gameweeks.

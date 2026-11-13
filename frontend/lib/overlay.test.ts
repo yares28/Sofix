@@ -809,9 +809,9 @@ describe("overlayPlan", () => {
     expect(rows.rows!.map((row) => row.comp)).toEqual(["European Champions", "LaLiga Pro"]); // a competition Sorare has not opened is left out
     expect(rows.rows![0]).toMatchObject({ board: "b2", boardId: "B2", when: "Tue–Wed", x: 408, need: 465, p: 0.2, ess: 32 });
     expect(rows.rows![0]!.cards).toEqual([
-      { slug: "courtois", name: "COURTOIS", pic: "p/courtois", s: 52, captain: false, sub: false, slot: "DEF" },
-      { slug: "grimaldo", name: "GRIMALDO", pic: "p/grimaldo", s: 57, captain: true, sub: false, slot: "DEF" },
-      { slug: "isco", name: "ISCO", pic: "p/isco", s: 49, captain: false, sub: true, slot: "SUB" },
+      { slug: "courtois", name: "COURTOIS", pic: "p/courtois", s: 52, captain: false, sub: false, slot: "DEF", start: null },
+      { slug: "grimaldo", name: "GRIMALDO", pic: "p/grimaldo", s: 57, captain: true, sub: false, slot: "DEF", start: null },
+      { slug: "isco", name: "ISCO", pic: "p/isco", s: 49, captain: false, sub: true, slot: "SUB", start: null },
     ]);
     expect(rows.rows![0]!.appearances).toEqual([
       { cardSlug: "courtois", captain: false, index: 0 },
@@ -910,24 +910,26 @@ describe("proPlan: the week being played, its Pro lineups before their first kic
 });
 
 describe("dockMissions", () => {
-  const one = (slug: string, chance: number, noEstimate = false) => ({ slug, name: slug, pic: `p/${slug}`, chance, noEstimate }) as Suggestion;
-  const plan = (yours: string[], picks: Suggestion[], all: Suggestion[]) =>
-    ({ mission: { id: "t1", title: "Decisive Picker", picks: 3, appearances: yours.map((player) => ({ player })) }, reward: "200 XP", picks, all }) as unknown as MissionPlan;
+  const one = (slug: string, chance: number, pStart?: number, noEstimate = false) => ({ slug, name: slug, pic: `p/${slug}`, club: "Betis", chance, pStart, noEstimate }) as Suggestion;
+  const plan = (picks: Suggestion[], all: Suggestion[]) => ({ mission: { id: "t1", title: "Decisive Picker", picks: 3 }, reward: "200 XP", picks, all }) as unknown as MissionPlan;
 
-  it("pairs a pick of yours Sofix would not make with Sofix's likelier one, and keeps the picks you share", () => {
-    const all = [one("moreno", 0.45), one("oblak", 0.44), one("mittelstadt", 0.39), one("akhomach", 0.29)];
-    const answer = dockMissions({ status: "today", seenAt: "2026-10-20T08:42:00Z", rarity: "limited", plans: [plan(["moreno", "akhomach", "oblak"], [all[0]!, all[1]!, all[2]!], all)] });
-    expect(answer.missions[0]).toMatchObject({ title: "Decisive Picker", reward: "200 XP", picks: 3 });
-    expect(answer.missions[0]!.swaps).toEqual([{ out: { slug: "akhomach", name: "akhomach", pic: "p/akhomach", chance: 0.29 }, in: { slug: "mittelstadt", name: "mittelstadt", pic: "p/mittelstadt", chance: 0.39 } }]);
+  it("gives each mission Sofix's picks with both numbers apart: the chance he does it if he plays, and his start %", () => {
+    const all = [one("isco", 0.63, 0.84), one("grimaldo", 0.56, 0.94), one("riquelme", 0.5, 0.22), one("chust", 0.14, 0.94)];
+    const answer = dockMissions({ status: "today", seenAt: "2026-11-08T07:42:00Z", rarity: "limited", plans: [plan(all.slice(0, 3), all)] });
+    expect(answer.missions[0]).toMatchObject({ id: "t1", title: "Decisive Picker", reward: "200 XP", picks: 3 });
+    expect(answer.missions[0]!.sofix.map((p) => [p.slug, p.chance, p.start])).toEqual([["isco", 0.63, 0.84], ["grimaldo", 0.56, 0.94], ["riquelme", 0.5, 0.22]]);
+    expect(answer.missions[0]).not.toHaveProperty("swaps"); // no swaps in the dock: the owner wants the picks, not a comparison
   });
 
-  it("proposes no swap to a card Sofix has no number for, nor to a less likely one, and shows nothing for a list that is not today's", () => {
-    const all = [one("a", 0.1), one("b", 0.3), one("c", 0, true)];
-    expect(dockMissions({ status: "today", seenAt: null, rarity: "limited", plans: [plan(["b"], [all[0]!], all)] }).missions[0]!.swaps).toEqual([]);
-    const blank = dockMissions({ status: "today", seenAt: null, rarity: "limited", plans: [plan(["a"], [all[2]!], all)] }).missions[0]!;
-    expect(blank.swaps).toEqual([]);
-    expect(blank.sofix[0]!.chance).toBeNull(); // "No estimate", never 0%
-    expect(dockMissions({ status: "stale", seenAt: null, rarity: "limited", plans: [plan(["a"], [all[1]!], all)] }).missions).toEqual([]);
+  it("lists every candidate for the open mission, Sofix's marked, at most eight, and never shows a missing number as 0%", () => {
+    const all = Array.from({ length: 10 }, (_, i) => one(`p${i}`, 0.5 - i * 0.04, 0.9));
+    const answer = dockMissions({ status: "today", seenAt: null, rarity: "limited", plans: [plan([all[0]!, all[2]!], [...all, one("blank", 0, undefined, true)])] });
+    const shown = answer.missions[0]!.all;
+    expect(shown).toHaveLength(8);
+    expect(shown.filter((p) => p.sofix).map((p) => p.slug)).toEqual(["p0", "p2"]);
+    const blank = dockMissions({ status: "today", seenAt: null, rarity: "limited", plans: [plan([one("c", 0, undefined, true)], [])] }).missions[0]!;
+    expect(blank.sofix[0]).toMatchObject({ chance: null, start: null }); // "No estimate", never 0%
+    expect(dockMissions({ status: "stale", seenAt: null, rarity: "limited", plans: [plan([all[1]!], all)] }).missions).toEqual([]);
   });
 });
 

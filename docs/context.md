@@ -220,9 +220,9 @@ Scope: session-bound actions and extension integration. Public GraphQL remains r
 
 Arcade's fixed `arcade-elevens` read uses public official formations through the existing tab, independently of the private forecast bench query. Announced starters and non-starters override forecasts only for their exact game, kickoff and club. Unannounced or failed reads never imply zero; confirmations are retained with bounded game expiry. See [refresh acceptance](../plans/arcade-start-refresh.md). This manual refresh fix does not introduce the later phase's timed polling.
 
-Both worker and page bridge enforce allowlists; current code also includes read operations for missions and Arcade, so the old six-operation description is historical, not a complete capability list. Inspect both allowlists and tests whenever adding an operation. Never store passwords/cookies or turn the bridge into a general proxy. Overlay numbers require the extension token; owner/account identity matching is not enforced yet. The overlay opens Apply and has no write buttons.
+Both worker and page bridge enforce allowlists; current code also includes read operations for missions and Arcade, so the old six-operation description is historical, not a complete capability list. Inspect both allowlists and tests whenever adding an operation. Never store passwords/cookies or turn the bridge into a general proxy. Overlay numbers require the extension token; owner/account identity matching is not enforced yet. The tiles have no write buttons. The dock ([plans/dock-v2.md](../plans/dock-v2.md), 13 Nov 2026) runs Check, Draft and Enter for the lineups the owner ticks, one press per step, keyed per lineup (not per competition); on its own it only reads the gameweek's entered lineups (`week-entered`) and, on the owner's Load missions press, Sorare's missions (`dock-load-missions`, the worker's `loadMissions`).
 
-Use dock.js, not the removed drawer.js. Read the manifest template for current hosts, including bounded Futbol Fantasy match reads. Before an extension release run node extension/scripts/configure.mjs, then the owner reloads once; generated config/manifest are secret-bearing and ignored. Mock bridge tests do not prove an authenticated real-session flow.
+Use dock.js, not the removed drawer.js. Read the manifest template for current hosts, including bounded Futbol Fantasy match reads. Before an extension release run node extension/scripts/configure.mjs; the extension reloads itself when the manifest on disk is newer (background.js); generated config/manifest are secret-bearing and ignored. Mock bridge tests do not prove an authenticated real-session flow.
 
 <a id="missions-record-001"></a>
 ## MISSIONS-RECORD-001
@@ -749,6 +749,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/conference-release.md` | [open](../plans/conference-release.md) |
 | document (check authority) | `plans/data-keeping.md` | [open](../plans/data-keeping.md) |
 | document (check authority) | `plans/difficulty-all.md` | [open](../plans/difficulty-all.md) |
+| document (check authority) | `plans/dock-v2.md` | [open](../plans/dock-v2.md) |
 | document (check authority) | `plans/european-fdr-xscore.md` | [open](../plans/european-fdr-xscore.md) |
 | document (check authority) | `plans/european-model-validation.md` | [open](../plans/european-model-validation.md) |
 | document (check authority) | `plans/fdr-tuning.md` | [open](../plans/fdr-tuning.md) |
@@ -1621,11 +1622,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-13",
-        "note": "13 Nov 2026: bridge.js keeps its card index on the page (window.__sofixIndex) so a bridge re-injected by an update inherits it; allowlists, read-only questions and the no-write overlay unchanged; manifest version 0.4.68. Real signed-in sorare.com not checked (Chrome not connected).",
+        "note": "13 Nov 2026: dock rebuilt (plans/dock-v2.md, extension 0.5.3): Check/Draft/Enter per ticked lineup keyed by competition and cards, one press per step; read-only week-entered read on page open and Load missions (dock-load-missions -> loadMissions); Pro rebuild and Guide me removed; inspected background.js allowlists, dock.js, manifest version bump; overlay e2e uses a mocked bridge; checked on the owner's signed-in sorare.com through script reads (Load missions, lineups of GW29), no write step pressed.",
         "files": {
-          "extension/background.js": "8ca7c9a1d09c855d76334d8db8f4d5e5c8342e8240875af0257855f290608781",
+          "extension/background.js": "55821a168e16c0b9ba9ad6773342a94298015c2d4445978cd384ac359b6f4db5",
           "extension/bridge.js": "d5a039c26fff38d524ef910d361c14ff15bc5f79292c87a0def5d02600e43837",
-          "extension/manifest.template.json": "e3ed3cbf305d2887956aabbee71d6165daef9c113c3485d9a45fa5047e19ea2b",
+          "extension/manifest.template.json": "349da8b97b9d968ea564f02667d7635023e197f4d617955001ca34d548166023",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

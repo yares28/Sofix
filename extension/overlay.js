@@ -1509,7 +1509,6 @@
     } catch {
       // the box and the strip are niceties: a page they do not fit keeps everything else
     }
-    showGuide();
     report();
   }
 
@@ -2836,36 +2835,6 @@
     strip = box;
   }
 
-  // -- Guide me (dock.js) ------------------------------------------------------------------------------------------
-  // The dock names the card to pick next (or to take out of a mission); it is ringed here, on Sorare's own picture, and pressing it
-  // moves the dock to the next one. Nothing is picked for you: the ring only shows where to press.
-
-  const guided = (record, guide) =>
-    Boolean(guide) && ((guide.card && record.cardSlug === guide.card) || (guide.player && record.playerSlug === guide.player));
-
-  function showGuide() {
-    const guide = globalThis.__sofixGuide;
-    for (const record of live) {
-      const role = guided(record, guide) ? guide.role : null;
-      if (role) record.media.setAttribute("data-sfx-guide", role === "out" ? "out" : "pick");
-      else if (record.media.hasAttribute("data-sfx-guide")) record.media.removeAttribute("data-sfx-guide");
-    }
-  }
-
-  const onGuidePress = guard((event) => {
-    setTimeout(guard(schedule), 300); // a press may change the page by a class alone (Sorare's captain), which is not watched
-    const guide = globalThis.__sofixGuide;
-    if (!guide || typeof guide.advance !== "function") return;
-    for (const record of live) {
-      if (!record.media.hasAttribute("data-sfx-guide")) continue;
-      const rect = record.media.getBoundingClientRect();
-      if (event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom) {
-        setTimeout(guide.advance, 250); // after Sorare has taken the press
-        return;
-      }
-    }
-  });
-
   // -- the loop --------------------------------------------------------------------------------------------------
 
   /**
@@ -3028,8 +2997,6 @@
     window.addEventListener("popstate", schedule); // back and forward change the address: the gameweek it names may have too
     window.addEventListener("scroll", onMove, { capture: true, passive: true }); // the crests live outside the cards: they follow them
     window.addEventListener("resize", onMove, { passive: true });
-    window.addEventListener("sofix-guide", schedule);
-    document.addEventListener("pointerup", onGuidePress, true);
     for (const type of ["pointerdown", "mousedown", "click"]) document.addEventListener(type, onListClick, true);
     document.addEventListener("keydown", onCompareKey, true);
     liveTimer = setInterval(guard(() => wantLive(true)), LIVE_POLL_MS);
@@ -3054,8 +3021,6 @@
     window.removeEventListener("popstate", schedule);
     window.removeEventListener("scroll", onMove, { capture: true });
     window.removeEventListener("resize", onMove);
-    window.removeEventListener("sofix-guide", schedule);
-    document.removeEventListener("pointerup", onGuidePress, true);
     for (const type of ["pointerdown", "mousedown", "click"]) document.removeEventListener(type, onListClick, true);
     document.removeEventListener("keydown", onCompareKey, true);
     undoList();
@@ -3096,7 +3061,6 @@
     if (crestLayer) crestLayer.remove();
     crestLayer = null;
     if (!mine) return;
-    document.querySelectorAll("[data-sfx-guide]").forEach((el) => el.removeAttribute("data-sfx-guide"));
     document.querySelectorAll("[data-sfx]").forEach((el) => el.remove());
     document.querySelectorAll(".sfx-room").forEach((el) => el.classList.remove("sfx-room"));
   }

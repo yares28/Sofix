@@ -435,8 +435,9 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     needData(sender.tab?.id ?? null, Date.now(), message.fresh === true).then(reply).catch(() => reply(null));
     return true;
   }
-  if (message?.type === "pro-rebuild") {
-    proRebuild(message.week, message.plan).then(reply);
+  // The dock's Load missions: Sorare's missions read through the open tab and saved, as the Missions page's button does (plans/dock-v2.md).
+  if (message?.type === "dock-load-missions") {
+    loadMissions(false).then(reply).catch(() => reply({ ok: true, state: "error" }));
     return true;
   }
   // The dock's Apply, pressed on sorare.com itself: one step per press, run in the tab that asked, never chained here.
@@ -663,21 +664,6 @@ async function overlayPlan(fixture = null, missions = false, fresh = false) {
   if (!answer.body?.plan) return { state: answer.state ?? "unreachable" };
   await chrome.storage.session.set({ [key]: { at: Date.now(), plan: answer.body.plan, missions: answer.body.missions ?? null } });
   return { state: "ok", plan: answer.body.plan, missions: answer.body.missions ?? null };
-}
-
-/** The dock's "Load from Sorare": starts the app's Pro rebuild on the announced elevens, as Play's button does. One press, one request. */
-async function proRebuild(week, plan) {
-  try {
-    const response = await appFetch(`/api/pro-rebuild`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
-      body: JSON.stringify({ week: String(week || "").slice(0, 120), plan: Number(plan) || 1 }),
-    });
-    const body = await response.json().catch(() => null);
-    return body && typeof body.success === "boolean" ? body : { success: false, data: null, error: `Sofix answered HTTP ${response.status}.` };
-  } catch {
-    return { success: false, data: null, error: "Sofix is not reachable." };
-  }
 }
 
 // The dock's numbers are asked once per page and again after two minutes at most: picks and entries change during the day.

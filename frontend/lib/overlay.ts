@@ -232,7 +232,8 @@ export type DockRow = {
   need: number | null;
   p: number;
   ess: number;
-  cards: { slug: string; name: string; pic: string; s: number; captain: boolean; sub: boolean; slot: string }[];
+  /** Each card with its start % (null when no source has one): the dock draws the lineup as a field of cards. */
+  cards: { slug: string; name: string; pic: string; s: number; captain: boolean; sub: boolean; slot: string; start?: number | null }[];
   appearances: Appearance[];
   /** The starters whose game is still ahead and who are unlikely to start, each with the player of yours Sofix would put in (the dock's alarm). */
   alarms?: DockAlarm[];
@@ -265,8 +266,9 @@ export type DockAlarm = {
 };
 
 /** Today's missions for the dock: what you picked, what Sofix would pick and the swaps between the two. */
-export type DockPick = { slug: string; name: string; pic: string; chance: number | null };
-export type DockMission = { id: string; title: string; reward: string | null; picks: number; yours: DockPick[]; sofix: DockPick[]; swaps: { out: DockPick; in: DockPick }[] };
+/** A card for a mission: the chance he does it if he plays and his start %, apart (null when Sofix has no number, never 0). */
+export type DockPick = { slug: string; name: string; pic: string; club: string | null; chance: number | null; start: number | null; sofix?: boolean };
+export type DockMission = { id: string; title: string; reward: string | null; picks: number; sofix: DockPick[]; all: DockPick[] };
 export type DockMissions = { status: MissionsStatus; seenAt: string | null; rarity: string; missions: DockMission[] };
 
 /**
@@ -415,7 +417,7 @@ function dockRow(given: Lineup, alarms: DockAlarm[] = []): DockRow {
   const lineup = { ...given, starters: given.starters ?? [], subs: given.subs ?? [] }; // an older payload may lack a list
   const kickoffs = lineup.starters.flatMap((card) => (card.fixture?.kickoff ? [Date.parse(card.fixture.kickoff)] : [])).sort((a, b) => a - b);
   const days = kickoffs.length ? [DAY.format(kickoffs[0]!), DAY.format(kickoffs[kickoffs.length - 1]!)] : [];
-  const card = (one: Lineup["starters"][number], sub: boolean) => ({ slug: one.slug, name: one.name, pic: one.pic, s: cardScore(one).value, captain: one.captain === true, sub, slot: sub ? "SUB" : (one.slot ?? one.pos) });
+  const card = (one: Lineup["starters"][number], sub: boolean) => ({ slug: one.slug, name: one.name, pic: one.pic, s: cardScore(one).value, captain: one.captain === true, sub, slot: sub ? "SUB" : (one.slot ?? one.pos), start: typeof one.pStart === "number" ? one.pStart : null });
   return {
     comp: lineup.comp,
     board: lineup.board,
@@ -433,25 +435,18 @@ function dockRow(given: Lineup, alarms: DockAlarm[] = []): DockRow {
 }
 
 /**
- * Today's missions in the few words the dock shows. Your picks and Sofix's carry the chance Sofix gives each (none for a card it has no
- * number for); a swap pairs a pick of yours Sofix would not make with one of Sofix's you have not made, only when Sofix's is the likelier.
+ * Today's missions as the dock shows them (plans/dock-v2.md): Sofix's picks, and every candidate for an opened mission (at most eight,
+ * likeliest first, Sofix's marked), each with the chance he does it if he plays and his start %. No swaps: the owner wants the picks.
  */
 export function dockMissions(today: { status: MissionsStatus; seenAt: string | null; rarity: string; plans: MissionPlan[] }): DockMissions {
   const missions = today.status !== "today" ? [] : today.plans.map((plan): DockMission => {
-    const known = new Map(plan.all.map((one) => [one.slug, one]));
-    const pick = (slug: string): DockPick => {
-      const one = known.get(slug) ?? plan.picks.find((p) => p.slug === slug);
-      return { slug, name: one?.name ?? slug, pic: one?.pic ?? "", chance: one && !one.noEstimate ? one.chance : null };
-    };
-    const yours = (plan.mission.appearances ?? []).map((a) => pick(a.player));
-    const sofix = plan.picks.map((p) => pick(p.slug));
-    const out = yours.filter((y) => !sofix.some((s) => s.slug === y.slug));
-    const add = sofix.filter((s) => !yours.some((y) => y.slug === s.slug));
-    const swaps = out.flatMap((one, i) => {
-      const better = add[i];
-      return better && better.chance !== null && (one.chance === null || better.chance > one.chance) ? [{ out: one, in: better }] : [];
+    const chosen = new Set(plan.picks.map((p) => p.slug));
+    const pick = (one: MissionPlan["picks"][number]): DockPick => ({
+      slug: one.slug, name: one.name, pic: one.pic, club: one.club ?? null,
+      chance: one.noEstimate ? null : one.chance, start: typeof one.pStart === "number" ? one.pStart : null,
+      ...(chosen.has(one.slug) ? { sofix: true } : {}),
     });
-    return { id: plan.mission.id, title: plan.mission.title, reward: plan.reward, picks: plan.mission.picks, yours, sofix, swaps };
+    return { id: plan.mission.id, title: plan.mission.title, reward: plan.reward, picks: plan.mission.picks, sofix: plan.picks.map(pick), all: plan.all.slice(0, 8).map(pick) };
   });
   return { status: today.status, seenAt: today.seenAt, rarity: today.rarity, missions };
 }

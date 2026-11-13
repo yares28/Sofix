@@ -195,7 +195,7 @@ const row = (comp: string, board: string, x: number, need: number, p: number, es
   appearances: cards.map((card, index) => ({ cardSlug: card.slug, captain: card.slug === captain, index })),
 });
 const PLAN = {
-  state: "ready", week: 17, lineups: 2, x: 417, comp: "All Star", pics: [1, 2, 3, 4, 7].map(picture), pAny: 0.16, likely: "250 essence", cardsUsed: 9, cardsAvailable: 87,
+  state: "ready", week: 17, fixture: "football-25-29-sep-2026", lineups: 2, x: 417, comp: "All Star", pics: [1, 2, 3, 4, 7].map(picture), pAny: 0.16, likely: "250 essence", cardsUsed: 9, cardsAvailable: 87,
   lock: new Date(Date.now() + 5 * 3600_000).toISOString(),
   rows: [
     row("All Star", "all-star", 218, 260, 0.16, 40, PICKS.slice(0, 5).map((p, i) => ({ slug: p.card, pic: p.pic, name: `Pick ${p.n}`, s: p.x, slot: ["GK", "DEF", "MID", "FWD", "EXT"][i]! })), PICKS[0]!.card),
@@ -203,12 +203,12 @@ const PLAN = {
   ],
 };
 /** Today's missions as the app sums them up for the dock: one swap Sofix would make, and one mission you picked as it would. */
-const pick = (n: number, chance: number) => ({ slug: `fwd-${n}`, name: `Fwd ${n}`, pic: picture(30 + n), chance });
+const pick = (n: number, chance: number, start: number, sofix = true) => ({ slug: `fwd-${n}`, name: `Fwd ${n}`, pic: picture(30 + n), club: "Betis", chance, start, ...(sofix ? { sofix: true } : {}) });
 const MISSIONS = {
   status: "today", seenAt: new Date(Date.now() - 3600_000).toISOString(), rarity: "limited",
   missions: [
-    { id: "t1", title: "Decisive Picker", reward: "200 XP", picks: 2, yours: [pick(1, 0.29), pick(3, 0.45)], sofix: [pick(3, 0.45), pick(2, 0.39)], swaps: [{ out: pick(1, 0.29), in: pick(2, 0.39) }] },
-    { id: "t2", title: "Tackle · Champions League", reward: "50 All-Star essence", picks: 1, yours: [pick(3, 0.22)], sofix: [pick(3, 0.22)], swaps: [] },
+    { id: "t1", title: "Decisive Picker", reward: "200 XP", picks: 2, sofix: [pick(3, 0.45, 0.84), pick(2, 0.39, 0.94)], all: [pick(3, 0.45, 0.84), pick(2, 0.39, 0.94), pick(1, 0.29, 0.7, false)] },
+    { id: "t2", title: "Tackle · Champions League", reward: "50 All-Star essence", picks: 1, sofix: [pick(3, 0.22, 0.84)], all: [pick(3, 0.22, 0.84)] },
   ],
 };
 /** What Sorare answers each Apply step from the dock, as the page bridge passes it on: nothing entered yet, and each step done. */
@@ -217,6 +217,7 @@ const SORARE_STEPS: Record<string, unknown> = {
   check: { state: "ok", data: { so5: { so5Leaderboard: { previewSo5Lineup: { rewardMultiplier: 1, feedbackRules: [] } } } } },
   draft: { state: "ok", data: { createOrUpdateSo5Lineup: { errors: [], so5Lineup: { id: "L-1", draft: true } } } },
   enter: { state: "ok", data: { confirmSo5Lineups: { errors: [], so5Lineups: [{ id: "L-1", draft: false }] } } },
+  "week-entered": { state: "ok", data: { so5: { so5Fixture: { mySo5Lineups: [] } } } },
 };
 
 type Mode = "ok" | "auth" | "unreachable";
@@ -229,7 +230,7 @@ const OLD_WEEK = "football-18-22-sep-2026";
 
 async function openPage(
   page: Page,
-  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; url?: string; html?: string; need?: unknown; team?: unknown; brokenCrests?: boolean; failOnce?: string[] } = {},
+  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; missions?: unknown; missionsAfterLoad?: unknown; url?: string; html?: string; need?: unknown; team?: unknown; brokenCrests?: boolean; failOnce?: string[] } = {},
 ) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
@@ -291,7 +292,10 @@ async function openPage(
         if (message.type === "overlay-worth") return config.mode === "ok" ? { state: "ok", worth: config.worth } : { state: config.mode };
         if (message.type === "dock-step") return config.steps[(message as unknown as { step: string }).step];
         if (message.type === "need-data") return config.need;
-        if (message.type === "pro-rebuild") return { success: true, data: { games: 2, starters: 4, bench: 1 }, error: null };
+        if (message.type === "dock-load-missions") {
+          if (config.missionsAfterLoad) config.missions = config.missionsAfterLoad;
+          return { ok: true, state: "ok", loaded: { limited: 2 } };
+        }
         if (message.type !== "overlay-numbers") return undefined;
         if (config.mode !== "ok") return { state: config.mode };
         const out = { state: "ok", cards: {} as Record<string, unknown>, players: {} as Record<string, unknown> };
@@ -325,7 +329,7 @@ async function openPage(
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null, team: options.team ?? null, failOnce: options.failOnce ?? [] },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: options.missions ?? MISSIONS, missionsAfterLoad: options.missionsAfterLoad ?? null, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null, team: options.team ?? null, failOnce: options.failOnce ?? [] },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "dock.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
@@ -1378,8 +1382,11 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page).locator(".sfx-cell").first()).toHaveText("XD—");
 
     // Nothing it sends is a step that writes to Sorare (chances-seen hands Sorare's own readings to Sofix, read only).
-    const kinds = new Set((await probe(page)).sent.map((message) => message.type));
-    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user", "ff-live", "chances-seen", "need-data"].includes(kind))).toEqual([]);
+    const sent = (await probe(page)).sent;
+    const kinds = new Set(sent.map((message) => message.type));
+    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user", "ff-live", "chances-seen", "need-data", "dock-step"].includes(kind))).toEqual([]);
+    // the dock's only step on its own is the read of your entered lineups (plans/dock-v2.md); Check, Draft and Enter wait for a press
+    expect([...new Set(sent.flatMap((message) => (message.type === "dock-step" ? [(message as unknown as { step: string }).step] : [])))]).toEqual(["week-entered"]);
   });
 
   test("says what the site says is wrong with him only when it does", async ({ page }) => {
@@ -1594,179 +1601,132 @@ test.describe("the sorare.com overlay", () => {
   const dock = (page: Page) => page.getByRole("dialog", { name: "Sofix" });
   const dockSteps = async (page: Page) => (await probe(page)).sent.flatMap((message) => (message.type === "dock-step" ? [(message as unknown as { step: string }).step] : []));
 
-  test("a pill in the corner says the gameweek and its lock, and opens a small panel of the plan's lineups", async ({ page }) => {
+  test("a small tag in the corner says how many lineups are entered and when the week locks, and opens each lineup with its own reward %", async ({ page }) => {
     await openPage(page);
     await expect(pill(page)).toHaveAttribute("aria-expanded", "false");
-    await expect(page.locator("[data-sfx-dock]")).toContainText("GW17");
-    await expect(page.locator("[data-sfx-dock]")).toContainText(/Locks (\w{3} )?\d\d:\d\d/);
-    await expect(page.getByLabel("1 mission swap to make")).toBeVisible(); // the badge: something to do on the Missions tab
+    await expect(pill(page)).toContainText(/0\/2 · (\w{3} )?\d\d:\d\d/); // read from Sorare: none of the plan's two is entered yet
+    expect((await pill(page).boundingBox())!.height).toBeLessThanOrEqual(26);
 
     await pill(page).click();
     await expect(dock(page)).toBeVisible();
-    expect((await dock(page).boundingBox())!.width).toBeLessThanOrEqual(400); // small, never a full-height sheet
-    await expect(dock(page).getByText("any reward")).toBeVisible();
-    await expect(dock(page).getByText("50 essence expected")).toBeVisible();
+    expect((await dock(page).boundingBox())!.width).toBeLessThanOrEqual(330);
     const lines = dock(page).getByRole("listitem");
     await expect(lines).toHaveCount(2);
     await expect(lines.nth(0)).toContainText("All Star");
-    await expect(lines.nth(0)).toContainText("218 of 260 · Sat");
-    await expect(lines.nth(0)).toContainText("16%");
+    await expect(lines.nth(0)).toContainText("16%"); // this lineup's own chance of a reward, not the plan's total
+    await expect(lines.nth(0)).toContainText("218");
+    await expect(lines.nth(0)).toContainText("of 260");
+    await expect(lines.nth(1)).toContainText("5%");
+    await expect(dock(page).getByText("any reward")).toHaveCount(0);
 
-    // A lineup opens to its cards, each with the score it is expected to make, and its captain.
-    await lines.nth(0).getByRole("button", { name: /All Star/ }).click();
-    const cards = dock(page).getByRole("list", { name: /All Star: its cards/ });
+    // A lineup opens as a field of its cards, each with what it is expected to score, and its captain.
+    await lines.nth(0).getByRole("button", { name: /^All Star/ }).click();
+    const cards = dock(page).getByRole("list", { name: "All Star: its cards" });
     await expect(cards.getByRole("img")).toHaveCount(5);
     await expect(cards.getByRole("img", { name: "Pick 1, captain" })).toBeVisible();
     await expect(cards).toContainText("70");
-
-    // Secondary things wait behind the ⋯ button: the cards used and the other plans, in Sofix.
-    await expect(dock(page).getByText("9 of 87")).toBeHidden();
-    await dock(page).getByRole("button", { name: /More/ }).click();
-    await expect(dock(page).getByText("9 of 87")).toBeVisible();
-    await dock(page).getByText("Plans 2 and 3, and the rest, in Sofix").click();
-    expect((await probe(page)).opened).toEqual(["/play?gw=17"]);
+    await dock(page).getByRole("button", { name: "Back to all lineups" }).click();
+    await expect(dock(page).getByRole("listitem")).toHaveCount(2);
 
     await page.keyboard.press("Escape");
     await expect(dock(page)).toBeHidden();
   });
 
-  test("during a week being played it shows the Pro lineups not kicked off yet, with Load from Sorare, and never enters them", async ({ page }) => {
-    const starts = new Date(Date.now() + 2 * 3600_000).toISOString();
-    const pro = { ...row("European Champions Pro", "ecp", 262, 320, 0.3, 0, PICKS.slice(0, 5).map((p, i) => ({ slug: p.card, pic: p.pic, name: `Pick ${p.n}`, s: p.x, slot: ["GK", "DEF", "MID", "FWD", "EXT"][i]! })), PICKS[0]!.card), pro: true, starts,
-      // a plan saved before the job listed who can play in each competition: no swap is guessed, Load from Sorare is named instead
-      alarms: [{ out: { slug: PICKS[1]!.card, name: "Pick 2", pic: PICKS[1]!.pic, pStart: 0.44, why: "" }, in: null, none: "unknown" }] };
-    await openPage(page, { plan: { ...PLAN, week: 24, fixture: "football-20-23-oct-2026", lock: new Date(Date.now() - 4 * 3600_000).toISOString(), pro: { starts, rank: 1 }, rows: [pro] } });
-    await expect(page.locator("[data-sfx-dock]")).toContainText("GW24");
-    await expect(page.locator("[data-sfx-dock]")).toContainText(/Locks (\w{3} )?\d\d:\d\d/); // the first Pro kickoff, not the week's lock (passed)
+  test("enters several ticked lineups, two of them in one competition, Check then Draft then Enter, one press per step (13 Nov: only one could be entered)", async ({ page }) => {
+    const second = { ...PLAN.rows[0]!, comp: "All Star", x: 205, p: 0.12, cards: PLAN.rows[0]!.cards.map((card, i) => ({ ...card, slug: `${card.slug}-b${i}` })), appearances: PLAN.rows[0]!.appearances.map((one, i) => ({ ...one, cardSlug: `${one.cardSlug}-b${i}` })) };
+    await openPage(page, { plan: { ...PLAN, rows: [PLAN.rows[0]!, second, PLAN.rows[1]!] } });
     await pill(page).click();
-    await expect(dock(page).getByText("Pro lineup still open")).toBeVisible();
-    await expect(dock(page).getByRole("listitem")).toHaveCount(1);
-    await expect(dock(page).getByRole("button", { name: /^Enter/ })).toHaveCount(0); // Pro is entered on Sorare's Pro board
+    await expect(dock(page).getByRole("button", { name: /^Check/ })).toBeDisabled(); // nothing ticked yet
+    await dock(page).getByRole("button", { name: "Tick All Star 1" }).click();
+    await dock(page).getByRole("button", { name: "Tick All Star 2" }).click();
+    await expect(dock(page).getByRole("button", { name: "Tick All Star 1" })).toHaveAttribute("aria-pressed", "true");
 
-    await dock(page).getByRole("button", { name: /^Load from Sorare/ }).last().click();
-    await expect(dock(page).getByRole("status")).toContainText("2 elevens out: 4 of your players start, 1 on the bench");
-    const sent = (await probe(page)).sent.filter((message) => message.type === "pro-rebuild");
-    expect(sent).toEqual([{ type: "pro-rebuild", week: "football-20-23-oct-2026", plan: 1 }]);
-    expect(await dockSteps(page)).toEqual([]); // nothing is run through Sorare
-    await dock(page).getByRole("button", { name: /European Champions Pro/ }).click();
-    await expect(dock(page).getByText("Once the teams are out, about an hour before kickoff, Load from Sorare rebuilds this lineup on who starts.")).toBeVisible();
-    await expect(dock(page).getByRole("button", { name: /^Swap/ })).toHaveCount(0);
-  });
+    await dock(page).getByRole("button", { name: "Check 2" }).click();
+    await expect(dock(page).getByRole("button", { name: "Save 2 as drafts" })).toBeVisible();
+    expect((await dockSteps(page)).filter((step) => step !== "week-entered")).toEqual(["entered", "check", "entered", "check"]); // Sorare's verdict only
 
-  test("enters the plan from Sorare's own page in three presses, Check, Draft and Enter, one step each and never chained", async ({ page }) => {
-    await openPage(page);
-    await pill(page).click();
-
-    await dock(page).getByRole("button", { name: "Enter all 2" }).click();
-    await expect(dock(page).getByRole("button", { name: "Save 2 drafts" })).toBeVisible();
-    expect(await dockSteps(page)).toEqual(["entered", "check", "entered", "check"]); // Sorare's verdict only: nothing is saved yet
-    await expect(dock(page).getByRole("listitem").nth(0)).toContainText("Checked");
-
-    await dock(page).getByRole("button", { name: "Save 2 drafts" }).click();
+    await dock(page).getByRole("button", { name: "Save 2 as drafts" }).click();
     await expect(dock(page).getByRole("button", { name: "Enter 2 now" })).toBeVisible();
-    expect((await dockSteps(page)).slice(4)).toEqual(["draft", "draft"]);
-    await expect(dock(page).getByRole("listitem").nth(0)).toContainText("Draft saved");
+    const drafts = (await probe(page)).sent.filter((message) => (message as unknown as { step?: string }).step === "draft") as unknown as { name: string }[];
+    expect(drafts.map((one) => one.name)).toEqual(["Sofix · plan 1 · GW17 · All Star 1", "Sofix · plan 1 · GW17 · All Star 2"]);
 
     await dock(page).getByRole("button", { name: "Enter 2 now" }).click();
-    await expect(dock(page).getByRole("button", { name: "All entered" })).toBeVisible();
-    expect((await dockSteps(page)).slice(6)).toEqual(["enter", "enter"]);
     await expect(dock(page).getByRole("listitem").nth(0)).toContainText("Entered");
-    const draft = (await probe(page)).sent.find((message) => (message as unknown as { step?: string }).step === "draft") as unknown as { name: string; appearances: unknown[] };
-    expect(draft.name).toBe("Sofix · plan 1 · GW17");
-    expect(draft.appearances).toHaveLength(5);
+    await expect(dock(page).getByRole("listitem").nth(1)).toContainText("Entered");
+    await expect(dock(page).getByRole("listitem").nth(2)).not.toContainText("Entered"); // the one left unticked is untouched
+    expect((await dockSteps(page)).filter((step) => step === "enter")).toHaveLength(2);
   });
 
-  test("Guide me rings the next card to pick on Sorare's page, and moves on when you press it", async ({ page }) => {
-    await openPage(page);
-    await settled(page);
+  test("a lineup Sorare already holds says Entered before anything is pressed, and cannot be ticked", async ({ page }) => {
+    const held = { so5: { so5Fixture: { mySo5Lineups: [{ id: "L9", draft: false, so5Leaderboard: { slug: "all-star" }, so5Rankings: [], so5Appearances: PLAN.rows[0]!.cards.map((card) => ({ anyCard: { slug: card.slug } })) }] } } };
+    await openPage(page, { plan: { ...PLAN, fixture: THIS_WEEK }, steps: { ...SORARE_STEPS, "week-entered": { state: "ok", data: held } } });
+    await expect(pill(page)).toContainText("1/2");
     await pill(page).click();
-    await dock(page).getByRole("listitem").nth(0).getByRole("button", { name: /All Star/ }).click();
-    await dock(page).getByRole("button", { name: "Guide me" }).click();
-
-    const guide = page.locator("[data-sfx-dock]").getByRole("status");
-    await expect(guide).toContainText("Pick Pick 1 · captain");
-    await expect(guide).toContainText("All Star · 1 of 5");
-    const ring = (id: string) => page.locator(`#${id} img`);
-    await ring("pick-1").scrollIntoViewIfNeeded();
-    await expect(ring("pick-1")).toHaveAttribute("data-sfx-guide", "pick");
-    await expect(ring("pick-2")).not.toHaveAttribute("data-sfx-guide", /./);
-
-    const at = (await ring("pick-1").boundingBox())!;
-    await page.mouse.click(at.x + at.width / 2, at.y + at.height * 0.6);
-    await expect(guide).toContainText("Pick Pick 2 · DEF");
-    await expect(ring("pick-2")).toHaveAttribute("data-sfx-guide", "pick");
-    await expect(ring("pick-1")).not.toHaveAttribute("data-sfx-guide", /./);
-
-    await guide.getByRole("button", { name: "Stop guiding" }).click();
-    await expect(guide).toHaveCount(0);
-    await expect(page.locator("[data-sfx-guide]")).toHaveCount(0);
+    await expect(dock(page).getByRole("listitem").nth(0)).toContainText("Entered");
+    await expect(dock(page).getByRole("button", { name: "Tick All Star" })).toHaveCount(0);
+    await expect(dock(page).getByRole("button", { name: "Tick Limited" })).toBeVisible();
   });
 
-  test("the alarm turns the pill red when a starter is unlikely to start, and Swap guides the change on Sorare's page", async ({ page }) => {
-    const alarm = { out: { slug: PICKS[1]!.card, name: "Pick 2", pic: PICKS[1]!.pic, pStart: 0.22, why: "" }, in: { slug: "gavi", name: "Gavi", pic: picture(41), pStart: 0.9, s: 52 } };
-    await openPage(page, { plan: { ...PLAN, rows: [{ ...PLAN.rows[0]!, alarms: [alarm] }, PLAN.rows[1]!] } });
-    await expect(page.getByLabel("1 starter unlikely to start")).toBeVisible();
+  test("Pro lineups are shown with their chance but never ticked: they are entered on Sorare's Pro board", async ({ page }) => {
+    const starts = new Date(Date.now() + 2 * 3600_000).toISOString();
+    const pro = { ...PLAN.rows[0]!, comp: "European Champions Pro", board: "ecp", pro: true, starts };
+    await openPage(page, { plan: { ...PLAN, week: 24, fixture: "football-20-23-oct-2026", lock: new Date(Date.now() - 4 * 3600_000).toISOString(), pro: { starts, rank: 1 }, rows: [pro] } });
     await pill(page).click();
-    const first = dock(page).getByRole("listitem").nth(0);
-    await expect(first).toContainText("1 at risk");
-    await first.getByRole("button", { name: /All Star/ }).click();
-    await expect(dock(page).getByText("22%")).toBeVisible();
-    await dock(page).getByRole("button", { name: "Swap Pick 2 for Gavi in All Star" }).click();
-    const guide = page.locator("[data-sfx-dock]").getByRole("status");
-    await expect(guide).toContainText("Take out Pick 2");
-    await expect(guide).toContainText("All Star · 1 of 2");
+    await expect(dock(page).getByRole("listitem")).toHaveCount(1);
+    await expect(dock(page).getByRole("listitem").nth(0)).toContainText("16%");
+    await expect(dock(page).getByRole("button", { name: /^Tick/ })).toHaveCount(0);
+    expect((await dockSteps(page)).filter((step) => step !== "week-entered")).toEqual([]);
   });
 
-  test("after the lock the pill shows what your entered lineups have scored, read once and again every two minutes at most", async ({ page }) => {
+  test("after the lock the tag shows what your entered lineups have scored, read live from Sorare", async ({ page }) => {
     const fixture = { so5: { so5Fixture: { mySo5Lineups: [
-      { id: "L1", draft: false, so5Leaderboard: { slug: "all-star" }, so5Rankings: [{ score: 190.6, so5Leaderboard: { slug: "all-star" } }] },
-      { id: "L2", draft: false, so5Leaderboard: { slug: "limited" }, so5Rankings: [{ score: 310, so5Leaderboard: { slug: "limited" } }] },
+      { id: "L1", draft: false, so5Leaderboard: { slug: "all-star" }, so5Rankings: [{ score: 190.6, so5Leaderboard: { slug: "all-star" } }], so5Appearances: PLAN.rows[0]!.cards.map((card) => ({ anyCard: { slug: card.slug } })) },
+      { id: "L2", draft: false, so5Leaderboard: { slug: "limited" }, so5Rankings: [{ score: 310, so5Leaderboard: { slug: "limited" } }], so5Appearances: PLAN.rows[1]!.cards.map((card) => ({ anyCard: { slug: card.slug } })) },
+      { id: "L3", draft: false, so5Leaderboard: { slug: "all-star" }, so5Rankings: [{ score: 400, so5Leaderboard: { slug: "all-star" } }], so5Appearances: [{ anyCard: { slug: "someone-else" } }] },
     ] } } };
-    await openPage(page, {
-      plan: { ...PLAN, fixture: THIS_WEEK, lock: new Date(Date.now() - 3600_000).toISOString(), rows: [{ ...PLAN.rows[0]!, alarms: [{ out: { slug: "x", name: "X", pic: "", pStart: 0.1, why: "" }, in: null }] }, PLAN.rows[1]!] },
-      steps: { ...SORARE_STEPS, "week-entered": { state: "ok", data: fixture } },
-    });
-    await expect(page.getByLabel("501 points so far in 2 entered lineups")).toBeVisible();
-    await expect(page.getByLabel(/starter.* unlikely to start/)).toHaveCount(0); // nothing can be changed after the lock
+    await openPage(page, { plan: { ...PLAN, fixture: THIS_WEEK, lock: new Date(Date.now() - 3600_000).toISOString() }, steps: { ...SORARE_STEPS, "week-entered": { state: "ok", data: fixture } } });
+    await expect(pill(page)).toContainText("901 live"); // every entry counts, the one not in the plan too
     await pill(page).click();
-    await expect(dock(page).getByText("points so far")).toBeVisible();
     const lines = dock(page).getByRole("listitem");
-    await expect(lines.nth(0)).toContainText("191 of 260 · so far");
-    await expect(lines.nth(0)).toContainText("70 to go");
+    await expect(lines.nth(0)).toContainText("191"); // its own entry, not the 400 of another All Star entry
+    await expect(lines.nth(0)).not.toContainText("400");
+    await expect(lines.nth(0)).toContainText("of 260");
     await expect(lines.nth(1)).toContainText("Reached");
-    expect((await dockSteps(page)).filter((step) => step === "week-entered")).toHaveLength(1);
+    await expect(dock(page).getByRole("button", { name: /^Tick/ })).toHaveCount(0); // nothing can be entered after the lock
   });
 
-  test("on a lineup page the pill adds up the cards in the slots and compares them with the plan once the lineup is whole", async ({ page }) => {
-    await openPage(page);
-    await expect(pill(page)).toBeVisible();
-    // Sorare's lineup page, as it is: a slot is a button "Select <player>" (a position's name while empty) with Sofix's tile inside.
-    await page.evaluate(() => {
-      history.pushState({}, "", "/football/play/classic/compose/all-star");
-      const slot = (label: string, score: string) => {
-        const button = document.createElement("button");
-        button.setAttribute("aria-label", `Select ${label}`);
-        button.style.cssText = "position:fixed;left:20px;top:20px;width:120px;height:160px";
-        if (score) { const tile = document.createElement("b"); tile.className = "sfx-score"; tile.textContent = score; button.append(tile); }
-        button.dataset.slot = label;
-        document.body.append(button);
-      };
-      slot("Pick One", "60"); slot("Pick Two", "55"); slot("DEF", ""); // two cards in, one empty slot
-    });
-    await expect(page.getByLabel(/^115 points expected from 2 cards, captain not counted; Sofix's plan has /)).toBeVisible();
-    await expect(page.locator("[data-sfx-dock]")).toContainText("2 of 5"); // the plan's lineup has five starters: no comparison yet
-    await page.evaluate(() => {
-      for (const [label, score] of [["Pick Three", "50"], ["Pick Four", "50"], ["Pick Five", "50"]] as const) {
-        const button = document.createElement("button");
-        button.setAttribute("aria-label", `Select ${label}`);
-        button.style.cssText = "position:fixed;left:20px;top:200px;width:120px;height:160px";
-        button.innerHTML = `<b class="sfx-score">${score}</b>`;
-        document.body.append(button);
-      }
-    });
-    await expect(page.locator("[data-sfx-dock]")).toContainText("vs plan");
-    await page.evaluate(() => history.pushState({}, "", "/football/play"));
-    await expect(page.getByLabel(/points expected from/)).toHaveCount(0); // gone with the lineup page
+  test("Load missions reads Sorare's missions from this tab, then shows Sofix's picks with both numbers, and every candidate of one", async ({ page }) => {
+    await openPage(page, { missions: { status: "none", seenAt: null, rarity: "limited", missions: [] }, missionsAfterLoad: MISSIONS });
+    await pill(page).click();
+    await dock(page).getByRole("tab", { name: "Missions" }).click();
+    await dock(page).getByRole("button", { name: "Load missions" }).click();
+    const list = dock(page).getByRole("listitem");
+    await expect(list.nth(0)).toContainText("Decisive Picker");
+    expect((await probe(page)).sent.filter((message) => message.type === "dock-load-missions")).toHaveLength(1); // read through the open tab, no page opened
+    expect((await probe(page)).opened).toEqual([]);
+    await expect(list.nth(0)).toContainText("200 XP");
+    await expect(list.nth(0)).toContainText("45%");
+    await expect(list.nth(0)).toContainText("84%"); // his start %, apart from the mission chance
+    await expect(dock(page).getByRole("button", { name: /^Swap/ })).toHaveCount(0); // no swaps: the picks only
+
+    await list.nth(0).getByRole("button", { name: /^Decisive Picker/ }).click();
+    const all = dock(page).getByRole("list", { name: "Decisive Picker: every card that can play it" });
+    await expect(all.getByRole("listitem")).toHaveCount(3);
+    await expect(all.getByRole("listitem").nth(0)).toContainText("Sofix");
+    await dock(page).getByRole("button", { name: "Back to missions" }).click();
+    await expect(dock(page).getByRole("listitem")).toHaveCount(2);
+  });
+
+  test("a mission still opens on an answer from an app older than the dock (13 Nov: production had no candidates and the tap did nothing)", async ({ page }) => {
+    // an app from before the dock's rebuild: no candidates, no start % on the picks
+    const old = { ...MISSIONS, missions: MISSIONS.missions.map((mission) => ({ id: mission.id, title: mission.title, reward: mission.reward, picks: mission.picks, sofix: mission.sofix.map((one) => ({ slug: one.slug, name: one.name, pic: one.pic, chance: one.chance })) })) };
+    await openPage(page, { missions: old });
+    await pill(page).click();
+    await dock(page).getByRole("tab", { name: "Missions" }).click();
+    await dock(page).getByRole("listitem").nth(0).getByRole("button", { name: /^Decisive Picker/ }).click();
+    const all = dock(page).getByRole("list", { name: "Decisive Picker: every card that can play it" });
+    await expect(all.getByRole("listitem")).toHaveCount(2); // Sofix's two picks stand in for the list
+    await expect(all.getByRole("listitem").nth(0)).toContainText("45%");
   });
 
   test("on Sorare's market, a Limited card says what a point of his costs, green in the cheapest third of similar players, red in the dearest", async ({ page }, testInfo) => {
@@ -2017,27 +1977,10 @@ test.describe("the sorare.com overlay", () => {
     expect(await page.evaluate(() => [...document.querySelectorAll("#picks > *, #picks2 > *")].filter((el) => (el as HTMLElement).style.order || /sfx-/.test(el.className)).length)).toBe(0);
   });
 
-  test("the Missions tab shows today's swap, and Swap guides it on Sorare's missions page", async ({ page }) => {
-    await page.route("https://sorare.com/football/missions/play/limited", (route) => route.fulfill({ contentType: "text/html", body: FIXTURE }));
-    await openPage(page);
-    await pill(page).click();
-    await dock(page).getByRole("tab", { name: "Missions" }).click();
-    await expect(dock(page).getByText("swap to make")).toBeVisible();
-    await expect(dock(page).getByRole("listitem").nth(0)).toContainText("Decisive Picker");
-    await expect(dock(page).getByRole("listitem").nth(0)).toContainText("29%");
-    await expect(dock(page).getByRole("listitem").nth(0)).toContainText("39%");
-    await expect(dock(page).getByRole("listitem").nth(1)).toContainText("As Sofix");
-
-    await dock(page).getByRole("button", { name: "Swap Fwd 1 for Fwd 2 on Sorare" }).click();
-    await page.waitForURL("**/football/missions/play/limited");
-    const guide = page.locator("[data-sfx-dock]").getByRole("status");
-    await expect(guide).toContainText("Take out Fwd 1"); // the guide survives the page change
-    await expect(guide).toContainText("Decisive Picker · 1 of 2");
-  });
-
   test("shows the gameweek the page's address names, not the one being planned (3 Oct: a GW21 page showed GW20)", async ({ page }) => {
     await openPage(page, { query: `?so5Fixture=${THIS_WEEK}` });
-    await expect(page.locator("[data-sfx-dock]")).toContainText("GW17");
+    await pill(page).click();
+    await expect(dock(page).getByRole("tablist")).toContainText("GW17");
     const asked = (await probe(page)).sent.filter((message) => message.type === "overlay-plan");
     expect(asked[0]).toEqual({ type: "overlay-plan", missions: true, fixture: THIS_WEEK });
   });
@@ -2049,7 +1992,7 @@ test.describe("the sorare.com overlay", () => {
     // Sorare moves to another gameweek without a reload: the dock follows it.
     await page.evaluate((week) => history.pushState({}, "", `${location.pathname}?so5Fixture=${week}`), THIS_WEEK);
     await page.evaluate(() => window.dispatchEvent(new PopStateEvent("popstate")));
-    await expect(dock(page).getByText("any reward")).toBeVisible();
+    await expect(dock(page).getByRole("listitem").nth(0)).toContainText("All Star");
     const asked = (await probe(page)).sent.filter((message) => message.type === "overlay-plan");
     expect([...new Set(asked.map((message) => (message as { fixture?: string }).fixture))]).toEqual([OLD_WEEK, THIS_WEEK]);
   });
@@ -2172,7 +2115,7 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page)).toHaveCount(0);
 
     await page.getByRole("button", { name: "Open Sofix" }).click();
-    await page.getByRole("dialog", { name: "Sofix" }).getByRole("listitem").nth(0).getByRole("button", { name: /All Star/ }).click();
+    await page.getByRole("dialog", { name: "Sofix" }).getByRole("listitem").nth(0).getByRole("button", { name: /^All Star/ }).click();
     await page.waitForTimeout(500); // past the pop-in: contrast is measured on what is settled
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath("overlay-dock.png") });

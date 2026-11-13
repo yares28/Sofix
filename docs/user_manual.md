@@ -367,9 +367,9 @@ out**: 200 teamsheets drawn from each player's start chance, the best five who s
 lineup, reads the announced elevens of the games in the next three hours (no extension, works from a phone) and rebuilds the plan's
 Pro lineups on them in about a minute: an announced starter starts, a benched player only fills a slot no starter of yours fits or if
 his chance of coming on times his score if he does is at least the best starter's; anyone else does not play. The rebuild sits under
-Sofix's lineup, "Rebuilt at 18:12", with the swaps named ("Pedri not in the eleven → Gavi"); the plan is never replaced. To enter
-it, open that row in the dock on sorare.com and press **Guide me · rebuilt** (extension 0.4.2). It also works on a locked gameweek
-still being played, for a Pro lineup none of whose players has kicked off, and from the dock (0.4.3). While the gameweek is the one being
+Sofix's lineup, "Rebuilt at 18:12", with the swaps named ("Pedri not in the eleven → Gavi"); the plan is never replaced; enter it
+on Sorare's Pro board (the dock's Guide me was removed on 13 Nov 2026). It also works on a locked gameweek still being played, for a
+Pro lineup none of whose players has kicked off. While the gameweek is the one being
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 
@@ -1189,43 +1189,27 @@ writes with capitals), so the panel never said "FF live" and kept the last refre
 even on a page about another week; and every Celta game showed **No odds**, because Sorare's "Celta de Vigo" did not match the board's
 "Celta". Reload Sofix in `chrome://extensions` (Control says "update" until you do); the Celta fix is in the app and needs no reload.
 
-### The dock (extension 0.4.0, 20 Oct 2026; 0.4.1 adds the three things below)
+### The dock (rebuilt 13 Nov 2026, [plans/dock-v2.md](../plans/dock-v2.md))
 
-- **Alarm (0.4.1):** the pill turns red with a count when a starter of the plan, whose game is still ahead, is under 50% to start (or
-  injured or suspended). The lineup's row says "N at risk" and, opened, shows who would take his place: a player of yours at least 70%
-  to start, chosen only among those the job lists as able to take that slot in that competition (its leagues, rarity, in-season
-  cards, cap, a Pro lineup's hour; in no lineup of the plan; 0.4.4). A plan made before that list says so instead of guessing, and a
-  Pro lineup points to Load from Sorare. **Swap** guides it on Sorare's lineup page. It watches Sofix's plan, not
-  lineups you built by hand, and goes quiet at the lock.
-- **Live score (0.4.1):** after the lock the pill shows the points your entered lineups have so far; each row says "191 of 260 · so far"
-  and "70 to go" or "Reached". Read from Sorare through your tab, at most every two minutes while the panel is open.
-- **Lineup page (0.4.1):** on Sorare's page where you pick the cards, the pill adds up Sofix's score for the cards in the slots and, once
-  all are in, says "+6 vs plan" or "−4 vs plan" against the plan's lineup in that competition. Cards only: that page has no captain.
+A small tag in the bottom-right corner of Sorare's football pages: how many of the plan's lineups Sorare already holds and when the
+week locks ("3/7 · Sat 16:00", amber in the last hour), or after the lock what your entered lineups have scored ("400 live"). What is
+entered and the live score are read from Sorare through your tab when a page opens and every two minutes while the panel is open.
+Pressed, it opens a 316 px panel with two tabs; Escape closes it.
 
-A small pill in the bottom-right corner of Sorare's football pages says the gameweek and when it locks ("GW24 · Locks 16:00"; in
-the last hour "Locks in 42 min", in yellow), and carries a yellow badge when Sofix would swap a mission pick. Pressed, it opens a
-400 px panel above it with two tabs; nothing else on Sorare's page is covered or dimmed. The week is the one the page's address names
-(the one being planned when it names none; a week Sofix holds nothing on says so). **Pro tonight (0.4.3):** while the gameweek being
-played has Pro lineups none of whose players has kicked off, the dock shows those instead (on a page naming no week or that week),
-the soonest first, the pill saying when the first kicks off ("GW24 · Locks 21:00"), with **Load from Sorare** to rebuild them on the
-announced elevens and Guide me to enter one. Enter never covers Pro: it is entered on Sorare's Pro board.
+- **Lineups**: each lineup of the best plan as a ticket, its own chance of a reward on the stub (essence, cash or a card: XP is not a
+  reward), its cards, and what it is expected to score against what pays. Several in one competition are numbered ("LaLiga Limited 2").
+  A tap opens the lineup as a field of its cards, Sorare-style (five or seven), each with its score, start % and the captain.
+  **Tick** the ones to enter (the ticket gets punched), then one button runs **Check N**, then **Save N as drafts**, then **Enter N now**,
+  one press per step. A lineup Sorare refuses stops there with Sorare's words; one Sorare already holds says Entered and cannot be
+  ticked. Fixed the same day: lineups sharing a competition used to share one progress, so only one of them could be entered. Pro
+  lineups show their chance but are entered on Sorare's Pro board.
+- **Missions**: **Load missions** reads today's missions from Sorare through this tab and saves them (no page opens), then shows each
+  mission's reward and Sofix's picks, each with the chance he does it if he plays and his start % (by the shirt, amber under 50%).
+  A tap opens every card that can play it, Sofix's marked. **↻ Load again** reads them afresh.
 
-- **Lineups**: the chance of any reward and the essence expected, then one row per lineup of the best plan, likeliest to pay first
-  (three of its cards, its expected score against the score that pays, the days it plays, its chance). A row opens to every card with
-  the score it is expected to make and the captain, and two buttons:
-  - **Enter** runs Apply from Sorare itself, one press per step: **Check** (Sorare's verdict; it first reads whether that lineup is
-    already entered and stops if it is), **Save as a draft**, **Enter it now**. **Enter all N** at the bottom does the same for every
-    lineup, still one press per step. A lineup Sorare refuses stops there with Sorare's words; a step whose answer cannot be verified
-    says to check Sorare before pressing again.
-  - **Guide me** is for entering by hand: the pill becomes the guide ("Pick Olasagasti · MID", 4 of 5, Skip) and the card to pick is
-    ringed in green on Sorare's own list; pressing it moves to the next one. Nothing is picked for you.
-  - The ⋯ button holds the rest: the cards used, and plans 2 and 3 (they open in Sofix).
-- **Missions**: today's missions as Sofix's Missions page has them (loaded on their own when Sorare's missions page opens): each
-  mission's reward, how many you picked and "As Sofix" or the swap Sofix would make, with both chances (your Akhomach 29% → its
-  Mittelstädt 39%). **Swap** takes you to Sorare's missions page and guides it: the card to take out is ringed in yellow, then the one to
-  pick in green. Sofix does not save mission picks itself (it knows no Sorare call for that yet).
-
-The switch "Scores on sorare.com" turns the dock off with the tiles. It is hidden on narrow windows.
+Gone (13 Nov 2026): Guide me and its ring on Sorare's cards, the starter alarm and its Swap, mission swaps, the plan's total, Load
+from Sorare for Pro, the ⋯ menu and the lineup-page total. The switch "Scores on sorare.com" turns the dock off with the tiles. It is
+hidden on narrow windows.
 
 ### Which gameweek a page is about
 

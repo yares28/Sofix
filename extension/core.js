@@ -718,10 +718,25 @@
     return { text: day.format(at) === day.format(now) ? `Locks ${time}` : `Locks ${day.format(at)} ${time}`, soon: false };
   }
 
-  /** How many mission swaps Sofix would make today: the pill's badge. */
-  function swapCount(missions) {
-    const list = missions && Array.isArray(missions.missions) ? missions.missions : [];
-    return list.reduce((sum, one) => sum + (Array.isArray(one && one.swaps) ? one.swaps.length : 0), 0);
+  /**
+   * The gameweek's lineups Sorare holds for you, from the dock's read of them (`week-entered`): each one's competition, whether it is a
+   * draft, its cards and what it has scored (null before Sorare scores it). `null` when the answer is not a gameweek's lineups, so a
+   * failed read never says "nothing entered".
+   */
+  function enteredOf(response) {
+    const fixture = response && response.state === "ok" && response.data && response.data.so5 && response.data.so5.so5Fixture;
+    if (!fixture || !Array.isArray(fixture.mySo5Lineups)) return null;
+    return fixture.mySo5Lineups.filter(Boolean).map((one) => {
+      const board = String((one.so5Leaderboard && one.so5Leaderboard.slug) || "");
+      const ranks = Array.isArray(one.so5Rankings) ? one.so5Rankings : [];
+      const rank = ranks.find((r) => r && r.so5Leaderboard && r.so5Leaderboard.slug === board) || ranks[0];
+      return {
+        board,
+        draft: one.draft !== false,
+        cards: (Array.isArray(one.so5Appearances) ? one.so5Appearances : []).map((slot) => (slot && (slot.anyCard || slot.card) || {}).slug).filter(Boolean),
+        score: rank && typeof rank.score === "number" ? rank.score : null,
+      };
+    });
   }
 
   /**
@@ -790,22 +805,6 @@
   function composeBoard(pathname) {
     const found = /^\/football\/play\/(?:classic\/)?compose\/([a-z0-9_-]{1,120})\/?$/i.exec(String(pathname || ""));
     return found ? found[1].toLowerCase() : null;
-  }
-
-  /**
-   * What the cards in a lineup page's slots add up to, from `{ label, width, score }` per slot button: the button's label without "Select ",
-   * its width in pixels and the score on Sofix's tile in it (NaN when it has none yet). Empty slots (a position's name) and the small
-   * bench boxes (under 90 px; unconfirmed for a filled bench card) are left out, as is a card whose tile has not arrived.
-   */
-  function composeSum(items) {
-    let n = 0;
-    let total = 0;
-    for (const one of Array.isArray(items) ? items : []) {
-      if (!one || /^(GK|DEF|MID|FWD|EX|SUB|GK SUB)$/.test(String(one.label).trim()) || !(one.width >= 90) || !Number.isFinite(one.score)) continue;
-      n += 1;
-      total += one.score;
-    }
-    return { n, total };
   }
 
   /** Whether Sorare already holds this lineup entered (the same cards, not a draft): entering it again would spend a second slot. */
@@ -1063,7 +1062,7 @@
   root.__sofixCore = {
     crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, MY_GALLERY, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, MY_GALLERY, sorarePic, lockLabel, enteredOf, stepAnswer, liveScores, composeBoard, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

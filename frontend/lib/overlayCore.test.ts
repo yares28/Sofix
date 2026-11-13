@@ -13,6 +13,7 @@ type Core = {
   isAvatarArt: (value: unknown) => boolean;
   normalizeCardName: (alt: unknown) => string;
   galleryOf: (pathname: unknown) => string | null;
+  MY_GALLERY: string;
   playerPageOf: (pathname: unknown) => string | null;
   verdictLine: (profile: { yours: boolean; inPlan: string[]; verdict: { kind: string; value: string; note: string } | null }) => { text: string; tone: "own" | "up" | "flat" } | null;
   worthLine: (paid: number | null, value: number) => { now: string; change: string; tone: "up" | "down" | "flat" | "free" };
@@ -796,6 +797,10 @@ describe("your gallery's prices (B2)", () => {
     expect(core.galleryOf("/football/my-club/yares")).toBeNull(); // the club page, not the gallery
     expect(core.galleryOf("/football/my-club/yares/collections")).toBeNull();
     expect(core.galleryOf("/football/players/jan-oblak/cards")).toBeNull();
+    // Sorare's own Gallery link opens the signed-in account's gallery without its name (13 Nov 2026: no prices there).
+    expect(core.galleryOf("/football/my-cards/cards/limited")).toBe(core.MY_GALLERY);
+    expect(core.galleryOf("/football/my-cards/cards")).toBe(core.MY_GALLERY);
+    expect(core.galleryOf("/football/my-cards/collections")).toBeNull();
   });
 
   it("writes each card's line like the board: worth now, then up or down on what you paid, or 'not bought'", () => {

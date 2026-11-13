@@ -833,8 +833,11 @@ export function overlayNumbers(
     if (soon && ahead(soon.fixture, now) && counted(soon, playing ?? plan)) return priced(soon, oneGame(playing ?? plan, undefined));
     const here = ownedFor(playerSlug, plan, { leagues: leaguesOf(plan) });
     if (here && (here.ahead || !roll || !following)) return here.entry;
-    const later = roll && following ? ownedFor(playerSlug, following, { leagues: leaguesOf(following) }) : null;
-    if (later?.ahead) return later.entry;
+    // His next game in whichever later week holds it: an international break can leave two weeks without one (13 Nov 2026).
+    for (const week of roll && following ? sorare.weeks.slice(sorare.weeks.indexOf(following)) : []) {
+      const later = ownedFor(playerSlug, week, { leagues: leaguesOf(week) });
+      if (later?.ahead) return later.entry;
+    }
     if (here) return here.entry;
     // Anyone else, the same from his market row (his game of the week being played came first, above); a page about the week after
     // reads that row's next game.

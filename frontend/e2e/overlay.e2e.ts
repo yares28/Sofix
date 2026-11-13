@@ -229,7 +229,7 @@ const OLD_WEEK = "football-18-22-sep-2026";
 
 async function openPage(
   page: Page,
-  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; url?: string; html?: string; need?: unknown; team?: unknown; brokenCrests?: boolean } = {},
+  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; url?: string; html?: string; need?: unknown; team?: unknown; brokenCrests?: boolean; failOnce?: string[] } = {},
 ) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
@@ -259,6 +259,7 @@ async function openPage(
   await page.addInitScript(
     (config) => {
       const listeners: ((changes: unknown, area: string) => void)[] = [];
+      const failed = new Set<string>();
       const probe = {
         sent: [] as unknown[],
         opened: [] as string[],
@@ -270,6 +271,11 @@ async function openPage(
       };
       (window as unknown as { __sfx: unknown }).__sfx = probe;
       const answer = (message: { type: string; cards?: string[]; players?: string[]; fixture?: string | null }) => {
+        // A first ask of these kinds fails, as one call does when the app is cold or a refresh is publishing.
+        if (config.failOnce.includes(message.type) && !failed.has(message.type)) {
+          failed.add(message.type);
+          return { state: "unreachable" };
+        }
         // What the worker answers for Futbol Fantasy read live: nothing unless a test gives it a reading.
         if (message.type === "ff-live") return config.mode === "ok" ? { state: "ok", live: config.live } : { state: config.mode };
         if (message.type === "overlay-plan") {
@@ -319,7 +325,7 @@ async function openPage(
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null, team: options.team ?? null },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null, team: options.team ?? null, failOnce: options.failOnce ?? [] },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "dock.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
@@ -2084,6 +2090,25 @@ test.describe("the sorare.com overlay", () => {
     await expect(box).toHaveText("BOUGHT, NOW€312.00paid €268.00 for 30 cards▲ €44.00 · +16%");
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath("overlay-gallery.png") });
+  });
+
+  test("on the gallery Sorare's own Gallery link opens (/my-cards/), draws the same prices (13 Nov 2026: none there)", async ({ page }) => {
+    await openPage(page, { url: "https://sorare.com/football/my-cards/cards/limited", html: GALLERY });
+    await expect(page.locator("#g-simon .sfx-worth")).toHaveText("now €3.40▲13%");
+    await expect(page.locator("#toolbar > .sfx-worthbox")).toHaveCount(1);
+  });
+
+  test("a quiet page asks again by itself after a failed ask, with nothing on the page changing (13 Nov 2026)", async ({ page }) => {
+    // His gallery changed nothing in 20 seconds: an ask that failed there was asked again only once he scrolled.
+    await openPage(page, { url: MY_GALLERY, html: GALLERY, failOnce: ["overlay-worth", "overlay-numbers"] });
+    await expect.poll(async () => (await probe(page)).sent.filter((m) => m.type === "overlay-worth").length).toBe(1);
+    await page.waitForTimeout(1000);
+    await page.evaluate(() => {
+      const real = Date.now;
+      Date.now = () => real() + 61_000; // past the minute a failed worth ask waits, and the app's rest after a failure
+    });
+    await expect(page.locator("#g-simon .sfx-worth")).toHaveText("now €3.40▲13%", { timeout: 10_000 });
+    await expect(page.locator("#g-simon [data-sfx] .sfx-tile")).toHaveCount(1);
   });
 
   test("on someone else's gallery, draws no prices at all", async ({ page }) => {

@@ -51,6 +51,8 @@
   const LIVE_POLL_MS = 5 * 60 * 1000;
   const LIVE_MATCHES = 8; // pages one ask may name: a lineup page rarely shows more games than this
   let liveTimer = 0;
+  let beat = 0;
+  const BEAT_MS = 4000;
   let liveAsking = false;
   let liveKey = ""; // the matches last asked about, so a new card scrolling into view asks at once and a quiet page does not
   let askTimer = 0;
@@ -2630,7 +2632,7 @@
 
   const myGallery = () => {
     const owner = core.galleryOf(location.pathname);
-    return Boolean(owner && worth && owner === String(worth.user || "").toLowerCase());
+    return Boolean(owner && worth && (owner === core.MY_GALLERY || owner === String(worth.user || "").toLowerCase()));
   };
 
   function wantWorth() {
@@ -3031,6 +3033,11 @@
     for (const type of ["pointerdown", "mousedown", "click"]) document.addEventListener(type, onListClick, true);
     document.addEventListener("keydown", onCompareKey, true);
     liveTimer = setInterval(guard(() => wantLive(true)), LIVE_POLL_MS);
+    // Every retry here waits for a time (a failed ask, an answer gone stale, a card the bridge could not name yet), and only a pass
+    // looks again. A page that changes nothing ran no pass, so what failed once stayed missing until a scroll (13 Nov 2026: his
+    // gallery changed nothing in 20 s). A pass every few seconds while the tab is seen; it asks the app only for what is due.
+    beat = setInterval(guard(() => document.visibilityState === "visible" && schedule()), BEAT_MS);
+    document.addEventListener("visibilitychange", schedule);
     schedule();
   }
 
@@ -3063,6 +3070,9 @@
     askTimer = 0;
     clearInterval(liveTimer);
     liveTimer = 0;
+    clearInterval(beat);
+    beat = 0;
+    document.removeEventListener("visibilitychange", schedule);
     liveAsking = false;
     liveKey = "";
     liveByMatch.clear();
@@ -3096,7 +3106,7 @@
     if (event.source !== window || !event.data || !["sofix-bridge-4", "sofix-bridge-5", "sofix-bridge-7", "sofix-bridge-8", "sofix-bridge-9"].includes(event.data.source) || event.data.type !== "cards") return;
     oddsDue = true;
     for (const record of live) {
-      if (record.ident === "new") {
+      if (record.ident !== "done") { // one being asked about right now too: its answer is older than this news
         record.nextTry = 0;
         record.tries = Math.min(record.tries, IDENTIFY_TRIES - 2);
       }

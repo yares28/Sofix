@@ -686,6 +686,14 @@ describe("overlayNumbers", () => {
     expect(overlayNumbers(sorare([]), grid, ask({ cards: ["unai-simon-2026-limited-12"], week: "17" }), NOW).cards).toEqual({});
   });
 
+  it("answers a card for his next game however many weeks ahead it is (13 Nov 2026: two international-break weeks blanked 18 of 19)", () => {
+    const data = sorare([]);
+    const empty = { ...data.weeks[1]!, playing: { cards: 0, players: [] } };
+    const later = { ...data.weeks[1]!, gameweek: { ...data.weeks[1]!.gameweek, id: "19", slug: "gw-19", number: 19 } };
+    const answer = overlayNumbers({ ...data, weeks: [data.weeks[0]!, empty, later] }, grid, ask({ cards: ["unai-simon-2026-limited-12"] }), NOW);
+    expect(answer.cards["unai-simon-2026-limited-12"]!.x).toBe(11);
+  });
+
   it("reads the week asked for, and falls back to the one being planned when it is unknown", () => {
     expect(overlayNumbers(sorare([player()]), grid, ask({ players: ["unai-simon"], week: "18" }), NOW).players["unai-simon"]!.x).toBe(11);
     const unknown = overlayNumbers(sorare([player()]), grid, ask({ players: ["unai-simon"], week: "99" }), NOW);

@@ -526,9 +526,15 @@
     );
   }
 
-  /** Whose gallery a page is ("/football/my-club/yares/cards/limited" -> "yares"), or null when it is not a gallery. */
+  /**
+   * Whose gallery a page is ("/football/my-club/yares/cards/limited" -> "yares"), or null when it is not a gallery. Sorare's own
+   * Gallery link opens the signed-in account's as "/football/my-cards/cards/…" (13 Nov 2026): that one is MY_GALLERY.
+   */
+  const MY_GALLERY = "~me";
   function galleryOf(pathname) {
-    const found = /^\/football\/my-club\/([a-z0-9][a-z0-9_-]{0,80})\/cards(?:\/[a-z_]+)?\/?$/i.exec(String(pathname || ""));
+    const path = String(pathname || "");
+    if (/^\/football\/my-cards\/cards(?:\/[a-z_]+)?\/?$/i.test(path)) return MY_GALLERY;
+    const found = /^\/football\/my-club\/([a-z0-9][a-z0-9_-]{0,80})\/cards(?:\/[a-z_]+)?\/?$/i.exec(path);
     return found ? found[1].toLowerCase() : null;
   }
 
@@ -1057,7 +1063,7 @@
   root.__sofixCore = {
     crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, MY_GALLERY, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

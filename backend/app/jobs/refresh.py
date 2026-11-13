@@ -6,7 +6,8 @@
    With --skip-migrations (scheduled and button runs, which use the app role and must never run
    DDL unattended) the schema is only checked, and a pending migration stops the run.
 1. sync: fixtures + results from football-data.org (needs FOOTBALL_DATA_ORG_TOKEN)
-2. odds: bookmaker odds from The Odds API (needs ODDS_API_KEY; skipped without it, throttled to 6 h)
+2. odds: bookmaker odds from The Odds API (needs ODDS_API_KEY; skipped without it, throttled to 6 h); then
+   scorer_odds: each LaLiga game's player prices, saved once in its last 30 hours (research record)
 3. predict: rating model predictions (football-data.co.uk history, no key; blends the odds above into
    the next week's fixtures)
 4. sorare: reads Sorare (needs SORARE_API_KEY; skipped without it) and publishes the whole-gameweek plans
@@ -36,7 +37,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 from app.db import SessionLocal, database_target, neon_bytes
-from app.jobs import european_fdr, league_fdr, predict, seed_and_sync, sorare, sync_odds
+from app.jobs import european_fdr, league_fdr, predict, scorer_odds, seed_and_sync, sorare, sync_odds
 from app.logging_config import configure_logging
 from app.migrate import ensure_schema_current, upgrade_to_head
 from app.models import RUNNING, RefreshRun
@@ -62,6 +63,8 @@ def default_steps() -> list[Step]:
         # Odds before predict: the next gameweek's predictions blend the prices, so they must be the
         # freshest ones. The odds call is throttled to 6 h either way, so this costs no extra credits.
         ("odds", lambda: asyncio.run(sync_odds.main())),
+        # Research record: each LaLiga game's player prices, once, in its last 30 hours (scorer_odds.py).
+        ("scorer_odds", lambda: asyncio.run(scorer_odds.main())),
         ("predict", predict.main),
         ("fdr_pl", lambda: league_fdr.run("PL")),
         ("fdr_bl", lambda: league_fdr.run("BL1")),

@@ -754,6 +754,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/futbolfantasy.md` | [open](../plans/futbolfantasy.md) |
 | document (check authority) | `plans/home-week-rewards.md` | [open](../plans/home-week-rewards.md) |
 | document (check authority) | `plans/independent-installs-performance.md` | [open](../plans/independent-installs-performance.md) |
+| document (check authority) | `plans/laliga-accuracy-evidence.md` | [open](../plans/laliga-accuracy-evidence.md) |
 | document (check authority) | `plans/ligue-1-fdr-xscore.md` | [open](../plans/ligue-1-fdr-xscore.md) |
 | document (check authority) | `plans/lineups-and-xscore.md` | [open](../plans/lineups-and-xscore.md) |
 | document (check authority) | `plans/load-from-sorare.md` | [open](../plans/load-from-sorare.md) |

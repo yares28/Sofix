@@ -33,7 +33,9 @@ The UTC schedule is generated from [clock/timetable.json](../clock/timetable.jso
 - **football-data.co.uk:** five-season goals/shots/on-target/closing odds; production fit uses last 730 days. Old files
   stay cached; current season is conditionally refreshed; new-season 404 means not published.
 - **The Odds API:** EU h2h + totals. Remove each bookmaker margin, then aggregate fair prices. Usable for blending only
-  within seven days, age ≤48 hours and ≥3 bookmakers.
+  within seven days, age ≤48 hours and ≥3 bookmakers. Research record (`jobs/scorer_odds.py`, 13 Nov 2026): each LaLiga
+  game's player prices (anytime scorer, assists, shots on target; US bookmakers only) saved once in its last 30 hours as
+  `scorer_odds:<event id>`, up to 3 credits a game, always leaving 150 credits for the match odds; nothing reads it yet.
 - **Team registry:** canonical join among codes/spellings/colours/stadiums/Sorare odds aliases.
 
 Market scoring/CS/concede/BTS values are inferred by fitting goal rates to fair 1X2+totals. They are not direct quotes.

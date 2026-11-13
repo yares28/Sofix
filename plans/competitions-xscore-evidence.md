@@ -5,7 +5,7 @@ Sofix v1, and keep every test and conclusion. Accuracy is the share of numbers w
 starters and played substitutes apart, judged on the number a model picks for that question (the point), as in
 [sofix-v1.md](sofix-v1.md). Sorare's own projection is neither used nor compared (owner's rule).
 
-**Result:** shipped as `Sofix v1 PL`, `BL1`, `FL1`, `CL`, `EL`, `CONF`. On 2025/26 starters go from 27-28% to 35-39% and
+**Result:** shipped as Sofix v1 for all six (one name; the Audit keeps each competition's live results apart). On 2025/26 starters go from 27-28% to 35-39% and
 played substitutes from 58-62% to 76-79%; every gain's interval is far above zero in both periods tested.
 
 ## What was live before
@@ -76,7 +76,7 @@ LaLiga for comparison (same harness, Sofix v1 as live): 37.95% / 37.4% starters,
 
 - **Shipped** (C9) for all six: Sofix v1's trees refitted per competition on 2023/24 to 10 Nov 2026, his games in that
   competition over 70 days, the starter's point from trees fitted on ordinary games; the expected score and the decisive
-  chance still come from the full trees. Version `Sofix v1 <code>`, so the Audit keeps each apart; the Audit's xScore card
+  chance still come from the full trees. All are named Sofix v1 (owner, 14 Nov); the Audit keeps each competition's live results apart by the game's competition; its xScore card
   switches between the competitions. The live job uses a competition's model only where its board gives the game's numbers
   and the lock is after the model's `trainedThrough`; otherwise the earlier formula, as before.
 - **Ligue 1, Conference and PL reach LaLiga's level** (37-39% on 2025/26); Bundesliga and EL are a point below; **CL stays

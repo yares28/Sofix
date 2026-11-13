@@ -293,7 +293,7 @@ def artifact(code: str, cases: list[Case]) -> dict[str, Any]:
     return {
         "code": code,
         "competition": SLUGS[code],
-        "version": f"{sofix_v1.VERSION} {code}",
+        "version": sofix_v1.VERSION,
         "trainedThrough": (max(c.when for c in mine) + sofix_v1.DELAY).isoformat(),
         "cases": {role: sum(1 for c in mine if c.role == role and c.numbers) for role in ("start", "bench")},
         "trees": {**model.trees, "point": point.trees["start"]},

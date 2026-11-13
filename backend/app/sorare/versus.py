@@ -139,8 +139,20 @@ def starts_of(record: dict[str, Any], started: bool = True) -> list[dict[str, An
     return out
 
 
+# Every competition's model is "Sofix v1"; its live counts stay apart under "Sofix v1 <code>" (LaLiga keeps the bare name)
+CODES = {
+    "premier-league-gb-eng": "PL",
+    "bundesliga-de": "BL1",
+    "ligue-1-fr": "FL1",
+    "uefa-champions-league": "CL",
+    "uefa-europa-league": "EL",
+    "uefa-europa-conference-league": "CONF",
+}
+
+
 def model_versions(records: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, int]]]:
-    """Versioned, pre-lock LaLiga forecasts, including players without a Sorare forecast."""
+    """Versioned, pre-lock forecasts, including players without a Sorare forecast; each competition apart from LaLiga under its
+    code ("Sofix v1 PL"), so one name across competitions never mixes their records."""
     versions: dict[str, dict[str, dict[str, int]]] = {}
     for record in records:
         lock, written = (record.get("gameweek") or {}).get("lock"), record.get("writtenAt")
@@ -159,7 +171,8 @@ def model_versions(records: list[dict[str, Any]]) -> dict[str, dict[str, dict[st
                 previous = game.get("previousSofix" if started else "previousSofixOn")
                 if score is None:
                     continue
-                counts = versions.setdefault(version, {}).setdefault(
+                code = CODES.get(game.get("competition") or "")
+                counts = versions.setdefault(f"{version} {code}" if code else version, {}).setdefault(
                     "start" if started else "bench", {"cases": 0, "hits": 0, "paired": 0, "gained": 0, "spoiled": 0}
                 )
                 hit = abs(score - actual["score"]) <= CLOSE + 1e-9

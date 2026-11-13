@@ -392,7 +392,7 @@ def test_a_european_market_has_no_next_week_game_and_a_domestic_one_does():
         assert "next" not in markets[code]["market"][0], code
 
 
-def test_competition_v1_model_answers_its_game_with_its_own_version_and_league_history():
+def test_competition_v1_model_answers_its_game_as_sofix_v1_with_league_history():
     from app.sorare import sofix_v1
 
     grid, game = fixture()
@@ -404,7 +404,6 @@ def test_competition_v1_model_answers_its_game_with_its_own_version_and_league_h
             "point": [[[[44], [1]]]],
         },
         datetime(2026, 10, 1, tzinfo=UTC),
-        version="Sofix v1 PL",
         competition="premier-league-gb-eng",
     )
     seen = []
@@ -445,10 +444,10 @@ def test_competition_v1_model_answers_its_game_with_its_own_version_and_league_h
         sofix_v1.features = real_features
     (got,) = made.outcomes
     assert isinstance(got, sofix_v1.GameScore)
-    assert (got.point, got.sub.point, got.version, got.previous) == (44, 30, "Sofix v1 PL", 61.0)
+    assert (got.point, got.sub.point, got.version, got.previous) == (44, 30, "Sofix v1", 61.0)
     assert got.start == 57.5  # the expected score comes from the full trees, decisive games included
     assert [g["competition"] for g in seen[0]] == ["premier-league-gb-eng"]
-    late = sofix_v1.Model(model.trees, LOCK, version="Sofix v1 PL", competition="premier-league-gb-eng")
+    late = sofix_v1.Model(model.trees, LOCK, competition="premier-league-gb-eng")
     (old,) = f.scores_for({"PL": bundle}, {"PL": grid}, lambda *a: Made((), None), v1={"PL": late})(
         {"position": "Defender"}, [game], None, []
     ).outcomes

@@ -101,7 +101,7 @@ def test_expected_points_and_frozen_predictions_are_published_together():
     )
 
 
-def test_competition_artifact_loads_with_its_own_version_and_refuses_another(tmp_path, monkeypatch):
+def test_competition_artifact_loads_as_sofix_v1_and_refuses_another_version_or_code(tmp_path, monkeypatch):
     import gzip
     import json
 
@@ -110,15 +110,42 @@ def test_competition_artifact_loads_with_its_own_version_and_refuses_another(tmp
     data = {
         "code": "EL",
         "competition": "uefa-europa-league",
-        "version": "Sofix v1 EL",
+        "version": "Sofix v1",
         "trainedThrough": "2026-11-10T00:00:00+00:00",
         "trees": {"start": [[[[45], [1]]]], "bench": [[[[35], [1]]]]},
     }
     (tmp_path / "EL.json.gz").write_bytes(gzip.compress(json.dumps(data).encode()))
-    (tmp_path / "CL.json.gz").write_bytes(gzip.compress(json.dumps(data).encode()))
+    (tmp_path / "CL.json.gz").write_bytes(gzip.compress(json.dumps({**data, "version": "Sofix v2"}).encode()))
     model = sofix_v1.load_competition("EL")
-    assert (model.version, model.competition) == ("Sofix v1 EL", "uefa-europa-league")
+    assert (model.version, model.competition) == ("Sofix v1", "uefa-europa-league")
     assert sofix_v1.load_competition("PL") is None
     with pytest.raises(ValueError):
         sofix_v1.load_competition("CL")
     sofix_v1.load_competition.cache_clear()
+
+
+def test_live_counts_keep_each_competition_apart_under_one_name():
+    def game(competition, score):
+        return {
+            "modelVersion": sofix_v1.VERSION,
+            "competition": competition,
+            "sofixPoint": 45,
+            "sofixOnPoint": 35,
+            "actual": {"played": True, "started": True, "score": score},
+        }
+
+    record = {
+        "gameweek": {"lock": "2026-11-20T14:00:00Z"},
+        "writtenAt": "2026-11-20T13:00:00Z",
+        "settledAt": "2026-11-24T13:00:00Z",
+        "players": {
+            "a": {"games": [game(keeper.LALIGA, 45), game("premier-league-gb-eng", 70)]},
+            "b": {"games": [game("uefa-champions-league", 50)]},
+        },
+    }
+    counts = versus.model_versions([record])
+    assert {k: (v["start"]["cases"], v["start"]["hits"]) for k, v in counts.items()} == {
+        "Sofix v1": (1, 1),
+        "Sofix v1 PL": (1, 0),
+        "Sofix v1 CL": (1, 1),
+    }

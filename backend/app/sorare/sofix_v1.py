@@ -165,7 +165,7 @@ def load_competition(code: str) -> Model | None:
         return None
     with gzip.open(path, "rt", encoding="utf-8") as source:
         data = json.load(source)
-    if data.get("code") != code or not str(data.get("version", "")).startswith(VERSION):
+    if data.get("code") != code or data.get("version") != VERSION:
         raise ValueError(f"Unexpected {code} xScore artifact")
     return Model(
         data["trees"],

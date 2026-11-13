@@ -1,0 +1,204 @@
+{
+ "phases": [
+  {
+   "from": "2025-07-01",
+   "to": "2026-07-01",
+   "competitions": {
+    "PL": {
+     "trainCases": 22889,
+     "old": {
+      "start": {
+       "cases": 8360,
+       "hits": 2316,
+       "rate": 0.277,
+       "mae": 14.09,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 2316,
+       "bigMisses": 1140
+      },
+      "bench": {
+       "cases": 3132,
+       "hits": 1950,
+       "rate": 0.6226,
+       "mae": 7.28,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 1950,
+       "bigMisses": 109
+      }
+     },
+     "pooled": {
+      "start": {
+       "cases": 8360,
+       "hits": 3156,
+       "rate": 0.3775,
+       "mae": 14.84,
+       "gained": 2106,
+       "spoiled": 1266,
+       "netCI95": [
+        703,
+        999
+       ],
+       "meanHits": 2355,
+       "bigMisses": 1764
+      },
+      "bench": {
+       "cases": 3132,
+       "hits": 2481,
+       "rate": 0.7921,
+       "mae": 5.82,
+       "gained": 667,
+       "spoiled": 136,
+       "netCI95": [
+        456,
+        603
+       ],
+       "meanHits": 2298,
+       "bigMisses": 175
+      }
+     },
+     "pooled_plain": {
+      "start": {
+       "cases": 8360,
+       "hits": 3286,
+       "rate": 0.3931,
+       "mae": 14.39,
+       "gained": 2031,
+       "spoiled": 1061,
+       "netCI95": [
+        834,
+        1126
+       ],
+       "meanHits": 3157,
+       "bigMisses": 1672
+      },
+      "bench": {
+       "cases": 3132,
+       "hits": 2481,
+       "rate": 0.7921,
+       "mae": 5.82,
+       "gained": 667,
+       "spoiled": 136,
+       "netCI95": [
+        456,
+        603
+       ],
+       "meanHits": 2298,
+       "bigMisses": 175
+      }
+     },
+     "noNumbers": 0
+    }
+   }
+  },
+  {
+   "from": "2026-07-01",
+   "to": "2027-01-01",
+   "competitions": {
+    "PL": {
+     "trainCases": 34381,
+     "old": {
+      "start": {
+       "cases": 2200,
+       "hits": 613,
+       "rate": 0.2786,
+       "mae": 14.49,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 613,
+       "bigMisses": 336
+      },
+      "bench": {
+       "cases": 884,
+       "hits": 563,
+       "rate": 0.6369,
+       "mae": 7.16,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 563,
+       "bigMisses": 26
+      }
+     },
+     "pooled": {
+      "start": {
+       "cases": 2200,
+       "hits": 781,
+       "rate": 0.355,
+       "mae": 15.43,
+       "gained": 512,
+       "spoiled": 344,
+       "netCI95": [
+        120,
+        216
+       ],
+       "meanHits": 629,
+       "bigMisses": 498
+      },
+      "bench": {
+       "cases": 884,
+       "hits": 705,
+       "rate": 0.7975,
+       "mae": 5.69,
+       "gained": 176,
+       "spoiled": 34,
+       "netCI95": [
+        106,
+        185
+       ],
+       "meanHits": 672,
+       "bigMisses": 45
+      }
+     },
+     "pooled_plain": {
+      "start": {
+       "cases": 2200,
+       "hits": 787,
+       "rate": 0.3577,
+       "mae": 15.08,
+       "gained": 476,
+       "spoiled": 302,
+       "netCI95": [
+        129,
+        219
+       ],
+       "meanHits": 766,
+       "bigMisses": 464
+      },
+      "bench": {
+       "cases": 884,
+       "hits": 705,
+       "rate": 0.7975,
+       "mae": 5.69,
+       "gained": 176,
+       "spoiled": 34,
+       "netCI95": [
+        106,
+        185
+       ],
+       "meanHits": 672,
+       "bigMisses": 45
+      }
+     },
+     "noNumbers": 0
+    }
+   }
+  }
+ ]
+}

@@ -1,6 +1,6 @@
 # Sofix v1 release
 
-The 12 November owner request authorizes a versioned live xScore and asks for a complete handover before further research. The [handover](../docs/xscore-research-handover.md) preserves the research target and results. The app release covers LaLiga; other competition models have separate evidence and version names.
+The 12 November owner request authorizes a versioned live xScore and asks for a complete handover before further research. The [handover](../docs/xscore-research-handover.md) preserves the research target and results. The app release covers LaLiga; other competition models have separate evidence and version names. Since 13 Nov 2026 those are `Sofix v1 PL`, `BL1`, `FL1`, `CL`, `EL` and `CONF`: [their evidence](competitions-xscore-evidence.md).
 
 Evaluate one live-compatible candidate on the fixed native v7 rows before replacing the live formula. Inputs are the home/away flag, the live fixture model's goals and clean-sheet outlook, and up to 70 days of prior LaLiga appearances. History is released 48 hours after kickoff, strictly before the target lock. Fit earlier than each assessment period. Include every scored starter and played substitute. Report the within-seven rate, average absolute error, saved hits and spoiled hits. Distinguish the replay and the actual forecasts saved before lock. Earlier replay sets have already been examined during research.
 

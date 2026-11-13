@@ -64,7 +64,7 @@ The planner weights essence by the share of its leagues the owner plays, searche
 
 Conditional score, chance of starting, chance of coming on, chance of any appearance, and unconditional expectation are different quantities. When `game_scores` exists, the own-score branch in `forecast` removes Sorare’s projection from its score calculation. Without own game scores, the generic forecast path can still use Sorare projection/form; do not claim all paths are independent just because the LaLiga model is. The alternative Sorare-projection strategy stays separately identified.
 
-[Sofix v1](../plans/sofix-v1.md) uses distinct starter and substitute distributions for covered LaLiga fixtures. Expected points use their means and the role chances. The game also carries `modelVersion`, `startPoint` and `subPoint` for the separate accuracy target of landing within seven.
+[Sofix v1](../plans/sofix-v1.md) uses distinct starter and substitute distributions for covered LaLiga fixtures; since 13 Nov 2026 PL, Bundesliga, Ligue 1, CL, EL and Conference have their own refits (`artifacts/sofix_v1/<code>.json.gz`, version `Sofix v1 <code>`, his games in that competition only, the starter's point from trees fitted on ordinary games: [evidence](../plans/competitions-xscore-evidence.md)), answering only locks after their `trainedThrough` and only where the board gives the game's numbers; otherwise the earlier per-competition formula. Expected points use their means and the role chances. The game also carries `modelVersion` (the model's own version), `startPoint` and `subPoint` for the separate accuracy target of landing within seven.
 
 **Exceptions/limits:** in a double GW, per-game chances preserve each source and game; chance of any appearance combines misses, while the week-level start display follows the first game. The score includes a best-of-two adjustment, not a sum of two scores. Each game also carries its own expectation and start score (`game_x`, `game_start`, published as game `x`/`start`) with no best-of-two lift: the overlay shows them for one-game cards (Pro, Arcade); plans and Classic keep the week number. No eligible game means no forecast. No known game IDs uses the legacy week-level path; do not imply equivalent per-game evidence.
 
@@ -743,6 +743,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/audit-strategies-weekly.md` | [open](../plans/audit-strategies-weekly.md) |
 | document (check authority) | `plans/cacheable-pages.md` | [open](../plans/cacheable-pages.md) |
 | document (check authority) | `plans/card-and-refresh-consistency.md` | [open](../plans/card-and-refresh-consistency.md) |
+| document (check authority) | `plans/competitions-xscore-evidence.md` | [open](../plans/competitions-xscore-evidence.md) |
 | document (check authority) | `plans/conference-prospective.md` | [open](../plans/conference-prospective.md) |
 | document (check authority) | `plans/conference-recovery.md` | [open](../plans/conference-recovery.md) |
 | document (check authority) | `plans/conference-release.md` | [open](../plans/conference-release.md) |
@@ -899,14 +900,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-12",
-        "note": "Inspected the forecast callback and raw score record passed through the planner; versioned conditional points are audit evidence only.",
+        "date": "2026-11-13",
+        "note": "13 Nov 2026: Sofix v1 refits for PL, BL1, FL1, CL, EL, CONF (foreign_scores v1 hook, per-model version recorded in publish, refresh replans on a new competition artifact); LaLiga path unchanged; checked with unit tests and a run on local real blocks, not on a live refresh",
         "files": {
-          "backend/app/sorare/publish.py": "259339d7e1a81dd8f96bb15b6c1440b09d36c3f5f23394b020aab2c1421ab149",
+          "backend/app/sorare/publish.py": "76402106558ee93133896deeeff7cb9d4e5265566e5512718d4cc2bfb8df4a60",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "8962f2ea1ca3b8ace7a3fab93e4a0d9adfa18a9845df13d8b12c4584d52b974b",
+          "backend/app/jobs/sorare.py": "de5530aa0a261243a9048857a246b7c36968eed0cb85c144d4ac6e74f99c50c8",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "8fbe107bd6eb5f1ae45d19128a1b759d690dbe2decf3c1fd99d0a5a90f715241"
         }
@@ -964,13 +965,13 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-12",
-        "note": "Compared starter and substitute means, score-window points, pre-lock history and the existing availability source order.",
+        "date": "2026-11-13",
+        "note": "13 Nov 2026: Sofix v1 refits for PL, BL1, FL1, CL, EL, CONF (foreign_scores v1 hook, per-model version recorded in publish, refresh replans on a new competition artifact); LaLiga path unchanged; checked with unit tests and a run on local real blocks, not on a live refresh",
         "files": {
           "backend/app/sorare/forecast.py": "7eff5d487fd1df31f5507bd43538a27ff37ea60ba758af671c95fc155bfa0edf",
-          "backend/app/sorare/sofix_v1.py": "b75ee23862da7cc4604670d0f91a3dbf200e44d1e974a62d4151c28e3e4c8180",
+          "backend/app/sorare/sofix_v1.py": "27fae7db19d109eb40a05f0b17bc5bf7d04667768006fd2214ac0d67da250869",
           "backend/tests/test_sorare_ff_forecast.py": "cbc230010a5956ec2250c97434b7357451d11abbfa1200dc6f510f3f44b1f12a",
-          "backend/tests/test_sofix_v1.py": "d452e532d794740f6d647b8f0eb1eea0e06d4683ca9f241481cde1ad16d1c525"
+          "backend/tests/test_sofix_v1.py": "1c2a8bce02873e36534895f96af47d6a3dbda065c5a13d4b65810f56b8cd94ad"
         }
       }
     },
@@ -1032,10 +1033,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-12",
-        "note": "Inspected raw means, immutable versioned point forecasts and the planning correction boundary.",
+        "date": "2026-11-13",
+        "note": "13 Nov 2026: Sofix v1 refits for PL, BL1, FL1, CL, EL, CONF (foreign_scores v1 hook, per-model version recorded in publish, refresh replans on a new competition artifact); LaLiga path unchanged; checked with unit tests and a run on local real blocks, not on a live refresh",
         "files": {
-          "backend/app/sorare/publish.py": "259339d7e1a81dd8f96bb15b6c1440b09d36c3f5f23394b020aab2c1421ab149",
+          "backend/app/sorare/publish.py": "76402106558ee93133896deeeff7cb9d4e5265566e5512718d4cc2bfb8df4a60",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "8fbe107bd6eb5f1ae45d19128a1b759d690dbe2decf3c1fd99d0a5a90f715241"
@@ -1515,12 +1516,12 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "schedule-clock-001",
       "status": "implemented",
       "review": {
-        "date": "2026-11-12",
-        "note": "Inspected the existing automatic model-release exception: it includes the frozen Sofix v1 artifact; the timetable, near-lock dispatch and ordinary cooldown are untouched.",
+        "date": "2026-11-13",
+        "note": "13 Nov 2026: Sofix v1 refits for PL, BL1, FL1, CL, EL, CONF (foreign_scores v1 hook, per-model version recorded in publish, refresh replans on a new competition artifact); LaLiga path unchanged; checked with unit tests and a run on local real blocks, not on a live refresh",
         "files": {
           "clock/src/clock.js": "d1c9ca65b5e06c59a38d9dbacbdce72d3e3bbd2e5faafeb0db581727d297ebca",
           "clock/timetable.json": "86241a108823e509f86904ba9005f21cb0307f369871b6ee1cfccd5960a54eca",
-          ".github/workflows/refresh.yml": "933947dfee6f7b8eeb0cb8a8605aedae88a3835b86b79f79c9a1d191f0bb206f",
+          ".github/workflows/refresh.yml": "704f40a3d6b7086c427b03946f608de536cede073348f79e1908e6e00ce76c7d",
           "clock/test/clock.test.js": "642c93350966e1b89b1080e6602804e44e3b92a23d3d1070823eda6c36e3184c"
         }
       }
@@ -1564,14 +1565,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-12",
-        "note": "Inspected the pre-lock timestamp guard, settled records, starter and substitute denominators, and previous-model pairs.",
+        "date": "2026-11-13",
+        "note": "13 Nov 2026: Sofix v1 refits for PL, BL1, FL1, CL, EL, CONF (foreign_scores v1 hook, per-model version recorded in publish, refresh replans on a new competition artifact); LaLiga path unchanged; checked with unit tests and a run on local real blocks, not on a live refresh",
         "files": {
           "backend/app/sorare/player_audit.py": "3436b64cf197d937aefbd51a213af0e28c396ebab23ff8b883e52091bea89427",
           "backend/app/sorare/audit.py": "990ba4ee4989da1185ce3a61f2f53bdfc13047b977dd91804fb335aa8b6beb03",
           "backend/app/sorare/versus.py": "ad0be0ef1df498aa9f6a842b63d36bd25e39e86a1f0c86d42d993938660a6b09",
           "backend/tests/test_player_audit.py": "2712237e9be35154a26790e59acceaeeb6c921ca0fd1b5990f0f47f7e42f2a63",
-          "backend/tests/test_sofix_v1.py": "d452e532d794740f6d647b8f0eb1eea0e06d4683ca9f241481cde1ad16d1c525"
+          "backend/tests/test_sofix_v1.py": "1c2a8bce02873e36534895f96af47d6a3dbda065c5a13d4b65810f56b8cd94ad"
         }
       }
     },

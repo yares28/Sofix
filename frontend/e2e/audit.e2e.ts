@@ -19,6 +19,11 @@ test("Sofix v1 shows the starter and substitute replays apart from live results"
   await expect(model.getByRole("heading", { name: "Played substitutes" })).toBeVisible();
   await expect(model.getByText("1,506 / 937")).toBeVisible();
   await expect(model.getByText("Awaiting results")).toHaveCount(2);
+  await model.getByRole("button", { name: "Premier League" }).click();
+  const pl = page.getByRole("region", { name: "Sofix v1 · Premier League xScore" });
+  await expect(pl.getByRole("button", { name: "Premier League" })).toHaveAttribute("aria-pressed", "true");
+  await expect(pl.getByText(/^2025\/26 replay · /)).toHaveCount(2);
+  await expect(pl.getByText("Awaiting results")).toHaveCount(2);
 });
 
 test("player comparisons cover every saved GW, an all-time summary and URL-restored history; analysis comes first", async ({ page, request, context }) => {

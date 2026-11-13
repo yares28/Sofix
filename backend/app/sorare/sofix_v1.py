@@ -16,19 +16,21 @@ from app.sorare.keeper import LALIGA, GameNumbers, Outcome
 
 VERSION = "Sofix v1"
 ARTIFACT = Path(__file__).resolve().parents[2] / "artifacts" / "sofix_v1.json.gz"
+# The other competitions' models, one file a competition (plans/competitions-xscore-evidence.md): `<code>.json.gz`
+COMPETITION_ARTIFACTS = ARTIFACT.parent / "sofix_v1"
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 WINDOW = timedelta(days=70)
 DELAY = timedelta(hours=48)
 POINTS = np.arange(101)
 
 
-def eligible(past: list[dict[str, Any]], lock: datetime) -> list[dict[str, Any]]:
-    """The same history window and settlement buffer in training and in the job."""
+def eligible(past: list[dict[str, Any]], lock: datetime, competition: str = LALIGA) -> list[dict[str, Any]]:
+    """The same history window and settlement buffer in training and in the job, his games in `competition` only."""
     first, last = lock - WINDOW, lock - DELAY
     found = []
     for game in past:
         if (
-            game.get("competition") == LALIGA
+            game.get("competition") == competition
             and game.get("played") is True
             and type(game.get("started")) is bool
             and game.get("score") is not None
@@ -71,14 +73,20 @@ class GameScore(Outcome):
     point: float
     sub: Score
     previous: float | None
+    version: str = VERSION
+
+
+def best_point(mass: np.ndarray) -> float:
+    """The whole score with the most of the distribution within seven points either side (ties: nearest the mode)."""
+    windows = np.convolve(np.pad(mass, 7), np.ones(15), mode="valid")
+    tied = np.flatnonzero(np.isclose(windows, windows.max(), atol=1e-10, rtol=0))
+    return float(tied[np.argmin(np.abs(tied - mass.argmax()))])
 
 
 def from_distribution(hist: np.ndarray, cs: float) -> Score:
     mass = hist.sum(axis=0)
     mean = float(np.dot(mass, POINTS))
-    windows = np.convolve(np.pad(mass, 7), np.ones(15), mode="valid")
-    tied = np.flatnonzero(np.isclose(windows, windows.max(), atol=1e-10, rtol=0))
-    point = float(tied[np.argmin(np.abs(tied - mass.argmax()))])
+    point = best_point(mass)
     p = float(hist[1].sum())
     plain = float(hist[0] @ POINTS / (1 - p)) if p < 1 - 1e-9 else mean
     decisive = float(hist[1] @ POINTS / p) if p > 1e-9 else mean
@@ -89,13 +97,23 @@ def from_distribution(hist: np.ndarray, cs: float) -> Score:
 
 
 class Model:
-    def __init__(self, trees: dict[str, list[list[list[Any]]]], trained_through: datetime | None = None) -> None:
+    def __init__(
+        self,
+        trees: dict[str, list[list[list[Any]]]],
+        trained_through: datetime | None = None,
+        *,
+        version: str = VERSION,
+        competition: str = LALIGA,
+    ) -> None:
+        """`trees` holds "start" and "bench"; an optional "point" set (starts fitted on ordinary games only) picks the starter's
+        within-seven point while "start" keeps his expected score and decisive chance."""
         self.trees = trees
         self.trained_through = trained_through
+        self.version = version
+        self.competition = competition
 
-    def predict(self, pos: str, home: bool, numbers: GameNumbers, past: list[dict[str, Any]], *, role: str) -> Score:
-        row = features(pos, home, numbers, past)
-        trees = self.trees[role]
+    @staticmethod
+    def _hist(trees: list[list[list[Any]]], row: list[float]) -> np.ndarray:
         hist = np.zeros(202)
         for tree in trees:
             index = 0
@@ -105,7 +123,14 @@ class Model:
             bins, counts = tree[index]
             weights = np.asarray(counts, dtype=float)
             hist[bins] += weights / weights.sum()
-        return from_distribution(hist.reshape(2, 101) / len(trees), numbers.cs)
+        return hist.reshape(2, 101) / len(trees)
+
+    def predict(self, pos: str, home: bool, numbers: GameNumbers, past: list[dict[str, Any]], *, role: str) -> Score:
+        row = features(pos, home, numbers, past)
+        score = from_distribution(self._hist(self.trees[role], row), numbers.cs)
+        if role == "start" and self.trees.get("point"):
+            return Score(best_point(self._hist(self.trees["point"], row).sum(axis=0)), score.outcome)
+        return score
 
     def game(
         self, pos: str, home: bool, numbers: GameNumbers, past: list[dict[str, Any]], previous: Outcome | None
@@ -113,7 +138,11 @@ class Model:
         start = self.predict(pos, home, numbers, past, role="start")
         sub = self.predict(pos, home, numbers, past, role="bench")
         return GameScore(
-            **vars(start.outcome), point=start.point, sub=sub, previous=previous.start if previous else None
+            **vars(start.outcome),
+            point=start.point,
+            sub=sub,
+            previous=previous.start if previous else None,
+            version=self.version,
         )
 
 
@@ -126,3 +155,21 @@ def load() -> Model | None:
     if data["version"] != VERSION:
         raise ValueError("Unexpected LaLiga xScore artifact version")
     return Model(data["trees"], datetime.fromisoformat(data["trainedThrough"]))
+
+
+@lru_cache(maxsize=8)
+def load_competition(code: str) -> Model | None:
+    """Another competition's model (`COMPETITION_ARTIFACTS/<code>.json.gz`), or None when it has none."""
+    path = COMPETITION_ARTIFACTS / f"{code}.json.gz"
+    if not path.is_file():
+        return None
+    with gzip.open(path, "rt", encoding="utf-8") as source:
+        data = json.load(source)
+    if data.get("code") != code or not str(data.get("version", "")).startswith(VERSION):
+        raise ValueError(f"Unexpected {code} xScore artifact")
+    return Model(
+        data["trees"],
+        datetime.fromisoformat(data["trainedThrough"]),
+        version=data["version"],
+        competition=data["competition"],
+    )

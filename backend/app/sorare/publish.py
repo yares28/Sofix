@@ -214,9 +214,7 @@ def _game_numbers(games: list[dict[str, Any]], forecast: Forecast | None) -> dic
             "x": x,
             "start": start,
             **(
-                {"modelVersion": sofix_v1.VERSION, "startPoint": model.point, "subPoint": model.sub.point}
-                if model
-                else {}
+                {"modelVersion": model.version, "startPoint": model.point, "subPoint": model.sub.point} if model else {}
             ),
         }
         for i, (g, x, start) in enumerate(zip(ordered, forecast.game_x, forecast.game_start, strict=True))
@@ -1998,7 +1996,7 @@ def score_record(
                     "sofixOn": round(versioned.sub.outcome.start, 1) if versioned else on_score,
                     **(
                         {
-                            "modelVersion": sofix_v1.VERSION,
+                            "modelVersion": versioned.version,
                             "sofixPoint": versioned.point,
                             "sofixOnPoint": versioned.sub.point,
                             "previousSofix": round(versioned.previous, 1) if versioned.previous is not None else None,

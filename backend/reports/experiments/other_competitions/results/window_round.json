@@ -1,0 +1,940 @@
+{
+ "phases": [
+  {
+   "from": "2025-07-01",
+   "to": "2026-07-01",
+   "competitions": {
+    "CL": {
+     "trainCases": 9626,
+     "old": {
+      "start": {
+       "cases": 4158,
+       "hits": 1095,
+       "rate": 0.2633,
+       "mae": 15.07,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 1095,
+       "bigMisses": 706
+      },
+      "bench": {
+       "cases": 1692,
+       "hits": 1004,
+       "rate": 0.5934,
+       "mae": 8.04,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 1004,
+       "bigMisses": 83
+      }
+     },
+     "plain": {
+      "start": {
+       "cases": 4158,
+       "hits": 1436,
+       "rate": 0.3454,
+       "mae": 15.95,
+       "gained": 888,
+       "spoiled": 547,
+       "netCI95": [
+        222,
+        471
+       ],
+       "meanHits": 1390,
+       "bigMisses": 989
+      },
+      "bench": {
+       "cases": 1692,
+       "hits": 1299,
+       "rate": 0.7677,
+       "mae": 6.45,
+       "gained": 377,
+       "spoiled": 82,
+       "netCI95": [
+        191,
+        398
+       ],
+       "meanHits": 1204,
+       "bigMisses": 124
+      }
+     },
+     "plain_w150": {
+      "start": {
+       "cases": 4158,
+       "hits": 1434,
+       "rate": 0.3449,
+       "mae": 15.91,
+       "gained": 887,
+       "spoiled": 548,
+       "netCI95": [
+        209,
+        477
+       ],
+       "meanHits": 1383,
+       "bigMisses": 975
+      },
+      "bench": {
+       "cases": 1692,
+       "hits": 1298,
+       "rate": 0.7671,
+       "mae": 6.44,
+       "gained": 373,
+       "spoiled": 79,
+       "netCI95": [
+        191,
+        394
+       ],
+       "meanHits": 1208,
+       "bigMisses": 123
+      }
+     },
+     "plain_w365": {
+      "start": {
+       "cases": 4158,
+       "hits": 1422,
+       "rate": 0.342,
+       "mae": 15.85,
+       "gained": 881,
+       "spoiled": 554,
+       "netCI95": [
+        205,
+        461
+       ],
+       "meanHits": 1398,
+       "bigMisses": 970
+      },
+      "bench": {
+       "cases": 1692,
+       "hits": 1299,
+       "rate": 0.7677,
+       "mae": 6.44,
+       "gained": 376,
+       "spoiled": 81,
+       "netCI95": [
+        195,
+        395
+       ],
+       "meanHits": 1206,
+       "bigMisses": 121
+      }
+     },
+     "plain_all_hist_w150": {
+      "start": {
+       "cases": 4158,
+       "hits": 1440,
+       "rate": 0.3463,
+       "mae": 15.86,
+       "gained": 884,
+       "spoiled": 539,
+       "netCI95": [
+        208,
+        494
+       ],
+       "meanHits": 1378,
+       "bigMisses": 981
+      },
+      "bench": {
+       "cases": 1692,
+       "hits": 1299,
+       "rate": 0.7677,
+       "mae": 6.42,
+       "gained": 375,
+       "spoiled": 80,
+       "netCI95": [
+        196,
+        395
+       ],
+       "meanHits": 1217,
+       "bigMisses": 123
+      }
+     },
+     "noNumbers": 0
+    },
+    "EL": {
+     "trainCases": 10229,
+     "old": {
+      "start": {
+       "cases": 4158,
+       "hits": 1134,
+       "rate": 0.2727,
+       "mae": 14.55,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 1134,
+       "bigMisses": 625
+      },
+      "bench": {
+       "cases": 1741,
+       "hits": 1068,
+       "rate": 0.6134,
+       "mae": 7.58,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 1068,
+       "bigMisses": 70
+      }
+     },
+     "plain": {
+      "start": {
+       "cases": 4158,
+       "hits": 1548,
+       "rate": 0.3723,
+       "mae": 15.17,
+       "gained": 1018,
+       "spoiled": 604,
+       "netCI95": [
+        295,
+        538
+       ],
+       "meanHits": 1504,
+       "bigMisses": 918
+      },
+      "bench": {
+       "cases": 1741,
+       "hits": 1355,
+       "rate": 0.7783,
+       "mae": 6.08,
+       "gained": 377,
+       "spoiled": 90,
+       "netCI95": [
+        180,
+        392
+       ],
+       "meanHits": 1264,
+       "bigMisses": 109
+      }
+     },
+     "plain_w150": {
+      "start": {
+       "cases": 4158,
+       "hits": 1530,
+       "rate": 0.368,
+       "mae": 15.19,
+       "gained": 1009,
+       "spoiled": 613,
+       "netCI95": [
+        284,
+        514
+       ],
+       "meanHits": 1500,
+       "bigMisses": 935
+      },
+      "bench": {
+       "cases": 1741,
+       "hits": 1362,
+       "rate": 0.7823,
+       "mae": 6.07,
+       "gained": 377,
+       "spoiled": 83,
+       "netCI95": [
+        185,
+        402
+       ],
+       "meanHits": 1268,
+       "bigMisses": 108
+      }
+     },
+     "plain_w365": {
+      "start": {
+       "cases": 4158,
+       "hits": 1539,
+       "rate": 0.3701,
+       "mae": 15.17,
+       "gained": 1006,
+       "spoiled": 601,
+       "netCI95": [
+        291,
+        521
+       ],
+       "meanHits": 1494,
+       "bigMisses": 927
+      },
+      "bench": {
+       "cases": 1741,
+       "hits": 1359,
+       "rate": 0.7806,
+       "mae": 6.1,
+       "gained": 379,
+       "spoiled": 88,
+       "netCI95": [
+        186,
+        393
+       ],
+       "meanHits": 1270,
+       "bigMisses": 110
+      }
+     },
+     "plain_all_hist_w150": {
+      "start": {
+       "cases": 4158,
+       "hits": 1538,
+       "rate": 0.3699,
+       "mae": 15.23,
+       "gained": 1015,
+       "spoiled": 611,
+       "netCI95": [
+        293,
+        522
+       ],
+       "meanHits": 1512,
+       "bigMisses": 927
+      },
+      "bench": {
+       "cases": 1741,
+       "hits": 1361,
+       "rate": 0.7817,
+       "mae": 6.09,
+       "gained": 376,
+       "spoiled": 83,
+       "netCI95": [
+        188,
+        396
+       ],
+       "meanHits": 1269,
+       "bigMisses": 108
+      }
+     },
+     "noNumbers": 64
+    },
+    "PL": {
+     "trainCases": 22889,
+     "old": {
+      "start": {
+       "cases": 8360,
+       "hits": 2316,
+       "rate": 0.277,
+       "mae": 14.09,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 2316,
+       "bigMisses": 1140
+      },
+      "bench": {
+       "cases": 3132,
+       "hits": 1950,
+       "rate": 0.6226,
+       "mae": 7.28,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 1950,
+       "bigMisses": 109
+      }
+     },
+     "plain": {
+      "start": {
+       "cases": 8360,
+       "hits": 3247,
+       "rate": 0.3884,
+       "mae": 14.34,
+       "gained": 1926,
+       "spoiled": 995,
+       "netCI95": [
+        803,
+        1077
+       ],
+       "meanHits": 3137,
+       "bigMisses": 1661
+      },
+      "bench": {
+       "cases": 3132,
+       "hits": 2475,
+       "rate": 0.7902,
+       "mae": 5.82,
+       "gained": 664,
+       "spoiled": 139,
+       "netCI95": [
+        453,
+        594
+       ],
+       "meanHits": 2296,
+       "bigMisses": 175
+      }
+     },
+     "plain_w150": {
+      "start": {
+       "cases": 8360,
+       "hits": 3270,
+       "rate": 0.3911,
+       "mae": 14.34,
+       "gained": 1936,
+       "spoiled": 982,
+       "netCI95": [
+        832,
+        1088
+       ],
+       "meanHits": 3150,
+       "bigMisses": 1652
+      },
+      "bench": {
+       "cases": 3132,
+       "hits": 2475,
+       "rate": 0.7902,
+       "mae": 5.83,
+       "gained": 662,
+       "spoiled": 137,
+       "netCI95": [
+        453,
+        596
+       ],
+       "meanHits": 2300,
+       "bigMisses": 178
+      }
+     },
+     "plain_w365": {
+      "start": {
+       "cases": 8360,
+       "hits": 3268,
+       "rate": 0.3909,
+       "mae": 14.32,
+       "gained": 1947,
+       "spoiled": 995,
+       "netCI95": [
+        830,
+        1090
+       ],
+       "meanHits": 3144,
+       "bigMisses": 1635
+      },
+      "bench": {
+       "cases": 3132,
+       "hits": 2482,
+       "rate": 0.7925,
+       "mae": 5.83,
+       "gained": 660,
+       "spoiled": 128,
+       "netCI95": [
+        458,
+        602
+       ],
+       "meanHits": 2291,
+       "bigMisses": 177
+      }
+     },
+     "plain_all_hist_w150": {
+      "start": {
+       "cases": 8360,
+       "hits": 3274,
+       "rate": 0.3916,
+       "mae": 14.31,
+       "gained": 1957,
+       "spoiled": 999,
+       "netCI95": [
+        833,
+        1095
+       ],
+       "meanHits": 3145,
+       "bigMisses": 1649
+      },
+      "bench": {
+       "cases": 3132,
+       "hits": 2478,
+       "rate": 0.7912,
+       "mae": 5.83,
+       "gained": 660,
+       "spoiled": 132,
+       "netCI95": [
+        454,
+        599
+       ],
+       "meanHits": 2286,
+       "bigMisses": 176
+      }
+     },
+     "noNumbers": 0
+    }
+   }
+  },
+  {
+   "from": "2026-07-01",
+   "to": "2027-01-01",
+   "competitions": {
+    "CL": {
+     "trainCases": 15476,
+     "old": {
+      "start": {
+       "cases": 1584,
+       "hits": 417,
+       "rate": 0.2633,
+       "mae": 15.24,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 417,
+       "bigMisses": 293
+      },
+      "bench": {
+       "cases": 675,
+       "hits": 374,
+       "rate": 0.5541,
+       "mae": 9.0,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 374,
+       "bigMisses": 43
+      }
+     },
+     "plain": {
+      "start": {
+       "cases": 1584,
+       "hits": 543,
+       "rate": 0.3428,
+       "mae": 16.4,
+       "gained": 312,
+       "spoiled": 186,
+       "netCI95": [
+        92,
+        167
+       ],
+       "meanHits": 548,
+       "bigMisses": 384
+      },
+      "bench": {
+       "cases": 675,
+       "hits": 483,
+       "rate": 0.7156,
+       "mae": 7.46,
+       "gained": 144,
+       "spoiled": 35,
+       "netCI95": [
+        92,
+        126
+       ],
+       "meanHits": 465,
+       "bigMisses": 68
+      }
+     },
+     "plain_w150": {
+      "start": {
+       "cases": 1584,
+       "hits": 546,
+       "rate": 0.3447,
+       "mae": 16.46,
+       "gained": 314,
+       "spoiled": 185,
+       "netCI95": [
+        82,
+        175
+       ],
+       "meanHits": 559,
+       "bigMisses": 397
+      },
+      "bench": {
+       "cases": 675,
+       "hits": 483,
+       "rate": 0.7156,
+       "mae": 7.44,
+       "gained": 147,
+       "spoiled": 38,
+       "netCI95": [
+        92,
+        129
+       ],
+       "meanHits": 460,
+       "bigMisses": 67
+      }
+     },
+     "plain_w365": {
+      "start": {
+       "cases": 1584,
+       "hits": 556,
+       "rate": 0.351,
+       "mae": 16.34,
+       "gained": 322,
+       "spoiled": 183,
+       "netCI95": [
+        94,
+        177
+       ],
+       "meanHits": 560,
+       "bigMisses": 386
+      },
+      "bench": {
+       "cases": 675,
+       "hits": 485,
+       "rate": 0.7185,
+       "mae": 7.45,
+       "gained": 147,
+       "spoiled": 36,
+       "netCI95": [
+        96,
+        130
+       ],
+       "meanHits": 457,
+       "bigMisses": 68
+      }
+     },
+     "plain_all_hist_w150": {
+      "start": {
+       "cases": 1584,
+       "hits": 552,
+       "rate": 0.3485,
+       "mae": 16.32,
+       "gained": 316,
+       "spoiled": 181,
+       "netCI95": [
+        88,
+        181
+       ],
+       "meanHits": 562,
+       "bigMisses": 390
+      },
+      "bench": {
+       "cases": 675,
+       "hits": 490,
+       "rate": 0.7259,
+       "mae": 7.4,
+       "gained": 148,
+       "spoiled": 32,
+       "netCI95": [
+        101,
+        135
+       ],
+       "meanHits": 457,
+       "bigMisses": 68
+      }
+     },
+     "noNumbers": 64
+    },
+    "EL": {
+     "trainCases": 16128,
+     "old": {
+      "start": {
+       "cases": 1584,
+       "hits": 478,
+       "rate": 0.3018,
+       "mae": 14.42,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 478,
+       "bigMisses": 256
+      },
+      "bench": {
+       "cases": 689,
+       "hits": 389,
+       "rate": 0.5646,
+       "mae": 8.9,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 389,
+       "bigMisses": 43
+      }
+     },
+     "plain": {
+      "start": {
+       "cases": 1584,
+       "hits": 589,
+       "rate": 0.3718,
+       "mae": 15.14,
+       "gained": 351,
+       "spoiled": 240,
+       "netCI95": [
+        96,
+        126
+       ],
+       "meanHits": 600,
+       "bigMisses": 350
+      },
+      "bench": {
+       "cases": 689,
+       "hits": 493,
+       "rate": 0.7155,
+       "mae": 7.45,
+       "gained": 147,
+       "spoiled": 43,
+       "netCI95": [
+        80,
+        132
+       ],
+       "meanHits": 474,
+       "bigMisses": 72
+      }
+     },
+     "plain_w150": {
+      "start": {
+       "cases": 1584,
+       "hits": 589,
+       "rate": 0.3718,
+       "mae": 15.17,
+       "gained": 358,
+       "spoiled": 247,
+       "netCI95": [
+        98,
+        125
+       ],
+       "meanHits": 601,
+       "bigMisses": 353
+      },
+      "bench": {
+       "cases": 689,
+       "hits": 494,
+       "rate": 0.717,
+       "mae": 7.46,
+       "gained": 148,
+       "spoiled": 43,
+       "netCI95": [
+        80,
+        135
+       ],
+       "meanHits": 478,
+       "bigMisses": 71
+      }
+     },
+     "plain_w365": {
+      "start": {
+       "cases": 1584,
+       "hits": 581,
+       "rate": 0.3668,
+       "mae": 15.24,
+       "gained": 358,
+       "spoiled": 255,
+       "netCI95": [
+        86,
+        120
+       ],
+       "meanHits": 604,
+       "bigMisses": 353
+      },
+      "bench": {
+       "cases": 689,
+       "hits": 493,
+       "rate": 0.7155,
+       "mae": 7.45,
+       "gained": 147,
+       "spoiled": 43,
+       "netCI95": [
+        77,
+        137
+       ],
+       "meanHits": 475,
+       "bigMisses": 71
+      }
+     },
+     "plain_all_hist_w150": {
+      "start": {
+       "cases": 1584,
+       "hits": 587,
+       "rate": 0.3706,
+       "mae": 15.12,
+       "gained": 358,
+       "spoiled": 249,
+       "netCI95": [
+        98,
+        121
+       ],
+       "meanHits": 608,
+       "bigMisses": 353
+      },
+      "bench": {
+       "cases": 689,
+       "hits": 493,
+       "rate": 0.7155,
+       "mae": 7.46,
+       "gained": 146,
+       "spoiled": 42,
+       "netCI95": [
+        76,
+        138
+       ],
+       "meanHits": 473,
+       "bigMisses": 69
+      }
+     },
+     "noNumbers": 128
+    },
+    "PL": {
+     "trainCases": 34381,
+     "old": {
+      "start": {
+       "cases": 2200,
+       "hits": 613,
+       "rate": 0.2786,
+       "mae": 14.49,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 613,
+       "bigMisses": 336
+      },
+      "bench": {
+       "cases": 884,
+       "hits": 563,
+       "rate": 0.6369,
+       "mae": 7.16,
+       "gained": 0,
+       "spoiled": 0,
+       "netCI95": [
+        0,
+        0
+       ],
+       "meanHits": 563,
+       "bigMisses": 26
+      }
+     },
+     "plain": {
+      "start": {
+       "cases": 2200,
+       "hits": 794,
+       "rate": 0.3609,
+       "mae": 15.05,
+       "gained": 471,
+       "spoiled": 290,
+       "netCI95": [
+        142,
+        220
+       ],
+       "meanHits": 761,
+       "bigMisses": 467
+      },
+      "bench": {
+       "cases": 884,
+       "hits": 704,
+       "rate": 0.7964,
+       "mae": 5.68,
+       "gained": 177,
+       "spoiled": 36,
+       "netCI95": [
+        104,
+        187
+       ],
+       "meanHits": 673,
+       "bigMisses": 45
+      }
+     },
+     "plain_w150": {
+      "start": {
+       "cases": 2200,
+       "hits": 791,
+       "rate": 0.3595,
+       "mae": 15.07,
+       "gained": 467,
+       "spoiled": 289,
+       "netCI95": [
+        136,
+        220
+       ],
+       "meanHits": 772,
+       "bigMisses": 473
+      },
+      "bench": {
+       "cases": 884,
+       "hits": 701,
+       "rate": 0.793,
+       "mae": 5.69,
+       "gained": 174,
+       "spoiled": 36,
+       "netCI95": [
+        101,
+        181
+       ],
+       "meanHits": 663,
+       "bigMisses": 46
+      }
+     },
+     "plain_w365": {
+      "start": {
+       "cases": 2200,
+       "hits": 779,
+       "rate": 0.3541,
+       "mae": 15.05,
+       "gained": 459,
+       "spoiled": 293,
+       "netCI95": [
+        125,
+        207
+       ],
+       "meanHits": 776,
+       "bigMisses": 471
+      },
+      "bench": {
+       "cases": 884,
+       "hits": 702,
+       "rate": 0.7941,
+       "mae": 5.69,
+       "gained": 174,
+       "spoiled": 35,
+       "netCI95": [
+        102,
+        183
+       ],
+       "meanHits": 671,
+       "bigMisses": 44
+      }
+     },
+     "plain_all_hist_w150": {
+      "start": {
+       "cases": 2200,
+       "hits": 787,
+       "rate": 0.3577,
+       "mae": 15.03,
+       "gained": 465,
+       "spoiled": 291,
+       "netCI95": [
+        135,
+        215
+       ],
+       "meanHits": 781,
+       "bigMisses": 463
+      },
+      "bench": {
+       "cases": 884,
+       "hits": 704,
+       "rate": 0.7964,
+       "mae": 5.69,
+       "gained": 174,
+       "spoiled": 33,
+       "netCI95": [
+        106,
+        182
+       ],
+       "meanHits": 668,
+       "bigMisses": 46
+      }
+     },
+     "noNumbers": 0
+    }
+   }
+  }
+ ]
+}

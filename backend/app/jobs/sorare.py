@@ -733,6 +733,7 @@ def run(
             european_games=(european_state or {}).get("games")
             if (european_state or {}).get("complete") is True
             else None,
+            v1={c: m for c in foreign_scores.COMPETITIONS if (m := sofix_v1.load_competition(c)) is not None},
         ),
         None,
     )

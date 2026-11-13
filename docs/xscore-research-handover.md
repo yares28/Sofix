@@ -11,6 +11,8 @@ Checkpoint: 12 November 2026. The independent research target remains open. Rese
 
 ## Next attempt: start here (13 Nov 2026)
 
+**Other competitions:** PL, Bundesliga, Ligue 1, CL, EL and Conference have their own Sofix v1 refits since 13 Nov 2026, with every test (C1-C9) in [competitions-xscore-evidence.md](../plans/competitions-xscore-evidence.md). The LaLiga steps below are unchanged.
+
 1. **[LaLiga accuracy evidence](../plans/laliga-accuracy-evidence.md)**: tests 1-39 of 12-13 Nov, each with its numbers and verdict.
    In short: decisive actions cause 37% of starter misses; a decisive-chance model built from the match outlook, the
    player's record, the opponent's record by position and the official eleven ranks players (AUC 0.65-0.68) but switching to

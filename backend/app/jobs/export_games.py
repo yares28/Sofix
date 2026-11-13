@@ -41,10 +41,10 @@ PAGE = 35  # games per page: 50 is over the keyless complexity limit (557 of 500
 COOL_DOWN = 75.0  # seconds to wait after Sorare refuses a question for coming too fast
 
 LIST_QUERY = """
-query($after:String){ football { competition(slug:"__COMPETITION__") { pastGames(first: __PAGE__, after: $after) {
+query($after:String,$slug:String!){ football { competition(slug:$slug) { pastGames(first: __PAGE__, after: $after) {
   nodes { id date statusTyped homeGoals awayGoals homeTeam { slug name } awayTeam { slug name } }
   pageInfo { hasNextPage endCursor } } } } }
-""".replace("__COMPETITION__", COMPETITION).replace("__PAGE__", str(PAGE))
+""".replace("__PAGE__", str(PAGE))
 
 SCORES_QUERY = """
 query($id:ID!){ anyGame(id:$id){ ... on Game {
@@ -67,8 +67,10 @@ NOT_STATS = frozenset({"level_score", "mins_played"})
 __all__ = ["RateLimited", "fetch_game", "fetch_game_list", "refresh_list", "run"]
 
 
-def fetch_game_list(client: Any, since: datetime, known: Collection[str] = ()) -> list[dict[str, Any]]:
-    """Every played LaLiga game from `since` on, oldest first, with its teams and result.
+def fetch_game_list(
+    client: Any, since: datetime, known: Collection[str] = (), competition: str = COMPETITION
+) -> list[dict[str, Any]]:
+    """Every played game of `competition` (LaLiga by default) from `since` on, oldest first, with its teams and result.
 
     Sorare lists them newest first, so the paging stops at the first page that reaches back before `since`, or at the first page
     that holds a game of `known` (a list kept from an earlier run: everything older is in it already). A game that was postponed or
@@ -77,7 +79,7 @@ def fetch_game_list(client: Any, since: datetime, known: Collection[str] = ()) -
     found: list[dict[str, Any]] = []
     after: str | None = None
     while True:
-        page = client.query(LIST_QUERY, {"after": after})["football"]["competition"]["pastGames"]
+        page = client.query(LIST_QUERY, {"after": after, "slug": competition})["football"]["competition"]["pastGames"]
         reached = False
         for node in page.get("nodes") or []:
             if datetime.fromisoformat(node["date"].replace("Z", "+00:00")) < since:
@@ -135,11 +137,11 @@ def _player(node: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def fetch_game(client: Any, game: dict[str, Any]) -> dict[str, Any]:
-    """One game from the list: both elevens and every player's score and stats, two questions to Sorare."""
+def fetch_game(client: Any, game: dict[str, Any], stats: bool = True) -> dict[str, Any]:
+    """One game from the list: both elevens and every player's score and stats, two questions to Sorare (one without `stats`)."""
     scores = client.query(SCORES_QUERY, {"id": game["id"]})["anyGame"]
     players = {node["anyPlayer"]["slug"]: _player(node) for node in scores.get("playerGameScores") or []}
-    detail = client.query(STATS_QUERY, {"id": game["id"]})["anyGame"]
+    detail = client.query(STATS_QUERY, {"id": game["id"]})["anyGame"] if stats else {}
     for node in detail.get("playerGameScores") or []:
         row = players.get(node["anyPlayer"]["slug"])
         if row is None:
@@ -174,7 +176,7 @@ def _load(out: Path) -> list[dict[str, Any]]:
     return kept
 
 
-def refresh_list(client: Any, kept: Path, since: datetime) -> list[dict[str, Any]]:
+def refresh_list(client: Any, kept: Path, since: datetime, competition: str = COMPETITION) -> list[dict[str, Any]]:
     """The played games from `since` on, oldest first, from a list kept between runs: only the newest page or two is asked for,
     unless the kept list does not reach back to `since` (a first run, or an earlier start day), when the whole list is read again."""
     try:
@@ -183,7 +185,9 @@ def refresh_list(client: Any, kept: Path, since: datetime) -> list[dict[str, Any
         listed = []
     oldest = min((game["date"] for game in listed), default=None)
     reaches = oldest is not None and datetime.fromisoformat(oldest.replace("Z", "+00:00")) <= since + timedelta(days=7)
-    found = fetch_game_list(client, since, known={game["id"] for game in listed} if reaches else ())
+    found = fetch_game_list(
+        client, since, known={game["id"] for game in listed} if reaches else (), competition=competition
+    )
     merged = {game["id"]: game for game in [*listed, *found]}
     games = sorted(merged.values(), key=lambda game: game["date"])
     kept.parent.mkdir(parents=True, exist_ok=True)
@@ -201,6 +205,7 @@ def run(
     limit: int | None = None,
     seconds: float | None = None,
     clock: Callable[[], float] = time.monotonic,
+    stats: bool = True,
 ) -> dict[str, Any]:
     """Read each game not already in the file, appending its line at once so a stopped run loses nothing.
 
@@ -222,7 +227,7 @@ def run(
             result["budget"] = True
             break
         try:
-            row = fetch_game(patient, game)
+            row = fetch_game(patient, game, stats)
         except RateLimited:
             logger.warning("export_games: stopped at %s, Sorare is still refusing; run it again later", game["id"])
             result["stoppedAt"] = game["id"]
@@ -246,6 +251,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--since", default=DEFAULT_SINCE.date().isoformat(), help="the first day, YYYY-MM-DD")
     parser.add_argument("--call-pause", type=float, default=2.0, help="seconds between questions to Sorare")
+    parser.add_argument(
+        "--competition", default=COMPETITION, help="a Sorare competition slug (research on other leagues)"
+    )
+    parser.add_argument("--no-stats", action="store_true", help="scores and elevens only: one question a game")
     parser.add_argument("--limit", type=int, default=None, help="read at most this many games (to try it first)")
     parser.add_argument(
         "--seconds", type=float, default=None, help="stop between two games after this long (a scheduled run)"
@@ -255,15 +264,17 @@ def main(argv: list[str] | None = None) -> int:
     kept = args.out.with_name(args.out.stem + "_list.json")
     with SorareClient(pause=args.call_pause) as client:
         try:
-            games = refresh_list(_Patient(client, COOL_DOWN), kept, since)
+            games = refresh_list(_Patient(client, COOL_DOWN), kept, since, args.competition)
         except RateLimited:
             print("Sorare is refusing the list of games; try again later.", file=sys.stderr)
             return 1
         print(
-            f"{len(games)} played LaLiga games since {_iso(since)[:10]}; reading the ones not in {args.out}, newest first"
+            f"{len(games)} played {args.competition} games since {_iso(since)[:10]}; reading the ones not in {args.out}, newest first"
         )
         newest_first = sorted(games, key=lambda game: game["date"], reverse=True)
-        result = run(client, newest_first, args.out, pause=0, limit=args.limit, seconds=args.seconds)
+        result = run(
+            client, newest_first, args.out, pause=0, limit=args.limit, seconds=args.seconds, stats=not args.no_stats
+        )
     print(json.dumps(result))
     return 1 if result.get("stoppedAt") else 0
 

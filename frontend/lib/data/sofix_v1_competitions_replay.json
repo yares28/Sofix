@@ -1,0 +1,133 @@
+{
+  "period": "2025/26",
+  "fittedOn": "2023/24-2024/25",
+  "variant": "plain_small",
+  "competitions": {
+    "PL": {
+      "period": "2025/26",
+      "start": {
+        "cases": 8360,
+        "previousHits": 2316,
+        "hits": 3269,
+        "gained": 1985,
+        "spoiled": 1032,
+        "previousMAE": 14.09,
+        "mae": 14.41
+      },
+      "bench": {
+        "cases": 3132,
+        "previousHits": 1950,
+        "hits": 2475,
+        "gained": 664,
+        "spoiled": 139,
+        "previousMAE": 7.28,
+        "mae": 5.82
+      }
+    },
+    "BL1": {
+      "period": "2025/26",
+      "start": {
+        "cases": 6732,
+        "previousHits": 1848,
+        "hits": 2469,
+        "gained": 1537,
+        "spoiled": 916,
+        "previousMAE": 14.42,
+        "mae": 15.14
+      },
+      "bench": {
+        "cases": 2823,
+        "previousHits": 1684,
+        "hits": 2151,
+        "gained": 591,
+        "spoiled": 124,
+        "previousMAE": 8.04,
+        "mae": 6.57
+      }
+    },
+    "FL1": {
+      "period": "2025/26",
+      "start": {
+        "cases": 6711,
+        "previousHits": 1836,
+        "hits": 2510,
+        "gained": 1514,
+        "spoiled": 840,
+        "previousMAE": 14.45,
+        "mae": 14.78
+      },
+      "bench": {
+        "cases": 2677,
+        "previousHits": 1614,
+        "hits": 2058,
+        "gained": 550,
+        "spoiled": 106,
+        "previousMAE": 7.91,
+        "mae": 6.46
+      }
+    },
+    "CL": {
+      "period": "2025/26",
+      "start": {
+        "cases": 4158,
+        "previousHits": 1095,
+        "hits": 1438,
+        "gained": 897,
+        "spoiled": 554,
+        "previousMAE": 15.07,
+        "mae": 15.99
+      },
+      "bench": {
+        "cases": 1692,
+        "previousHits": 1004,
+        "hits": 1299,
+        "gained": 377,
+        "spoiled": 82,
+        "previousMAE": 8.04,
+        "mae": 6.45
+      }
+    },
+    "EL": {
+      "period": "2025/26",
+      "start": {
+        "cases": 4158,
+        "previousHits": 1134,
+        "hits": 1530,
+        "gained": 1019,
+        "spoiled": 623,
+        "previousMAE": 14.55,
+        "mae": 15.24
+      },
+      "bench": {
+        "cases": 1741,
+        "previousHits": 1068,
+        "hits": 1355,
+        "gained": 377,
+        "spoiled": 90,
+        "previousMAE": 7.58,
+        "mae": 6.08
+      }
+    },
+    "CONF": {
+      "period": "2025/26",
+      "start": {
+        "cases": 3366,
+        "previousHits": 920,
+        "hits": 1268,
+        "gained": 734,
+        "spoiled": 386,
+        "previousMAE": 14.26,
+        "mae": 14.45
+      },
+      "bench": {
+        "cases": 1370,
+        "previousHits": 797,
+        "hits": 1063,
+        "gained": 328,
+        "spoiled": 62,
+        "previousMAE": 7.84,
+        "mae": 6.12
+      }
+    }
+  }
+}

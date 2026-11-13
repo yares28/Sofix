@@ -785,3 +785,8 @@
 @media(prefers-reduced-motion:reduce) { .mo-segment { transition:none; } }
 /* Your season on Audit · Rewards (moved from the Recap, 2 Nov 2026): spaced and shaped like the cards around it. */
 .au .rc-season { margin-top: 22px; padding: 26px 28px; border-radius: 24px; }
+.ax-model-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.ax-model-head .competition-icons { flex: none; }
+.ax-model .ax-grid { animation: ax-swap .22s ease-out; }
+@keyframes ax-swap { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .ax-model .ax-grid { animation: none; } }

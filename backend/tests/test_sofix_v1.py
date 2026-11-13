@@ -99,3 +99,26 @@ def test_expected_points_and_frozen_predictions_are_published_together():
         35,
         sofix_v1.VERSION,
     )
+
+
+def test_competition_artifact_loads_with_its_own_version_and_refuses_another(tmp_path, monkeypatch):
+    import gzip
+    import json
+
+    monkeypatch.setattr(sofix_v1, "COMPETITION_ARTIFACTS", tmp_path)
+    sofix_v1.load_competition.cache_clear()
+    data = {
+        "code": "EL",
+        "competition": "uefa-europa-league",
+        "version": "Sofix v1 EL",
+        "trainedThrough": "2026-11-10T00:00:00+00:00",
+        "trees": {"start": [[[[45], [1]]]], "bench": [[[[35], [1]]]]},
+    }
+    (tmp_path / "EL.json.gz").write_bytes(gzip.compress(json.dumps(data).encode()))
+    (tmp_path / "CL.json.gz").write_bytes(gzip.compress(json.dumps(data).encode()))
+    model = sofix_v1.load_competition("EL")
+    assert (model.version, model.competition) == ("Sofix v1 EL", "uefa-europa-league")
+    assert sofix_v1.load_competition("PL") is None
+    with pytest.raises(ValueError):
+        sofix_v1.load_competition("CL")
+    sofix_v1.load_competition.cache_clear()

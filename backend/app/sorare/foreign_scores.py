@@ -15,7 +15,7 @@ from app.research.league_xscore_identity import club_name
 from app.research.league_xscore_validation import protocol_for, release_reasons
 from app.services.league_fdr import REFERENCE
 from app.services.rating_predictions import model_version
-from app.sorare import keeper, outfield
+from app.sorare import keeper, outfield, sofix_v1
 from app.sorare.model import SORARE_POSITION
 from app.sorare.outfield import SubShape
 from app.sorare.scores import Made, _named
@@ -181,14 +181,37 @@ def scores_for(
     fallback: Any,
     *,
     european_games: dict[str, dict[str, Any]] | None = None,
+    v1: dict[str, sofix_v1.Model] | None = None,
 ) -> Any:
     def one(code: str, game: dict[str, Any], pos: str, past: list[dict[str, Any]], slug: str | None) -> Any:
-        """Sofix's picture of one covered game, or None when it cannot be told."""
-        bundle = models.get(code)
+        """Sofix's picture of one covered game, or None when it cannot be told: the competition's Sofix v1 model when it has
+        one for this lock (plans/competitions-xscore-evidence.md), with the earlier formula's number kept beside it."""
         numbers = find_numbers(code, grids.get(code, {}), game)
-        if bundle is None or numbers is None:
+        if numbers is None:
             return None
         lock = when(game["forecastBefore"])
+        previous = earlier(code, game, pos, past, slug, numbers, lock)
+        model = (v1 or {}).get(code)
+        if model is None or pos not in sofix_v1.POSITIONS:
+            return previous
+        if model.trained_through is not None and model.trained_through >= lock:
+            return previous
+        home = game.get("venue") == "H"
+        return model.game(pos, home, numbers, sofix_v1.eligible(past, lock, model.competition), previous)
+
+    def earlier(
+        code: str,
+        game: dict[str, Any],
+        pos: str,
+        past: list[dict[str, Any]],
+        slug: str | None,
+        numbers: keeper.GameNumbers,
+        lock: Any,
+    ) -> Any:
+        """The competition's validated keeper/outfield formula (the number before Sofix v1)."""
+        bundle = models.get(code)
+        if bundle is None:
+            return None
         if code in {"CL", "EL", "CONF"}:
             from app.research.european_validation import own_before
 

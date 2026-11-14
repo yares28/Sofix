@@ -142,7 +142,7 @@ Use player slug for forecasts, card slug for ownership/allocation, game ID for p
 
 **Scope/status:** publication dependencies of Play pages; required and implemented. **Requires:** none.
 
-**Rule:** Python computes/persists read models in Neon and copies web blocks to private R2. Production pages read R2, keyed by block version/ETag; they do not fall back to Neon on a page view. Local development reads copied blocks, with the mock API used in its applicable test/fallback path. Server writes still use the server-only database connection. Do not generalize the web read rule to jobs: `kept_blocks` has a different mirror/R2/database path.
+**Rule:** Python computes/persists read models in Neon and copies web blocks to private R2. Production pages read R2, keyed by block version/ETag; they do not fall back to Neon on a page view. Local development reads copied blocks, with the mock API used in its applicable test/fallback path. Server writes still use the server-only database connection; each Neon call gives up after 20 s (`neonFetch`, lib/db.ts). Do not generalize the web read rule to jobs: `kept_blocks` has a different mirror/R2/database path.
 
 **State transitions:** computed → database committed → uploaded to R2 → version discovered → rendered. `put` leaves unchanged payloads/write times alone and commits a changed database row before upload. `publish_to_r2` can log/catch partial failure; `notify_app` then revalidates. No single transaction spans database, bucket and page caches. A successful job is insufficient evidence that every intended block is visible.
 
@@ -446,7 +446,7 @@ Coverage is all 36 main-stage clubs and their current players/calendar; qualifie
 
 **Response/cache:** 200 ok/seen_at; 400 invalid, 401 unauthorized, 503 no database; success no-store.
 
-**Effects and failure boundaries:** Reads extension block and skips unchanged check-ins under checkInIsNews. Changed news writes Neon and R2, invalidates system and schedules mission recording. Public nickname is not authentication of the owner.
+**Effects and failure boundaries:** Reads extension block and skips unchanged check-ins under checkInIsNews. Changed news writes Neon and R2, invalidates system and schedules mission recording. Public nickname is not authentication of the owner. The route stops at 30 s (`maxDuration`) and each Neon call at 20 s (`neonFetch`): on 13 Nov 2026 two check-ins waited on Neon until Vercel's 300 s cut-off.
 
 **Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
 
@@ -1321,14 +1321,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-02",
-        "note": "put now tallies write times by key family; unchanged-payload skip and R2 upload order unchanged.",
+        "date": "2026-11-14",
+        "note": "db.ts now caps every Neon HTTP call at 20 s via neonConfig.fetchFunction; read path unchanged; unit test lib/db.test.ts",
         "files": {
           "backend/app/services/publish.py": "ad9fd1e73e97612ac993e50ef8989d26e6670f3950c0ed160db04fe3ec662f4c",
           "backend/app/services/r2.py": "82b91dea1f8d9e021b9a0276a4f93b488f8f9b02eed41fcee3eef8f91b065911",
           "frontend/lib/r2.ts": "76b01a34a5961032f76df91b3f68dce1db2c2e21462001387a50d754ef94f147",
           "frontend/lib/playData.ts": "e3e017956f561c653718a73c77fbf90fa1dbfdf18a2d0bfb8bed8006b4dbea33",
-          "frontend/lib/db.ts": "2b863d41de59b0f9f0db7ea19b6a9986f5fba0f05a44624093b1a263d9dc4836",
+          "frontend/lib/db.ts": "e0c13b9c1033d87fa114b2ce04322cc9a17a6c38296ff223eb60b2d4c7cfcca3",
           "backend/tests/test_publish.py": "5f85c01621794988aa5262a31d69678e15b738a038b4ac3fbd1b0600c6942dad",
           "frontend/lib/r2.test.ts": "22c4e3ceec84a69c1df22c0014f1197d9281620da3df3d08f8fd861d32cf99f4"
         }
@@ -2301,10 +2301,10 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "tests": [],
       "review": {
-        "date": "2026-11-02",
-        "note": "2 Nov 2026: without a database (the local launcher) the check-in answers ok with stored false instead of 503; with one it stores as before.",
+        "date": "2026-11-14",
+        "note": "route maxDuration 30 s and Neon calls capped at 20 s after two 300 s hangs on 13 Nov 2026; behavior otherwise unchanged",
         "files": {
-          "frontend/app/api/ext/checkin/route.ts": "57bcd8b3e98758e33724e7fab2e7219cbf4735213a6da2408479ee41bbb93f69",
+          "frontend/app/api/ext/checkin/route.ts": "7ae9f96481eae9344f90514261b50c49fb99c835dba7e1e265f4480a0d0eb9bf",
           "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c"
         }
       }

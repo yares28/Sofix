@@ -1,4 +1,4 @@
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { neon, neonConfig, type NeonQueryFunction } from "@neondatabase/serverless";
 import { randomUUID } from "node:crypto";
 import { unstable_cache } from "next/cache";
 import { isDatabasePaused } from "./control";
@@ -17,6 +17,16 @@ import { scoreRecordPart } from "./scoreRecordParts";
  * the data across when the live one nears its monthly limit). A query refused for quota goes to the next project at once.
  */
 type Sql = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<Record<string, unknown>[]>;
+
+/**
+ * Every Neon call gives up after 20 s. Without it a call that never answers (a row locked by a refresh being cancelled) runs
+ * to Vercel's 300 s cut-off: two extension check-ins did that on 13 Nov 2026, 600 s of the account's 4 h of CPU a month.
+ */
+const NEON_TIMEOUT_MS = 20_000;
+export function neonFetch(input: string | URL | Request, init?: RequestInit, ms = NEON_TIMEOUT_MS): Promise<Response> {
+  return fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(ms) });
+}
+neonConfig.fetchFunction = neonFetch;
 
 type Client = NeonQueryFunction<false, false>;
 let clients: Client[] | null = null;

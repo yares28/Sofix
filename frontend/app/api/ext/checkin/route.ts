@@ -12,6 +12,7 @@ import { SYSTEM_TAG } from "../../../../lib/system";
 // It calls only when something changed or every 6 hours, because each write wakes Neon. It never sends
 // Sorare credentials: only the version and the account's public nickname.
 export const dynamic = "force-dynamic";
+export const maxDuration = 30; // a check-in takes about a second; a stuck one is cut here, not at Vercel's 300 s
 
 const CheckIn = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/),

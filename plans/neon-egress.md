@@ -90,3 +90,10 @@ routes read one field of `sorare` instead of all of it; a push starts a refresh 
 History: FDR was production 14 Sep to 12 Oct; Sofix took over 12 Oct from a copy
 (`backend/data/raw/neon-backup-2026-10-12/`, git-ignored); on 14 Oct Sofix ran out, FDR (still answering at 5.23 GB)
 became live, and Sofix B was made and filled from FDR as the next one.
+
+## 13-14 Nov 2026: refreshes stuck after the move to Sofix B
+
+The move FDR -> Sofix B (13 Nov 17:23) worked, but the same step then re-merged FDR, the copy's own source, from its last
+recorded merge (15 Oct): a month of rows inserted one by one, past the 25-minute limit, rolled back, nothing recorded, every
+refresh cancelled and ~150 MB more read from FDR each time. `neon_switch.to_merge` now skips a project last written before
+the live project received its copy (its `neon_live` time); test `test_a_project_last_written_before_the_live_one_was_copied_is_not_merged_again`.

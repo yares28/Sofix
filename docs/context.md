@@ -1423,11 +1423,11 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "database-selection-001",
       "status": "implemented",
       "review": {
-        "date": "2026-11-02",
-        "note": "merge_stranded/to_merge/merge_from added 2 Nov 2026; to_merge unit-tested; the player_games upsert was prepared (parsed and planned) on the live schema, not executed; read_models and refresh_runs statements match the manual 2 Nov merge that ran on Sofix D",
+        "date": "2026-11-14",
+        "note": "14 Nov 2026: to_merge skips projects last written before the live project's neon_live copy time (re-merging the copy's source timed out every refresh); selection and move rules unchanged; unit test added, live effect seen only on the next refresh",
         "files": {
-          "backend/app/jobs/neon_switch.py": "ea7d1fb3a74a737d02946dbbb12f7b595589c24b74e3046ad3671460c773accb",
-          "backend/tests/test_neon_switch.py": "575cf44154238808bef26fc03767f5575d88ac7dd022542a29c6f27aef84f651"
+          "backend/app/jobs/neon_switch.py": "4ed5bf6b8ece99806f6f35fccefb2e8cd45cc4ca566cfb6e1cacb441320d70ad",
+          "backend/tests/test_neon_switch.py": "d37c52eba9c6a97b504e82db0717bdad91bdd6aa544f05a9f7d21eb05aac82df"
         }
       }
     },

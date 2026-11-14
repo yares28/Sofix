@@ -188,14 +188,25 @@ def advance_sequence(conn: psycopg.Connection, table: str) -> None:
 MERGED_KEY = "neon_merged"
 
 
-def to_merge(live: int, stamps: list[float | None], merged: dict[str, float], urls: list[str]) -> list[int]:
+def to_merge(
+    live: int, stamps: list[float | None], merged: dict[str, float], urls: list[str], copied_at: float | None = None
+) -> list[int]:
     """Projects written since their last merge into the live one: production left them without a copy (they refused
     for quota, so the jobs fell back to a stale project, 19-25 Oct 2026). A project seen for the first time is only
-    recorded, never merged: it holds nothing newer than what was copied when production last left it."""
+    recorded, never merged: it holds nothing newer than what was copied when production last left it. Nor is one last
+    written before the live project received its full copy (`copied_at`, its `neon_live` time): the copy came from the
+    project that was live then, which already held what was merged into it (13 Nov 2026: re-merging a month of the copy's
+    own source timed out every refresh)."""
+    # ponytail: a third project written after the source's last merge but before the copy loses those writes; jobs only
+    # write to a non-live project while the live one refuses, and the move happens while it still answers.
     return [
         i
         for i, at in enumerate(stamps)
-        if i != live and at is not None and endpoint_id(urls[i]) in merged and at > merged[endpoint_id(urls[i])]
+        if i != live
+        and at is not None
+        and endpoint_id(urls[i]) in merged
+        and at > merged[endpoint_id(urls[i])]
+        and (copied_at is None or at > copied_at)
     ]
 
 
@@ -274,8 +285,12 @@ def merge_stranded(urls: list[str], live: int, stamps: list[float | None], left:
     try:
         with psycopg.connect(dsn(urls[live]), connect_timeout=15) as conn:
             row = conn.execute("SELECT payload::text FROM read_models WHERE key = %s", (MERGED_KEY,)).fetchone()
+            copy = conn.execute(
+                "SELECT extract(epoch FROM updated_at) FROM read_models WHERE key = 'neon_live'"
+            ).fetchone()
         merged: dict[str, float] = json.loads(row[0]) if row else {}
-        for i in to_merge(live, stamps, merged, urls):
+        copied_at = float(copy[0]) if copy and copy[0] is not None else None
+        for i in to_merge(live, stamps, merged, urls, copied_at):
             done, copied = merge_from(urls[i], urls[live], merged[endpoint_id(urls[i])])
             logger.info("merged %s into %s: %s", endpoint_id(urls[i]), endpoint_id(urls[live]), done)
             for key, payload, written in copied:
@@ -283,8 +298,8 @@ def merge_stranded(urls: list[str], live: int, stamps: list[float | None], left:
         for i, at in enumerate(stamps):
             if i != live and at is not None:
                 merged[endpoint_id(urls[i])] = at
-        if left is not None and stamps[left] is not None:
-            merged[endpoint_id(urls[left])] = stamps[left]
+        if left is not None and (left_at := stamps[left]) is not None:
+            merged[endpoint_id(urls[left])] = left_at
         with psycopg.connect(dsn(urls[live]), connect_timeout=15) as conn:
             conn.execute(
                 "INSERT INTO read_models (key, payload, updated_at) VALUES (%s, %s, now()) "

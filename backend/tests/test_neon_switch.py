@@ -72,3 +72,13 @@ def test_merges_only_projects_written_since_their_last_merge() -> None:
     assert to_merge(3, [100.0, 100.0, 100.0, 300.0], {"ep-d": 1.0}, urls) == []
     # The stranded project answers again on the 1st: its writes since the merge come back.
     assert to_merge(1, [100.0, 400.0, 500.0, 300.0], merged | {"ep-d": 200.0}, urls) == [2, 3]
+
+
+def test_a_project_last_written_before_the_live_one_was_copied_is_not_merged_again() -> None:
+    # 13 Nov 2026: production moved FDR -> Sofix B at 17:23; FDR's last write was 17:12 but its last merge was recorded
+    # on 15 Oct, so every refresh re-merged a month of FDR's rows into the copy, timed out and recorded nothing.
+    urls = ["postgres://u@ep-a.x/db", "postgres://u@ep-b.x/db", "postgres://u@ep-c.x/db"]
+    merged = {"ep-a": 10.0, "ep-c": 10.0}
+    assert to_merge(1, [100.0, 300.0, 50.0], merged, urls, copied_at=200.0) == []
+    assert to_merge(1, [250.0, 300.0, 50.0], merged, urls, copied_at=200.0) == [0]  # written after the copy: merged
+    assert to_merge(1, [100.0, 300.0, 50.0], merged, urls) == [0, 2]

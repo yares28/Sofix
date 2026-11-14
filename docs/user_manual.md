@@ -1194,7 +1194,7 @@ even on a page about another week; and every Celta game showed **No odds**, beca
 A small tag in the bottom-right corner of Sorare's football pages: how many of the plan's lineups Sorare already holds and when the
 week locks ("3/7 · Sat 16:00", amber in the last hour), or after the lock what your entered lineups have scored ("400 live"). What is
 entered and the live score are read from Sorare through your tab when a page opens and every two minutes while the panel is open.
-Pressed, it opens a 316 px panel with two tabs; Escape closes it.
+Pressed, it opens a 316 px panel with three tabs; Escape closes it.
 
 - **Lineups**: each lineup of the best plan as a ticket, its own chance of a reward on the stub (essence, cash or a card: XP is not a
   reward), its cards, and what it is expected to score against what pays. Several in one competition are numbered ("LaLiga Limited 2").
@@ -1206,6 +1206,15 @@ Pressed, it opens a 316 px panel with two tabs; Escape closes it.
 - **Missions**: **Load missions** reads today's missions from Sorare through this tab and saves them (no page opens), then shows each
   mission's reward and Sofix's picks, each with the chance he does it if he plays and his start % (by the shirt, amber under 50%).
   A tap opens every card that can play it, Sofix's marked. **↻ Load again** reads them afresh.
+- **Arcade** (14 Nov 2026): your step, its target and lives, then the **next batch** of players and the **best lineup to clear the
+  step**, each a ticket with its chance (one ticket when they are the same lineup); its › lists five, and a tap opens the field: each
+  card's points, start % with whose number it is (XI for an announced lineup, FF, SO, SX), who could take its place, and Benched or
+  Not in squad from the announced elevens. Under it: the clubs to build around. The extension works it out itself, with the Arcade
+  page's own code, out of sight, so sorare.com never freezes; a line says where it is ("Reading forecasts · 2 of 4"), when it was
+  planned, which games' lineups are out, not out yet or could not be read (and when it tries again), and when it ran on Sorare's numbers
+  only or gave a rough lineup. A failed or stopped run keeps the last plan, greyed with its time, with **Retry**. From 75 minutes before
+  a kick-off it reads again every five minutes while a sorare.com tab is open; a changed plan says why in one line, and an entered
+  lineup with a card not starting turns the closed tag red. The popup lists the last ten errors.
 
 Gone (13 Nov 2026): Guide me and its ring on Sorare's cards, the starter alarm and its Swap, mission swaps, the plan's total, Load
 from Sorare for Pro, the ⋯ menu and the lineup-page total. The switch "Scores on sorare.com" turns the dock off with the tiles. It is

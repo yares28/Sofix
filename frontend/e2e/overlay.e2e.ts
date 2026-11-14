@@ -230,7 +230,7 @@ const OLD_WEEK = "football-18-22-sep-2026";
 
 async function openPage(
   page: Page,
-  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; missions?: unknown; missionsAfterLoad?: unknown; url?: string; html?: string; need?: unknown; team?: unknown; brokenCrests?: boolean; failOnce?: string[] } = {},
+  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; missions?: unknown; missionsAfterLoad?: unknown; url?: string; html?: string; need?: unknown; team?: unknown; brokenCrests?: boolean; failOnce?: string[]; arcade?: unknown } = {},
 ) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
@@ -271,6 +271,12 @@ async function openPage(
         },
       };
       (window as unknown as { __sfx: unknown }).__sfx = probe;
+      // The dock's Arcade engine stores its plan in the extension's storage; a test puts one there, and may change it later.
+      if (config.arcade) localStorage.setItem("chrome:arcadeDock", JSON.stringify(config.arcade));
+      (probe as unknown as { setArcade: (value: unknown) => void }).setArcade = (value: unknown) => {
+        localStorage.setItem("chrome:arcadeDock", JSON.stringify(value));
+        listeners.forEach((listener) => listener({ arcadeDock: { newValue: value } }, "local"));
+      };
       const answer = (message: { type: string; cards?: string[]; players?: string[]; fixture?: string | null }) => {
         // A first ask of these kinds fails, as one call does when the app is cold or a refresh is publishing.
         if (config.failOnce.includes(message.type) && !failed.has(message.type)) {
@@ -329,7 +335,7 @@ async function openPage(
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: options.missions ?? MISSIONS, missionsAfterLoad: options.missionsAfterLoad ?? null, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null, team: options.team ?? null, failOnce: options.failOnce ?? [] },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: options.missions ?? MISSIONS, missionsAfterLoad: options.missionsAfterLoad ?? null, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null, team: options.team ?? null, failOnce: options.failOnce ?? [], arcade: options.arcade ?? null },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "dock.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
@@ -2131,5 +2137,142 @@ test.describe("the sorare.com overlay", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath("overlay-mobile.png"), fullPage: true });
+  });
+
+  // -- The dock's Arcade tab (plans/dock-v2.md): drawn from what the extension's engine stored, in every state it can be in -----------
+  const ARCADE_AT = Date.now();
+  const kick = (hours: number) => new Date(ARCADE_AT + hours * 3_600_000).toISOString();
+  const NAMES = ["David Soria", "Marc Bartra", "Isco", "Mikel Oyarzabal", "Germán Valera", "Víctor Chust", "Unai López", "Ferran Jutglà", "Ilaix Moriba", "Hugo González"];
+  const arcCard = (i: number, slot: string, extra: Record<string, unknown> = {}) => ({
+    slug: `arc-${i}-card`, player: `arc-${i}`, name: NAMES[i % NAMES.length], pic: `https://assets.sorare.com/card/arc-${i}.png`, slot, captain: false,
+    points: 60 + ((i * 7) % 25), start: 0.85, source: "sorare", sheet: null, kickoff: kick(3), club: "Real Betis", ...extra,
+  });
+  const SLOTS5 = ["GK", "DEF", "MID", "FWD", "EXTRA"];
+  const arcLineup = (offset: number, p: number, extra: Record<string, unknown> = {}) => {
+    const cards = SLOTS5.map((slot, i) => arcCard(offset + i, slot, i === 2 ? { captain: true } : i === 0 ? { source: "lineup", start: 1, sheet: "starter" } : {}));
+    return { key: `k${offset}`, first: kick(3), last: kick(5), p, x: 350 + offset, target: 360, step: 3, play: 1, cards,
+      alternatives: Object.fromEntries(cards.map((c, i) => [c.slug, [arcCard(20 + i, c.slot, { points: 50 }), arcCard(30 + i, c.slot, { points: 44 })]])), ...extra };
+  };
+  const ARCADE_MODEL = {
+    v: 1, state: "ready", at: ARCADE_AT - 60_000, set: { name: "Autumn", end: kick(72) },
+    step: { number: 3, target: 360, lives: 2, max: 4, of: 6, reward: "€1" }, aim: 3,
+    next: arcLineup(0, 0.41), best: [arcLineup(5, 0.58), arcLineup(1, 0.52), arcLineup(2, 0.49), arcLineup(3, 0.47), arcLineup(4, 0.44)],
+    clubs: [{ club: "betis", name: "Real Betis", crest: null, kickoff: kick(3), likely: 4, value: 180 }, { club: "rso", name: "Real Sociedad", crest: null, kickoff: kick(6), likely: 3, value: 150 }],
+    lineupsOut: { announced: ["Betis–Celta"], waiting: ["Getafe–Osasuna"], unread: [], checkedAt: ARCADE_AT - 120_000, limited: false, retryAt: null, outdated: false },
+    sofix: true, change: { text: "Lineups out: Mayoral benched → Ünal in · 41% → 47%", at: ARCADE_AT - 90_000 }, alerts: [], kickoffs: [Date.parse(kick(3))],
+  };
+  const done = { state: "done", stage: null, startedAt: ARCADE_AT - 90_000, deadline: ARCADE_AT - 60_000, error: null, notes: [] };
+  const arcadeTab = (page: Page) => dock(page).getByRole("tab", { name: /Arcade/ });
+  const arcadeRuns = async (page: Page) => (await probe(page)).sent.filter((m) => m.type === "arcade-run") as unknown as { force: boolean }[];
+
+  test("Arcade: the next batch and the best lineup to clear the step, each lineup a ticket with its own chance, lineups out said per game", async ({ page }, testInfo) => {
+    await openPage(page, { arcade: { model: { ...ARCADE_MODEL, at: Date.now() - 60_000, change: { ...ARCADE_MODEL.change, at: Date.now() - 90_000 } }, run: done, lastRun: ARCADE_AT - 90_000 } });
+    await expect(pill(page).locator(".flag.vio")).toHaveCount(1); // a fresh change shows on the closed tag
+    await pill(page).click();
+    await arcadeTab(page).click();
+    await expect(arcadeTab(page)).toHaveAttribute("aria-selected", "true");
+    await expect(dock(page)).toContainText("Step 3 of 6 · 360 pts");
+    await expect(dock(page)).toContainText("2 lives left · €1");
+    await expect(dock(page)).toContainText("Lineups out: Mayoral benched → Ünal in · 41% → 47%");
+    await expect(dock(page)).toContainText("XI · Betis–Celta");
+    await expect(dock(page)).toContainText(/Getafe–Osasuna · not out yet \(\d\d:\d\d\)/);
+    await expect(dock(page)).toContainText(/Planned \d\d:\d\d/);
+    await expect(dock(page).getByText("Next batch of players")).toBeVisible();
+    await expect(dock(page).getByText("Best to clear step 3")).toBeVisible();
+    await expect(dock(page).getByText("Build around")).toBeVisible();
+    expect(await arcadeRuns(page)).toEqual([]); // a plan a minute old is not worked out again
+    await page.screenshot({ path: testInfo.outputPath("dock-arcade.png") });
+    await page.screenshot({ path: testInfo.outputPath("dock-arcade-panel.png"), clip: (await page.locator("aside.dock").boundingBox())! });
+
+    // The next batch opened: its cards on a pitch, each with its points, start % and whose it is, and who could take its place.
+    await dock(page).getByRole("button", { name: /^Next batch:/ }).click();
+    const field = dock(page).getByRole("list", { name: "Next batch: its cards" });
+    await expect(field.locator(".card")).toHaveCount(5);
+    await expect(field.locator(".src.xi")).toHaveCount(1);
+    await expect(field.getByLabel(/^Instead of /)).toHaveCount(5);
+    await page.screenshot({ path: testInfo.outputPath("dock-arcade-field.png"), clip: (await page.locator("aside.dock").boundingBox())! });
+    await dock(page).getByRole("button", { name: "Back" }).click();
+
+    // Best to clear the step: four more under the best one, each opening its own field.
+    await dock(page).getByRole("button", { name: /^Best to clear step 3:/ }).click();
+    await expect(dock(page).locator(".stub.arc")).toHaveCount(5);
+    await page.screenshot({ path: testInfo.outputPath("dock-arcade-more.png"), clip: (await page.locator("aside.dock").boundingBox())! });
+    await dock(page).getByRole("button", { name: /^Lineup 2:/ }).click();
+    await expect(dock(page).getByRole("list", { name: "Best to clear step 3: its cards" })).toBeVisible();
+    await dock(page).getByRole("button", { name: "Back" }).click();
+    await expect(dock(page).locator(".stub.arc")).toHaveCount(5);
+    expect((await new AxeBuilder({ page }).include("[data-sfx-dock]").analyze()).violations).toEqual([]);
+  });
+
+  test("Arcade: when the next batch is also the best lineup for the step, one ticket says both and opens the others", async ({ page }) => {
+    const model = { ...ARCADE_MODEL, at: Date.now() - 60_000, change: null, best: [ARCADE_MODEL.next, ...ARCADE_MODEL.best.slice(0, 4)] };
+    await openPage(page, { arcade: { model, run: done, lastRun: 0 } });
+    await pill(page).click();
+    await arcadeTab(page).click();
+    await expect(dock(page).getByText("Next batch · best for step 3")).toBeVisible();
+    await expect(dock(page).locator(".stub.arc")).toHaveCount(1);
+    await dock(page).getByRole("button", { name: /^Next batch:/ }).click();
+    await expect(dock(page).locator(".stub.arc")).toHaveCount(5);
+  });
+
+  test("Arcade: while it works, a skeleton and the stage in words; past its deadline, 'Calculation stopped' with Retry", async ({ page }) => {
+    const now = Date.now(); // the deadline counts from when this test runs, not from when the file loaded
+    const working = { state: "working", stage: "forecasts", startedAt: now, deadline: now + 120_000, error: null, notes: [] };
+    await openPage(page, { arcade: { model: null, run: working, lastRun: ARCADE_AT } });
+    await pill(page).click();
+    await arcadeTab(page).click();
+    await expect(dock(page).getByRole("status")).toContainText("Reading forecasts · 2 of 4");
+    await expect(dock(page).locator(".sk").first()).toBeVisible();
+    expect(await arcadeRuns(page)).toEqual([]); // one run at a time
+
+    // The engine was stopped: its deadline passed with no answer.
+    await page.evaluate((run) => (window as unknown as { __sfx: { setArcade: (v: unknown) => void } }).__sfx.setArcade({ model: null, run, lastRun: 0 }), { ...working, deadline: Date.now() - 60_000 });
+    await expect(dock(page)).toContainText("Calculation stopped");
+    await dock(page).getByRole("button", { name: "Retry" }).click();
+    expect(await arcadeRuns(page)).toEqual([expect.objectContaining({ force: true })]);
+  });
+
+  test("Arcade: a failed run keeps the last plan, greyed with its time, and names what failed", async ({ page }) => {
+    const failed = { state: "failed", stage: "board", startedAt: ARCADE_AT, deadline: ARCADE_AT, error: { stage: "board", text: "Couldn't read your cards from Sorare (429).", at: ARCADE_AT }, notes: [] };
+    await openPage(page, { arcade: { model: { ...ARCADE_MODEL, change: null }, run: failed, lastRun: ARCADE_AT } });
+    await pill(page).click();
+    await arcadeTab(page).click();
+    await expect(dock(page)).toContainText("Couldn't read your cards from Sorare (429).");
+    await expect(dock(page)).toContainText(/Showing the plan from (Today|\w{3}) \d\d:\d\d\./);
+    await expect(dock(page).locator(".arc.stale")).toHaveCount(1);
+    await expect(dock(page).getByRole("button", { name: "Work the plan out again" })).toHaveText("Retry");
+  });
+
+  test("Arcade: an entered lineup with a benched card turns the closed tag red and is named in the panel", async ({ page }) => {
+    const model = { ...ARCADE_MODEL, change: null, alerts: [{ step: 3, names: ["Isco"], kickoff: kick(1) }] };
+    await openPage(page, { arcade: { model, run: done, lastRun: ARCADE_AT } });
+    await expect(pill(page).locator(".flag.red")).toHaveCount(1);
+    await pill(page).click();
+    await arcadeTab(page).click();
+    await expect(dock(page).getByRole("alert")).toContainText("Your step 3 lineup: Isco is not starting");
+  });
+
+  test("Arcade: Sorare's numbers only, a rough lineup and an unread game are each said, never hidden", async ({ page }) => {
+    const model = { ...ARCADE_MODEL, change: null, state: "rough", sofix: false, best: [],
+      lineupsOut: { announced: [], waiting: [], unread: ["Betis–Celta"], checkedAt: ARCADE_AT, limited: true, retryAt: ARCADE_AT + 300_000, outdated: false } };
+    const notes = ["The full climb took too long: this is the best lineup for the step on its own"];
+    await openPage(page, { arcade: { model, run: { ...done, notes }, lastRun: ARCADE_AT } });
+    await pill(page).click();
+    await arcadeTab(page).click();
+    await expect(dock(page)).toContainText("Sorare's numbers only");
+    await expect(dock(page)).toContainText("Rough · best for step 3");
+    await expect(dock(page)).toContainText(/Betis–Celta · couldn't read \(Sorare busy\) · retry \d\d:\d\d/);
+    await expect(dock(page)).toContainText(notes[0]!);
+  });
+
+  test("Arcade: opening the tab with no plan, or one older than ten minutes, works it out; with no engine it says so", async ({ page }) => {
+    await openPage(page, { arcade: { model: { ...ARCADE_MODEL, at: ARCADE_AT - 11 * 60_000 }, run: done, lastRun: 0 } });
+    await pill(page).click();
+    await arcadeTab(page).click();
+    await expect.poll(async () => (await arcadeRuns(page)).length).toBe(1);
+    const missing = { state: "failed", stage: "board", startedAt: ARCADE_AT, deadline: ARCADE_AT, error: { stage: "board", text: "The calculation engine is missing: run node extension/scripts/configure.mjs, then Sofix reloads itself.", at: ARCADE_AT }, notes: [] };
+    await page.evaluate((run) => (window as unknown as { __sfx: { setArcade: (v: unknown) => void } }).__sfx.setArcade({ model: null, run, lastRun: 0 }), missing);
+    await expect(dock(page)).toContainText("The calculation engine is missing");
+    await expect(dock(page).getByRole("button", { name: "Retry" })).toBeVisible();
   });
 });

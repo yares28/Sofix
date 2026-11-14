@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
+import { askExtension } from "./extension";
 
 /**
  * The step Pick teams and Batch both aim at, one value per set and board (9 Nov 2026: two pickers kept two values). Saved in this
@@ -31,6 +32,7 @@ export function useArcadeAim(key: string): [number | null, (step: number) => voi
     memory.set(key, step);
     try { localStorage.setItem(key, String(step)); } catch { /* Storage blocked: kept for this visit. */ }
     window.dispatchEvent(new Event(CHANGED));
+    void askExtension({ type: "arcade-aim", step }, 1000); // the dock on sorare.com aims its "best to clear" list at the same step
   }, [key]);
   return [aim, setAim];
 }

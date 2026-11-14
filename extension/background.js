@@ -1011,3 +1011,148 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
     return true;
   }
 });
+
+// -- The dock's Arcade tab (plans/dock-v2.md) ---------------------------------------------------------------------------------------
+// The Arcade page's own code runs in a hidden extension page (arcade.html, bundled by configure.mjs) with a worker, so a long climb
+// never freezes sorare.com and Chrome's 30-second rule for this background script never cuts it. That page reads Sorare through the
+// handlers below, as the Arcade page does through onMessageExternal; it reports each stage here, and the dock reads the result from
+// storage (`arcadeDock`), so it draws the last plan at once and follows a run as it goes. A failed run never replaces the last plan.
+
+const ENGINE_PAGE = "arcade.html";
+const ARCADE_APP_MS = 10 * 60_000; // Sofix's numbers for the dock: asked at most this often (Vercel CPU rule in AGENTS.md)
+const WATCH_BEFORE_MS = 75 * 60_000; // lib/arcadeDock.ts: from this long before a kick-off, the elevens are read again
+const WATCH_EVERY_MS = 5 * 60_000;
+const ENGINE_MISSING = "The calculation engine is missing: run node extension/scripts/configure.mjs, then Sofix reloads itself.";
+
+const fromEngine = (sender) => sender.id === chrome.runtime.id && sender.url === chrome.runtime.getURL(ENGINE_PAGE);
+
+/** What the dock shows: the last good plan, the current run, and when a run last started. */
+async function arcadeState() {
+  const { arcadeDock = null } = await chrome.storage.local.get("arcadeDock");
+  return arcadeDock && typeof arcadeDock === "object" ? arcadeDock : { model: null, run: null, lastRun: 0 };
+}
+
+/** The last ten errors with their times, which the popup lists. */
+async function arcadeError(text) {
+  const { arcadeErrors = [] } = await chrome.storage.local.get("arcadeErrors");
+  await chrome.storage.local.set({ arcadeErrors: [{ text: String(text).slice(0, 300), at: Date.now() }, ...arcadeErrors].slice(0, 10) });
+}
+
+async function engineReady() {
+  if (!chrome.offscreen) throw new Error("This Chrome cannot run the calculation in the background.");
+  if (await chrome.offscreen.hasDocument?.()) return;
+  try {
+    await chrome.offscreen.createDocument({ url: ENGINE_PAGE, reasons: ["WORKERS"], justification: "Works out the Arcade climb for the dock without freezing sorare.com." });
+  } catch (error) {
+    if (!/single offscreen/i.test(String(error?.message))) throw error; // another call made it meanwhile
+  }
+}
+
+/** Starts a run unless one is still going (one past its deadline counts as stopped and may be replaced). */
+async function arcadeRun(force = false) {
+  const state = await arcadeState();
+  const now = Date.now();
+  if (state.run?.state === "working" && now <= (state.run.deadline ?? 0) + 15_000) return { ok: true, state: "working" };
+  const run = { state: "working", stage: "board", startedAt: now, deadline: now + 60_000, error: null, notes: [] };
+  await chrome.storage.local.set({ arcadeDock: { ...state, run, lastRun: now } });
+  const failed = async (text) => {
+    await chrome.storage.local.set({ arcadeDock: { ...state, lastRun: now, run: { ...run, state: "failed", error: { stage: "board", text, at: Date.now() } } } });
+    await arcadeError(text);
+    return { ok: true, state: "failed" };
+  };
+  try {
+    await engineReady();
+  } catch (error) {
+    return failed(error?.message || ENGINE_MISSING);
+  }
+  // The page needs a moment to load its script; an answer means it is listening. No answer: its files are missing.
+  for (let i = 0; i < 6; i++) {
+    const answered = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ target: "arcade-engine", type: "run", prev: state.model ?? null, force }, (reply) => {
+        void chrome.runtime.lastError;
+        resolve(reply?.ok === true);
+      });
+    });
+    if (answered) return { ok: true, state: "working" };
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return failed(ENGINE_MISSING);
+}
+
+/** Sofix's numbers and saved start % for the dock's engine, kept ARCADE_APP_MS for the same cards and games. */
+async function arcadeApp(games, players) {
+  const key = `${games.length}:${players.length}:${games.slice(0, 5).join(",")}:${players.slice(0, 5).join(",")}`;
+  const { arcadeApp: kept = null } = await chrome.storage.session.get("arcadeApp");
+  if (kept && kept.key === key && Date.now() - kept.at < ARCADE_APP_MS) return kept.body;
+  try {
+    const response = await appFetch(`/api/ext/arcade`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
+      body: JSON.stringify({ games, players }),
+    });
+    const body = response.ok ? await response.json().catch(() => null) : null;
+    if (!body?.ok) return null;
+    await chrome.storage.session.set({ arcadeApp: { key, at: Date.now(), body } });
+    return body;
+  } catch {
+    return null;
+  }
+}
+
+chrome.runtime.onMessage.addListener((message, sender, reply) => {
+  if (sender.id !== chrome.runtime.id) return;
+  if (fromEngine(sender)) {
+    if (message?.type === "ping") {
+      chrome.storage.local.get(["sorareUser", "appReachable"]).then(({ sorareUser, appReachable }) =>
+        reply({ ok: true, version: VERSION, sorareUser: sorareUser ?? null, appReachable: appReachable ?? null }));
+      return true;
+    }
+    if (message?.type === "sorare" && Object.hasOwn(STEPS, message.step)) {
+      const [operation, variables] = STEPS[message.step](message);
+      throughSorare(operation, variables).then((answer) => reply({ ok: true, step: message.step, ...answer }), () => reply({ ok: true, state: "error" }));
+      return true;
+    }
+    if (message?.type === "arcade-app") {
+      const games = Array.isArray(message.games) ? message.games.filter((g) => typeof g === "string" && GAME_ID.test(g)).slice(0, 300) : [];
+      arcadeApp(games, slugs(message.players).slice(0, 3000)).then(reply);
+      return true;
+    }
+    if (message?.type === "arcade-aim-get") {
+      chrome.storage.local.get("arcadeAim").then(({ arcadeAim }) => reply(arcadeAim && Date.now() - arcadeAim.at < 7 * 86_400_000 ? arcadeAim.step : null));
+      return true;
+    }
+    if (message?.type === "arcade-state" && message.run && typeof message.run === "object") {
+      arcadeState().then(async (state) => {
+        await chrome.storage.local.set({ arcadeDock: { ...state, run: message.run, ...(message.model ? { model: message.model } : {}) } });
+        if (message.run.state === "failed" && message.run.error?.text) await arcadeError(message.run.error.text);
+      });
+    }
+    return;
+  }
+  // From the dock on a sorare.com tab: work the plan out (again).
+  if (message?.type === "arcade-run" && fromSorare(sender)) {
+    arcadeRun(message.force === true).then(reply);
+    return true;
+  }
+});
+
+// The Arcade page says which step you aim at (Pick teams), so the dock's "best to clear" list aims at the same one.
+chrome.runtime.onMessageExternal.addListener((message, sender) => {
+  if (!sender.url || !fromApp(sender.url)) return;
+  if (message?.type === "arcade-aim" && Number.isInteger(message.step) && message.step >= 1 && message.step <= 50) {
+    chrome.storage.local.set({ arcadeAim: { step: message.step, at: Date.now() } });
+  }
+});
+
+// The watch: near a kick-off of the plan or of an entered lineup, while a sorare.com tab is open, read again every five minutes so
+// announced elevens reach the plan (and a benched card in an entered lineup the tag) without opening the dock.
+chrome.alarms.create("arcade-watch", { periodInMinutes: 5 });
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== "arcade-watch") return;
+  const state = await arcadeState();
+  const now = Date.now();
+  const near = (state.model?.kickoffs ?? []).some((t) => t > now && t - now <= WATCH_BEFORE_MS);
+  if (!near || now - (state.lastRun ?? 0) < WATCH_EVERY_MS - 30_000) return;
+  if (!(await sorareTabs()).length) return;
+  arcadeRun(false);
+});

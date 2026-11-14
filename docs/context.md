@@ -34,7 +34,7 @@ The lookup returns complete contract sections, the reason for each match, transi
 
 ## API lookup and coverage
 
-All 18 current Next route files have contracts for their explicit handler methods below. Framework-provided HEAD/OPTIONS behavior is not inferred by this registry. Use `node scripts/docs.mjs lookup "/api/refresh"` or the handler path. The local gate rejects new undocumented methods, removed handlers and contracts that do not reference their handler. Generated FastAPI OpenAPI describes a different runtime and is not this API registry. Response shapes intentionally differ; do not normalize undocumented errors by assumption. Guard checks are not equivalent to signed-in owner identity. Existing route tests are attached where present; missing tests remain explicit empty references, not inferred passes.
+All 19 current Next route files have contracts for their explicit handler methods below. Framework-provided HEAD/OPTIONS behavior is not inferred by this registry. Use `node scripts/docs.mjs lookup "/api/refresh"` or the handler path. The local gate rejects new undocumented methods, removed handlers and contracts that do not reference their handler. Generated FastAPI OpenAPI describes a different runtime and is not this API registry. Response shapes intentionally differ; do not normalize undocumented errors by assumption. Guard checks are not equivalent to signed-in owner identity. Existing route tests are attached where present; missing tests remain explicit empty references, not inferred passes.
 
 ## Contract format and evidence limits
 
@@ -224,6 +224,8 @@ Both worker and page bridge enforce allowlists; current code also includes read 
 
 Use dock.js, not the removed drawer.js. Read the manifest template for current hosts, including bounded Futbol Fantasy match reads. Before an extension release run node extension/scripts/configure.mjs; the extension reloads itself when the manifest on disk is newer (background.js); generated config/manifest are secret-bearing and ignored. Mock bridge tests do not prove an authenticated real-session flow.
 
+The dock's Arcade tab (plans/dock-v2.md) runs the Arcade page's own code in a hidden extension page (`arcade.html`, `chrome.offscreen`, reason WORKERS) with a worker; `configure.mjs` bundles `lib/arcadeOffscreen.ts` and `lib/arcadeDock.worker.ts` into the git-ignored `arcade.js` and `arcade-worker.js`. That page may only ask the background for `ping`, the allowlisted read `sorare` steps, `arcade-app` (POST /api/ext/arcade, kept 10 minutes), the stored aim and `arcade-state`; it never writes to Sorare. Its result lives in `chrome.storage.local.arcadeDock` (last good plan, current run, last run time) and the last ten errors in `arcadeErrors`. A run past its stage's deadline plus 15 s counts as stopped. The `arcade-watch` alarm reruns every five minutes only while a sorare.com tab is open and a kick-off of the plan or an entered lineup is within 75 minutes.
+
 <a id="missions-record-001"></a>
 ## MISSIONS-RECORD-001
 
@@ -247,6 +249,8 @@ windowsOf groups kickoffs within 75 minutes of the first game in each window. Th
 Batch is the fourth Arcade tab. It groups every future set game, including games without owned cards, into inclusive 75-minute windows anchored at their first kickoff; the Madrid date filter uses that anchor without splitting a window at midnight. Windows with no owned card are skipped unless the saved "Without your cards" toggle is on, and are marked when shown. A set/board-scoped saved count requests one to four sequential bestLineup teams, excluding held cards until their settlement and excluding a player's other editions across teams. Only complete teams render; a shortfall is explicit. Exact-fixture FDR/CS/xG/xGA and card xD retain missing versus zero. A league with a Sofix board is named as Sofix names it (`leagueLabel`), others as Sorare does. Every Arcade view shows FDR in one form (`fdrOf`): difficulty out of 100 in its band colour, the band alone as a ticket dot; never the 1-5 band number. The ladder shows each step's chance within the next 7 days (the climb solved over that week's windows alone), and a tapped step lists its five likeliest distinct lineups from those windows (own games, wider spans, insurance teams; held cards out), computed in the worker with the plan. Pick teams and Batch share one saved aim per set and board (`useArcadeAim`); Batch offers only open steps. Count/date/target edits add no source reads or Sorare writes. See [Batch acceptance and delivery inventory](../plans/arcade-batch.md).
 
 Counterexample: several lineups on step two cannot be presented as one automatically reserved lineup for each later step. No recommendation spends lives or gems automatically. Pack odds and inventory assumptions require their own source evidence; these climb contracts do not certify pack values or authorize purchases.
+
+The climb's start (`stepInfos`, `climbStart`, `climbStep`) lives in `lib/arcadeBoard.ts`, shared by the page and the dock's engine (`lib/arcadeEngine.ts`, `lib/arcadeDock.ts`). The dock shows `path[0]` as the next batch and the aimed step's `week.best`, with the next batch merged in when it is for that step (the week's list can miss it), sorted by chance.
 
 <a id="ui-navigation-001"></a>
 ## UI-NAVIGATION-001
@@ -449,6 +453,17 @@ Coverage is all 36 main-stage clubs and their current players/calendar; qualifie
 **Effects and failure boundaries:** Reads extension block and skips unchanged check-ins under checkInIsNews. Changed news writes Neon and R2, invalidates system and schedules mission recording. Public nickname is not authentication of the owner. The route stops at 30 s (`maxDuration`) and each Neon call at 20 s (`neonFetch`): on 13 Nov 2026 two check-ins waited on Neon until Vercel's 300 s cut-off.
 
 **Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-ext-arcade-001"></a>
+## API-EXT-ARCADE-001 - POST /api/ext/arcade
+
+**Guard:** EXT: bearer EXTENSION_TOKEN, configured length >=32, timing-safe comparison. Deployment protection is additional.
+
+**Input:** up to 300 Sorare game ids and 3,000 player slugs.
+
+**Response/cache:** 200 `{ ok, laliga, chances }`: Sofix's start % and xScore by `player:kickoff` for the listed players only (`loadArcadeLaLiga`, the Arcade page's builder) and Sorare's saved start % for the listed games; 400 invalid, 401 unauthorized; no-store. `maxDuration` 30 s.
+
+**Effects and failure boundaries:** read only. The extension asks at most every 10 minutes while its engine plans; a failure plans on Sorare's numbers and the dock says so.
 
 <a id="api-ext-chances-001"></a>
 ## API-EXT-CHANCES-001 - POST /api/ext/chances
@@ -684,6 +699,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | page | `/table` | `frontend/app/(board)/table/page.tsx` |
 | API | `/api/arcade/chances` | `frontend/app/api/arcade/chances/route.ts` |
 | API | `/api/dev/chrome-copy` | `frontend/app/api/dev/chrome-copy/route.ts` |
+| API | `/api/ext/arcade` | `frontend/app/api/ext/arcade/route.ts` |
 | API | `/api/ext/chances` | `frontend/app/api/ext/chances/route.ts` |
 | API | `/api/ext/checkin` | `frontend/app/api/ext/checkin/route.ts` |
 | API | `/api/ext/missions/pool` | `frontend/app/api/ext/missions/pool/route.ts` |
@@ -1621,12 +1637,12 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-13",
-        "note": "13 Nov 2026: dock rebuilt (plans/dock-v2.md, extension 0.5.3): Check/Draft/Enter per ticked lineup keyed by competition and cards, one press per step; read-only week-entered read on page open and Load missions (dock-load-missions -> loadMissions); Pro rebuild and Guide me removed; inspected background.js allowlists, dock.js, manifest version bump; overlay e2e uses a mocked bridge; checked on the owner's signed-in sorare.com through script reads (Load missions, lineups of GW29), no write step pressed.",
+        "date": "2026-11-14",
+        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.7",
         "files": {
-          "extension/background.js": "55821a168e16c0b9ba9ad6773342a94298015c2d4445978cd384ac359b6f4db5",
+          "extension/background.js": "d1cf9eb896f439039641588e6a5a9328ae33f782955d1b3ba4c1a8b476ffaa68",
           "extension/bridge.js": "d5a039c26fff38d524ef910d361c14ff15bc5f79292c87a0def5d02600e43837",
-          "extension/manifest.template.json": "349da8b97b9d968ea564f02667d7635023e197f4d617955001ca34d548166023",
+          "extension/manifest.template.json": "44edf66bc51e1ca450123c42c6494c91d0a7de4f2d7880b979d2eee34dbc8b14",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
@@ -1748,13 +1764,13 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-10",
-        "note": "10 Nov 2026: Pick teams with no full five fills each slot it can (partialFive: likely starters first, one card per player) and keeps the rest empty, naming the missing slots; set end date in the wallet row; only problem notices shown, as an amber-dot line. Planner logic unchanged.",
+        "date": "2026-11-14",
+        "note": "climb start helpers moved to lib/arcadeBoard.ts unchanged; ArcadePlanner re-exports them",
         "files": {
           "frontend/lib/arcadeClimb.ts": "cc33d2707e00d9a7e9f1d7f0dad46c045b4ece724bd69ab9ba0e665d1af9d527",
           "frontend/lib/arcadePlan.ts": "7e2374f4e5b0ea0564b38bb0efbf80fe4aa9ef8f5b6b200e5a6dd1cf35e771e4",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "16e6123289bec15b552a3be9371dd2cf437d3b726d288b0a50773894ed08b0e0",
+          "frontend/components/arcade/ArcadePlanner.tsx": "74b891d2590e324e327287c83149555dab45485abb8a3380dbe127df754850a7",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
           "frontend/app/arcade-canvas.css": "5a3438f88e7ae2bc2dbfa8e32b2e51a7f69ddd6b52338877478b4c8a9e8f5312",
           "frontend/lib/arcadeTeams.ts": "a6ee5032672dd5b7fe2187295d99ac40655ca51832f40e4a87d268165848c9c7",
@@ -2280,6 +2296,46 @@ This block is the single machine-readable index for the sections above. Test ref
       }
     },
     {
+      "id": "API-EXT-ARCADE-001",
+      "anchor": "api-ext-arcade-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/ext/arcade"
+      ],
+      "paths": [
+        "frontend/app/api/ext/arcade/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/ext/arcade/route.ts"
+        },
+        {
+          "path": "frontend/lib/extAuth.ts",
+          "symbol": "authorised"
+        },
+        {
+          "path": "frontend/lib/arcadeLaLiga.ts",
+          "symbol": "loadArcadeLaLiga"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/ext/arcade/route.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-11-14",
+        "note": "new read-only route for the dock's Arcade engine; route test covers filtering, auth and bad body",
+        "files": {
+          "frontend/app/api/ext/arcade/route.ts": "ebcc22cea8d1ef5b6befce2e4296c5b3b6a44b270083a7a6352ba4976c872331",
+          "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c",
+          "frontend/lib/arcadeLaLiga.ts": "fdb9911ef1e7c8d475a6738effd4e61c1674aa56dee75decc55280b098a86796",
+          "frontend/app/api/ext/arcade/route.test.ts": "d3cc8effe513368cd9677ed3d76117dc991d3d1eb74f8775a7c81f79068c90ab"
+        }
+      }
+    },
+    {
       "id": "API-EXT-CHECKIN-001",
       "anchor": "api-ext-checkin-001",
       "status": "implemented",
@@ -2757,6 +2813,13 @@ This block is the single machine-readable index for the sections above. Test ref
         "POST"
       ],
       "contract": "API-MISSIONS-HISTORY-001"
+    },
+    {
+      "path": "frontend/app/api/ext/arcade/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-EXT-ARCADE-001"
     },
     {
       "path": "frontend/app/api/ext/checkin/route.ts",

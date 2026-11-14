@@ -33,8 +33,36 @@ the ⋯ menu, the lineup-page total. Live scores stay (the tag and each lineup a
 Sorare is read live through the open tab (missions, what is entered, Check/Draft/Enter, live scores). Sofix's numbers come from
 the app, asked again when the dock opens and at most every two minutes while it is open (Vercel CPU rule in AGENTS.md).
 
-## Open: Arcade's data
+## Arcade's data (owner's choice, 14 Nov 2026)
 
-Options for the owner: (a) the Arcade page hands its plan to the extension each time it works it out, and the dock shows that (as
-fresh as the last time Arcade was open); (b) the plan moves into a Python job and is published like the others (every refresh,
-bigger change); (c) the extension works it out itself from its own reads (most code).
+The extension runs Arcade's own code (`lib/arcade*.ts`, bundled by `configure.mjs` into `extension/arcade.js` and `climb.js`) in a
+hidden extension page with a worker, so the sorare.com page never freezes and there is one copy of the logic. Sorare is read through
+the open tab as the Arcade page does; the app gives Sofix's numbers and the saved start % in one call (`/api/ext/arcade`), at most
+every 10 minutes. The dock reads the result from the extension's storage, so it shows the last plan at once and follows each stage.
+
+### Acceptance (each has a test with a failing mock)
+
+The dock never shows a number without what it rests on and when, and never hides a failure behind an old plan.
+
+It doesn't run
+- Chrome stops the engine mid-way: past the plan's deadline with no answer, "Calculation stopped · Retry"; the last plan stays, greyed, with its time.
+- A crash or a Sorare answer in an unknown shape: the step that failed is named ("Couldn't read your cards from Sorare"); last plan greyed.
+- Too long: stage line ("Reading Sorare · 2 of 4"); at the limit, the best lineup for the step on its own, labelled "Rough".
+- Engine files missing (configure.mjs not run since this release): "Run configure", not a silent nothing.
+- Sofix unreachable: the plan on Sorare's numbers, labelled "Sorare's numbers only".
+- No sorare.com tab, signed out, rate limited, no set running: each in words.
+
+It runs but gets no lineups
+- "Not out yet (checked 19:05)" apart from "Couldn't read Getafe–Betis (Sorare busy) · retry 19:07".
+- One side announced: that side counts, the other keeps its forecast; each card says Lineup, FF, Sorare or Sofix.
+- From 75 minutes before a kick-off of the plan or of an entered lineup, read again every 5 minutes while a sorare.com tab is open,
+  and at once when the dock opens; until kick-off, so a late change is caught.
+- A card of an announced side on neither the starting XI nor the bench: "Not in squad", apart from "Benched".
+- Kick-off moved: saved elevens for that game are dropped.
+- 429: stop, say when it tries again.
+
+It calculates but you're not told
+- A changed plan says why in one line ("Lineups out: Mayoral benched → Ünal in · 41% → 47%"), and the closed tag shows it.
+- An entered lineup with a benched card: a red mark on the closed tag and the lineup named in the panel (no alarm, no notification).
+- Working: a 1:1 skeleton and the stage line; a half-made plan is never shown as done.
+- The popup keeps the last 10 errors with their times.

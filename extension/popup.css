@@ -35,3 +35,6 @@ h1 { margin: 12px 0 2px; font-size: 22px; font-weight: 700; letter-spacing: -0.0
 .btn { flex: 1; border: 0; border-radius: 12px; padding: 11px 18px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .btn.primary { background: var(--ink); color: #fff; }
 .btn:active { transform: scale(.97); }
+.errs { margin: 0 14px 8px; font-size: 11px; color: #8b928d; }
+.errs summary { cursor: pointer; }
+.errs ol { margin: 6px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; color: #b3b9b4; }

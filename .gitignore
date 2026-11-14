@@ -43,6 +43,9 @@ Thumbs.db
 # Chrome extension: generated from manifest.template.json and .env by extension/scripts/configure.mjs
 extension/manifest.json
 extension/config.js
+# the dock's Arcade engine, bundled from frontend/lib by configure.mjs
+extension/arcade.js
+extension/arcade-worker.js
 extension/.key.json
 
 # Vercel CLI link (project id)

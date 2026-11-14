@@ -29,6 +29,15 @@ async function render() {
   $("go").textContent = signedIn ? "Open Sofix" : "Open sorare.com";
   // The address that last answered (this computer or Vercel), else the first configured one.
   const app = appBase ?? CONFIG.appUrls?.[0] ?? CONFIG.appUrl;
+  // The dock's Arcade engine keeps its last ten errors with their times, so "it did nothing" can always be traced.
+  const { arcadeErrors = [] } = await chrome.storage.local.get("arcadeErrors");
+  $("errs").hidden = !arcadeErrors.length;
+  $("errn").textContent = String(arcadeErrors.length);
+  $("errlist").replaceChildren(...arcadeErrors.map((e) => {
+    const li = document.createElement("li");
+    li.textContent = `${new Date(e.at).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${e.text}`;
+    return li;
+  }));
   $("go").onclick = () => chrome.tabs.create({ url: signedIn ? app : "https://sorare.com/" });
 }
 

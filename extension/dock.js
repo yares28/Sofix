@@ -25,7 +25,7 @@
     button:focus-visible { outline: 2px solid var(--ivory); outline-offset: 2px; }
     .dock {
       --bg: #121413; --p2: #191c1a; --p3: #202421; --rule: rgba(255, 255, 255, .07);
-      --t1: #f2f4f2; --t2: #b3b9b4; --t3: #8b928d; --ivory: #ebe3cf; --sky: #79c3ff; --amber: #f2cf3c; --red: #ff8a80;
+      --t1: #f2f4f2; --t2: #b3b9b4; --t3: #8b928d; --ivory: #ebe3cf; --sky: #79c3ff; --vio: #b8a4ff; --ok: #8fd0a8; --amber: #f2cf3c; --red: #ff8a80;
       --ease: cubic-bezier(.3, .7, .2, 1);
       position: fixed; right: 16px; bottom: 16px; z-index: 2147483000; display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
       font: 500 12px/1.3 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--t1); -webkit-font-smoothing: antialiased;
@@ -33,6 +33,7 @@
     .cond { font-family: "Barlow Condensed", "Arial Narrow", -apple-system, sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; }
     .caps { font-family: "Barlow Condensed", "Arial Narrow", -apple-system, sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; }
     .t2 { color: var(--t2); } .t3 { color: var(--t3); }
+    small { font-size: 11px; font-weight: 600; color: var(--t3); }
 
     .tag { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px 0 7px; border-radius: 6px; white-space: nowrap; font-size: 11px; color: var(--t3);
       background: rgba(18, 20, 19, .72); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: inset 0 0 0 1px var(--rule); }
@@ -44,14 +45,14 @@
 
     .pop { width: 316px; max-height: calc(100vh - 80px); display: flex; flex-direction: column; border-radius: 14px; background: var(--bg); overflow: hidden;
       box-shadow: inset 0 0 0 1px var(--rule), 0 24px 60px rgba(0, 0, 0, .65); transform-origin: bottom right; animation: pop .24s var(--ease) both; }
-    .tabs { display: flex; align-items: stretch; height: 38px; padding: 0 12px; gap: 16px; border-bottom: 1px solid var(--rule); flex: none; }
+    .tabs { display: flex; align-items: stretch; height: 38px; padding: 0 12px; gap: 14px; border-bottom: 1px solid var(--rule); flex: none; }
     .tabs button { position: relative; display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--t3); }
     .tabs button b { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 13px; color: var(--t2); letter-spacing: 0; }
     .tabs button[aria-selected="true"] { color: var(--t1); }
     .tabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 1px; background: var(--acc, var(--ivory)); }
     .tabs .lock { margin-left: auto; display: flex; align-items: center; font-size: 11px; color: var(--t3); }
     .tabs .lock.soon { color: var(--amber); }
-    .body { overflow-y: auto; }
+    .body { overflow-y: auto; min-height: 0; }
     .list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 8px; list-style: none; }
 
     .stub { position: relative; display: grid; grid-template-columns: 50px minmax(0, 1fr) 30px; align-items: stretch; min-height: 52px; border-radius: 9px; background: var(--p2); }
@@ -121,11 +122,68 @@
     .sk { display: block; border-radius: 6px; background: linear-gradient(90deg, #1b1e1c 0, #262a27 50%, #1b1e1c 100%); background-size: 400px 100%; animation: shimmer 1.2s linear infinite; }
     .progress { width: 84px; height: 3px; border-radius: 2px; background: var(--p3); overflow: hidden; }
     .progress b { display: block; width: 40%; height: 100%; border-radius: 2px; background: var(--sky); animation: slide 1.1s var(--ease) infinite; }
+
+    /* Arcade: violet is its accent. The step numeral leads, the run's state sits under it, then the tickets. */
+    .arc-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 4px; }
+    .arc-head .step { font-size: 30px; line-height: .9; color: var(--vio); text-shadow: 0 0 18px rgba(184, 164, 255, .35); }
+    .arc-head .who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .arc-head .big { font-weight: 800; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pips { margin-left: auto; display: flex; gap: 3px; flex: none; }
+    .pips i { width: 14px; height: 6px; border-radius: 2px; background: var(--p3); }
+    .pips i.on { background: var(--vio); box-shadow: 0 0 8px rgba(184, 164, 255, .35); }
+    .arc-status { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 2px 12px; }
+    .arc-status .say { white-space: normal; }
+    .say.amber { color: var(--amber); } .say.red { color: var(--red); }
+    .meter { display: flex; gap: 3px; flex: none; }
+    .meter i { width: 16px; height: 3px; border-radius: 2px; background: var(--p3); }
+    .meter i.done { background: var(--vio); }
+    .meter i.now { background: linear-gradient(90deg, var(--p3), var(--vio), var(--p3)); background-size: 200% 100%; animation: flow 1.1s linear infinite; }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px 4px; }
+    .chip { font-size: 11px; font-weight: 600; color: var(--t2); padding: 3px 7px; border-radius: 999px; background: var(--p2); box-shadow: inset 0 0 0 1px var(--rule); }
+    .chip.ok { color: var(--ok); box-shadow: inset 0 0 0 1px rgba(143, 208, 168, .3); }
+    .chip.bad { color: var(--red); box-shadow: inset 0 0 0 1px rgba(255, 138, 128, .3); }
+    .chip.warn { color: var(--amber); box-shadow: inset 0 0 0 1px rgba(242, 207, 60, .25); }
+    .cap { font-size: 11px; color: var(--t3); padding: 6px 4px 0; list-style: none; }
+    .banner { list-style: none; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 9px; font-size: 12px; font-weight: 600; animation: drop .32s var(--ease) both; }
+    .banner .ico { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; font-size: 11px; font-weight: 800; }
+    .banner.vio { background: rgba(184, 164, 255, .1); box-shadow: inset 0 0 0 1px rgba(184, 164, 255, .28); }
+    .banner.vio .ico { background: var(--vio); color: #120c24; }
+    .banner.red { background: rgba(255, 138, 128, .1); box-shadow: inset 0 0 0 1px rgba(255, 138, 128, .3); }
+    .banner.red .ico { background: var(--red); color: #210807; }
+    .stub.arc { grid-template-columns: 50px minmax(0, 1fr) 22px; }
+    .stub.arc .open { padding-right: 0; }
+    .stub.arc.best { background: var(--p3); box-shadow: inset 0 0 0 1px rgba(184, 164, 255, .38); }
+    .stub.arc.best .pct .cond { color: var(--vio); }
+    .stub.arc .gauge i { left: 87%; background: var(--vio); }
+    .stub.arc .chev { display: grid; place-items: center; font-weight: 800; font-size: 15px; color: var(--t3); }
+    .fan img.off { filter: grayscale(1) brightness(.6); }
+    .arc.stale > *:not(.arc-status):not(.note) { opacity: .5; }
+    .clubs { padding: 0 8px 10px; }
+    .club-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+    .club { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 6px; border-radius: 8px; background: var(--p2); }
+    .club img, .club .shield { width: 20px; height: 20px; flex: none; object-fit: contain; }
+    .club .shield { border-radius: 4px 4px 10px 10px; background: var(--p3); }
+    .club > span { min-width: 0; display: flex; flex-direction: column; }
+    .club .n { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .club .say { font-size: 11px; }
+    .src { margin-left: 3px; padding: 0 3px; border-radius: 3px; font-size: 11px; line-height: 14px; font-weight: 700; color: var(--t3); background: rgba(255, 255, 255, .06); }
+    .src.xi { color: #0d1f14; background: var(--ok); }
+    .arc-field .card.off img { filter: grayscale(1) brightness(.55); }
+    .ribbon { position: absolute; top: 34%; left: -4px; right: -4px; text-align: center; font-size: 11px; font-weight: 800; padding: 2px 0; border-radius: 3px; background: var(--red); color: #210807; box-shadow: 0 4px 10px rgba(0, 0, 0, .5); }
+    .alts { display: flex; gap: 4px; margin-top: 2px; }
+    .alt { display: flex; align-items: center; gap: 2px; padding: 2px 4px 2px 2px; border-radius: 5px; background: rgba(255, 255, 255, .04); }
+    .card .alt img { width: 13px; border-radius: 2px; box-shadow: none; aspect-ratio: 770 / 1246; }
+    .alt .cond { font-size: 11px; color: var(--t2); }
+    .tag .flag { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+    .tag .flag.red { background: var(--red); box-shadow: 0 0 0 3px rgba(255, 138, 128, .2); }
+    .tag .flag.vio { background: var(--vio); box-shadow: 0 0 0 3px rgba(184, 164, 255, .2); }
+    @keyframes flow { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+    @keyframes drop { from { opacity: 0; transform: translateY(-4px); } }
     @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.98); } }
     @keyframes shimmer { from { background-position: -200px 0; } to { background-position: 200px 0; } }
     @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
     @media (max-width: 900px) { .dock { display: none; } }
-    @media (prefers-reduced-motion: reduce) { .pop, .sk, .progress b { animation: none; } .punch i { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { .pop, .sk, .progress b, .meter i.now, .banner { animation: none; } .punch i { transition: none; } }
   `;
 
   let host = null;
@@ -386,6 +444,17 @@
     node.setAttribute("aria-expanded", String(open));
     node.setAttribute("aria-controls", "sofix-dock");
     node.append(el("i", "glyph"));
+    // An entered Arcade lineup with a card the announced eleven leaves out: red, open or closed; a fresh plan change: violet.
+    if (arcadeAlerts().length) {
+      const flag = el("i", "flag red");
+      flag.title = "An entered Arcade lineup has a card not starting";
+      node.append(flag);
+      node.setAttribute("aria-label", `${node.getAttribute("aria-label")}: an Arcade lineup has a card not starting`);
+    } else if (freshChange()) {
+      const flag = el("i", "flag vio");
+      flag.title = freshChange().text;
+      node.append(flag);
+    }
     const live = liveHere();
     if (!plan) node.append(el("span", "", data && data.plan && data.plan.week ? `GW${data.plan.week}` : "Sofix"));
     else if (live && live.lineups) node.append(el("span", "cond", String(live.total)), el("span", "", " live"));
@@ -404,16 +473,21 @@
     const node = el("div", "tabs");
     node.setAttribute("role", "tablist");
     if (tab === "missions") node.style.setProperty("--acc", "var(--sky)");
+    if (tab === "arcade") node.style.setProperty("--acc", "var(--vio)");
     const today = missions();
-    for (const [key, label, count] of [["lineups", "Lineups", rows().length], ["missions", "Missions", today && today.status === "today" ? today.missions.length : 0]]) {
-      const one = button("caps", label, () => { tab = key; view = null; render(); });
+    const am = arcadeModel();
+    const tabs = [["lineups", "Lineups", rows().length], ["missions", "Missions", today && today.status === "today" ? today.missions.length : 0], ["arcade", "Arcade", am ? (am.next ? 1 : 0) + (am.best.length ? 1 : 0) : 0]];
+    for (const [key, label, count] of tabs) {
+      const one = button("caps", label, () => { tab = key; view = null; arcadeView = null; if (key === "arcade") arcadeOpened(); render(); });
       one.setAttribute("role", "tab");
       one.setAttribute("aria-selected", String(tab === key));
       if (count) one.append(el("b", "", String(count)));
       node.append(one);
     }
     const plan = ready();
-    if (plan) {
+    if (tab === "arcade") {
+      if (am && am.set.end) node.append(el("span", "lock", `ends ${whenShort(am.set.end).replace(/ \d\d:\d\d$/, "")}`));
+    } else if (plan) {
       const lock = lockShort(plan);
       node.append(el("span", lock.soon ? "lock soon" : "lock", plan.week ? `GW${plan.week}${lock.text ? ` · ${lock.text}` : ""}` : lock.text));
     }
@@ -674,6 +748,336 @@
     return nodes;
   }
 
+  // -- Arcade (plans/dock-v2.md): the extension's engine works the Arcade page's climb out; this draws what it stored -------------------
+
+  const ARCADE_FRESH_MS = 10 * 60 * 1000; // opening the tab later than this after the last plan works it out again
+  const GRACE_MS = 15 * 1000; // lib/arcadeEngine.ts: a run this far past its stage's deadline has stopped
+  const STAGE_WORDS = { board: "Reading your board", forecasts: "Reading forecasts", lineups: "Checking lineups", plan: "Working out the climb" };
+  const STAGE_ORDER = ["board", "forecasts", "lineups", "plan"];
+  const SOURCE = { lineup: ["XI", "Announced lineup"], futbolfantasy: ["FF", "Futbol Fantasy"], sorare: ["SO", "Sorare"], sofix: ["SX", "Sofix"] };
+  const EMPTY = {
+    "no-set": "No Arcade set is running on Sorare right now.",
+    "no-board": "Sorare has no set board for this account yet.",
+    "no-games": "No game of your cards is left before the set ends.",
+    ended: "This set has ended.",
+  };
+  let arcade = { model: null, run: null, lastRun: 0 };
+  let arcadeView = null; // null, "best", or a lineup key
+  let arcadeTimer = 0;
+  let seenChange = 0;
+
+  const madridDay = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short" });
+  const madridTime = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
+  const madridDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" });
+  /** "Today 18:30", "Sun 14:00": when a lineup's first game kicks off, as the tickets say it. */
+  function whenShort(value) {
+    const at = typeof value === "number" ? value : Date.parse(value);
+    if (!Number.isFinite(at)) return "Date TBC";
+    const day = madridDate.format(at) === madridDate.format(Date.now()) ? "Today" : madridDay.format(at);
+    return `${day} ${madridTime.format(at)}`;
+  }
+  const clock = (value) => madridTime.format(typeof value === "number" ? value : Date.parse(value));
+
+  const arcadeModel = () => (arcade && arcade.model && arcade.model.v === 1 ? arcade.model : null);
+  const arcadeRunState = () => (arcade && arcade.run ? arcade.run : null);
+  const working = () => { const run = arcadeRunState(); return Boolean(run && run.state === "working" && Date.now() <= run.deadline + GRACE_MS); };
+  const stoppedRun = () => { const run = arcadeRunState(); return Boolean(run && run.state === "working" && Date.now() > run.deadline + GRACE_MS); };
+  const failedRun = () => { const run = arcadeRunState(); return run && run.state === "failed" ? run : null; };
+  /** The plan on screen is older than a run that failed or stopped since: drawn greyed with its time. */
+  const arcadeStale = () => Boolean(arcadeModel() && (failedRun() || stoppedRun()));
+  const arcadeAlerts = () => (arcadeModel() ? arcadeModel().alerts : []);
+  const freshChange = () => { const m = arcadeModel(); return m && m.change && m.change.at > seenChange && Date.now() - m.change.at < 60 * 60 * 1000 ? m.change : null; };
+
+  function runArcade(force = false) {
+    send({ type: "arcade-run", force }).then(() => render());
+  }
+
+  /** While a run goes, redraw every few seconds so its stage, and a stop past its deadline, show without a click. */
+  function arcadeTick() {
+    clearInterval(arcadeTimer);
+    arcadeTimer = 0;
+    if (open && tab === "arcade" && (working() || stoppedRun())) arcadeTimer = setInterval(render, 4000);
+  }
+
+  function arcadeOpened() {
+    const m = arcadeModel();
+    if (m && m.change) seenChange = m.change.at;
+    if (!working() && (!m || Date.now() - m.at > ARCADE_FRESH_MS)) runArcade(false);
+  }
+
+  function onArcadeStored(changes, area) {
+    if (area !== "local" || !changes.arcadeDock) return;
+    arcade = changes.arcadeDock.newValue || { model: null, run: null, lastRun: 0 };
+    if (open && tab === "arcade" && arcadeModel() && arcadeModel().change) seenChange = Math.max(seenChange, arcadeModel().change.at);
+    render();
+  }
+
+  /** His start % with whose number it is: the announced eleven (XI), Futbol Fantasy, Sorare or Sofix. */
+  function arcadeStart(card) {
+    const node = startNode(card.start);
+    const source = SOURCE[card.source];
+    if (source) {
+      const tag = el("b", `src${card.source === "lineup" ? " xi" : ""}`, source[0]);
+      node.append(tag);
+      node.title = `Chance he starts · ${source[1]}`;
+    }
+    return node;
+  }
+
+  function stub(lineup, { label, more, best, onOpen }) {
+    const target = lineup.target || (arcadeModel() ? arcadeModel().step.target : 0);
+    const item = el("li", `stub arc${best ? " best" : ""}`);
+    const pct = el("div", "pct");
+    pct.append(percent(lineup.p));
+    pct.title = `Chance to reach ${target} pts`;
+    const body = button("open", "", onOpen, `${label}: ${whenShort(lineup.first)}, ${Math.round(lineup.p * 100)}%`);
+    const r1 = el("span", "r1");
+    const fan = el("span", "fan");
+    fan.setAttribute("aria-hidden", "true");
+    for (const card of lineup.cards.slice(0, 5)) {
+      const pic = img(card.pic);
+      if (card.sheet === "bench" || card.sheet === "out") pic.className = "off";
+      fan.append(pic);
+    }
+    r1.append(el("span", "name", whenShort(lineup.first)), fan);
+    const r2 = el("span", "r1");
+    const gauge = el("span", "gauge");
+    const fill = el("b");
+    fill.style.width = `${target ? Math.min(100, Math.round((lineup.x / (target * 1.15)) * 100)) : 0}%`;
+    gauge.append(fill, el("i"));
+    r2.append(el("span", "cond", String(lineup.x)), gauge, el("span", "say", `of ${target}`));
+    body.append(r1, r2);
+    const xi = lineup.cards.filter((card) => card.source === "lineup").length;
+    if (lineup.play > 1 || xi) body.append(el("span", "say", [lineup.play > 1 ? `Play ${lineup.play} lineups` : "", xi ? `${xi} of ${lineup.cards.length} in announced lineups` : ""].filter(Boolean).join(" · ")));
+    item.append(pct, body, el("span", "chev", more ? "›" : ""));
+    return item;
+  }
+
+  function arcadeHead(m) {
+    const head = el("div", "arc-head");
+    head.append(el("span", "cond step", String(m.step.number)));
+    const text = el("div", "who");
+    text.append(el("span", "big", `Step ${m.step.number}${m.step.of ? ` of ${m.step.of}` : ""} · ${m.step.target} pts`));
+    text.append(el("span", "say", [`${m.step.lives} ${m.step.lives === 1 ? "life" : "lives"} left`, m.step.reward].filter(Boolean).join(" · ")));
+    const pips = el("span", "pips");
+    pips.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < m.step.max; i++) pips.append(el("i", i < m.step.lives ? "on" : ""));
+    head.append(text, pips);
+    return head;
+  }
+
+  /** Where the run is: four segments that fill as it goes, in words; a stop or a failure in words with Retry. */
+  function arcadeStatus() {
+    const run = arcadeRunState();
+    const m = arcadeModel();
+    const row = el("div", "arc-status");
+    row.setAttribute("role", "status");
+    if (working()) {
+      const at = Math.max(0, STAGE_ORDER.indexOf(run.stage));
+      const meter = el("span", "meter");
+      meter.setAttribute("aria-hidden", "true");
+      STAGE_ORDER.forEach((_, i) => meter.append(el("i", i < at ? "done" : i === at ? "now" : "")));
+      row.append(meter, el("span", "say", `${STAGE_WORDS[run.stage] || "Working"} · ${at + 1} of 4`));
+      return row;
+    }
+    if (stoppedRun()) {
+      row.className = "arc-status warn";
+      row.append(el("span", "say amber", "Calculation stopped"));
+    } else if (failedRun()) {
+      row.className = "arc-status bad";
+      row.append(el("span", "say red", failedRun().error ? failedRun().error.text : "The plan could not be worked out."));
+    } else if (m) {
+      row.append(el("span", "say", `Planned ${clock(m.at)}${m.state === "rough" ? " · rough" : ""}${m.sofix ? "" : " · Sorare's numbers only"}`));
+    }
+    const again = button("btn ghost sm", stoppedRun() || failedRun() ? "Retry" : "↻", () => runArcade(true), "Work the plan out again");
+    again.style.marginLeft = "auto";
+    row.append(again);
+    return row;
+  }
+
+  /** The announced elevens: games out, not out yet (with when it checked), and those it could not read (with when it tries again). */
+  function lineupsOut(m) {
+    const out = m.lineupsOut;
+    if (!out || (!out.announced.length && !out.waiting.length && !out.unread.length && !out.outdated)) return null;
+    const box = el("div", "chips");
+    box.setAttribute("aria-label", "Announced lineups");
+    for (const name of out.announced) box.append(el("span", "chip ok", `XI · ${name}`));
+    for (const name of out.waiting) box.append(el("span", "chip", `${name} · not out yet${out.checkedAt ? ` (${clock(out.checkedAt)})` : ""}`));
+    for (const name of out.unread) box.append(el("span", "chip bad", `${name} · couldn't read${out.limited ? " (Sorare busy)" : ""}${out.retryAt ? ` · retry ${clock(out.retryAt)}` : ""}`));
+    if (out.outdated) box.append(el("span", "chip bad", "Lineups need a newer extension: run configure"));
+    return box;
+  }
+
+  function arcadeNotes() {
+    const run = arcadeRunState();
+    const notes = run && Array.isArray(run.notes) ? run.notes.filter((note) => !/Sorare's numbers only/.test(note)) : [];
+    if (!notes.length || working()) return null;
+    const box = el("div", "chips");
+    for (const note of notes.slice(0, 3)) box.append(el("span", "chip warn", note));
+    return box;
+  }
+
+  function arcadeSkeleton() {
+    const wrap = el("div");
+    wrap.setAttribute("aria-hidden", "true");
+    const head = el("div", "arc-head");
+    const a = el("span", "sk"); a.style.cssText = "width:18px;height:26px";
+    const lines = el("div", "who");
+    const l1 = el("span", "sk"); l1.style.cssText = "width:130px;height:13px";
+    const l2 = el("span", "sk"); l2.style.cssText = "width:80px;height:11px";
+    lines.append(l1, l2);
+    head.append(a, lines);
+    const ul = el("ul", "list");
+    for (let i = 0; i < 2; i++) {
+      const cap = el("span", "sk"); cap.style.cssText = "width:120px;height:11px;margin:6px 4px 0";
+      const li = el("li", "stub arc");
+      li.style.height = "52px";
+      ul.append(cap, li);
+    }
+    wrap.append(head, ul);
+    return wrap;
+  }
+
+  function arcadeList(m) {
+    const nodes = [];
+    const ul = el("ul", "list");
+    const change = freshChange() || (m.change && Date.now() - m.change.at < 60 * 60 * 1000 ? m.change : null);
+    if (change) {
+      const strip = el("li", "banner vio");
+      strip.append(el("span", "ico", "↻"), el("span", "", change.text), el("span", "say", clock(change.at)));
+      ul.append(strip);
+    }
+    for (const alert of m.alerts) {
+      const strip = el("li", "banner red");
+      strip.setAttribute("role", "alert");
+      strip.append(el("span", "ico", "!"), el("span", "", `Your step ${alert.step} lineup: ${alert.names.join(", ")} ${alert.names.length > 1 ? "are" : "is"} not starting`), el("span", "say", whenShort(alert.kickoff)));
+      ul.append(strip);
+    }
+    // The next batch is often also the best lineup for the step: one ticket says both, and its › opens the others.
+    const same = Boolean(m.next && m.best[0] && m.best[0].key === m.next.key);
+    if (m.next) {
+      ul.append(el("li", "caps cap", m.state === "rough" ? `Rough · best for step ${m.step.number}` : same ? `Next batch · best for step ${m.aim}` : "Next batch of players"));
+      ul.append(stub(m.next, same
+        ? { label: "Next batch", more: m.best.length > 1, best: true, onOpen: () => { arcadeView = "best"; render(); } }
+        : { label: "Next batch", onOpen: () => { arcadeView = `next:${m.next.key}`; render(); } }));
+    }
+    if (m.best.length && !same) {
+      ul.append(el("li", "caps cap", `Best to clear step ${m.aim}`));
+      ul.append(stub(m.best[0], { label: `Best to clear step ${m.aim}`, more: m.best.length > 1, best: true, onOpen: () => { arcadeView = "best"; render(); } }));
+    }
+    if (!m.next && !m.best.length) ul.append(el("li", "note", EMPTY[m.state] || "No lineup can be built from your cards yet."));
+    nodes.push(ul);
+    if (m.clubs.length) {
+      const clubs = el("div", "clubs");
+      clubs.append(el("span", "caps cap", "Build around"));
+      const row = el("div", "club-row");
+      for (const club of m.clubs) {
+        const chip = el("span", "club");
+        if (club.crest) chip.append(img(club.crest, ""));
+        else chip.append(el("i", "shield"));
+        const text = el("span");
+        text.append(el("span", "n", club.name), el("span", "say", `${club.likely} likely · ${whenShort(club.kickoff)}`));
+        chip.append(text);
+        chip.title = `${club.name}: ${club.likely} of your cards likely to start, about ${club.value} pts from the best three`;
+        row.append(chip);
+      }
+      clubs.append(row);
+      nodes.push(clubs);
+    }
+    return nodes;
+  }
+
+  function arcadeBest(m) {
+    const head = el("div", "head");
+    head.append(button("back", `‹ Best to clear step ${m.aim}`, () => { arcadeView = null; render(); }, "Back to Arcade"));
+    const meta = el("span", "caps t3", `${m.best[0].target} pts`);
+    meta.style.cssText = "margin-left:auto;font-size:11px";
+    head.append(meta);
+    const ul = el("ul", "list");
+    m.best.forEach((lineup, i) => ul.append(stub(lineup, { label: `Lineup ${i + 1}`, best: i === 0, onOpen: () => { arcadeView = `best:${lineup.key}`; render(); } })));
+    return [head, ul];
+  }
+
+  const SHEET = { bench: "Benched", out: "Not in squad" };
+
+  function arcadeField(lineup, title, back) {
+    const nodes = [];
+    const head = el("div", "head");
+    head.append(button("back", `‹ ${title}`, back, "Back"));
+    const sum = el("span", "t3");
+    sum.style.marginLeft = "auto";
+    const x = el("span", "cond", String(lineup.x));
+    x.style.cssText = "font-size:18px;color:var(--t1)";
+    sum.append(x, document.createTextNode(` of ${lineup.target}`));
+    const pct = percent(lineup.p);
+    pct.style.color = "var(--vio)";
+    pct.querySelector(".cond").style.fontSize = "18px";
+    head.append(sum, pct);
+    nodes.push(head);
+    const when = el("p", "say");
+    when.style.cssText = "margin:0;padding:0 12px";
+    when.textContent = `${whenShort(lineup.first)}${lineup.play > 1 ? ` · play ${lineup.play} lineups in this window` : ""}`;
+    nodes.push(when);
+    const field = el("ul", "field arc-field");
+    field.setAttribute("aria-label", `${title}: its cards`);
+    for (const line of fieldLines(lineup.cards)) {
+      const li = el("li", "line");
+      for (const card of line) {
+        const one = el("div", `card${card.sheet === "bench" || card.sheet === "out" ? " off" : ""}`);
+        one.style.width = lineup.cards.length > 5 ? "58px" : "68px";
+        one.append(img(card.pic, `${card.name}${card.captain ? ", captain" : ""}`));
+        if (card.captain) { const c = el("span", "c", "C"); c.setAttribute("aria-hidden", "true"); one.append(c); }
+        if (SHEET[card.sheet]) one.append(el("span", "ribbon", SHEET[card.sheet]));
+        const nums = el("span", "nums");
+        nums.append(el("span", "cond", card.points === null ? "–" : String(Math.round(card.points))), arcadeStart(card));
+        one.append(nums);
+        const alts = (lineup.alternatives && lineup.alternatives[card.slug]) || [];
+        if (alts.length) {
+          const or = el("span", "alts");
+          or.setAttribute("aria-label", `Instead of ${card.name}`);
+          for (const alt of alts) {
+            const a = el("span", "alt");
+            a.title = `${alt.name}: ${alt.points === null ? "–" : Math.round(alt.points)} pts${typeof alt.start === "number" ? `, ${core.chanceLabel(alt.start)} to start` : ""}`;
+            a.append(img(alt.pic, alt.name), el("span", "cond", alt.points === null ? "–" : String(Math.round(alt.points))));
+            or.append(a);
+          }
+          one.append(or);
+        }
+        li.append(one);
+      }
+      field.append(li);
+    }
+    nodes.push(field);
+    return nodes;
+  }
+
+  function arcadeTab() {
+    const m = arcadeModel();
+    if (!m) {
+      if (working()) return [arcadeStatus(), arcadeSkeleton()];
+      const box = el("div", "empty");
+      const run = failedRun();
+      const said = el("span", run || stoppedRun() ? "say bad" : "caps t3", run && run.error ? run.error.text : stoppedRun() ? "Calculation stopped" : "Arcade isn't worked out yet");
+      said.setAttribute("role", "status");
+      box.append(said, button("btn vio", run || stoppedRun() ? "Retry" : "Work it out", () => runArcade(true)));
+      return [box];
+    }
+    if (arcadeView && arcadeView.includes(":")) {
+      const [kind, key] = [arcadeView.slice(0, arcadeView.indexOf(":")), arcadeView.slice(arcadeView.indexOf(":") + 1)];
+      const lineup = kind === "next" ? (m.next && m.next.key === key ? m.next : null) : m.best.find((one) => one.key === key);
+      if (lineup) return arcadeField(lineup, kind === "next" ? (m.state === "rough" ? "Rough lineup" : "Next batch") : `Best to clear step ${m.aim}`, () => { arcadeView = kind === "next" ? null : "best"; render(); });
+      arcadeView = null;
+    }
+    if (arcadeView === "best" && m.best.length) return arcadeBest(m);
+    arcadeView = null;
+    const wrap = el("div", arcadeStale() ? "arc stale" : "arc");
+    wrap.append(arcadeHead(m), arcadeStatus());
+    for (const extra of [lineupsOut(m), arcadeNotes()]) if (extra) wrap.append(extra);
+    wrap.append(...arcadeList(m));
+    if (arcadeStale()) wrap.append(el("p", "note", `Showing the plan from ${whenShort(m.at)}.`));
+    return [wrap];
+  }
+
   function render() {
     if (!dock) return;
     const nodes = [];
@@ -683,7 +1087,7 @@
       pop.setAttribute("role", "dialog");
       pop.setAttribute("aria-label", "Sofix");
       const body = el("div", "body");
-      body.append(...(tab === "missions" ? missionsView() : lineupsView()));
+      body.append(...(tab === "missions" ? missionsView() : tab === "arcade" ? arcadeTab() : lineupsView()));
       // the foot stays put under a list that scrolls
       const foot = body.querySelector(":scope > .foot");
       pop.append(tabsNode(), body);
@@ -693,6 +1097,7 @@
     nodes.push(tag());
     const focused = host && host.shadowRoot.activeElement ? host.shadowRoot.activeElement.getAttribute("aria-label") || host.shadowRoot.activeElement.textContent : null;
     dock.replaceChildren(...nodes);
+    arcadeTick();
     if (focused) {
       const again = [...dock.querySelectorAll("button")].find((b) => (b.getAttribute("aria-label") || b.textContent) === focused);
       if (again) again.focus();
@@ -702,7 +1107,7 @@
   function setOpen(next) {
     open = next;
     view = null;
-    if (open) { load(); readSorare(); }
+    if (open) { load(); readSorare(); if (tab === "arcade") arcadeOpened(); }
     watch();
     render();
   }
@@ -737,6 +1142,8 @@
     root.append(style, dock);
     document.body.append(host);
     document.addEventListener("keydown", onKey, true);
+    chrome.storage.local.get("arcadeDock").then(({ arcadeDock }) => { if (arcadeDock) { arcade = arcadeDock; render(); } }, () => {});
+    chrome.storage.onChanged.addListener(onArcadeStored);
     if (globalThis.navigation) globalThis.navigation.addEventListener("navigatesuccess", place);
     window.addEventListener("popstate", place);
     render();
@@ -745,6 +1152,9 @@
 
   function teardown() {
     document.removeEventListener("keydown", onKey, true);
+    try { chrome.storage.onChanged.removeListener(onArcadeStored); } catch { /* the extension was reloaded */ }
+    clearInterval(arcadeTimer);
+    arcadeTimer = 0;
     window.removeEventListener("popstate", place);
     if (globalThis.navigation) globalThis.navigation.removeEventListener("navigatesuccess", place);
     if (host) host.remove();

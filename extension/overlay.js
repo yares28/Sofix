@@ -31,6 +31,8 @@
   };
 
   let enabled = false;
+  let off = new Set(); // the parts switched off in the popup (core.OVERLAY_PARTS)
+  const on = (part) => !off.has(part);
   let dead = false; // the extension was reloaded under this tab: the old script has nothing left to talk to
   let mutations = null;
   let visibility = null;
@@ -230,7 +232,7 @@
 
   /** Ask the worker for the match pages the cards on screen are about; it reads each at most every 10 minutes. */
   function wantLive(force) {
-    if (!enabled || dead || liveAsking || appState !== "ok") return;
+    if (!enabled || dead || liveAsking || appState !== "ok" || !on("ff")) return;
     const matches = new Map();
     for (const record of live) {
       if (record.ident !== "done" || !record.visible) continue;
@@ -1487,25 +1489,25 @@
     let again = false;
     for (const read of reads) {
       try {
-        if (placeTile(read)) again = true;
-        if (placeOdds(read)) again = true;
-        if (placeNeed(read)) again = true;
-        if (placeStart(read)) again = true;
-        if (placeCaptain(read, read === captain)) again = true;
-        if (placePrice(read)) again = true;
-        placeCrest(read);
-        placeWorth(read);
+        if (on("tile") && placeTile(read)) again = true;
+        if (on("odds") && placeOdds(read)) again = true;
+        if (on("need") && placeNeed(read)) again = true;
+        if (on("start") && placeStart(read)) again = true;
+        if (on("captain") && placeCaptain(read, read === captain)) again = true;
+        if (on("price") && placePrice(read)) again = true;
+        if (on("crest")) placeCrest(read);
+        if (on("worth")) placeWorth(read);
       } catch {
         // one card that will not take a tile must not stop the others
       }
     }
     if (again) schedule();
     try {
-      placeTeam(pitch, column);
-      placeList();
-      placeClear();
-      placeWorthBox();
-      placeStrip();
+      if (on("team")) placeTeam(pitch, column);
+      if (on("list")) placeList();
+      if (on("clear")) placeClear();
+      if (on("worth")) placeWorthBox();
+      if (on("profile")) placeStrip();
     } catch {
       // the box and the strip are niceties: a page they do not fit keeps everything else
     }
@@ -2445,7 +2447,7 @@
 
   // Shift+click: the first card, then the second opens the panel; Shift+click a chosen card again, or Escape, closes it.
   function onListClick(event) {
-    if (!event.shiftKey || !enabled || !builderPage()) return;
+    if (!event.shiftKey || !enabled || !on("list") || !builderPage()) return;
     const item = listItems.find((one) => one.contains(event.target));
     if (!item) return;
     event.preventDefault();
@@ -2926,10 +2928,10 @@
     }
     identify().catch(() => {}); // asks the bridge; its answer draws on a later pass
     readOdds().catch(() => {});
-    wantWorth();
-    wantProfile();
+    if (on("worth")) wantWorth();
+    if (on("profile")) wantProfile();
     wantNumbers();
-    wantNeed();
+    if (on("need") || on("clear")) wantNeed();
     paint();
   }
 
@@ -3079,16 +3081,28 @@
   });
 
   // -- the switch ------------------------------------------------------------------------------------------------
-  // The popup's "Scores on sorare.com" writes `overlay` to storage; flipping it adds or removes the tiles at once.
+  // The popup's "Scores on sorare.com" writes `overlay` to storage; flipping it adds or removes the tiles at once. Its part
+  // switches write `overlayOff`: a change redraws the page from scratch, so a part switched off leaves nothing behind.
 
   const apply = guard((value) => (value === false ? stop() : start()));
+  const setOff = guard((keys) => {
+    off = new Set(Array.isArray(keys) ? keys : []);
+    if (!enabled) return;
+    stop();
+    start();
+  });
   try {
-    chrome.storage.sync.get({ overlay: true }).then(
-      ({ overlay }) => apply(overlay),
+    chrome.storage.sync.get({ overlay: true, overlayOff: [] }).then(
+      ({ overlay, overlayOff }) => {
+        off = new Set(Array.isArray(overlayOff) ? overlayOff : []);
+        apply(overlay);
+      },
       () => apply(true),
     );
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === "sync" && changes.overlay) apply(changes.overlay.newValue);
+      if (area !== "sync") return;
+      if (changes.overlayOff) setOff(changes.overlayOff.newValue);
+      if (changes.overlay) apply(changes.overlay.newValue);
     });
   } catch {
     apply(true);

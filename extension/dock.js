@@ -8,7 +8,7 @@
 // when the panel opens and at most every two minutes while it is open.
 //
 // It lives in a shadow root, so Sorare's styles cannot reach it and its own cannot leak out, and it is switched by the same popup
-// switch as the tiles ("Scores on sorare.com").
+// switch as the tiles ("Scores on sorare.com") and by its own part switch ("Dock").
 (() => {
   if (globalThis.__sofixDock === 1) return;
   const core = globalThis.__sofixCore;
@@ -1179,9 +1179,15 @@
     }
   };
   try {
-    chrome.storage.sync.get({ overlay: true }).then(({ overlay }) => apply(overlay), () => apply(true));
+    // On with the master switch and its own part switch (popup: "Dock").
+    let shown = { overlay: true, off: [] };
+    const show = () => apply(shown.overlay !== false && !(Array.isArray(shown.off) && shown.off.includes("dock")));
+    chrome.storage.sync.get({ overlay: true, overlayOff: [] }).then(({ overlay, overlayOff }) => { shown = { overlay, off: overlayOff }; show(); }, () => apply(true));
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === "sync" && changes.overlay) apply(changes.overlay.newValue);
+      if (area !== "sync" || (!changes.overlay && !changes.overlayOff)) return;
+      if (changes.overlay) shown.overlay = changes.overlay.newValue;
+      if (changes.overlayOff) shown.off = changes.overlayOff.newValue;
+      show();
     });
   } catch {
     apply(true);

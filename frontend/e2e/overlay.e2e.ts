@@ -230,7 +230,7 @@ const OLD_WEEK = "football-18-22-sep-2026";
 
 async function openPage(
   page: Page,
-  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; missions?: unknown; missionsAfterLoad?: unknown; url?: string; html?: string; need?: unknown; team?: unknown; brokenCrests?: boolean; failOnce?: string[]; arcade?: unknown } = {},
+  options: { mode?: Mode; overlay?: boolean; off?: string[]; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; missions?: unknown; missionsAfterLoad?: unknown; url?: string; html?: string; need?: unknown; team?: unknown; brokenCrests?: boolean; failOnce?: string[]; arcade?: unknown } = {},
 ) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
@@ -265,9 +265,14 @@ async function openPage(
         sent: [] as unknown[],
         opened: [] as string[],
         overlay: config.overlay,
+        off: config.off,
         setOverlay(value: boolean) {
           probe.overlay = value;
           listeners.forEach((listener) => listener({ overlay: { newValue: value } }, "sync"));
+        },
+        setOff(value: string[]) {
+          probe.off = value;
+          listeners.forEach((listener) => listener({ overlayOff: { newValue: value } }, "sync"));
         },
       };
       (window as unknown as { __sfx: unknown }).__sfx = probe;
@@ -324,7 +329,7 @@ async function openPage(
           },
         },
         storage: {
-          sync: { get: async (defaults: Record<string, unknown>) => ({ ...defaults, overlay: probe.overlay }) },
+          sync: { get: async (defaults: Record<string, unknown>) => ({ ...defaults, overlay: probe.overlay, overlayOff: probe.off }) },
           local: {
             get: async (key: string) => ({ [key]: JSON.parse(localStorage.getItem(`chrome:${key}`) ?? "null") ?? undefined }),
             set: async (items: Record<string, unknown>) => {
@@ -335,7 +340,7 @@ async function openPage(
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: options.missions ?? MISSIONS, missionsAfterLoad: options.missionsAfterLoad ?? null, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null, team: options.team ?? null, failOnce: options.failOnce ?? [], arcade: options.arcade ?? null },
+    { mode, overlay: options.overlay ?? true, off: options.off ?? [], numbers: NUMBERS, plan: options.plan ?? PLAN, missions: options.missions ?? MISSIONS, missionsAfterLoad: options.missionsAfterLoad ?? null, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES, need: options.need ?? null, team: options.team ?? null, failOnce: options.failOnce ?? [], arcade: options.arcade ?? null },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "dock.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
@@ -891,6 +896,20 @@ test.describe("the sorare.com overlay", () => {
     await expect.poll(() => page.locator(".sfx-live-dot").first().evaluate((el) => getComputedStyle(el, "::after").animationName)).toBe("none");
     await page.evaluate(() => (window as unknown as { __sfx: { setOverlay: (v: boolean) => void } }).__sfx.setOverlay(false));
     await expect(page.locator(".sfx-crests, .sfx-crest, .sfx-island")).toHaveCount(0);
+  });
+
+  test("each part switch takes its part away and gives it back, leaving the others drawn", async ({ page }) => {
+    await openPage(page, { url: BUILDER_URL, off: ["crest", "dock"] });
+    await settled(page);
+    await page.locator("#doubtful").scrollIntoViewIfNeeded();
+    await expect(page.locator(".sfx-tile").first()).toBeVisible();
+    await page.waitForTimeout(400);
+    await expect(page.locator(".sfx-crest")).toHaveCount(0);
+    await expect(page.locator("[data-sfx-dock]")).toHaveCount(0);
+    await page.evaluate(() => (window as unknown as { __sfx: { setOff: (v: string[]) => void } }).__sfx.setOff(["tile"]));
+    await expect(page.locator(".sfx-crest").first()).toBeVisible();
+    await expect(page.locator("[data-sfx-dock]")).toHaveCount(1);
+    await expect(page.locator(".sfx-tile")).toHaveCount(0);
   });
 
   test("takes the crests away when Sorare hides the cards for another page", async ({ page }) => {

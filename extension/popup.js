@@ -3,9 +3,47 @@ import { CONFIG } from "./config.js";
 
 const $ = (id) => document.getElementById(id);
 
+const PARTS = globalThis.__sofixCore?.OVERLAY_PARTS ?? [];
+
+/** One switch per overlay part (core.js OVERLAY_PARTS); greyed out while the master switch is off. */
+function renderParts(overlay, overlayOff) {
+  const off = new Set(overlayOff);
+  $("partsn").textContent = `${PARTS.filter((p) => !off.has(p.key)).length} of ${PARTS.length} on`;
+  $("partlist").replaceChildren(...PARTS.map((part) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    const what = document.createElement("span");
+    what.className = "what";
+    const name = document.createElement("span");
+    name.textContent = part.label;
+    const where = document.createElement("small");
+    where.textContent = part.where;
+    what.append(name, where);
+    const sw = document.createElement("button");
+    sw.className = "sw";
+    sw.type = "button";
+    sw.setAttribute("role", "switch");
+    sw.setAttribute("aria-checked", String(!off.has(part.key)));
+    sw.setAttribute("aria-label", part.label);
+    sw.disabled = !overlay;
+    sw.addEventListener("click", async () => {
+      const { overlayOff: now = [] } = await chrome.storage.sync.get(["overlayOff"]);
+      const next = now.includes(part.key) ? now.filter((k) => k !== part.key) : [...now, part.key];
+      await chrome.storage.sync.set({ overlayOff: next });
+      render();
+    });
+    const end = document.createElement("span");
+    end.className = "end";
+    end.append(sw);
+    row.append(what, end);
+    return row;
+  }));
+}
+
 async function render() {
   const { sorareUser = null, appReachable = null, overlayStats = null, appBase = null } = await chrome.storage.local.get(["sorareUser", "appReachable", "overlayStats", "appBase"]);
-  const { overlay = true } = await chrome.storage.sync.get(["overlay"]);
+  const { overlay = true, overlayOff = [] } = await chrome.storage.sync.get(["overlay", "overlayOff"]);
+  renderParts(overlay, overlayOff);
   const signedIn = Boolean(sorareUser);
   const linked = signedIn && appReachable !== false;
 

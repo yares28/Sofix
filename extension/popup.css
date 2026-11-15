@@ -35,6 +35,13 @@ h1 { margin: 12px 0 2px; font-size: 22px; font-weight: 700; letter-spacing: -0.0
 .btn { flex: 1; border: 0; border-radius: 12px; padding: 11px 18px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .btn.primary { background: var(--ink); color: #fff; }
 .btn:active { transform: scale(.97); }
+.parts { margin: 0 12px 12px; }
+.parts summary { cursor: pointer; padding: 4px 2px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.parts summary b { font-weight: 500; }
+.parts .list { margin: 6px 0 0; }
+.parts .row { padding: 9px 14px; }
+.parts .what { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.parts .what small { font-size: 11px; color: var(--ink-2); }
 .errs { margin: 0 14px 8px; font-size: 11px; color: #8b928d; }
 .errs summary { cursor: pointer; }
 .errs ol { margin: 6px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; color: #b3b9b4; }

@@ -1059,8 +1059,29 @@
   /** Sorare's six score colours, worst sixth first: a game stat's place among the week's games (plans/overlay-v2.md 7). */
   const SIXTHS = ["#ff5a5a", "#ff7e34", "#f0ce1d", "#b6ff1a", "#25ed36", "#00f3eb"];
 
+  /**
+   * The overlay's parts, each with its own switch in the popup (storage.sync `overlayOff`: the keys switched off; none means all on).
+   * The popup's "Scores on sorare.com" stays the master switch over all of them.
+   */
+  const OVERLAY_PARTS = [
+    { key: "tile", label: "Score tile and hover panel", where: "Every card" },
+    { key: "odds", label: "Win and clean sheet row", where: "Big cards, under Sorare's odds" },
+    { key: "start", label: "Start % chip", where: "Lineup cards" },
+    { key: "crest", label: "Opponent crest and game island", where: "Builders and lineup pages" },
+    { key: "captain", label: "Captain pick", where: "Builder pitch" },
+    { key: "team", label: "Team gauge", where: "Builder pitch" },
+    { key: "list", label: "Sort, filter and compare bar", where: "Builder card list" },
+    { key: "need", label: "Points needed", where: "Lineups in play" },
+    { key: "clear", label: "Chance to clear", where: "Lineups in play" },
+    { key: "price", label: "Price per point", where: "Market and gallery" },
+    { key: "worth", label: "Worth now and gallery total", where: "Your gallery" },
+    { key: "profile", label: "Player strip", where: "Player pages" },
+    { key: "ff", label: "Live Futbol Fantasy reads", where: "Start % while a page is open" },
+    { key: "dock", label: "Dock", where: "Corner tag and panel" },
+  ];
+
   root.__sofixCore = {
-    crestState, shieldCode, islandWhen, competitionName, SIXTHS,
+    OVERLAY_PARTS, crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
     chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, MY_GALLERY, sorarePic, lockLabel, enteredOf, stepAnswer, liveScores, composeBoard, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,

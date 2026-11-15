@@ -1637,12 +1637,12 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-14",
-        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.7",
+        "date": "2026-11-15",
+        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.8 only bumps the version for the popup's per-part overlay switches, no permission or action changed",
         "files": {
           "extension/background.js": "d1cf9eb896f439039641588e6a5a9328ae33f782955d1b3ba4c1a8b476ffaa68",
           "extension/bridge.js": "d5a039c26fff38d524ef910d361c14ff15bc5f79292c87a0def5d02600e43837",
-          "extension/manifest.template.json": "44edf66bc51e1ca450123c42c6494c91d0a7de4f2d7880b979d2eee34dbc8b14",
+          "extension/manifest.template.json": "3cd3c1dcc901639f6f74bba59087e88e1fdbd2eac0712ca53ed7512fec89596b",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

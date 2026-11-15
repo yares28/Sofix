@@ -1234,6 +1234,9 @@ the page when Sorare moves to another gameweek without reloading, and back.
 The popup's **Scores on sorare.com** switch turns the tiles, the odds row and the tab on and off at once, with no
 reload; switching off gives back the room made under Sorare's odds bar. (The old **Show chance of playing** switch is
 gone: his chance of starting is now on every tile and in the panel.)
+Under it, **Overlay features** has one switch per part (the tile, the odds row, start %, crests, captain, team gauge, the
+builder list's bar, points needed, chance to clear, price per point, gallery worth, the player strip, live Futbol Fantasy
+reads and the dock); a part switched off disappears at once and the rest stay. They are kept in Chrome's synced settings.
 **Cards recognised here** shows how many cards on the page you are looking at Sofix could name ("7 of 7"). "0 of 8"
 means Sorare has changed how it draws cards and the overlay needs an update. The larger "Sofix panel" on a player
 page in the design preview (`S7-player-page.html`) is not built.

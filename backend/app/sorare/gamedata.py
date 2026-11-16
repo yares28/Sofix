@@ -32,7 +32,7 @@ SEASONS = (2025, 2026)  # 2025/26 and 2026/27
 TOLERANCE = pd.Timedelta(days=2)  # football-data's day is local, Sorare's is UTC
 FORECAST_COLUMNS = ("p_h", "p_d", "p_a", "cs_h", "cs_a", "lam_h", "lam_a")
 
-# Sorare's club name -> football-data.co.uk's, for the clubs of 2025/26 and 2026/27.
+# Sorare's club name -> football-data.co.uk's, for the clubs of 2023/24 to 2026/27.
 CLUB = {
     "Alavés": "Alaves",
     "Deportivo Alavés": "Alaves",
@@ -64,6 +64,13 @@ CLUB = {
     "Real Club Deportivo de La Coruña": "La Coruna",
     "Real Racing Club de Santander": "Santander",
     "Málaga CF": "Malaga",
+    # 2023/24 and 2024/25, for the score engine's tuning seasons (plans/score-engine.md E2)
+    "UD Almería": "Almeria",
+    "UD Las Palmas": "Las Palmas",
+    "CD Leganés": "Leganes",
+    "Granada CF": "Granada",
+    "Real Valladolid CF": "Valladolid",
+    "Cádiz CF": "Cadiz",
 }
 
 __all__ = [

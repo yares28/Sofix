@@ -1638,11 +1638,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-16",
-        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.11 only bumps the version for the dock's drawing fixes (kept panel, picture fallback, labelled refresh), no permission or action changed",
+        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.12 only bumps the version for the list bar comparison naming video cards, no permission or action changed",
         "files": {
           "extension/background.js": "d1cf9eb896f439039641588e6a5a9328ae33f782955d1b3ba4c1a8b476ffaa68",
           "extension/bridge.js": "d5a039c26fff38d524ef910d361c14ff15bc5f79292c87a0def5d02600e43837",
-          "extension/manifest.template.json": "802a2157794ce6b4f01825f8012869a3256381819d9248c6549ff79697760aa6",
+          "extension/manifest.template.json": "df45c593faf7696d183106575ed6de373bbe00ac77a1055ce5b97f4122f2ceee",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

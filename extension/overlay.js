@@ -2265,7 +2265,22 @@
     for (const item of listItems) item.classList.remove("sfx-comparing");
   }
 
-  const nameOf = (record) => String((record && record.media.getAttribute("alt")) || "").replace(/\s-\s[a-z_ ]+$/i, "") || "This card";
+  /**
+   * The player's name: the picture's own words, else Sorare's "Pick <name>" button around it, else his slug in words. An animated
+   * (video) card has no words of its own (16 Nov 2026: the comparison called Mathew Ryan "This card").
+   */
+  const nameOf = (record) => {
+    if (!record) return "This card";
+    const alt = String(record.media.getAttribute("alt") || "").replace(/\s-\s[a-z_ ]+$/i, "");
+    if (alt) return alt;
+    const pick = record.media.closest('[aria-label^="Pick "]');
+    const said = pick ? /^Pick\s+(.+?)(?:\s+Sofix:|$)/.exec(pick.getAttribute("aria-label") || "") : null;
+    if (said) return said[1];
+    const slug = record.playerSlug || "";
+    return slug ? slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "This card";
+  };
+  /** A still of the card: a video's poster, never its video file (an <img> cannot show one). */
+  const stillOf = (media) => (media.tagName === "VIDEO" ? media.getAttribute("poster") || "" : media.currentSrc || media.getAttribute("src") || "");
 
   function openCompare() {
     if (comparePanel) comparePanel.remove();
@@ -2278,7 +2293,7 @@
     for (const side of [a, b]) {
       const head = node("div", "sfx-cmp-head");
       const art = document.createElement("img");
-      art.src = side.record.media.currentSrc || side.record.media.src || "";
+      art.src = stillOf(side.record.media);
       art.alt = "";
       head.append(art, node("b", "sfx-cmp-name", nameOf(side.record)));
       const game = side.entry.island && side.entry.island[0];

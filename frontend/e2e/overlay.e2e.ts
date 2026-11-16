@@ -1917,6 +1917,18 @@ test.describe("the sorare.com overlay", () => {
     await page.locator("#pick-2 img").click();
     expect(await page.evaluate(() => (window as unknown as { __sorarePicks: number }).__sorarePicks)).toBe(1); // a plain click still picks
 
+    // A card with no words on its picture (Sorare's animated cards) is named from Sorare's "Pick <name>" button (16 Nov 2026: "This card").
+    await page.evaluate(() => {
+      document.querySelector("#pick-3 img")!.removeAttribute("alt");
+      document.getElementById("pick-3")!.setAttribute("aria-label", "Pick Mathew Ryan");
+    });
+    await page.keyboard.press("Escape");
+    await page.locator("#pick-1 img").click({ modifiers: ["Shift"] });
+    await page.locator("#pick-3 img").click({ modifiers: ["Shift"] });
+    await expect(page.getByRole("dialog", { name: "Pick 1 against Mathew Ryan" })).toBeVisible();
+    await expect(page.locator(".sfx-cmp-name")).toHaveText(["Pick 1", "Mathew Ryan"]);
+    await page.keyboard.press("Escape");
+
     // The overlay off: Sorare's list as it was.
     await page.evaluate(() => (window as unknown as { __sfx: { setOverlay: (v: boolean) => void } }).__sfx.setOverlay(false));
     await expect(page.locator(".sfx-listbar")).toHaveCount(0);

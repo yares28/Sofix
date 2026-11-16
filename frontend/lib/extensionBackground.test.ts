@@ -703,6 +703,11 @@ describe("points needed on sorare.com", () => {
       ? { currentUser: { setBoard: { steps: [{ id: STEP, myLineups: [
           { __typename: "TaskLineup", id: "open", draft: false, aasmState: "READY", taskAppearances: [appearance("c1", 0, 1), appearance("c2", 0, 1.5, true)] },
           { __typename: "TaskLineup", id: "done", draft: false, aasmState: "FAILED", taskAppearances: [appearance("c9", 40, 1)] }] }] } } }
+      : operation === "SofixSquadLineups"
+        ? { currentUser: { slug: "yares", setBoard: { steps: [{ id: "BoardStep:q", target: 700, totalScore: 300, squadLeaderboardLineups: [
+            { ranking: 1, lineup: { id: "a", score: 120, user: { slug: "a" } } }, { ranking: 2, lineup: { id: "b", score: 90, user: { slug: "b" } } },
+            { ranking: 3, lineup: { id: "mine", score: 90, user: { slug: "yares" } } }, { ranking: 4, lineup: { id: "c", score: 10, user: { slug: "c" } } }],
+          myLineups: [{ __typename: "TaskLineup", id: "mine", draft: false, aasmState: "READY", taskAppearances: [appearance("s1", 90, 1)] }] }] } } }
       : operation === "SofixProLineups"
         ? { currentUser: { boards: [{ title: "LaLiga", steps: [{ __typename: "CareerProStep", level: 2, target: 380, myLineups: [
             { __typename: "TaskLineup", id: "pro", draft: false, aasmState: "READY", taskAppearances: [appearance("p1", 66, 1.1)] }] }] }] } }
@@ -743,12 +748,12 @@ describe("points needed on sorare.com", () => {
   it("answers the overlay from what it keeps, and reads your lineups again only while a game is live, at most every 2 minutes", async () => {
     const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
     const now = Date.now();
-    w.local.set("needData", { arcade: { steps: {} }, arcadeAt: now, arcadeLineupsAt: now - 3 * 60_000, proLineupsAt: now - 3 * 60_000,
+    w.local.set("needData", { arcade: { steps: {} }, arcadeAt: now, arcadeLineupsAt: now - 3 * 60_000, squadLineupsAt: now - 3 * 60_000, proLineupsAt: now - 3 * 60_000,
       arcadeLineups: [{ id: "x", kind: "arcade", step: STEP, cards: [{ slug: "c1", score: 10, bonus: 1, captain: false, kickoff: new Date(now - 30 * 60_000).toISOString() }] }], proLineups: [] });
     await w.send({ type: "need-data" });
-    expect(w.asked.map((a) => a.operation)).toEqual(["SofixArcadeLineups", "SofixProLineups"]); // a game is live and the copy is 3 minutes old
+    expect(w.asked.map((a) => a.operation)).toEqual(["SofixArcadeLineups", "SofixSquadLineups", "SofixProLineups"]); // a game is live and the copy is 3 minutes old
     await w.send({ type: "need-data" });
-    expect(w.asked).toHaveLength(2); // just read: not again
+    expect(w.asked).toHaveLength(3); // just read: not again
   });
 
   it("keeps every read when the app's reads land at once", async () => {
@@ -764,24 +769,33 @@ describe("points needed on sorare.com", () => {
   it("reads your lineups afresh each time you open a lineup page, at most every 15 seconds", async () => {
     const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
     const now = Date.now();
-    w.local.set("needData", { arcade: { steps: {} }, arcadeAt: now, arcadeLineupsAt: now - 60_000, proLineupsAt: now - 60_000, arcadeLineups: [], proLineups: [] });
+    w.local.set("needData", { arcade: { steps: {} }, arcadeAt: now, arcadeLineupsAt: now - 60_000, squadLineupsAt: now - 60_000, proLineupsAt: now - 60_000, arcadeLineups: [], proLineups: [] });
     await w.send({ type: "need-data" });
     expect(w.asked).toHaveLength(0); // read a minute ago, nothing live: the copy will do
     await w.send({ type: "need-data", fresh: true });
-    expect(w.asked.map((a) => a.operation)).toEqual(["SofixArcadeLineups", "SofixProLineups"]);
+    expect(w.asked.map((a) => a.operation)).toEqual(["SofixArcadeLineups", "SofixSquadLineups", "SofixProLineups"]);
     await w.send({ type: "need-data", fresh: true });
-    expect(w.asked).toHaveLength(2); // just read
+    expect(w.asked).toHaveLength(3); // just read
   });
 
   it("reads your lineups again every 10 minutes with no game live, so a lineup entered since shows its pills", async () => {
     const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
     const now = Date.now();
-    const kept = (age: number) => ({ arcade: { steps: {} }, arcadeAt: now, arcadeLineupsAt: now - age, proLineupsAt: now - age, arcadeLineups: [], proLineups: [] });
+    const kept = (age: number) => ({ arcade: { steps: {} }, arcadeAt: now, arcadeLineupsAt: now - age, squadLineupsAt: now - age, proLineupsAt: now - age, arcadeLineups: [], proLineups: [] });
     w.local.set("needData", kept(5 * 60_000));
     await w.send({ type: "need-data" });
     expect(w.asked).toHaveLength(0); // nothing live and read 5 minutes ago
     w.local.set("needData", kept(11 * 60_000));
     await w.send({ type: "need-data" });
-    expect(w.asked.map((a) => a.operation)).toEqual(["SofixArcadeLineups", "SofixProLineups"]);
+    expect(w.asked.map((a) => a.operation)).toEqual(["SofixArcadeLineups", "SofixSquadLineups", "SofixProLineups"]);
+  });
+
+  it("keeps your open Squad mode lineups with what each must reach: the target less the others' best two (17 Nov 2026)", async () => {
+    const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
+    await w.send({ type: "need-data", fresh: true });
+    const kept = w.local.get("needData") as { squadLineups: { id: string; kind: string; target: number; squad: number; cards: { slug: string }[] }[] };
+    // 700 to reach, the best three count (300 = 120 + 90 + 90), the others' best two have 210: yours must make 490.
+    expect(kept.squadLineups).toEqual([expect.objectContaining({ id: "mine", kind: "squad", target: 490, squad: 700 })]);
+    expect(kept.squadLineups[0]!.cards.map((c) => c.slug)).toEqual(["s1"]);
   });
 });

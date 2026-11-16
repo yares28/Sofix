@@ -68,6 +68,15 @@ check for the next time something is missing: in sorare.com's console, `postMess
 a video card), as named and on screen with **no numbers from the app** although the local read model has his market row and next
 game (`frontend/lib/overlay.ts` `overlayNumbers`/`marketEntry`): to find out next.
 
+**Done 16-17 Nov (committed, extension 0.5.11; the app parts wait for a push):** 11, "now" is the cheapest copy of the same card
+listed on the market (`lowestPriceCard`; Arnau Martínez €0.65, was Sorare's estimate €3.31), "est." when none is listed; "paid" stays
+Sorare's record of your purchase (an ETH price in euros at that day's rate: Arnau 0.0005 ETH = €1.01 on 1 Nov). 12, in a week with no
+game of his the strip uses his next game's score and start %. 14, the dock keeps its panel across redraws (each Arcade progress write
+replayed its entrance: the shaking), a picture that is not Sorare's shows the shield, the refresh button says "↻ Refresh".
+**Still open:** 7 (which control misbehaves), 8 (Sorare's "Squad mode": its address and markup, seen live), 14's refresh when the next
+batch's lineups are out (not reproduced from the code: the button forces a fresh read of the elevens and the watch re-reads every 5 min in
+the 75 min before a kick-off; to watch live), Joan García's missing numbers.
+
 Order: delete 2 and 5; the shared cause (4, 7, 8, 9, 11, 12); the gauge (6) and the bar (7); prices (11); the dock (14). Each checked on
 your own Sorare pages.
 

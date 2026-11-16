@@ -987,6 +987,13 @@ describe("overlayProfile: Sofix's line on a LaLiga player's Sorare page (B3)", (
     expect(profile?.verdict).toEqual({ kind: "up", value: "+70", note: "on your MID" }); // no midfielder of yours: the bar is 0
   });
 
+  it("in a week with no game of his (an international break), his next game's numbers, not a blank (16 Nov 2026: Courtois had none)", () => {
+    const fixture = { id: "Game:x", team: "FC Barcelona", competition: "laliga-es", opponent: "Villarreal", kickoff: "2026-11-22T13:00:00Z" } as unknown as NonNullable<MarketPlayer["next"]>["fixture"];
+    const resting = market({ x: undefined, start: undefined, mu: undefined, p: undefined, pStart: undefined, startSource: undefined, sources: undefined, next: { p: 1, pStart: 0.95, startSource: "futbolfantasy", start: 57.4, x: 57.4, fixture } });
+    const profile = overlayProfile(data, grid, "pedri", { plan, planned: null, market: resting }, NOW);
+    expect(profile).toMatchObject({ score: 57, ifStarts: true, pStart: 0.95, startSource: "futbolfantasy" });
+  });
+
   it("his club's next five games from the board, with their label and colour band, soonest first", () => {
     const next = overlayProfile(data, grid, "pedri", { plan, planned: null, market: data.market![0]! }, NOW)!.next;
     expect(next.map((g) => [g.opponent, g.venue, g.label, g.bucket])).toEqual([

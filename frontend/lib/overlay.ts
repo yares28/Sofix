@@ -911,7 +911,11 @@ export function overlayProfile(
   read: { plan: GameweekPlan | null; planned: PlayingPlayer | null; market: MarketPlayer | null },
   now: Date,
 ): OverlayProfile | null {
-  const { planned, market, plan } = read;
+  const { planned, plan } = read;
+  // A week with no game of his (an international break): his next game's numbers, as his market row keeps them, not a blank
+  // strip (16 Nov 2026: Courtois's page showed only the verdict and the next five).
+  const resting = read.market && typeof read.market.x !== "number" && read.market.next ? read.market : null;
+  const market = resting ? { ...resting, ...resting.next!, sources: resting.next!.startSource ? { [resting.next!.startSource]: resting.next!.pStart } : resting.sources } : read.market;
   const club = planned?.club ?? market?.club;
   const next = grid && club ? nextFive(grid, club, now) : null;
   if (!next || !(planned ?? market)) return null;

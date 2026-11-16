@@ -1638,7 +1638,7 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-16",
-        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.13 adds the read-only SofixSquadLineups query (allowlisted in bridge.js and background STEPS, checked against Sorare's schema: 0 to fix) for the Squad mode points-needed pill; no write, permission or Apply step changed",
+        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.13 adds the read-only SofixSquadLineups query (allowlisted in bridge.js and background STEPS, checked against Sorare's schema: 0 to fix) for the Squad mode points-needed pill, with background tests; no write, permission or Apply step changed",
         "files": {
           "extension/background.js": "6ef86964069b64ead8155486082800899a215fb523af743e760ac718b70dd9dc",
           "extension/bridge.js": "3ea56ac7728819ce574407d6d61ecda4ab7639b5aa180eb2e58d8af0d6155bc7",
@@ -1646,7 +1646,7 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "d369f28ac697f388d706166e9028038923ddbe4b88f73fed2a66d14beb2094e1"
+          "frontend/lib/extensionBackground.test.ts": "bd5a2cdf083a74e561be7c7a78166be65bac3af1edb21d613a5981f12dbeeaed"
         }
       }
     },

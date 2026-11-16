@@ -141,6 +141,18 @@ describe("overlayNumbers", () => {
     expect(overlayNumbers(sorare([player()]), null, ask({ players: ["unai-simon"] }), NOW, null, { market: [{ ...row, slug: "unai-simon", x: 1 }], grids: [] }).players["unai-simon"]!.x).toBe(54.5);
   });
 
+  it("a player in two competitions' lists is answered from the one with his game, whatever their order (16 Nov 2026: Joan García)", () => {
+    const row: MarketPlayer = {
+      slug: "joan-garcia-pons", name: "Joan García", pos: "GK", club: "FC Barcelona", crest: null, average: 58, projection: null, eur: null, pic: "",
+      p: 1, pStart: 1, startSource: "futbolfantasy", sources: { futbolfantasy: 1 }, mu: 54, start: 54.4, x: 54.4,
+      fixture: { team: "FC Barcelona", opponent: "Villarreal", opponentCrest: null, venue: "H", kickoff: "2026-10-10T19:00:00Z", competition: "laliga-es" } as MarketPlayer["fixture"],
+    };
+    // His Champions League row, with no game of his this week: listed after the LaLiga one, it used to replace it.
+    const european: MarketPlayer = { slug: "joan-garcia-pons", name: "Joan García", pos: "GK", club: "FC Barcelona", crest: null, average: 58, projection: null, eur: null, pic: "" };
+    const answer = overlayNumbers(sorare([player()]), null, ask({ players: ["joan-garcia-pons"] }), NOW, null, { market: [row, european], grids: [] });
+    expect(answer.players["joan-garcia-pons"]).toMatchObject({ x: 54.4, pos: "GK" });
+  });
+
   it("gives a player Sofix does not hold FF's start % and match, never his chance of playing as his start % (9 Nov 2026)", () => {
     const ff = { id: 123456, url: "https://www.futbolfantasy.com/partidos/123456-girona-almeria" };
     const fixture = (id: string, kickoff: string) => ({ id, team: "Girona FC", opponent: "UD Almería", opponentCrest: null, venue: "H" as const, kickoff, competition: "laliga-es" });

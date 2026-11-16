@@ -83,7 +83,10 @@ seconds while the new copy takes over (normal load: tiles 1-2 s after Sorare's c
 (read-only `SofixSquadLineups`), and your lineup aims at what is still missing shared with the other counting lineups still able to
 score (`core.squadTarget`): on the 980 step before kick-off, 327, so the pills read 65.4 a card and 43.6 for the captain. Sorare's
 squad page named your McGinn as a squad mate's copy, which blanked the lineup: a card is now matched by player within its block.
-**Still open:** Joan García's missing numbers; the next batch's elevens read live on a Friday; chance to clear on a squad lineup once
+**Joan García fixed 16 Nov (app, waits for a push):** a player in two competitions' lists (LaLiga and a European one) took the last
+list's row, and his Champions League row has no game, so builders drew nothing on him (production answered Oblak, not him). Each row
+is now tried in order, the first that answers wins (`frontend/lib/overlay.ts` `overlayNumbers`).
+**Still open:** the next batch's elevens read live on a Friday; chance to clear on a squad lineup once
 Sorare draws its "In progress" ribbon (to see during the games).
 
 Order: delete 2 and 5; the shared cause (4, 7, 8, 9, 11, 12); the gauge (6) and the bar (7); prices (11); the dock (14). Each checked on

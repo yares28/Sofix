@@ -755,7 +755,10 @@ export function overlayNumbers(
   };
 
   // Anyone else Sofix rates (an Arcade common, a player you do not hold): his market row for the week being planned, and the one after.
-  const market = plan === planned || plan === afterPlanned ? new Map(others.market.map((row) => [row.slug, row])) : new Map<string, MarketPlayer>();
+  // Every row of a player, in list order: a LaLiga player is in a European list too, often with no game (16 Nov 2026: Joan García's
+  // Champions League row replaced his LaLiga one, so the LaLiga builder drew nothing on him). The first row that answers wins.
+  const market = new Map<string, MarketPlayer[]>();
+  if (plan === planned || plan === afterPlanned) for (const row of others.market) market.set(row.slug, [...(market.get(row.slug) ?? []), row]);
   // Another game's row: the planned week's start % and FF match belong to its own game, so only the other game's own stand.
   const ownStart = { pStart: undefined, startSource: undefined, sources: undefined, ffKind: undefined, ffMatch: undefined, ffPlayer: undefined };
   const nextOf = (row: MarketPlayer): MarketPlayer | null => (row.next ? { ...row, ...ownStart, ...row.next, fixture: row.next.fixture } : null);
@@ -810,7 +813,15 @@ export function overlayNumbers(
   };
 
   const answer = (playerSlug: string, hint: string | undefined): OverlayEntry | null => {
-    const row = market.get(playerSlug) ?? null;
+    const rows = market.get(playerSlug) ?? [];
+    for (const row of rows.length ? rows : [null]) {
+      const entry = answerFrom(playerSlug, hint, row);
+      if (entry) return entry;
+    }
+    return null;
+  };
+
+  const answerFrom = (playerSlug: string, hint: string | undefined, row: MarketPlayer | null): OverlayEntry | null => {
     if (hint) {
       for (const week of weeks) {
         const found = ownedFor(playerSlug, week, { id: hint });

@@ -1971,9 +1971,9 @@ test.describe("the sorare.com overlay", () => {
     await expect(line("g-cubarsi")).toHaveText("now €2.10not bought");
     await expect(line("g-havertz")).toHaveCount(0); // a card Sorare does not value shows nothing
     await expect(line("g-messi")).toHaveText("now €4.00▼20%"); // known only by his name: the card's own link says which card
-    // Right under Sorare's own row, and the hover says it is Sorare's value at Sofix's refresh, with what was paid.
+    // Right under Sorare's own row, and the hover says it is the cheapest copy listed at Sofix's refresh, with what was paid.
     await expect(page.locator("#g-simon .ago + .sfx-worth")).toHaveCount(1);
-    await expect(line("g-simon")).toHaveAttribute("title", /^Sorare's value at Sofix's refresh of .+; you paid €3\.02$/);
+    await expect(line("g-simon")).toHaveAttribute("title", /^The cheapest copy of this card on the market at Sofix's refresh of .+; you paid €3\.02$/);
     // The bought cards' total sits in the toolbar row, between Sorare's chips and its sort, as the Prices page says it.
     const box = page.locator("#toolbar > .sfx-worthbox");
     await expect(box).toHaveText("BOUGHT, NOW€312.00paid €268.00 for 30 cards▲ €44.00 · +16%");
@@ -2142,6 +2142,28 @@ test.describe("the sorare.com overlay", () => {
     await dock(page).getByRole("button", { name: "Back" }).click();
     await expect(dock(page).locator(".stub.arc")).toHaveCount(5);
     expect((await new AxeBuilder({ page }).include("[data-sfx-dock]").analyze()).violations).toEqual([]);
+  });
+
+  test("Arcade: a redraw keeps the open panel still (no replayed entrance, 16 Nov 2026: it shook) and a crest that is not Sorare's is the club's shield", async ({ page }) => {
+    const clubs = [{ club: "fra", name: "France", crest: "https://example.com/flags/fra.svg", kickoff: ARCADE_MODEL.clubs[0]!.kickoff, likely: 3, value: 150 }, ...ARCADE_MODEL.clubs.slice(1)];
+    const model = { ...ARCADE_MODEL, at: Date.now() - 60_000, change: null, clubs };
+    await openPage(page, { arcade: { model, run: done, lastRun: ARCADE_AT - 90_000 } });
+    await pill(page).click();
+    await arcadeTab(page).click();
+    const france = dock(page).locator(".club", { hasText: "France" });
+    await expect(france.locator(".shield")).toHaveCount(1);
+    await expect(france.locator("img")).toHaveCount(0);
+    await expect(dock(page).getByRole("button", { name: "Work the plan out again" })).toHaveText("↻ Refresh");
+    const before = await page.locator("[data-sfx-dock]").evaluate((host) => { const pop = host.shadowRoot!.querySelector(".pop")!; (window as unknown as { __pop: Element }).__pop = pop; return pop.getAnimations().length; });
+    expect(before).toBeGreaterThanOrEqual(0);
+    // The engine writes again (as it does at every stage): the same panel, its entrance not played again.
+    await page.evaluate((m) => (window as unknown as { __sfx: { setArcade: (v: unknown) => void } }).__sfx.setArcade({ model: { ...m, at: Date.now() }, run: { state: "done" }, lastRun: Date.now() }), model);
+    await expect(dock(page)).toContainText("Build around");
+    const after = await page.locator("[data-sfx-dock]").evaluate((host) => {
+      const pop = host.shadowRoot!.querySelector(".pop")!;
+      return { same: pop === (window as unknown as { __pop: Element }).__pop, animation: getComputedStyle(pop).animationName };
+    });
+    expect(after).toEqual({ same: true, animation: "none" });
   });
 
   test("Arcade: when the next batch is also the best lineup for the step, one ticket says both and opens the others", async ({ page }) => {

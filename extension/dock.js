@@ -183,6 +183,7 @@
     @keyframes shimmer { from { background-position: -200px 0; } to { background-position: 200px 0; } }
     @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
     @media (max-width: 900px) { .dock { display: none; } }
+    .pop.settled, .pop.settled .banner { animation: none; } /* a redraw is not an opening */
     @media (prefers-reduced-motion: reduce) { .pop, .sk, .progress b, .meter i.now, .banner { animation: none; } .punch i { transition: none; } }
   `;
 
@@ -210,12 +211,23 @@
     return node;
   }
 
-  function img(src, alt = "") {
+  /**
+   * A Sorare picture. One that is not Sorare's or will not load never shows the browser's broken-picture mark (16 Nov 2026: the
+   * Arcade tab's national teams): `fallback` takes its place when given, else it keeps its room empty.
+   */
+  function img(src, alt = "", fallback = null) {
+    const url = core.sorarePic(src);
+    if (!url && fallback) return fallback();
     const node = el("img");
     node.alt = alt;
     node.referrerPolicy = "no-referrer";
     node.loading = "lazy";
-    node.src = core.sorarePic(src);
+    node.addEventListener("error", () => {
+      if (fallback && node.isConnected) node.replaceWith(fallback());
+      else node.style.visibility = "hidden";
+    }, { once: true });
+    if (url) node.src = url;
+    else node.style.visibility = "hidden";
     return node;
   }
 
@@ -889,7 +901,7 @@
     } else if (m) {
       row.append(el("span", "say", `Planned ${clock(m.at)}${m.state === "rough" ? " · rough" : ""}${m.sofix ? "" : " · Sorare's numbers only"}`));
     }
-    const again = button("btn ghost sm", stoppedRun() || failedRun() ? "Retry" : "↻", () => runArcade(true), "Work the plan out again");
+    const again = button("btn ghost sm", stoppedRun() || failedRun() ? "Retry" : "↻ Refresh", () => runArcade(true), "Work the plan out again");
     again.style.marginLeft = "auto";
     row.append(again);
     return row;
@@ -973,8 +985,7 @@
       const row = el("div", "club-row");
       for (const club of m.clubs) {
         const chip = el("span", "club");
-        if (club.crest) chip.append(img(club.crest, ""));
-        else chip.append(el("i", "shield"));
+        chip.append(img(club.crest, "", () => el("i", "shield")));
         const text = el("span");
         text.append(el("span", "n", club.name), el("span", "say", `${club.likely} likely · ${whenShort(club.kickoff)}`));
         chip.append(text);
@@ -1078,22 +1089,32 @@
     return [wrap];
   }
 
+  let pop = null; // the open panel, kept across redraws
   function render() {
     if (!dock) return;
     const nodes = [];
     if (open) {
-      const pop = el("section", "pop");
-      pop.id = "sofix-dock";
-      pop.setAttribute("role", "dialog");
-      pop.setAttribute("aria-label", "Sofix");
+      // The same panel across redraws: only opening it plays its entrance, and the list keeps its scroll. A new panel on every
+      // redraw replayed the entrance each time the Arcade engine wrote its progress, so the dock shook (16 Nov 2026).
+      const kept = pop && pop.isConnected ? pop : null;
+      const scrolled = kept ? kept.querySelector(":scope > .body") : null;
+      const top = scrolled && pop.dataset.view === `${tab}|${view}|${arcadeView}` ? scrolled.scrollTop : 0; // another tab or view starts at its top
+      if (!kept) {
+        pop = el("section", "pop");
+        pop.id = "sofix-dock";
+        pop.setAttribute("role", "dialog");
+        pop.setAttribute("aria-label", "Sofix");
+      } else pop.classList.add("settled");
+      pop.dataset.view = `${tab}|${view}|${arcadeView}`;
       const body = el("div", "body");
       body.append(...(tab === "missions" ? missionsView() : tab === "arcade" ? arcadeTab() : lineupsView()));
       // the foot stays put under a list that scrolls
       const foot = body.querySelector(":scope > .foot");
-      pop.append(tabsNode(), body);
+      pop.replaceChildren(tabsNode(), body);
       if (foot) pop.append(foot);
       nodes.push(pop);
-    }
+      if (kept) requestAnimationFrame(() => { body.scrollTop = top; });
+    } else pop = null;
     nodes.push(tag());
     const focused = host && host.shadowRoot.activeElement ? host.shadowRoot.activeElement.getAttribute("aria-label") || host.shadowRoot.activeElement.textContent : null;
     dock.replaceChildren(...nodes);

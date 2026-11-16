@@ -16,6 +16,53 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## The overlay, feature by feature (you, 16 Nov 2026)
+
+Reviewed on the canvas "Sofix overlay features" (https://claude.ai/artifact/Kmn3qTNyhPCRwDXgjwvGtC), one board for each of the popup's 14
+switches (extension 0.5.8, `core.OVERLAY_PARTS`), captured live in your Chrome on 16 Nov: the LaLiga builder of 20-24 Nov, the market,
+your gallery, Courtois's page, your Hot Streak lineups page, and the test page for what drew nothing live. Your verdict, number by number:
+
+1. **Score tile and hover panel:** "This is good." Keep.
+2. **Win and clean sheet row:** "Has not appeared in a while, delete it. We have it in 1." Delete the row (`placeOdds`, `buildOdds`,
+   `locateBar`, the room made under Sorare's bar) and its switch; the panel keeps WIN and CS.
+3. **Start % chip:** "Start chip works correctly." Keep. (On 16 Nov my tap on Oblak's chip went through to Sorare and put him in your GK
+   slot; you report the chip itself as right.)
+4. **Opponent crest:** "sometimes disappears and does not appear". Live on 16 Nov: 14 crests for 17 tiles after scrolling the builder's
+   list. Code: `placeCrest`/`setCrest`/`crestCovered` (`extension/overlay.js` ~1130-1190); a crest is hidden when something covers the
+   card's top edge and drawn again only on a later pass.
+5. **Captain pick:** "Delete it." Delete `placeCaptain`/`captainOf`/`pitchOf`'s captain use and its switch.
+6. **Team gauge:** "Malfunctions." Live on 16 Nov: "SOFIX 0 of 5" with Oblak on the pitch; minutes later, after scrolling, "1 of 5 · 55".
+   So it counts the pitch late or not at all. Code: `pitchOf`, `teamRead`, `placeTeam` (~1891-2100).
+7. **Sort, filter and compare bar:** "Malfunctions and sometimes disappears and does not appear." Code: `cardLists`, `placeList`,
+   `drawBar` (~2211-2450). To find out: which control misbehaves (sort, filter, Sofix lineup, compare) and when the bar goes.
+8. **Points needed:** "Disappeared and sometimes it does not appear. Make sure it works in the Squad mode too." On 16 Nov your Hot
+   Streak lineups were settled, so nothing to draw. Code: `needPage`, `wantNeed`, `needLineups`, `placeNeed` (~1515-1645). To find out:
+   Sorare's "Squad mode" (its address and markup) and whether `needPage` knows it.
+9. **Chance to clear:** "Sometimes does not appear." Code: `placeClear`, `ribbonOf` (~2100-2160).
+10. **Price per point:** "Appears." Keep. (16 Nov: the market's first row, Yamal, Mbappé, Olise, had no tiles and no price.)
+11. **Worth now and gallery total:** "Sometimes appear and sometimes does not. It doesn't take the correct price I bought the card and
+    the current price is not the price of the least expensive card on the market. Prices feel wrong." Wanted: paid = what you paid for
+    that card; now = the cheapest listing of the same player and rarity on the market. Code: `wantWorth`/`placeWorth`/`placeWorthBox`
+    (~2622-2735), `overlayWorth` in `frontend/lib/overlay.ts` (~275-290: `card.paid` and `card.value` from the Prices read model). 16 Nov:
+    the bought-cards total was not on screen.
+12. **Player strip:** "Sometimes does not appear." 16 Nov on Courtois: only "Yours · not in the plan" and the next five showed, no
+    score-if-starts or start % line. Code: `wantProfile`, `locateNameBlock`, `placeStrip` (~2744-2840).
+13. **Live Futbol Fantasy reads:** "Good." Keep.
+14. **Dock:** "Some image issues. The dock sometimes starts tweaking like it's shaking. Most of these issues happen in Arcade. In Arcade I
+    can't refresh manually when lineups are out for next batch and it doesn't do it [by itself]." 16 Nov: the Arcade tab's "Build around"
+    chips (France, Hungary, Georgia) show broken pictures (`extension/dock.js` ~972, `club.crest` of a national team). To find out: what
+    makes the panel shake (a render loop resizing it), and why the elevens being out does not start a new run or offer one
+    (`runArcade`, the ↻/Retry button ~892, the elevens line ~898).
+
+**Shared cause found 16 Nov (4, 7, 8, 9, 11, 12):** on the builder, cards scrolled into view waited 1 to 7 seconds for their tile and
+crest (measured: 0, 1.0, 1.0, 4.0, 4.0, 7.4 s), and two animated (video) cards, Pepelu and Aleix Febas, got none while the cards beside
+them did. Sorare's own page answers named every one of those cards at once, so the wait is in the overlay: a card whose first
+look fails is looked at again only on the next 4-second beat, is given up after 8 tries, and a card whose picture changes without the
+page saying so (a video choosing its source) is not looked at again.
+
+Order: delete 2 and 5; the shared cause (4, 7, 8, 9, 11, 12); the gauge (6) and the bar (7); prices (11); the dock (14). Each checked on
+your own Sorare pages.
+
 ## Your lineups read after each game (you, 11 Nov 2026)
 
 "Why isn't the scores updated? The gameweek ended yesterday and it should check after each game." Then: "Add it to a plan for now."

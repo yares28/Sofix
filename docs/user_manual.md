@@ -1087,13 +1087,8 @@ or not. A game Sofix has no numbers for keeps the old number.
   player at a club in another league, shows **No xG** where the xG would be, rather than a made-up number. (A goalkeeper
   or defender whose game is not priced shows **No odds**, since his line is the game's difficulty.)
 
-On the compose page, directly under Sorare's own win / draw / loss bar, Sofix adds a row: **its win % and its clean
-sheet %** for that game. For a LaLiga game they are Sofix's own model; for any other league or a national team they come
-from Sorare's odds for the game. Sorare fills those odds only in the last few days before a game, so a card whose game is
-not priced shows the tile and no row. Sorare's bar is found by what it says (three percentages) and where it is, up to
-about half a card's height under the picture: on a list of cards it is the third row of the block under each card. To make
-room, Sofix moves Sorare's next line ("Best score chosen", the kickoff) down a few pixels; if that line cannot be moved, the
-row is not drawn.
+Sofix's own row of win % and clean sheet % under Sorare's win / draw / loss bar was removed on 16 Nov 2026 (it had stopped
+showing, and the tile's panel has both numbers).
 
 **Hover the tile, or focus it with the keyboard**, and a panel opens beside the card (since version 0.3.3, 4 Oct, it is wider and shows the game, not only the number: "the picture of his game" below; press Reload on the extension in chrome://extensions to get it, and the app's Control Center says "update" until you do). From the top: SOFIX with a small green chip
 when your best plan uses the card (the lineup's name, and a C for the captain) and how long ago the numbers were made; a switch
@@ -1115,8 +1110,7 @@ it writes to Sorare.
   none), drawn like Sorare's (0.4.40) and in one column with its badge, past the card's edge where Sorare's hangs (0.4.41): its colours for the chance (red under 50%, yellow under 80%, cyan above), with a mark where
   Sorare has its shirt for whose number it is: FF's expected lineup where it has him, else Sorare's odds, else the app's own. An FF
   doubt is never cyan, a player who will not start always red; none on a greyed number or a thumbnail.
-- **Captain** (0.4.45, 3 Nov 2026): on Sorare's builder (Classic, Pro and Arcade), a faint purple "C" at the bottom right of the card
-  on the pitch with the highest xScore; it goes once Sorare has that card as captain. The hover gives that expected score, his chance of starting counted (the chip shows his score if he starts).
+- **Captain** mark: removed on 16 Nov 2026.
 - **The tile's panel** (0.4.51, 4 Nov 2026): Starts / Comes on. Starts: his score if he starts, his start %, xD and his chance of a
   decisive action. Comes on: how often he came on when he did not start, from his last ten games (any competition), what Sofix's
   plans use today struck beside it, a bar of his minutes in each game (started green, came on yellow, unused grey) and the four
@@ -1231,10 +1225,9 @@ the page when Sorare moves to another gameweek without reloading, and back.
 
 ### The switch
 
-The popup's **Scores on sorare.com** switch turns the tiles, the odds row and the tab on and off at once, with no
-reload; switching off gives back the room made under Sorare's odds bar. (The old **Show chance of playing** switch is
+The popup's **Scores on sorare.com** switch turns the tiles and the dock on and off at once, with no reload. (The old **Show chance of playing** switch is
 gone: his chance of starting is now on every tile and in the panel.)
-Under it, **Overlay features** has one switch per part (the tile, the odds row, start %, crests, captain, team gauge, the
+Under it, **Overlay features** has one switch per part (the tile and its panel, start %, crests, team gauge, the
 builder list's bar, points needed, chance to clear, price per point, gallery worth, the player strip, live Futbol Fantasy
 reads and the dock); a part switched off disappears at once and the rest stay. They are kept in Chrome's synced settings.
 **Cards recognised here** shows how many cards on the page you are looking at Sofix could name ("7 of 7"). "0 of 8"

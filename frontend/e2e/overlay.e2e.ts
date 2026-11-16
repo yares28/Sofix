@@ -912,6 +912,21 @@ test.describe("the sorare.com overlay", () => {
     await expect(page.locator(".sfx-tile")).toHaveCount(0);
   });
 
+  test("keeps a card's tile when its picture changes address but stays the same card (16 Nov 2026: video cards never kept one)", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await page.locator("#clip").scrollIntoViewIfNeeded();
+    await expect(ribs(page, "clip")).toBeVisible();
+    await page.evaluate(() => {
+      (window as unknown as { __kept: Element }).__kept = document.querySelector("#clip .sfx-ribs")!;
+      // Sorare's video settles on its webm: the same card's picture under another address.
+      document.querySelector("#clip-video")!.setAttribute("src", "https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000001/video/low_res-vid1.webm");
+    });
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => (window as unknown as { __kept: Element }).__kept.isConnected)).toBe(true);
+    expect(await text(page, "clip")).toEqual(["53", "45", "88%"]);
+  });
+
   test("takes the crests away when Sorare hides the cards for another page", async ({ page }) => {
     // 3 Nov 2026: opening a player from the gallery, Sorare hid the gallery's cards without removing them, and their crests stayed
     // over the player's page where the cards had been.
@@ -1071,10 +1086,9 @@ test.describe("the sorare.com overlay", () => {
 
     // Nothing hangs past the picture any more, so no wrapper is told to let it show: the card keeps its own clipping.
     await expect(page.locator("#big")).toHaveCSS("overflow", "hidden");
-    // The only thing of ours on a page that carries a class of Sorare's is the margin on their odds bars (checked below):
-    // the compose card's, and the one three rows under a card in a list.
+    // Nothing of Sorare's carries a class of ours (the margin under their odds bars went with the odds row, 16 Nov 2026).
     const borrowed = await page.evaluate(() => [...document.querySelectorAll('[class*="sfx-"]')].filter((el) => !el.closest("[data-sfx]") && !el.hasAttribute("data-sfx")).map((el) => el.id));
-    expect(borrowed.sort()).toEqual(["wdl", "wdl3"]);
+    expect(borrowed).toEqual([]);
   });
 
   test("takes little room and none of the card's face", async ({ page }) => {
@@ -1190,47 +1204,13 @@ test.describe("the sorare.com overlay", () => {
     await expect(page.locator("#scrolled")).toHaveCSS("overflow", "hidden");
   });
 
-  test("draws Sofix's win and clean sheet directly under Sorare's odds bar, makes room without moving anything into it, and gives it back", async ({ page }) => {
+  test("draws nothing under Sorare's odds bar and leaves the bar as it is (the odds row was removed, 16 Nov 2026)", async ({ page }) => {
     await openPage(page);
     await settled(page);
-    const row = page.locator("#frame .sfx-odds");
-    await expect(row).toBeVisible();
     await page.waitForTimeout(250);
-
-    // The same width as Sorare's bar, directly under it, 22px tall.
-    const [bar, mine] = [await box(page, "#wdl"), await box(page, "#frame .sfx-odds")];
-    expect(Math.abs(mine.left - bar.left)).toBeLessThan(1);
-    expect(Math.abs(mine.width - bar.width)).toBeLessThan(1);
-    expect(Math.abs(mine.top - (bar.bottom + 4))).toBeLessThan(1);
-    expect(mine.height).toBe(22);
-    await expect(row).toHaveText(/WIN\s*46%\s*CS\s*33%/);
-    await expect(row).toHaveAttribute("aria-label", "Sofix odds: win 46%, clean sheet 33%");
-    await expect(row).toHaveCSS("pointer-events", "none");
-    await expect(row.locator(".sfx-odds-num--win")).toHaveCSS("color", "rgb(182, 255, 26)");
-
-    // Sorare's kickoff line moved down to make room: still visible, below our row, overlapped by nothing.
-    const foot = await box(page, "#foot");
-    expect(foot.top).toBeGreaterThanOrEqual(mine.bottom);
-    expect(meets(mine, foot)).toBe(false);
-    await expect(page.locator("#foot")).toBeVisible();
-    await expect(page.locator("#wdl")).toHaveClass(/sfx-room/);
-
-    // A card with no odds bar near it gets no row: the gallery and the hero have none.
-    await expect(page.locator("#gallery .sfx-odds, #hero .sfx-odds, #lineup .sfx-odds")).toHaveCount(0);
-
-    // Their kickoff line pinned in the room (making room moves nothing): no row is drawn and their bar is given back.
-    await expect(page.locator("#frame2 .sfx-odds")).toHaveCount(0);
-    await expect(page.locator("#wdl2")).not.toHaveClass(/sfx-room/);
-    expect(meets(await box(page, "#foot2"), mine)).toBe(false);
-    const pinned = await Promise.all([box(page, "#foot2"), box(page, "#wdl2")]);
-    expect(pinned[0].top).toBeGreaterThan(pinned[1].bottom); // where they put it, untouched
-
-    // Switching off gives everything back: no row, no margin, the kickoff line where it began.
-    await page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx.setOverlay(false));
-    await expect(page.locator(".sfx-odds")).toHaveCount(0);
-    await expect(page.locator(".sfx-room")).toHaveCount(0);
-    const [after, wdl] = [await box(page, "#foot"), await box(page, "#wdl")];
-    expect(Math.abs(after.top - (wdl.bottom + 6))).toBeLessThan(1);
+    await expect(page.locator(".sfx-odds, .sfx-room")).toHaveCount(0);
+    const [wdl, foot] = [await box(page, "#wdl"), await box(page, "#foot")];
+    expect(Math.abs(foot.top - (wdl.bottom + 6))).toBeLessThan(1); // their kickoff line where they put it
   });
 
   test("puts his start % under Sorare's grade, says whose it is on hover, and rings it when Sofix and Sorare are far apart", async ({ page }) => {
@@ -1289,29 +1269,6 @@ test.describe("the sorare.com overlay", () => {
     // Text never under 11 px (desktop floor).
     const sizes = await page.evaluate(() => [...document.querySelectorAll(".sfx-start *, .sfx-tile *")].filter((el) => el.textContent?.trim()).map((el) => parseFloat(getComputedStyle(el).fontSize)));
     expect(Math.min(...sizes)).toBeGreaterThanOrEqual(11);
-  });
-
-  test("finds Sorare's odds bar three rows under a card in a list, and their next line stays clear of the row it adds", async ({ page }) => {
-    await openPage(page);
-    await settled(page);
-    await page.waitForTimeout(250);
-
-    // On Sorare's lists the bar is not right under the picture: a form row and a flags row come first, about 75px down.
-    const [card, bar] = [await art(page, "realcard"), await box(page, "#wdl3")];
-    expect(bar.top - card.bottom).toBeGreaterThan(60);
-
-    const row = page.locator("#frame3 .sfx-odds");
-    await expect(row).toBeVisible();
-    const mine = await box(page, "#frame3 .sfx-odds");
-    expect(Math.abs(mine.top - (bar.bottom + 4))).toBeLessThan(1);
-    await expect(row).toHaveText(/WIN\s*46%\s*CS\s*33%/);
-    await expect(page.locator("#wdl3")).toHaveClass(/sfx-room/);
-
-    // Their "best score chosen" line moved down to make room: below our row, and overlapped by nothing.
-    const pick = await box(page, "#pick3");
-    expect(pick.top).toBeGreaterThanOrEqual(mine.bottom);
-    expect(meets(mine, pick)).toBe(false);
-    expect(meets(mine, await box(page, "#foot3"))).toBe(false);
   });
 
   test("draws nothing on a page about a gameweek Sofix has no numbers for, instead of this week's under its name", async ({ page }) => {
@@ -1770,8 +1727,9 @@ test.describe("the sorare.com overlay", () => {
     expect(green).not.toBe(red);
     expect(await price("pick-1").evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(11);
     // At the card's right, its bottom at two thirds of the card: Sorare writes his name across the bottom.
+    // A new pill is placed on the pass after it is drawn: wait for it.
+    await expect.poll(async () => { const [c, p] = [await box(page, "#pick-1 img"), await box(page, "#pick-1 .sfx-price")]; return Math.abs(c.right - 6 - p.right); }).toBeLessThan(1.5);
     const [card, pill] = [await box(page, "#pick-1 img"), await box(page, "#pick-1 .sfx-price")];
-    expect(Math.abs(card.right - 6 - pill.right)).toBeLessThan(1.5);
     expect(Math.abs(pill.bottom - (card.top + (card.bottom - card.top) * 0.66))).toBeLessThan(1.5);
     await expect(page.locator("#abroad .sfx-price")).toHaveCount(0); // his rare card: the price is a Limited one
     await page.locator("#pick-1").screenshot({ path: testInfo.outputPath("overlay-price.png") });
@@ -1784,48 +1742,6 @@ test.describe("the sorare.com overlay", () => {
     await page.waitForTimeout(400);
     await expect(page.locator("#pick-1 .sfx-tile, #pick-1 .sfx-ribs").first()).toBeVisible();
     await expect(page.locator(".sfx-price")).toHaveCount(0);
-  });
-
-  test("on Sorare's builder, a faint purple C marks the card on the pitch Sofix would captain, until Sorare has him as captain", async ({ page }, testInfo) => {
-    await openPage(page, { url: "https://sorare.com/football/play/classic/compose/all-star" });
-    await settled(page);
-    await expect(page.locator(".sfx-captain")).toHaveCount(0); // no card on the pitch yet
-    // Sorare's pitch, as drawn on 3 Nov 2026: a 32 px round "C" titled "Captain" centred on each placed card's top-left corner,
-    // outside the card's own box; the captain's turns pink with the class "active". Pick 1 (70) beats Pick 2 (65) and Pick 3 (60).
-    const mark = (ids: string[], captain: string | null) =>
-      page.evaluate(([list, cap]) => {
-        document.querySelectorAll("[data-test-mark]").forEach((el) => el.remove());
-        for (const id of list as string[]) {
-          const r = document.getElementById(id)!.getBoundingClientRect();
-          const c = document.createElement("div");
-          c.title = "Captain";
-          c.textContent = "C";
-          c.dataset.testMark = "";
-          if (id === cap) c.className = "active";
-          c.style.cssText = `position:absolute;left:${r.left + scrollX - 16}px;top:${r.top + scrollY - 16}px;width:32px;height:32px;border-radius:50%;background:${id === cap ? "#ff0974" : "#fff"}`;
-          document.body.append(c);
-        }
-      }, [ids, captain] as const);
-    await page.locator("#pick-1").scrollIntoViewIfNeeded();
-    await mark(["pick-1", "pick-2", "pick-3"], null);
-    const c = page.locator(".sfx-captain");
-    await expect(c).toHaveCount(1);
-    await expect(c).toHaveText("C");
-    await expect(c).toHaveAttribute("title", /^Sofix's captain: the best expected score on the pitch, 70 with his chance of starting counted$/);
-    const [card, ours] = [await box(page, "#pick-1 img"), await box(page, ".sfx-captain")];
-    expect(Math.abs(ours.right - card.right)).toBeLessThan(10); // at the card's bottom right
-    expect(Math.abs(ours.bottom - card.bottom)).toBeLessThan(10);
-    expect(ours.width).toBeGreaterThanOrEqual(14);
-    expect(await c.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(11);
-    await page.screenshot({ path: testInfo.outputPath("overlay-captain.png") });
-    await mark(["pick-1", "pick-2", "pick-3"], "pick-2"); // another captain: the advice stays on Pick 1
-    await expect(c).toHaveCount(1);
-    expect(Math.abs((await box(page, ".sfx-captain")).right - card.right)).toBeLessThan(10);
-    await mark(["pick-1", "pick-2", "pick-3"], "pick-1"); // Sorare has him as captain: nothing more to say
-    await expect(page.locator(".sfx-captain")).toHaveCount(0);
-    await mark(["pick-2", "pick-3"], null); // he left the pitch: the next best
-    await expect(page.locator(".sfx-captain")).toHaveCount(1);
-    expect(Math.abs((await box(page, ".sfx-captain")).right - (await box(page, "#pick-2 img")).right)).toBeLessThan(10);
   });
 
   test("on Sorare's builder, Sofix's gauge sits under Sorare's bonuses and fills as cards go on the pitch; hover opens the team panel", async ({ page }, testInfo) => {
@@ -1877,6 +1793,11 @@ test.describe("the sorare.com overlay", () => {
       slot.append(card);
     });
     await expect(gauge.locator(".sfx-team-count")).toHaveText("1 of 5");
+    // In a narrower window Sorare draws the pitch's cards at 102 px, a compact card: still counted (16 Nov 2026: "0 of 5").
+    await page.evaluate(() => document.querySelector<HTMLImageElement>("#pick-1 img")!.setAttribute("style", "width:102px;height:144px"));
+    await page.waitForTimeout(400);
+    await expect(gauge.locator(".sfx-team-count")).toHaveText("1 of 5");
+    await page.evaluate(() => document.querySelector<HTMLImageElement>("#pick-1 img")!.removeAttribute("style"));
     const one = Number(await total());
     expect(Math.abs(one - 70)).toBeLessThanOrEqual(3); // his 70: 0.9 to play x 77.8 if he plays
     const oneFill = await filled();

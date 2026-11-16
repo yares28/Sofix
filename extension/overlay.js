@@ -1,14 +1,13 @@
 // Sofix extension, the sorare.com overlay (plans/overlay.md, O3, O4 and O10).
 // Draws Sofix's numbers on the cards Sorare shows: a glass tile inside the card's top-left corner (the score if he
-// starts, then difficulty for a goalkeeper or defender and expected goals for the rest), Sofix's win and clean sheet
-// under Sorare's own odds bar, and a panel beside the card on hover with the two scores. It only reads and draws. It
+// starts, then difficulty for a goalkeeper or defender and expected goals for the rest) and a panel beside the card on
+// hover with the two scores. It only reads and draws. It
 // has no control that writes to Sorare; the one thing here that takes a click apart from the tile's own hover opens the app.
 //
 //   find a card by where its picture comes from (never by Sorare's class names)
 //   -> ask the page bridge which card that is (bridge.js learned it from the page's own answers)
 //   -> ask the app for that player's numbers (through the background worker, which caches them)
-//   -> draw the tile inside the picture's corner, sized to how big the card is drawn and clear of Sorare's own chips
-//   -> find Sorare's odds bar by what it says and where it sits, make room under it, and draw Sofix's row there.
+//   -> draw the tile inside the picture's corner, sized to how big the card is drawn and clear of Sorare's own chips.
 //
 // A failure here must never break their page: every entry point is wrapped, and the worst outcome is that a
 // ribbon does not appear.
@@ -21,7 +20,8 @@
 
   const NUMBERS_TTL_MS = 10 * 60 * 1000; // the background keeps them as long; this only spares it the question
   const EMPTY_TTL_MS = 3 * 60 * 1000; // "nothing on him", as the background keeps it: asked again sooner (9 Nov 2026)
-  const IDENTIFY_TRIES = 8;
+  const IDENTIFY_TRIES = 8; // after this many, a card is asked about every IDENTIFY_MAX_WAIT_MS, and at once when the bridge learns more
+  const IDENTIFY_MAX_WAIT_MS = 6000;
   const guard = (fn) => (...args) => {
     try {
       return fn(...args);
@@ -114,8 +114,14 @@
       const src = sourceOf(media);
       const known = records.get(media);
       if (known && known.src === src) continue;
-      if (known && known.live) forget(known); // the page gave this element to another card
       const key = core.cardImageKey(src);
+      // The same card under another address (a video choosing its source, a picture loading a sharper size): keep what is drawn.
+      // Treating it as a new card took the tile off and started over, and a page that kept changing never got one (16 Nov 2026).
+      if (known && known.live && key && known.key === key) {
+        known.src = src;
+        continue;
+      }
+      if (known && known.live) forget(known); // the page gave this element to another card
       const alt = media.getAttribute("alt") || "";
       if (!key || core.isAvatarArt(src)) {
         records.set(media, { media, src, live: false, cardLike: !core.isAvatarArt(src) && alt.includes(" - ") });
@@ -145,12 +151,13 @@
   // -- who is this card ------------------------------------------------------------------------------------------
 
   async function identify() {
-    const due = [...live].filter((r) => r.ident !== "done" && r.ident !== "asked" && r.visible && r.tries < IDENTIFY_TRIES && now() >= r.nextTry);
+    const due = [...live].filter((r) => r.ident !== "done" && r.ident !== "asked" && r.visible && now() >= r.nextTry);
     if (!due.length) return;
     for (const record of due) {
       record.ident = "asked";
       record.tries += 1;
-      record.nextTry = now() + 400 * 2 ** record.tries;
+      // Never given up on (it was after 8 tries): a card the page names later still gets its tile. Each try is one message.
+      record.nextTry = now() + Math.min(400 * 2 ** record.tries, IDENTIFY_MAX_WAIT_MS);
     }
     const answer = await askBridge({ type: "identify", items: due.map((r) => ({ key: r.key, name: r.name })) }, 3000);
     const found = answer && answer.state === "ok" && answer.found ? answer.found : {};
@@ -167,9 +174,12 @@
         record.playerSlug = null;
         record.ident = "done";
       } else {
-        record.ident = "new"; // not known yet: tried again later, and when the bridge learns more
+        record.ident = "new"; // not known yet: tried again when its wait is over, and at once when the bridge learns more
       }
     }
+    // A card still unknown is looked at again when its wait ends, not at the next beat (it waited up to 4 s more, 16 Nov 2026).
+    const waits = due.filter((r) => r.ident === "new").map((r) => r.nextTry - now());
+    if (waits.length) setTimeout(guard(schedule), Math.max(50, Math.min(...waits)));
     schedule();
   }
 
@@ -343,7 +353,6 @@
   const INSET = { full: { x: 6, y: 6 }, narrow: { x: 5, y: 5 }, compact: { x: 4, y: 4 }, tiny: { x: 3, y: 3 } }; // how far in from the picture's top-left corner the tile sits
   const TINY_UNDER = 80; // a card narrower than this (a bench thumbnail) gets the smallest tile
   const NARROW_UNDER = 130; // a full card narrower than this (Sorare's builder list, 118 px) gets the tighter chips
-  const ODDS_GAP = 4; // between Sorare's odds bar and ours; the room made for the row is this plus its own 22px
 
   let tokenAt = 0;
   let tokens = {};
@@ -380,7 +389,7 @@
     return made;
   }
 
-  /** Sorare's five colours side by side, easiest to hardest: the tile's top edge, the odds row's and the panel's. */
+  /** Sorare's five colours side by side, easiest to hardest: the tile's top edge and the panel's. */
   function stripe() {
     const bar = node("span", "sfx-stripe");
     bar.setAttribute("aria-hidden", "true");
@@ -392,13 +401,6 @@
     return bar;
   }
 
-  /** A percentage the way the tile writes it: the number large and the sign small. */
-  function percent(className, text) {
-    const holder = node("span", className);
-    holder.append(text.replace("%", ""));
-    holder.append(node("small", "", "%"));
-    return holder;
-  }
 
   /**
    * The iPhone-style island: a popup grows out of a small black pill at what was hovered, with a spring, its content fading in
@@ -613,115 +615,6 @@
     return rect.top + record.bandOffset;
   }
 
-  // -- Sorare's odds bar, and our row under it --------------------------------------------------------------------
-
-  const THREE_PERCENTS = /^\d{1,3}%\d{1,3}%\d{1,3}%$/;
-  const compact = (text) => (text || "").replace(/\s+/g, "");
-
-  /**
-   * Sorare's win / draw / loss bar under a card: the smallest box in the card's own block whose whole text is three
-   * percentages, right under the picture and about as wide as it. Found by what it says and where it sits, never by
-   * a class name; null when there is none, and then no row is drawn.
-   */
-  function locateBar(media, rect) {
-    // On Sorare's lists the bar is not right under the picture: a form-and-score row and a flags row come first, so it
-    // starts about 75px down a card 150px wide. Look as far as half the card's height, never as far as the next row.
-    const reach = Math.max(60, rect.height * 0.55);
-    let scope = media.parentElement;
-    for (let level = 0; level < 4 && scope && scope !== document.body; level += 1, scope = scope.parentElement) {
-      const box = scope.getBoundingClientRect();
-      if (box.height > rect.height * 2.4 || box.width > rect.width * 2.4) return null; // past this card's own block
-      let best = null;
-      let distance = Infinity;
-      let seen = 0;
-      for (const el of scope.querySelectorAll("*")) {
-        if (++seen > 400) break;
-        if (el.closest("[data-sfx]") || el === media || el.contains(media)) continue;
-        const text = compact(el.textContent);
-        if (text.length > 14 || !THREE_PERCENTS.test(text)) continue;
-        if ([...el.children].some((child) => THREE_PERCENTS.test(compact(child.textContent)))) continue; // a wrapper of the bar
-        const r = el.getBoundingClientRect();
-        if (r.width < rect.width * 0.6 || r.width > rect.width * 1.3 || r.height < 8 || r.height > 60) continue;
-        if (r.top < rect.bottom - 6 || r.top > rect.bottom + reach || r.left < rect.left - 20 || r.right > rect.right + 20) continue;
-        if (r.top - rect.bottom < distance) {
-          best = el;
-          distance = r.top - rect.bottom;
-        }
-      }
-      if (best) return best;
-    }
-    return null;
-  }
-
-  function barFor(record, rect) {
-    const key = [Math.round(rect.width), Math.round(rect.height), pageEpoch].join("|");
-    if (record.barKey !== key || (record.bar && !record.bar.isConnected)) {
-      record.barKey = key;
-      record.bar = locateBar(record.media, rect);
-    }
-    return record.bar;
-  }
-
-  /**
-   * Is the room under their bar really free? After it is made, nothing of theirs (their kickoff line) may sit in it:
-   * if something does, the margin did not move it, and drawing there would cover it, so the row is not drawn at all.
-   */
-  /** `roomIsFree`, asked again only when the card's size or the page changes (3b.3). */
-  function roomFree(record, bar, barRect, mediaRect) {
-    const key = `${Math.round(mediaRect.width)}|${pageEpoch}`;
-    if (record.roomKey !== key || record.roomFor !== bar) {
-      // kept only when the place it looks at is on screen: off it, the probe sees nothing and would call the room free
-      const seen = barRect.left >= 0 && barRect.right <= innerWidth && barRect.bottom + ODDS_GAP + 12 <= innerHeight && barRect.top >= 0;
-      record.roomKey = seen ? key : "";
-      record.roomFor = bar;
-      record.roomOk = roomIsFree(bar, barRect, mediaRect);
-    }
-    return record.roomOk;
-  }
-
-  function roomIsFree(bar, barRect, mediaRect) {
-    const y = barRect.bottom + ODDS_GAP + 11;
-    const REPLACED = /^(IMG|SVG|VIDEO|CANVAS|BUTTON|INPUT)$/;
-    for (const x of [barRect.left + 8, barRect.left + barRect.width / 2, barRect.right - 8]) {
-      if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
-      for (const el of document.elementsFromPoint(x, y)) {
-        if (el === bar || el.contains(bar) || bar.contains(el) || el.closest("[data-sfx]")) continue;
-        const r = el.getBoundingClientRect();
-        if (r.width * r.height > mediaRect.width * mediaRect.height * 0.25) continue; // a backdrop or a card-sized link
-        if (!compact(el.textContent) && !REPLACED.test(el.tagName.toUpperCase())) continue; // nothing to see there
-        return false;
-      }
-    }
-    return true;
-  }
-
-  function buildOdds(game) {
-    const win = Math.round(game.win * 100);
-    const clean = typeof game.cleanSheet === "number" ? Math.round(game.cleanSheet * 100) : null;
-    const label = clean === null ? `Sofix odds: win ${win}%` : `Sofix odds: win ${win}%, clean sheet ${clean}%`;
-    const cell = (caption, value, className) => {
-      const holder = node("span", "sfx-odds-cell");
-      holder.append(node("span", "sfx-cap", caption), value === null ? node("b", "sfx-odds-num sfx-odds-num--none", "—") : percent(`sfx-odds-num ${className}`, `${value}%`));
-      return holder;
-    };
-    const rule = node("span", "sfx-odds-rule");
-    rule.setAttribute("aria-hidden", "true");
-    return { sig: `${win}|${clean}`, label, nodes: [stripe(), cell("WIN", win, "sfx-odds-num--win"), rule, cell("CS", clean, "")] };
-  }
-
-  /** Hand back what was done to their bar. */
-  function releaseBar(record) {
-    if (record.roomBar) record.roomBar.classList.remove("sfx-room");
-    record.roomBar = null;
-  }
-
-  function removeOdds(record) {
-    if (record.odds) record.odds.remove();
-    record.odds = null;
-    record.oddsSig = "";
-    releaseBar(record);
-  }
-
   /** Takes off everything drawn for one card, and gives back what was borrowed. */
   function clearDrawn(record) {
     if (panel && panel.record === record) closePanel(false);
@@ -734,12 +627,9 @@
     if (tip && tip.chip === record.start) closeTip();
     if (record.start) record.start.remove();
     record.start = null;
-    if (record.captain) record.captain.remove();
-    record.captain = null;
     if (record.price) record.price.remove();
     record.price = null;
     dropCrest(record);
-    removeOdds(record);
   }
 
   // -- the panel beside the card -----------------------------------------------------------------------------------
@@ -1368,55 +1258,6 @@
     return created || !box;
   }
 
-  /** Sofix's win and clean sheet directly under Sorare's own bar, with room made for it. */
-  function placeOdds(read) {
-    const { record, odds } = read;
-    const held = entryOf(record);
-    const game = held && held.entry && held.entry.game;
-    if (read.tier !== "full" || !game || !odds) {
-      removeOdds(record);
-      return false;
-    }
-    if (odds.crowded) {
-      removeOdds(record);
-      record.crowded = pageEpoch; // the margin did not clear the room here: leave it be until the page changes
-      return false;
-    }
-    if (record.roomBar !== odds.bar) {
-      releaseBar(record);
-      odds.bar.classList.add("sfx-room");
-      record.roomBar = odds.bar;
-    }
-    const drawn = buildOdds(game);
-    let row = odds.row;
-    let created = false;
-    if (!row) {
-      row = document.createElement("span");
-      row.setAttribute("data-sfx", "");
-      row.setAttribute("data-pending", "");
-      odds.bar.parentElement.append(row);
-      record.odds = row;
-      created = true;
-    }
-    if (record.oddsSig !== drawn.sig || created) {
-      row.className = "sfx-odds";
-      row.setAttribute("role", "group");
-      row.setAttribute("aria-label", drawn.label);
-      row.replaceChildren(...drawn.nodes);
-      record.oddsSig = drawn.sig;
-    }
-    if (odds.box && odds.at) {
-      const width = `${odds.barRect.width}px`;
-      if (row.style.width !== width) row.style.width = width;
-      const dx = odds.barRect.left - odds.box.left;
-      const dy = odds.barRect.bottom + ODDS_GAP - odds.box.top;
-      if (Math.abs(dx) > 0.5) row.style.left = `${odds.at.left + dx}px`;
-      if (Math.abs(dy) > 0.5) row.style.top = `${odds.at.top + dy}px`;
-      row.removeAttribute("data-pending");
-    }
-    return created || !odds.box;
-  }
-
   function paint() {
     const drawing = [];
     for (const record of live) {
@@ -1461,39 +1302,19 @@
         box,
         at: ribs ? { left: parseFloat(ribs.style.left) || 0, top: parseFloat(ribs.style.top) || 0 } : null,
         top: tier === "skip" || !box ? rect.top + INSET.full.y : clearOfCached(record, rect, size, box.width, box.height),
-        odds: null,
         crestHidden: record.crest && record.crest.isConnected ? crestCovered(record, rect) : false,
       };
-      const held = entryOf(record);
-      if (tier === "full" && held && held.entry && held.entry.game && record.crowded !== pageEpoch) {
-        const bar = barFor(record, rect);
-        if (bar) {
-          const row = record.odds && record.odds.isConnected ? record.odds : null;
-          const barRect = bar.getBoundingClientRect();
-          read.odds = {
-            bar,
-            barRect,
-            row,
-            box: row ? row.getBoundingClientRect() : null,
-            at: row ? { left: parseFloat(row.style.left) || 0, top: parseFloat(row.style.top) || 0 } : null,
-            crowded: Boolean(row) && record.roomBar === bar && !roomFree(record, bar, barRect, rect),
-          };
-        }
-      }
       return read;
     });
     const pitch = pitchOf(reads);
-    const captain = captainOf(pitch);
     const column = builderPage() ? bonusColumn() : null;
 
     let again = false;
     for (const read of reads) {
       try {
         if (on("tile") && placeTile(read)) again = true;
-        if (on("odds") && placeOdds(read)) again = true;
         if (on("need") && placeNeed(read)) again = true;
         if (on("start") && placeStart(read)) again = true;
-        if (on("captain") && placeCaptain(read, read === captain)) again = true;
         if (on("price") && placePrice(read)) again = true;
         if (on("crest")) placeCrest(read);
         if (on("worth")) placeWorth(read);
@@ -1877,10 +1698,7 @@
     tip = null;
   }
 
-  // -- captain C on Sorare's builder (plans/overlay-v2.md 1.2) ---------------------------------------------------------
-  // Sorare's builder draws a 32 px round "C" titled "Captain" on each card on the pitch, centred on its top-left corner, and turns
-  // the captain's pink with the class "active" (seen 3 Nov 2026, a Classic builder). Sofix marks the card it would captain with a
-  // faint purple C at the bottom right, until Sorare has that card as captain.
+  // -- Sorare's pitch on its builder (the team gauge counts it) -----------------------------------------------------------
   const builderPage = () => Boolean(core.composeBoard(location.pathname)) || /^\/football\/series\/[^/]+\/compose-team(?:\/|$)/.test(location.pathname);
 
   /**
@@ -1899,7 +1717,7 @@
     const pitch = [];
     const seen = new Set();
     for (const read of reads) {
-      if (read.tier !== "full" || read.covered) continue;
+      if (read.tier === "skip" || read.covered) continue; // a compact card counts too: Sorare draws the pitch at 102 px in a narrower window (16 Nov 2026: "0 of 5")
       const { rect, record } = read;
       const mark = marks.find(({ r }) => Math.abs(r.left + r.width / 2 - rect.left) < 24 && Math.abs(r.top + r.height / 2 - rect.top) < 24);
       if (!mark && !slots.some((b) => b.contains(record.media))) continue;
@@ -1909,42 +1727,6 @@
       pitch.push({ read, captain: Boolean(mark) && mark.el.classList.contains("active") });
     }
     return pitch;
-  }
-
-  /** The read of the pitch card to mark, or null. */
-  function captainOf(pitch) {
-    const i = core.captainPick(pitch.map(({ read, captain }) => {
-      const held = entryOf(read.record);
-      const entry = held && held.entry;
-      return { x: entry && !core.staleness(entry, now()) ? entry.x : null, captain };
-    }));
-    return i < 0 ? null : pitch[i].read;
-  }
-
-  function placeCaptain(read, mine) {
-    const { record, rect } = read;
-    let mark = record.captain && record.captain.isConnected ? record.captain : null;
-    if (!mine) {
-      if (mark) mark.remove();
-      record.captain = null;
-      return false;
-    }
-    let fresh = false;
-    if (!mark) {
-      mark = node("span", "sfx-captain", "C");
-      mark.setAttribute("data-sfx", "");
-      mark.setAttribute("data-pending", "");
-      hostOf(record).append(mark);
-      record.captain = mark;
-      fresh = true;
-    }
-    const title = `Sofix's captain: the best expected score on the pitch, ${Math.round(entryOf(record).entry.x)} with his chance of starting counted`;
-    if (mark.title !== title) {
-      mark.title = title;
-      mark.setAttribute("aria-label", title);
-    }
-    if (fresh) return true; // measured on the next pass
-    return moveTo(mark, rect.right - INSET.full.x, rect.bottom - INSET.full.y - mark.getBoundingClientRect().height);
   }
 
   // -- team gauge on Sorare's builder (plans/overlay-v2.md 1.4, step 5) -------------------------------------------------
@@ -3064,7 +2846,6 @@
     crestLayer = null;
     if (!mine) return;
     document.querySelectorAll("[data-sfx]").forEach((el) => el.remove());
-    document.querySelectorAll(".sfx-room").forEach((el) => el.classList.remove("sfx-room"));
   }
 
   // The bridge learned more cards from the page's own answers: cards it could not name a moment ago may be known now.

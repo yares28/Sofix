@@ -493,19 +493,6 @@
     return { below: ring(levels[at - 1]), at: ring(levels[at]), above: ring(levels[at + 1]) };
   }
 
-  /**
-   * The card on Sorare's builder pitch Sofix would make captain, from `{ x, captain }` per pitch card: the highest xScore (Sorare
-   * adds bonuses together, so the captain's bonus is worth most on the best score whatever the card's own bonus), first on a tie.
-   * -1 when no card has a number, or when Sorare already has that card as captain.
-   */
-  function captainPick(cards) {
-    let best = -1;
-    cards.forEach((card, i) => {
-      if (Number.isFinite(card.x) && (best < 0 || card.x > cards[best].x)) best = i;
-    });
-    return best >= 0 && cards[best].captain ? -1 : best;
-  }
-
   /** The start % chip's hover: "Sofix 83% · Sorare 80%" on a full card, the number's own source on a small one ("FF 90%"). */
   function startHover(entry, onPage, full) {
     const mine = chanceLabel(startChance(entry));
@@ -1065,10 +1052,8 @@
    */
   const OVERLAY_PARTS = [
     { key: "tile", label: "Score tile and hover panel", where: "Every card" },
-    { key: "odds", label: "Win and clean sheet row", where: "Big cards, under Sorare's odds" },
     { key: "start", label: "Start % chip", where: "Lineup cards" },
     { key: "crest", label: "Opponent crest and game island", where: "Builders and lineup pages" },
-    { key: "captain", label: "Captain pick", where: "Builder pitch" },
     { key: "team", label: "Team gauge", where: "Builder pitch" },
     { key: "list", label: "Sort, filter and compare bar", where: "Builder card list" },
     { key: "need", label: "Points needed", where: "Lineups in play" },
@@ -1083,7 +1068,7 @@
   root.__sofixCore = {
     OVERLAY_PARTS, crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, captainPick, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, MY_GALLERY, sorarePic, lockLabel, enteredOf, stepAnswer, liveScores, composeBoard, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, MY_GALLERY, sorarePic, lockLabel, enteredOf, stepAnswer, liveScores, composeBoard, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

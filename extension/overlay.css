@@ -1,8 +1,6 @@
 /* Sofix extension: what is drawn on sorare.com's cards (plans/overlay.md, O10).
-   A glass tile inside the card's top-left corner (the score if he starts, then one driver), a Sofix odds row directly
-   under Sorare's own win/draw/loss bar, and a panel beside the card on hover. Every name here starts with sfx-, and
-   nothing styles anything of Sorare's except one margin class on its odds bar (sfx-room), given back when the switch
-   goes off. Colours are Sorare's: overlay.js sets them from the page's own --c-score-* tokens. */
+   A glass tile inside the card's top-left corner (the score if he starts, then one driver) and a panel beside the card
+   on hover. Every name here starts with sfx-, and nothing styles anything of Sorare's. Colours are Sorare's: overlay.js sets them from the page's own --c-score-* tokens. */
 :root {
   --sfx-font: pressio, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   --sfx-cond: pressio, "Barlow Condensed", "Arial Narrow", "Roboto Condensed", -apple-system, "Segoe UI", sans-serif;
@@ -29,7 +27,7 @@
   user-select: none;
   animation: sfx-fade 0.2s ease-out both; /* opacity only: this box is measured, and a transform would be measured mid-flight */
 }
-.sfx-ribs[data-pending], .sfx-odds[data-pending] { visibility: hidden; }
+.sfx-ribs[data-pending] { visibility: hidden; }
 
 /* ---- the tile (plans/overlay-v2.md 1.2): the xScore chip, "64 FDR" under it; a small card has the xScore chip only ------ */
 .sfx-tile {
@@ -153,37 +151,6 @@
 .sfx-src--sofix { border: 1.2px dashed currentColor; }
 .sfx-start .sfx-src { width: 7px; height: 7px; color: rgba(14, 14, 14, 0.75); }
 
-/* ---- the odds row, under Sorare's own bar ------------------------------------------------------------------------ */
-.sfx-odds {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 3;
-  display: flex;
-  align-items: stretch;
-  height: 22px;
-  padding-top: 2px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #151517;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
-  color: var(--sfx-white);
-  pointer-events: none;
-  user-select: none;
-  animation: sfx-fade 0.2s ease-out both;
-}
-.sfx-odds .sfx-stripe { position: absolute; left: 0; top: 0; right: 0; }
-.sfx-odds-cell { display: flex; flex: 1 1 0; align-items: center; justify-content: center; gap: 5px; }
-.sfx-odds-cell .sfx-cap { font-size: 7.5px; line-height: 8px; letter-spacing: 0.1em; }
-.sfx-odds-num { display: flex; align-items: baseline; font: 700 14px/14px var(--sfx-cond); color: var(--sfx-white); font-variant-numeric: tabular-nums; }
-.sfx-odds-num small { margin-left: 1px; font-size: 9px; }
-.sfx-odds-num--win { color: var(--sfx-lime, #b6ff1a); }
-.sfx-odds-num--none { color: rgba(255, 255, 255, 0.55); }
-.sfx-odds-rule { width: 1px; margin: 5px 0; background: rgba(255, 255, 255, 0.09); }
-
-/* The room under Sorare's odds bar for our row: the one thing done to their page, given back on switch-off. */
-.sfx-room { margin-bottom: 26px !important; }
-
 /* Your gallery (B2): what each card is worth now under Sorare's "Bought" row, and the bought cards' total in the toolbar row. */
 .sfx-worth {
   display: flex; justify-content: space-between; align-items: center; gap: 6px; height: 21px; margin-top: 6px; padding: 0 7px;
@@ -299,7 +266,7 @@
 @keyframes sfx-num { from { opacity: 0; transform: translateY(5px); } }
 @keyframes sfx-shimmer { from { background-position: -44px 0; } to { background-position: 44px 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .sfx-ribs, .sfx-odds, .sfx-tile, .sfx-panel, .sfx-big, .sfx-morph, .sfx-morph > *, .sfx-morph-out, .sfx-skel > i { animation: none !important; }
+  .sfx-ribs, .sfx-tile, .sfx-panel, .sfx-big, .sfx-morph, .sfx-morph > *, .sfx-morph-out, .sfx-skel > i { animation: none !important; }
 }
 
 
@@ -437,27 +404,6 @@
 .sfx-tip .sfx-mins i { min-height: 2px; border-radius: 2px; }
 .sfx-tip .sfx-mins-axis { margin-top: 0; }
 @media (prefers-reduced-motion: reduce) { .sfx-island, .sfx-tip, .sfx-live-dot, .sfx-live-dot::after { animation: none; } }
-
-/* Sofix's captain pick on Sorare's builder (1.2): a faint purple C at the card's bottom right, never glowing. */
-.sfx-captain {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 4;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgba(124, 92, 255, 0.55);
-  color: #fff;
-  font: 800 11px/1 var(--sfx-font);
-  pointer-events: auto;
-  cursor: help;
-  user-select: none;
-  animation: sfx-fade 0.2s ease-out both;
-}
-.sfx-captain[data-pending] { visibility: hidden; }
 
 /* What a point of his costs, on the market and your gallery (1.2): green in the cheapest third of similar players, red in the dearest. */
 .sfx-price {

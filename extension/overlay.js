@@ -2778,6 +2778,7 @@
     );
     mutations.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset", "poster", "alt"] });
     window.addEventListener("message", onBridge);
+    window.addEventListener("message", onWhy);
     window.addEventListener("popstate", schedule); // back and forward change the address: the gameweek it names may have too
     window.addEventListener("scroll", onMove, { capture: true, passive: true }); // the crests live outside the cards: they follow them
     window.addEventListener("resize", onMove, { passive: true });
@@ -2802,6 +2803,7 @@
     if (resizing) resizing.disconnect();
     mutations = visibility = resizing = null;
     window.removeEventListener("message", onBridge);
+    window.removeEventListener("message", onWhy);
     window.removeEventListener("popstate", schedule);
     window.removeEventListener("scroll", onMove, { capture: true });
     window.removeEventListener("resize", onMove);
@@ -2849,6 +2851,28 @@
   }
 
   // The bridge learned more cards from the page's own answers: cards it could not name a moment ago may be known now.
+  // What this copy thinks of each card it found, for a check from the page's console: postMessage({ source: "sofix-why" }).
+  // It says only how far each card got (named? on screen? numbers? drawn?), nothing of the numbers themselves.
+  const onWhy = guard((event) => {
+    if (event.source !== window || !event.data || event.data.source !== "sofix-why") return;
+    const rows = [...live].map((r) => {
+      const rect = r.media.getBoundingClientRect();
+      const held = r.ident === "done" ? entryOf(r) : null;
+      return {
+        art: r.src.split("/").slice(-1)[0].slice(0, 40),
+        tag: r.media.tagName,
+        ident: r.ident,
+        tries: r.tries,
+        visible: r.visible,
+        size: `${Math.round(rect.width)}x${Math.round(rect.height)}`,
+        tier: core.surfaceOf(rect.width, rect.height, isRound(r.media, rect)),
+        numbers: held ? (held.entry ? "yes" : "none") : "not yet",
+        drawn: Boolean(r.ribs && r.ribs.isConnected),
+      };
+    });
+    window.postMessage({ source: "sofix-why-answer", run: ME, enabled, appState, rows }, location.origin);
+  });
+
   const onBridge = guard((event) => {
     if (event.source !== window || !event.data || !["sofix-bridge-4", "sofix-bridge-5", "sofix-bridge-7", "sofix-bridge-8", "sofix-bridge-9"].includes(event.data.source) || event.data.type !== "cards") return;
     oddsDue = true;

@@ -60,6 +60,14 @@ them did. Sorare's own page answers named every one of those cards at once, so t
 look fails is looked at again only on the next 4-second beat, is given up after 8 tries, and a card whose picture changes without the
 page saying so (a video choosing its source) is not looked at again.
 
+**Done 16 Nov (extension 0.5.9-0.5.10, checked live on the builder):** 2 and 5 deleted; a card keeps its tile when its picture
+changes address (video cards: Pepelu, Aleix Febas, Arda Güler now drawn), an unknown card is looked at again when its wait ends and is
+never given up on (scrolled cards: tile in 0 ms, was 1-7 s); the gauge counts compact pitch cards ("0 of 5" at 1523 px). A read-only
+check for the next time something is missing: in sorare.com's console, `postMessage({ source: "sofix-why" }, location.origin)` and read the
+`sofix-why-answer` message (each card: named, on screen, size, numbers, drawn). It showed the last bare card, Joan García (Barcelona GK,
+a video card), as named and on screen with **no numbers from the app** although the local read model has his market row and next
+game (`frontend/lib/overlay.ts` `overlayNumbers`/`marketEntry`): to find out next.
+
 Order: delete 2 and 5; the shared cause (4, 7, 8, 9, 11, 12); the gauge (6) and the bar (7); prices (11); the dock (14). Each checked on
 your own Sorare pages.
 

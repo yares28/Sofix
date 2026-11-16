@@ -1439,14 +1439,29 @@
     if (!needPage() || !record.cardSlug) return null;
     const team = teamOf(record);
     if (!team) return null;
-    return needLineups().find((l) => l.slugs.has(record.cardSlug) && [...team.slugs].every((slug) => l.slugs.has(slug))) || null;
+    return needLineups().find((l) => lineupCard(l, record.cardSlug) && [...team.slugs].every((slug) => lineupCard(l, slug))) || null;
+  }
+
+  /** A card slug without its copy's serial: "john-mcginn-2026-common-<uuid>" and "pedri-2026-limited-7" lose their last part. */
+  const cardBase = (slug) => String(slug).replace(/-(?:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}|\d+)$/i, "");
+  /**
+   * This lineup's card for a slug the page named: the same card, else the lineup's one card of the same player, rarity and season.
+   * Sorare's squad page can name a card by another copy of it (16 Nov 2026: McGinn in your lineup named as a squad mate's McGinn),
+   * which blanked your whole lineup. Null when the lineup holds no such card.
+   */
+  function lineupCard(lineup, slug) {
+    if (lineup.slugs.has(slug)) return slug;
+    const base = cardBase(slug);
+    const same = [...lineup.slugs].filter((one) => cardBase(one) === base);
+    return same.length === 1 ? same[0] : null;
   }
 
   /** This card's pill: only on a lineup page, only when its team block is one of your lineups still in play, and not once its game is over. */
   function needFor(record) {
     const lineup = lineupOf(record);
-    if (!lineup || lineup.states.get(record.cardSlug) === "finished") return null;
-    return lineup.pills.get(record.cardSlug) || null;
+    const slug = lineup && lineupCard(lineup, record.cardSlug);
+    if (!slug || lineup.states.get(slug) === "finished") return null;
+    return lineup.pills.get(slug) || null;
   }
 
   /**
@@ -1456,13 +1471,13 @@
   function onLineupPage(record) {
     if (!needPage()) return true;
     const lineup = lineupOf(record);
-    return Boolean(lineup) && lineup.states.get(record.cardSlug) !== "finished";
+    return Boolean(lineup) && lineup.states.get(lineupCard(lineup, record.cardSlug)) !== "finished";
   }
 
   /** The game Sorare put this card in, when it sits in one of your lineups on a lineup page. */
   function gameHint(record) {
     const lineup = lineupOf(record);
-    return lineup ? lineup.games.get(record.cardSlug) || null : null;
+    return lineup ? lineup.games.get(lineupCard(lineup, record.cardSlug)) || null : null;
   }
 
   /** The pill for one card: drawn, moved to the art's top right, or taken off. */
@@ -2885,9 +2900,18 @@
         tier: core.surfaceOf(rect.width, rect.height, isRound(r.media, rect)),
         numbers: held ? (held.entry ? "yes" : "none") : "not yet",
         drawn: Boolean(r.ribs && r.ribs.isConnected),
+        slug: r.cardSlug || null,
+        // on a lineup page: its block's cards as named, and whether they make one of your lineups still in play
+        block: needPage() && teamOf(r) ? [...teamOf(r).slugs].length : null,
+        lineup: needPage() ? Boolean(lineupOf(r)) : null,
       };
     });
-    window.postMessage({ source: "sofix-why-answer", run: ME, enabled, appState, rows }, location.origin);
+    // Points needed: whether this is a lineup page, what the extension last gave (lineups by kind, with their aim) and when.
+    const needs = needPage()
+      ? { asked: needAskedAt, lineups: needLineups().map((l) => ({ target: l.target, cards: l.slugs.size, states: [...l.states.values()] })),
+        kinds: need ? { arcade: (need.arcadeLineups || []).length, squad: (need.squadLineups || []).length, pro: (need.proLineups || []).length } : null }
+      : null;
+    window.postMessage({ source: "sofix-why-answer", run: ME, enabled, appState, rows, needs }, location.origin);
   });
 
   const onBridge = guard((event) => {

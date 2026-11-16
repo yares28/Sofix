@@ -78,9 +78,13 @@ Shift+click compare all work and pick nothing; compare called a video card "This
 Refresh starts a run at once and re-reads the elevens (Planned 15:43 → 15:45, "Iceland–Luxembourg · not out yet (15:45)"), the panel held
 still through every stage, national teams show the shield. After each extension update an open sorare.com tab draws nothing for a few
 seconds while the new copy takes over (normal load: tiles 1-2 s after Sorare's cards).
-**Still open:** 8, Sorare's "Squad mode" (not found by that name: Sorare's main Lineups page, `/football/lineups/arena/ongoing`, draws
-nothing of Sofix's, its cards being too small for a tile and points needed running only on Pro and Arcade lineup pages; asked you
-whether that page is it); Joan García's missing numbers; the next batch's elevens read live on a Friday.
+**8 done 16 Nov (extension 0.5.17), seen live:** Squad mode is Arcade for teams (sorare.com/football/series/squad, your squad
+"Leclerc Gang"): a step clears when the squad's best three lineups add up to its target (Sorare's `totalScore`). The extension reads it
+(read-only `SofixSquadLineups`), and your lineup aims at what is still missing shared with the other counting lineups still able to
+score (`core.squadTarget`): on the 980 step before kick-off, 327, so the pills read 65.4 a card and 43.6 for the captain. Sorare's
+squad page named your McGinn as a squad mate's copy, which blanked the lineup: a card is now matched by player within its block.
+**Still open:** Joan García's missing numbers; the next batch's elevens read live on a Friday; chance to clear on a squad lineup once
+Sorare draws its "In progress" ribbon (to see during the games).
 
 Order: delete 2 and 5; the shared cause (4, 7, 8, 9, 11, 12); the gauge (6) and the bar (7); prices (11); the dock (14). Each checked on
 your own Sorare pages.

@@ -673,6 +673,16 @@ test.describe("the sorare.com overlay", () => {
     await expect(page.locator("#l-pick .sfx-need")).toContainText("60");
   });
 
+  test("a card the page names by another copy of the same player still counts as yours (16 Nov 2026: one McGinn blanked the lineup)", async ({ page }) => {
+    const at = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
+    // Your lineup holds Pick's copy 99; Sorare's page names the card it draws as copy 1 (a squad mate's).
+    const slugs = ["unai-simon-2026-limited-12", "pau-cubarsi-2026-rare-3", "lionel-messi-2026-limited-9", "kai-havertz-2026-limited-2", "pick-1-2026-limited-99"];
+    const need = { squadLineups: [{ id: "q1", kind: "squad", step: "BoardStep:q1", target: 260, squad: 700,
+      cards: slugs.map((slug, i) => ({ slug, score: i < 4 ? 50 : null, bonus: 1, captain: false, kickoff: at(i < 4 ? -3 : 20), game: gameId(i + 1), ...(i < 4 ? { done: true } : {}) })) }] };
+    await openPage(page, { url: "https://sorare.com/football/series/squad/lineups/BoardStep:q1", html: LINEUPS, need });
+    await expect(page.locator("#l-pick .sfx-need")).toContainText("60");
+  });
+
   test("on a lineup page, the points-needed pill sits above Sorare's start badge, or beside it with no room above", async ({ page }) => {
     // plans/overlay-v2.md 1.2: the pill stays top right, above Sorare's start badge; Sofix's start % goes under the badge.
     const at = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();

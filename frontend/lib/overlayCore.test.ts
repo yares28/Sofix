@@ -54,6 +54,7 @@ type Core = {
   filterStart: (entries: (Record<string, unknown> | null)[], key: string) => number | string;
   compareRows: (a: Record<string, unknown>, b: Record<string, unknown>) => { label: string; a: string; b: string; better: "a" | "b" | null; chip: string | null }[];
   SORT_KEYS: string[];
+  squadTarget: (target: number | null, total: number | null, ranked: { user: string; score: number | null }[], me: string) => number | null;
   lineupChance: (target: number | null, cards: { state: string; raw: number | null; multiplier: number | null; entry?: Record<string, unknown> | null }[]) => { p: number; now: number; open: number; target: number } | null;
   FILTER_KEYS: string[];
   teamRings: (tiers: { need: number; label: string; p: number }[]) => Record<"below" | "at" | "above", { label: string; need: number | null; p: number } | null> | null;
@@ -1031,5 +1032,26 @@ describe("an Arcade lineup's chance to clear its step", () => {
     expect(core.lineupChance(null, [ahead(60)])).toBeNull();
     expect(core.lineupChance(300, [{ state: "to play", raw: null, multiplier: null, entry: e(60) }])).toBeNull();
     expect(core.lineupChance(300, [{ state: "to play", raw: null, multiplier: 1, entry: null }])).toBeNull();
+  });
+});
+
+describe("Arcade Squad mode: what your own lineup must reach for the squad to clear its step", () => {
+  // Sorare's squad step of 16 Nov 2026: 700 to reach, the best three lineups count (totalScore 936.265 = 333.62 + 303.28 + 299.36).
+  const ranked = [
+    { user: "ciccio-b", score: 333.62 }, { user: "mlf-flickball", score: 303.28 }, { user: "hugo4268", score: 299.36 },
+    { user: "mlodziutkii", score: 290.82 }, { user: "yares", score: 244.78 },
+  ];
+  it("is the target less the other members' best scores that count with yours (the best three: two besides yours)", () => {
+    // Early in the week: the others have 120 and 90, so yours must make 700 - 210 = 490.
+    expect(core.squadTarget(700, 300, [{ user: "a", score: 120 }, { user: "b", score: 90 }, { user: "yares", score: 90 }, { user: "c", score: 10 }], "yares")).toBe(490);
+  });
+  it("is 0 once the others alone already clear it", () => {
+    expect(core.squadTarget(700, 936.265, ranked, "yares")).toBe(0);
+  });
+  it("counts the lineups Sorare adds up, read from its total, three when the total says nothing", () => {
+    // The best two count here (450 = 250 + 200): yours must make 600 - 250 = 350.
+    expect(core.squadTarget(600, 450, [{ user: "a", score: 250 }, { user: "b", score: 200 }, { user: "yares", score: 30 }], "yares")).toBe(350);
+    expect(core.squadTarget(700, 0, [{ user: "a", score: 0 }, { user: "yares", score: 0 }], "yares")).toBe(700);
+    expect(core.squadTarget(null, 0, [], "yares")).toBeNull();
   });
 });

@@ -946,6 +946,25 @@
   // shared out again; during the games what is still needed from now. Cards: { multiplier|null, unknown?, state: "to play" |
   // "live" | "finished", raw|null }.
   const NEED_EPS = 1e-9;
+  /**
+   * Arcade Squad mode (sorare.com/football/series/squad): a step is cleared when the squad's best lineups added up reach its target.
+   * Sorare adds up the best few (three on 16 Nov 2026: totalScore 936.265 = the best three), read here from its own total. Your lineup
+   * counts when it is among them, so what it must reach is the target less the other members' best scores that count beside it, as
+   * they stand now (they may still score more): 0 once the others alone clear it. `ranked`: every lineup of the step, { user, score }.
+   */
+  function squadTarget(target, total, ranked, me) {
+    if (typeof target !== "number" || !Number.isFinite(target)) return null;
+    const score = (r) => (typeof r.score === "number" && Number.isFinite(r.score) ? r.score : 0);
+    const all = (Array.isArray(ranked) ? ranked : []).map(score).sort((a, b) => b - a);
+    const sum = (list, n) => list.slice(0, n).reduce((a, b) => a + b, 0);
+    let counted = 3;
+    if (typeof total === "number" && total > 0) {
+      for (let k = 1; k <= all.length; k += 1) if (Math.abs(sum(all, k) - total) < 0.5) { counted = k; break; }
+    }
+    const others = (Array.isArray(ranked) ? ranked : []).filter((r) => r.user !== me).map(score).sort((a, b) => b - a);
+    if (sum(others, counted) >= target) return 0;
+    return Math.round((target - sum(others, counted - 1)) * 100) / 100;
+  }
   function pointsNeeded(target, cards, size = 5) {
     const none = (reason, state = "unknown") => ({ state, current: null, remaining: null, room: null, cards: cards.map(() => ({ kind: "unknown", reason })) });
     if (typeof target !== "number" || !Number.isFinite(target) || target <= 0) return none("no target for this step");
@@ -1069,7 +1088,7 @@
     OVERLAY_PARTS, crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
     chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, MY_GALLERY, sorarePic, lockLabel, enteredOf, stepAnswer, liveScores, composeBoard, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
-    isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge,
+    isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge, squadTarget,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;
 })(typeof globalThis !== "undefined" ? globalThis : this);

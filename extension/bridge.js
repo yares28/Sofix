@@ -256,6 +256,17 @@
             anyCard { slug } player { slug displayName } game { id date statusTyped }
             scoreStatus playerGameScore { anyPlayerGameStats { ... on PlayerGameStats { fieldStatus } } } } } } } } } }`,
 
+    // Arcade Squad mode (sorare.com/football/series/squad): each squad step's target, the squad's total and every member's lineup with its
+    // score (Sorare adds up the best few), and your own lineups with what each card scored. Read only, for the points-needed pill.
+    SofixSquadLineups: `query SofixSquadLineups { currentUser { slug setBoard(mode: SQUAD, sport: FOOTBALL) { id
+      steps { id level target state
+        ... on SquadStep { totalScore squadLeaderboardLineups { ranking lineup { id ... on TaskLineup { score user { slug } } } } }
+        myLineups { __typename
+          ... on TaskLineup { id draft aasmState score cancelledAt forfeitable hasLiveGames updatable
+            taskAppearances { id index captain positions score locked bonus
+              anyCard { slug } player { slug displayName } game { id date statusTyped }
+              scoreStatus playerGameScore { anyPlayerGameStats { ... on PlayerGameStats { fieldStatus } } } } } } } } } }`,
+
     // Today's General daily missions (Sorare's Play missions window, `setPlayTasks`, seen 22 Oct 2026: the Decisive Player Picker, some
     // days more), with their rewards, your picks and your progress. The older Common panel's streaks could no longer be played.
     SofixArcadeMissions: `query SofixArcadeMissions { currentUser {

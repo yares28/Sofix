@@ -681,6 +681,7 @@ const STEPS = {
   "pro-entered": () => ["SofixProLineups", {}],
   arcade: () => ["SofixArcade", {}],
   "arcade-lineups": () => ["SofixArcadeLineups", {}],
+  "squad-lineups": () => ["SofixSquadLineups", {}],
   "arcade-missions": () => ["SofixArcadeMissions", {}],
   "arcade-collection": () => ["SofixArcadeCollection", {}],
   "arcade-cards": (input) => ["SofixArcadeCards", { after: typeof input.after === "string" ? input.after.slice(0, 500) : null }],
@@ -759,6 +760,18 @@ function needFrom(step, data, input = {}, now = Date.now()) {
       .filter(openLineup).map((l) => ({ id: String(l.id), kind: "arcade", step: String(st.id), cards: appearancesOf(l) })));
     return { arcadeLineups: lineups, arcadeLineupsAt: now };
   }
+  // Arcade Squad mode: your open lineups, each with what it must reach for the squad to clear the step (core.squadTarget).
+  if (step === "squad-lineups" && user?.setBoard) {
+    const me = String(user.slug ?? "");
+    const lineups = (Array.isArray(user.setBoard.steps) ? user.setBoard.steps : []).flatMap((st) => {
+      const ranked = (Array.isArray(st.squadLeaderboardLineups) ? st.squadLeaderboardLineups : [])
+        .map((r) => ({ user: String(r?.lineup?.user?.slug ?? ""), score: num(r?.lineup?.score) }));
+      const target = globalThis.__sofixCore.squadTarget(num(st.target), num(st.totalScore), ranked, me);
+      return (Array.isArray(st.myLineups) ? st.myLineups : []).filter(openLineup)
+        .map((l) => ({ id: String(l.id), kind: "squad", step: String(st.id), target, squad: num(st.target), cards: appearancesOf(l) }));
+    });
+    return { squadLineups: lineups, squadLineupsAt: now };
+  }
   if (step === "pro-entered" && Array.isArray(user?.boards)) {
     const lineups = user.boards.flatMap((board) => (Array.isArray(board?.steps) ? board.steps : []).filter((st) => st?.__typename === "CareerProStep")
       .flatMap((st) => (Array.isArray(st.myLineups) ? st.myLineups : []).filter(openLineup)
@@ -784,13 +797,14 @@ function keepNeed(step, answer, input = {}) {
 /** The overlay's question: the copy, after reading your lineups again when you open a lineup page, when it is old, or when nothing was read yet. */
 async function needData(tabId, now = Date.now(), entered = false) {
   const { [NEED_KEY]: kept = {} } = await chrome.storage.local.get(NEED_KEY);
-  const all = [...(kept.arcadeLineups ?? []), ...(kept.proLineups ?? [])];
+  const all = [...(kept.arcadeLineups ?? []), ...(kept.squadLineups ?? []), ...(kept.proLineups ?? [])];
   const live = all.some((l) => l.cards.some((c) => c.kickoff && Date.parse(c.kickoff) <= now && now - Date.parse(c.kickoff) < NEED_GAME_MS));
   // Afresh when you open a lineup page (not twice in 15 seconds), then every 2 minutes while a game is live, else every 10.
   const stale = (at) => !at || now - at > (entered ? NEED_ENTRY_MS : live ? NEED_FRESH_MS : NEED_IDLE_MS);
   const asks = [];
   if (!kept.arcadeAt || now - kept.arcadeAt > 6 * 60 * 60 * 1000) asks.push("arcade");
   if (stale(kept.arcadeLineupsAt)) asks.push("arcade-lineups");
+  if (stale(kept.squadLineupsAt)) asks.push("squad-lineups");
   if (stale(kept.proLineupsAt)) asks.push("pro-entered");
   for (const step of asks) {
     const [operation, variables] = STEPS[step]({});

@@ -870,7 +870,10 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   their best, **Dead** when that cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next lineup more.
 - **Points needed** (2 Nov 2026, [plans/points-needed.md](../plans/points-needed.md)): only on lineups you entered and that are still in
   play, on Sorare's lineup pages (extension 0.4.29: the Pro lineups page and every Pro and Arcade step's lineups page; read afresh each time you open one, then every 10 minutes, every 2 while a game is live) and
-  on Play's entered Pro lineups. A dark pill at each card's upper right: the raw score it still needs, from the lineup's score so far
+  on Play's entered Pro lineups. Since extension 0.5.13 (17 Nov 2026) also in Arcade Squad mode (sorare.com/football/series/squad, its
+  lineups pages): the squad clears a step when its best lineups (three) add up to the target, so your lineup aims at the target less the
+  other members' best two scores as they stand ("700, the others have 440: yours needs 260"), nothing once they clear it alone; the
+  chance-to-clear pill uses the same aim. A dark pill at each card's upper right: the raw score it still needs, from the lineup's score so far
   (a lineup at 260 of 360 with one player left: he needs 100, less with his bonus or the captaincy). Since extension 0.4.33 (3 Nov 2026)
   a card whose game is over shows nothing (no tile, no pill), and a lineup no longer in play shows no tiles at all: only the cards
   still to play or playing are drawn. Since 0.4.44 every card still able to score aims at the same score, counting what it has: a

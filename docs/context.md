@@ -1638,11 +1638,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-16",
-        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.12 only bumps the version for the list bar comparison naming video cards, no permission or action changed",
+        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.13 adds the read-only SofixSquadLineups query (allowlisted in bridge.js and background STEPS, checked against Sorare's schema: 0 to fix) for the Squad mode points-needed pill; no write, permission or Apply step changed",
         "files": {
-          "extension/background.js": "d1cf9eb896f439039641588e6a5a9328ae33f782955d1b3ba4c1a8b476ffaa68",
-          "extension/bridge.js": "d5a039c26fff38d524ef910d361c14ff15bc5f79292c87a0def5d02600e43837",
-          "extension/manifest.template.json": "df45c593faf7696d183106575ed6de373bbe00ac77a1055ce5b97f4122f2ceee",
+          "extension/background.js": "6ef86964069b64ead8155486082800899a215fb523af743e760ac718b70dd9dc",
+          "extension/bridge.js": "3ea56ac7728819ce574407d6d61ecda4ab7639b5aa180eb2e58d8af0d6155bc7",
+          "extension/manifest.template.json": "3174dd24bdb35400d69b0f9ad3b743299260e697246bc51304119f88d6d47cbb",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

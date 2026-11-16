@@ -1342,7 +1342,8 @@
   // card that also sits in an older, settled lineup there gets nothing in that one. Each time you open one of these pages your lineups
   // are read afresh; while you stay, again every 2 minutes during a game of yours, else every 10. Nothing is asked from a hidden tab.
   // Sorare's Pro lineups page, every Pro step's (/football/play/boards/pro/<board>/<step>/lineups) and every Arcade step's
-  // (/football/series/<step>/lineups).
+  // (/football/series/<step>/lineups), Arcade Squad mode's (/football/series/squad/lineups/<step>) among them: there a lineup of yours
+  // must reach the squad's target less what the other members' best lineups already have (core.squadTarget, 17 Nov 2026).
   const NEED_PAGES = [
     /^\/football\/lineups\/pro(?:\/|$)/,
     /^\/football\/play\/boards\/pro\/[^/]+\/[^/]+\/lineups(?:\/|$)/,
@@ -1387,7 +1388,7 @@
     const key = `${needAskedAt}|${Math.floor(t / 60000)}`;
     if (!need || needCache.key === key) return needCache.lineups;
     const steps = (need.arcade && need.arcade.steps) || {};
-    const lineups = [...(need.arcadeLineups || []), ...(need.proLineups || [])].map((lineup) => {
+    const lineups = [...(need.arcadeLineups || []), ...(need.squadLineups || []), ...(need.proLineups || [])].map((lineup) => {
       const target = lineup.kind === "arcade" ? (steps[lineup.step] ? steps[lineup.step].target : null) : lineup.target;
       const cards = lineup.cards.map((c) => {
         const at = c.kickoff ? Date.parse(c.kickoff) : NaN;

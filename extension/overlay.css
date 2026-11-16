@@ -159,7 +159,7 @@
 }
 .sfx-worth--up { color: #5cc58d; }
 .sfx-worth--down { color: #ff8a8a; }
-.sfx-worth--flat, .sfx-worth--free { color: #a0a0a8; font-weight: 600; }
+.sfx-worth--flat { color: #a0a0a8; font-weight: 600; }
 .sfx-worthbox {
   display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 12px; border-radius: 10px;
   background: rgba(14, 14, 16, 0.88); backdrop-filter: blur(18px);

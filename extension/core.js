@@ -545,9 +545,9 @@
   /** A gallery card's line: its worth now, and how far that is up or down on what you paid ("not bought" for a crafted or won card). */
   function worthLine(paid, value, listed = true) {
     const now = `${listed === false ? "est." : "now"} ${euros(value)}`; // "now": the cheapest copy listed; "est.": none listed, Sorare's estimate
-    if (paid === null) return { now, change: "not bought", tone: "free" };
-    const t = tone(value - paid);
+    if (!(paid > 0)) return { now, change: `+${euros(value)}`, tone: "up" }; // crafted, won or minted: all it sells for is gain
     const percent = Math.round((Math.abs(value - paid) / paid) * 100);
+    const t = percent === 0 ? "flat" : tone(value - paid);
     return { now, change: t === "up" ? `▲${percent}%` : t === "down" ? `▼${percent}%` : "level", tone: t };
   }
 
@@ -557,6 +557,46 @@
     const percent = w.paid > 0 ? Math.round((Math.abs(w.profit) / w.paid) * 100) : 0;
     const change = t === "flat" ? euros(0) : `${t === "up" ? "▲" : "▼"} ${euros(Math.abs(w.profit))} · ${t === "up" ? "+" : "−"}${percent}%`;
     return { now: euros(w.worth), paid: `paid ${euros(w.paid)} for ${w.bought} card${w.bought === 1 ? "" : "s"}`, change, tone: t };
+  }
+
+  /**
+   * What you paid for each card, from your Sorare account's payments, newest first (accountEntries, PAYMENT): the euros that left the
+   * account, market credits already off (17 Nov 2026: Rodri was offered at €153.99 and €76.99 was paid). A card's latest purchase
+   * counts; one payment for several cards (an auction bundle) is shared out. A sale (money in), a cancelled payment, a pack and a trade
+   * (cards both ways plus a few cents) are not purchases.
+   */
+  function paidFrom(entries) {
+    const paid = {};
+    for (const entry of Array.isArray(entries) ? entries : []) {
+      const cents = entry && entry.amounts && entry.amounts.eurCents;
+      if (entry.aasmState === "CANCELLED" || typeof cents !== "number" || cents >= 0) continue;
+      const op = entry.tokenOperation || {};
+      const has = (side) => Boolean(side && Array.isArray(side.anyCards) && side.anyCards.length);
+      if (has(op.senderSide) && has(op.receiverSide)) continue;
+      const slugs = [...new Set([op.senderSide, op.receiverSide, op.auction, op]
+        .flatMap((side) => (side && Array.isArray(side.anyCards) ? side.anyCards : []))
+        .map((card) => card && card.slug).filter((slug) => typeof slug === "string"))];
+      for (const slug of slugs) if (!(slug in paid)) paid[slug] = Math.round(-cents / slugs.length) / 100;
+    }
+    return paid;
+  }
+
+  /** The gallery's prices with what you paid (paidFrom) in place of Sorare's record, and the box's totals added up again. */
+  function withPaid(worth, paid) {
+    const cards = {};
+    let spent = 0;
+    let now = 0;
+    let bought = 0;
+    for (const [slug, [was, value, listed]] of Object.entries(worth.cards || {})) {
+      const cost = slug in paid ? paid[slug] : was;
+      cards[slug] = [cost, value, listed];
+      if (cost > 0) {
+        spent += cost;
+        now += value;
+        bought += 1;
+      }
+    }
+    return { ...worth, cards, paid: spent, worth: now, profit: now - spent, bought };
   }
 
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -1095,7 +1135,7 @@
   root.__sofixCore = {
     OVERLAY_PARTS, crestState, shieldCode, islandWhen, competitionName, SIXTHS,
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, MY_GALLERY, sorarePic, lockLabel, enteredOf, stepAnswer, liveScores, composeBoard, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, startHover, startLevel, START_COLOURS, comesOnRecord, teamChances, teamRings, lineupChance, LIST_MEASURES, SORT_KEYS, FILTER_KEYS, listValue, listOrder, listPasses, filterLabel, filterStart, compareRows, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, paidFrom, withPaid, statusNote, clockLabel, sourceRows, MY_GALLERY, sorarePic, lockLabel, enteredOf, stepAnswer, liveScores, composeBoard, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, collectMissions, missionsRarity, missionsAsked, pointsNeeded, needBadge, squadTarget,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

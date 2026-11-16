@@ -633,15 +633,47 @@ async function ffRead(wanted) {
  * The gameweek's plan (and with `missions`, today's missions), for the dock: the one the page's address names, or the one being planned when it names none. Asked for
  * only by the dock, and kept as long as the numbers, one answer per gameweek (a page about GW21 once showed GW20's).
  */
-/** Your gallery's prices (plans/overlay-bridge.md, B2): one ask, kept for this browser session as long as the other numbers. */
+/**
+ * Your gallery's prices (plans/overlay-bridge.md, B2): one ask, kept for this browser session as long as the other numbers, with what
+ * you actually paid (paidCards) in place of Sorare's recorded price when your payments can be read.
+ */
 async function overlayWorth() {
   const key = "ov:worth";
   const held = (await chrome.storage.session.get(key))[key];
-  if (held && Date.now() - held.at < OVERLAY_TTL_MS) return { state: "ok", worth: held.worth };
-  const answer = await askApp({ cards: [], players: [], worth: true });
-  if (!answer.body?.worth) return { state: answer.state ?? "unreachable" };
-  await chrome.storage.session.set({ [key]: { at: Date.now(), worth: answer.body.worth } });
-  return { state: "ok", worth: answer.body.worth };
+  let worth = held && Date.now() - held.at < OVERLAY_TTL_MS ? held.worth : null;
+  if (!worth) {
+    const answer = await askApp({ cards: [], players: [], worth: true });
+    if (!answer.body?.worth) return { state: answer.state ?? "unreachable" };
+    worth = answer.body.worth;
+    await chrome.storage.session.set({ [key]: { at: Date.now(), worth } });
+  }
+  const paid = await paidCards();
+  return { state: "ok", worth: paid ? globalThis.__sofixCore.withPaid(worth, paid) : worth };
+}
+
+const PAID_MS = 6 * 60 * 60 * 1000;
+/**
+ * What you paid for each card (core.paidFrom), read through your signed-in sorare.com tab from your account's payments, which only
+ * you can see: Sorare's public record is the offer's price, before market credits (17 Nov 2026). Kept for the browser session and
+ * read again after six hours; at most 20 pages (Sorare gives 50 a page). Null when it cannot be read: the gallery then keeps Sorare's record.
+ */
+async function paidCards() {
+  const key = "ov:paid";
+  const held = (await chrome.storage.session.get(key))[key];
+  if (held && Date.now() - held.at < PAID_MS) return held.paid;
+  const entries = [];
+  let after = null;
+  for (let page = 0; page < 20; page += 1) {
+    const answer = await throughSorare("SofixPayments", { after });
+    const list = answer?.state === "ok" ? answer.data?.currentUser?.accountEntries : null;
+    if (!list) return held?.paid ?? null;
+    entries.push(...(Array.isArray(list.nodes) ? list.nodes : []));
+    if (!list.pageInfo?.hasNextPage || typeof list.pageInfo.endCursor !== "string") break;
+    after = list.pageInfo.endCursor;
+  }
+  const paid = globalThis.__sofixCore.paidFrom(entries);
+  await chrome.storage.session.set({ [key]: { at: Date.now(), paid } });
+  return paid;
 }
 
 /** Sofix's line on one player's Sorare page (plans/overlay-bridge.md, B3): kept as long as the cards' numbers. */

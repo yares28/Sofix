@@ -18,6 +18,8 @@ type Core = {
   verdictLine: (profile: { yours: boolean; inPlan: string[]; verdict: { kind: string; value: string; note: string } | null }) => { text: string; tone: "own" | "up" | "flat" } | null;
   worthLine: (paid: number | null, value: number, listed?: boolean) => { now: string; change: string; tone: "up" | "down" | "flat" | "free" };
   worthTotal: (w: { paid: number; worth: number; profit: number; bought: number }) => { now: string; paid: string; change: string; tone: "up" | "down" | "flat" };
+  paidFrom: (entries: unknown) => Record<string, number>;
+  withPaid: <W extends { cards: Record<string, [number | null, number, boolean]> }>(worth: W, paid: Record<string, number>) => W & { paid: number; worth: number; profit: number; bought: number };
   collectStartingOdds: (json: unknown) => { game: string; player: string; basisPoints: number | null; status?: string }[];
   collectCards: (json: unknown, limit?: number) => { key: string; cardSlug: string | null; playerSlug: string | null; name: string | null }[];
   surfaceOf: (width: number, height: number, round?: boolean) => "full" | "compact" | "skip";
@@ -801,13 +803,52 @@ describe("your gallery's prices (B2)", () => {
     expect(core.galleryOf("/football/my-cards/collections")).toBeNull();
   });
 
-  it("writes each card's line like the board: worth now, then up or down on what you paid, or 'not bought'", () => {
+  it("writes each card's line like the board: worth now, then up or down on what you paid, or all gain when nothing was", () => {
     expect(core.worthLine(3.02, 3.4)).toEqual({ now: "now €3.40", change: "▲13%", tone: "up" });
     expect(core.worthLine(5.69, 4.2)).toEqual({ now: "now €4.20", change: "▼26%", tone: "down" });
     expect(core.worthLine(4, 4)).toEqual({ now: "now €4.00", change: "level", tone: "flat" });
-    expect(core.worthLine(null, 2.1)).toEqual({ now: "now €2.10", change: "not bought", tone: "free" });
+    // crafted, won or minted: nothing paid, so all it sells for is gain (owner, 17 Nov 2026)
+    expect(core.worthLine(null, 2.1)).toEqual({ now: "now €2.10", change: "+€2.10", tone: "up" });
+    expect(core.worthLine(5.49, 5.48)).toEqual({ now: "now €5.48", change: "level", tone: "flat" }); // a cent off is not "▼0%"
+    expect(core.worthLine(0, 2.1)).toEqual({ now: "now €2.10", change: "+€2.10", tone: "up" }); // never "Infinity%"
     // "now" is the cheapest copy listed; with none listed it is Sorare's estimate, and says so (16 Nov 2026)
     expect(core.worthLine(1.01, 3.31, false)).toEqual({ now: "est. €3.31", change: "▲228%", tone: "up" });
+  });
+
+  it("takes what you paid from your Sorare payments: the euros that left, market credits off, a card's latest purchase", () => {
+    const card = (slug: string) => ({ slug });
+    const paid = core.paidFrom([
+      // newest first, as Sorare lists them; Rodri was offered at €153.99 and €76.99 left the account (credits)
+      { aasmState: "CONFIRMED", amounts: { eurCents: -7699 }, tokenOperation: { __typename: "TokenPrimaryOffer", anyCards: [card("rodri")] } },
+      { aasmState: "CONFIRMED", amounts: { eurCents: -85 }, tokenOperation: { __typename: "TokenOffer", senderSide: { anyCards: [card("arnau")] }, receiverSide: { anyCards: [] } } },
+      // a sale is money in, never a purchase; a cancelled payment never left
+      { aasmState: "CONFIRMED", amounts: { eurCents: 1995 }, tokenOperation: { __typename: "TokenOffer", senderSide: { anyCards: [card("vicente")] } } },
+      { aasmState: "CANCELLED", amounts: { eurCents: -999 }, tokenOperation: { __typename: "TokenOffer", senderSide: { anyCards: [card("soria")] } } },
+      // bought again later: the latest purchase (listed first) counts
+      { aasmState: "CONFIRMED", amounts: { eurCents: -1500 }, tokenOperation: { __typename: "TokenOffer", senderSide: { anyCards: [card("vicente")] } } },
+      { aasmState: "CONFIRMED", amounts: { eurCents: -9000 }, tokenOperation: { __typename: "TokenOffer", senderSide: { anyCards: [card("arnau")] } } },
+      // one auction for two cards: shared out
+      { aasmState: "CONFIRMED", amounts: { eurCents: -1537 }, tokenOperation: { __typename: "TokenBid", auction: { anyCards: [card("febas"), card("pair")] } } },
+      // a trade (cards both ways, a cent on top) is not a purchase: Pelayo came that way
+      { aasmState: "CONFIRMED", amounts: { eurCents: -1 }, tokenOperation: { __typename: "TokenOffer", senderSide: { anyCards: [card("augusto")] }, receiverSide: { anyCards: [card("pelayo")] } } },
+      // a pack (no card named) and a malformed row are skipped
+      { aasmState: "CONFIRMED", amounts: { eurCents: -250 }, tokenOperation: { __typename: "TokenPrimaryOffer", anyCards: [] } },
+      { amounts: null },
+    ]);
+    expect(paid).toEqual({ rodri: 76.99, arnau: 0.85, vicente: 15, febas: 7.69, pair: 7.69 });
+    expect(core.paidFrom(null)).toEqual({});
+  });
+
+  it("puts what you paid in the gallery's prices and adds the box up again; a card with no payment keeps Sorare's record", () => {
+    const worth = { user: "yares", at: "x", paid: 160.1, worth: 80, profit: -80.1, bought: 2, cards: {
+      rodri: [154.09, 75.99, true], arnau: [1.01, 0.66, true], crafted: [null, 0.49, true],
+    } as Record<string, [number | null, number, boolean]> };
+    const out = core.withPaid(worth, { rodri: 76.99 });
+    expect(out.cards).toEqual({ rodri: [76.99, 75.99, true], arnau: [1.01, 0.66, true], crafted: [null, 0.49, true] });
+    expect(out).toMatchObject({ user: "yares", bought: 2 });
+    expect(out.paid).toBeCloseTo(78, 6);
+    expect(out.worth).toBeCloseTo(76.65, 6);
+    expect(out.profit).toBeCloseTo(-1.35, 6);
   });
 
   it("totals the bought cards as Prices does: worth now, what was paid, the difference", () => {

@@ -2007,7 +2007,8 @@ test.describe("the sorare.com overlay", () => {
     await openPage(page, { url: MY_GALLERY, html: GALLERY });
     const line = (id: string) => page.locator(`#${id} .sfx-worth`);
     await expect(line("g-simon")).toHaveText("now €3.40▲13%");
-    await expect(line("g-cubarsi")).toHaveText("now €2.10not bought");
+    await expect(line("g-cubarsi")).toHaveText("now €2.10+€2.10"); // crafted or won: all it sells for is gain (17 Nov 2026)
+    await expect(line("g-cubarsi")).toHaveAttribute("title", /; you paid nothing for it \(crafted, won or minted\)$/);
     await expect(line("g-havertz")).toHaveCount(0); // a card Sorare does not value shows nothing
     await expect(line("g-messi")).toHaveText("now €4.00▼20%"); // known only by his name: the card's own link says which card
     // Right under Sorare's own row, and the hover says it is the cheapest copy listed at Sofix's refresh, with what was paid.
@@ -2018,6 +2019,24 @@ test.describe("the sorare.com overlay", () => {
     await expect(box).toHaveText("BOUGHT, NOW€312.00paid €268.00 for 30 cards▲ €44.00 · +16%");
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath("overlay-gallery.png") });
+  });
+
+  test("puts the bought cards' total before the sort when Reveal is a tab and the sort stands alone in its row (17 Nov 2026)", async ({ page }) => {
+    // Sorare's gallery of 17 Nov: "Gallery · Collections · Vault · Reveal" tabs, then a row holding only the "New" sort, right-aligned.
+    const html = GALLERY.replace(
+      /<div class="toolbar" id="toolbar">[\s\S]*?<\/div>\r?\n<\/div>/,
+      `<nav><a href="/football/my-cards/cards">Gallery</a> <a href="/football/my-cards/revealable-cards">Reveal</a></nav>
+<div id="toolbar" style="display:flex;flex-direction:row-reverse;justify-content:space-between;width:900px"><div style="display:flex"><button type="button" aria-haspopup="dialog">New</button></div></div>`,
+    );
+    expect(html).not.toBe(GALLERY);
+    await openPage(page, { url: "https://sorare.com/football/my-cards/cards/limited", html });
+    const box = page.locator("#toolbar > .sfx-worthbox");
+    await expect(box).toHaveText("BOUGHT, NOW€312.00paid €268.00 for 30 cards▲ €44.00 · +16%");
+    // the sort stays at the right of its row; the box takes the left
+    const [boxAt, sortAt] = await Promise.all([box.boundingBox(), page.getByRole("button", { name: "New" }).boundingBox()]);
+    expect(boxAt!.x).toBeLessThan(sortAt!.x);
+    expect(sortAt!.x + sortAt!.width).toBeGreaterThan(850);
+    await expect(page.locator("nav .sfx-worthbox")).toHaveCount(0);
   });
 
   test("on the gallery Sorare's own Gallery link opens (/my-cards/), draws the same prices (13 Nov 2026: none there)", async ({ page }) => {

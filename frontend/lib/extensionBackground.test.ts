@@ -248,6 +248,31 @@ describe("the overlay's numbers", () => {
     expect(worker.body(call)).toEqual({ cards: ["pedri-2026-limited-7"], players: ["unai-simon"] });
   });
 
+  it("prices your gallery with what you actually paid, read once from your Sorare payments page by page", async () => {
+    const w = load({
+      sorareTab: true,
+      operationData: (operation, variables) => operation !== "SofixPayments" ? null : { currentUser: { accountEntries: variables.after === null
+        ? { nodes: [{ aasmState: "CONFIRMED", amounts: { eurCents: -7699 }, tokenOperation: { anyCards: [{ slug: "rodri" }] } }], pageInfo: { hasNextPage: true, endCursor: "c1" } }
+        : { nodes: [{ aasmState: "CONFIRMED", amounts: { eurCents: -85 }, tokenOperation: { senderSide: { anyCards: [{ slug: "arnau" }] } } }], pageInfo: { hasNextPage: false, endCursor: null } } } },
+    });
+    w.respondWith(() => ({ ok: true, status: 200, body: { ok: true, cards: {}, players: {}, worth: { user: "yares", at: "x", paid: 155.1, worth: 76.65, profit: -78.45, bought: 2,
+      cards: { rodri: [154.09, 75.99, true], arnau: [1.01, 0.66, true] } } } }));
+    const answer = (await w.send({ type: "overlay-worth" })) as { state: string; worth: { cards: Record<string, unknown>; paid: number } };
+    expect(answer.state).toBe("ok");
+    expect(answer.worth.cards).toEqual({ rodri: [76.99, 75.99, true], arnau: [0.85, 0.66, true] });
+    expect(answer.worth.paid).toBeCloseTo(77.84, 6);
+    expect(w.asked.map((a) => a.variables.after)).toEqual([null, "c1"]);
+    await w.send({ type: "overlay-worth" });
+    expect(w.asked).toHaveLength(2); // kept for the browser session: not read again on the next gallery page
+  });
+
+  it("keeps Sorare's recorded prices when your payments cannot be read", async () => {
+    const w = load({ sorareTab: true, tabResult: () => ({ state: "rejected", errors: ["no"] }) });
+    w.respondWith(() => ({ ok: true, status: 200, body: { ok: true, cards: {}, players: {}, worth: { user: "yares", at: "x", paid: 1, worth: 2, profit: 1, bought: 1, cards: { a: [1, 2, true] } } } }));
+    const answer = (await w.send({ type: "overlay-worth" })) as { worth: { cards: Record<string, unknown> } };
+    expect(answer.worth.cards).toEqual({ a: [1, 2, true] });
+  });
+
   it("remembers answers, unknown ones included, so scrolling a gallery never asks twice", async () => {
     worker.respondWith(known(["unai-simon"]));
     await worker.send({ type: "overlay-numbers", cards: [], players: ["unai-simon", "someone-else"] });

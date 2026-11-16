@@ -796,8 +796,9 @@ with what the bought cards cost and are worth now. A tide line stands every boug
 a red one for each loss, best on the left, with the biggest gain and the biggest loss named on their card (hover a bar for its card).
 Below, every bought card with its gain, "paid → now" and the change in percent, sorted by biggest gain, biggest loss or worth. Cards you
 did not buy (crafted from essence, won) come last at their worth. What you paid is Sorare's record of your purchase (in euros at that day's rate when you paid in ETH); the worth is what the cheapest copy
-of the same card (player, rarity, season) is listed at on the market (16 Nov 2026), or, with none listed, Sorare's market value for that
-player, marked "est." on the gallery. A card with neither is left out and counted.
+of the same card (player, rarity, season; for a classic card any copy of him) costs on the market (16 Nov 2026), whether a manager
+lists it, in euros, pounds, dollars or ETH (converted at Sorare's rates, 17 Nov 2026), or Sorare sells it itself; with none listed,
+Sorare's market value for that player, marked "est." on the gallery. This page does not see market credits: the gallery does. A card with neither is left out and counted.
 
 ## 10a. Missions
 
@@ -1146,8 +1147,10 @@ it writes to Sorare.
   Sorare are 30 points or more apart. The points-needed pill, in the same badge shape (white; yellow while his game is on; cyan once
   reached; red when out of reach), sits above Sorare's start badge (beside it when there is no room).
 - **Your gallery's prices.** On your own gallery (with Sorare's "Show details" on), each card gets a line under Sorare's "Bought 2 days
-  ago": what it is worth now and how far that is up or down on what you paid ("now €3.40 ▲13%", or "not bought" for a crafted or won
-  card). The toolbar row adds the bought cards' total ("BOUGHT, NOW €312 · paid €268 for 30 cards · ▲ €44 · +16%"), the same figures as
+  ago": what it is worth now and how far that is up or down on what you paid ("now €3.40 ▲13%"; a crafted or won card, which cost
+  nothing, is all gain: "now €0.49 +€0.49"). What you paid is read from your own Sorare account's payments through your signed-in tab
+  (once a browser session, again after six hours): the euros that actually left, market credits off, which Sorare's public record of
+  a sale does not show (Rodri: offered at €153.99, €76.99 paid). When they cannot be read, Sorare's recorded price stands. The bought cards' total sits before Sorare's sort ("New") since Reveal became a tab (17 Nov 2026). The toolbar row adds the bought cards' total ("BOUGHT, NOW €312 · paid €268 for 30 cards · ▲ €44 · +16%"), the same figures as
   Prices. Values are Sorare's at Sofix's last refresh (the hover says when). Someone else's gallery gets nothing. Since 0.4.68
   (13 Nov 2026) the gallery Sorare's own Gallery link opens (`/my-cards/cards`) gets them too, an ask that failed is asked again by
   itself on a page you are only looking at, and a card whose next game is two or more Sorare weeks away (an international break)

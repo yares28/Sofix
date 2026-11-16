@@ -455,22 +455,50 @@ def cards(client: SorareClient, user: str, fixtures: dict[str, str]) -> list[dic
 
 _VALUE = "{r}_{s}: marketValue(rarity: {r}, seasonEligibility: {s}) {{ eurCents }}"
 PRICES = (
-    "query($s:[String!]!){ anyCards(slugs: $s) { slug ownershipHistory { from user { slug } amounts { eurCents } } "
-    "lowestPriceCard { liveSingleSaleOffer { receiverSide { amounts { eurCents } } } } "
-    "anyPlayer { ... on Player { commonPlayer(rarity: limited) { "
-    + " ".join(_VALUE.format(r=r, s=s) for r in ("limited", "rare") for s in ("IN_SEASON", "CLASSIC"))
-    + " } } } } }"
+    (
+        "query($s:[String!]!){ anyCards(slugs: $s) { slug ownershipHistory { from user { slug } amounts { eurCents } } "
+        "lowestPriceCard { $OFFER } lowestPriceCardAnySeason { $OFFER } "
+        "anyPlayer { ... on Player { commonPlayer(rarity: limited) { "
+        + " ".join(_VALUE.format(r=r, s=s) for r in ("limited", "rare") for s in ("IN_SEASON", "CLASSIC"))
+        + " } } } } config { exchangeRate { ethRates { eurCents gbpCents usdCents } } } }"
+    )
+    .replace(
+        "$OFFER", "liveSingleSaleOffer { receiverSide { amounts { $AMOUNT } } } livePrimaryOffer { price { $AMOUNT } }"
+    )
+    .replace("$AMOUNT", "eurCents gbpCents usdCents wei")
 )
 """Sorare refuses one root field twice in a query, so a batch is one `anyCards`. A card is worth what the cheapest copy of it on
-the market costs now (`lowestPriceCard`: the same player, rarity, season and print batch, owner's ask of 16 Nov 2026); with
-none listed, its player's market value for its own rarity and season (all four asked and the right one kept), marked an estimate."""
-PRICE_BATCH = (7, 100)
-"""Cards a batch, without and with an API key: a card costs Sorare about 62 of the 500 (keyless) or 30000 a query allows."""
+the market costs now (owner's ask of 16 Nov 2026): `lowestPriceCard` (the same player, rarity, season and print batch), and for a
+classic card any copy of him (`lowestPriceCardAnySeason`), whether a manager sells it (priced in euros, or only in pounds, dollars
+or ETH, converted at Sorare's rates) or Sorare does (`livePrimaryOffer`, 17 Nov 2026). With none listed, its player's market value for its
+own rarity and season (all four asked and the right one kept), marked an estimate."""
+PRICE_BATCH = (5, 100)
+"""Cards a batch, without and with an API key: a card costs Sorare under 100 of the 500 (keyless) or 30000 a query allows."""
+
+
+def _euro_cents(amounts: dict[str, Any] | None, eth: dict[str, Any]) -> float | None:
+    """A price in euro cents. A listing carries only its seller's currency (euros, pounds, dollars or ETH): the others go through
+    Sorare's ETH rates (`eth`: cents of each currency an ETH)."""
+    amounts = amounts or {}
+    if amounts.get("eurCents"):
+        return float(amounts["eurCents"])
+    euro = eth.get("eurCents") or 0
+    for field in ("gbpCents", "usdCents"):
+        if amounts.get(field) and eth.get(field):
+            return round(amounts[field] * euro / eth[field])
+    return round(int(amounts["wei"]) / 10**18 * euro) if amounts.get("wei") and euro else None
+
+
+def _asking(copy: dict[str, Any], eth: dict[str, Any]) -> float | None:
+    """The euro cents a listed copy costs: its manager's sale or Sorare's own, the cheaper."""
+    sale = ((copy.get("liveSingleSaleOffer") or {}).get("receiverSide") or {}).get("amounts")
+    asks = [_euro_cents(amounts, eth) for amounts in (sale, (copy.get("livePrimaryOffer") or {}).get("price"))]
+    return min((a for a in asks if a), default=None)
 
 
 def card_prices(client: SorareClient, user: str, rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """What you paid for each card and what it is worth now, in euros, by card slug: `value` is the cheapest live listing of the
-    same card (`listed` True), else Sorare's market value for its player, rarity and season (`listed` False). `paid` is the euros
+    same card (`listed` True, see PRICES), else Sorare's market value for its player, rarity and season (`listed` False). `paid` is the euros
     Sorare recorded for your purchase (an ETH price at that day's rate), None for a card you did not buy (crafted, won, minted).
     Best-effort: a batch Sorare will not answer is left out, never fatal."""
     out: dict[str, dict[str, Any]] = {}
@@ -479,20 +507,25 @@ def card_prices(client: SorareClient, user: str, rows: list[dict[str, Any]]) -> 
     for start in range(0, len(cards), size):
         batch = cards[start : start + size]
         try:
-            found = client.query(PRICES, {"s": [r["slug"] for r in batch]}).get("anyCards") or []
+            answer = client.query(PRICES, {"s": [r["slug"] for r in batch]})
+            found = answer.get("anyCards") or []
         except SorareError as error:
             logger.warning("card prices skipped a batch: %s", error)
             continue
         by_slug = {c.get("slug"): c for c in found if isinstance(c, dict)}
+        eth = ((answer.get("config") or {}).get("exchangeRate") or {}).get("ethRates") or {}
         for row in batch:
             card = by_slug.get(row["slug"]) or {}
             mine = [o for o in card.get("ownershipHistory") or [] if (o.get("user") or {}).get("slug") == user]
             paid = (mine[-1].get("amounts") or {}).get("eurCents") if mine else None
             key = f"{row['rarityTyped']}_{'IN_SEASON' if row.get('inSeasonEligible') else 'CLASSIC'}"
-            offer = ((card.get("lowestPriceCard") or {}).get("liveSingleSaleOffer") or {}).get("receiverSide") or {}
-            listed = (offer.get("amounts") or {}).get("eurCents")
+            copies = [card.get("lowestPriceCard")]
+            if not row.get("inSeasonEligible"):
+                copies.append(card.get("lowestPriceCardAnySeason"))
+            asks = [_asking(copy, eth) for copy in copies if isinstance(copy, dict)]
+            listed = min((a for a in asks if a is not None), default=None)
             estimate = (((card.get("anyPlayer") or {}).get("commonPlayer") or {}).get(key) or {}).get("eurCents")
-            value = listed if isinstance(listed, int | float) and listed > 0 else estimate
+            value = listed if listed is not None else estimate
             out[row["slug"]] = {
                 "paid": paid / 100 if isinstance(paid, int | float) else None,
                 "value": value / 100 if isinstance(value, int | float) else None,

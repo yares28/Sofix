@@ -127,17 +127,63 @@ def test_card_prices_keep_what_you_paid_and_the_cheapest_listing_of_the_same_car
                         "ownershipHistory": [{"from": "x", "user": {"slug": "yares"}, "amounts": None}],
                         "anyPlayer": {"commonPlayer": values},
                     },
-                ]
+                    # 17 Nov 2026: the cheapest copy is often priced only in its seller's currency (ETH, pounds, dollars), or sold by Sorare itself
+                    # (Rodri at €75.99): both are listings, never a reason to fall back to the estimate
+                    {
+                        "slug": "eth",
+                        "ownershipHistory": [],
+                        "anyPlayer": {"commonPlayer": values},
+                        "lowestPriceCard": {
+                            "liveSingleSaleOffer": {
+                                "receiverSide": {"amounts": {"eurCents": None, "wei": "200000000000000"}}
+                            }
+                        },
+                    },
+                    {
+                        "slug": "gbp",
+                        "ownershipHistory": [],
+                        "anyPlayer": {"commonPlayer": values},
+                        "lowestPriceCard": {"liveSingleSaleOffer": {"receiverSide": {"amounts": {"gbpCents": 60}}}},
+                    },
+                    {
+                        "slug": "primary",
+                        "ownershipHistory": [],
+                        "anyPlayer": {"commonPlayer": values},
+                        "lowestPriceCard": {
+                            "liveSingleSaleOffer": None,
+                            "livePrimaryOffer": {"price": {"eurCents": 7599}},
+                        },
+                    },
+                    # a classic card: any classic copy of him counts (Bartra's 2021 rare against his 2022 one at €5)
+                    {
+                        "slug": "classic",
+                        "ownershipHistory": [],
+                        "anyPlayer": {"commonPlayer": values},
+                        "lowestPriceCard": {"liveSingleSaleOffer": {"receiverSide": {"amounts": {"eurCents": None}}}},
+                        "lowestPriceCardAnySeason": {
+                            "liveSingleSaleOffer": {"receiverSide": {"amounts": {"eurCents": 500}}}
+                        },
+                    },
+                ],
+                "config": {"exchangeRate": {"ethRates": {"eurCents": 250000, "gbpCents": 200000, "usdCents": 300000}}},
             }
 
     rows = [
         {"slug": "bought", "rarityTyped": "limited", "inSeasonEligible": True},
         {"slug": "crafted", "rarityTyped": "rare", "inSeasonEligible": False},
+        {"slug": "eth", "rarityTyped": "limited", "inSeasonEligible": True},
+        {"slug": "primary", "rarityTyped": "limited", "inSeasonEligible": True},
+        {"slug": "gbp", "rarityTyped": "limited", "inSeasonEligible": True},
+        {"slug": "classic", "rarityTyped": "rare", "inSeasonEligible": False},
     ]
     prices = card_prices(Prices(), "yares", rows)  # type: ignore[arg-type]
     assert prices["bought"] == {"paid": 19.09, "value": 0.65, "listed": True, "since": "2026-08-26T21:57:01Z"}
     # nothing of his listed: Sorare's estimate, said to be one
     assert prices["crafted"] == {"paid": None, "value": 1.91, "listed": False, "since": "x"}
+    assert prices["eth"]["value"] == 0.5 and prices["eth"]["listed"]  # 0.0002 ETH at €2,500
+    assert prices["gbp"]["value"] == 0.75 and prices["gbp"]["listed"]  # £0.60 through the ETH rates
+    assert prices["primary"]["value"] == 75.99 and prices["primary"]["listed"]
+    assert prices["classic"]["value"] == 5.0 and prices["classic"]["listed"]
     # a batch Sorare does not answer is left out, never fatal
     assert card_prices(Prices(), "yares", [{"slug": "broken", "rarityTyped": "limited"}]) == {}  # type: ignore[arg-type]
     assert collection_out([], prices) == []

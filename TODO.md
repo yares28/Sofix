@@ -44,7 +44,11 @@ your gallery, Courtois's page, your Hot Streak lineups page, and the test page f
     the current price is not the price of the least expensive card on the market. Prices feel wrong." Wanted: paid = what you paid for
     that card; now = the cheapest listing of the same player and rarity on the market. Code: `wantWorth`/`placeWorth`/`placeWorthBox`
     (~2622-2735), `overlayWorth` in `frontend/lib/overlay.ts` (~275-290: `card.paid` and `card.value` from the Prices read model). 16 Nov:
-    the bought-cards total was not on screen.
+    the bought-cards total was not on screen. 17 Nov, after the first fix: "Estimated are wrong. Some cards I got from crafts so their
+    sell value is positive. Some cards I used market credits, I paid less than what I actually paid." Cause: 26 of 106 cards had copies
+    listed only in ETH, pounds or dollars, or sold by Sorare itself, which the price read skipped; Sorare's public record of a purchase
+    is the offer's price before credits. Fixed: every listing counts (converted at Sorare's rates: 106 of 106 priced on 17 Nov), what
+    you paid comes from your own account's payments through the extension, and a crafted card reads "+€0.49".
 12. **Player strip:** "Sometimes does not appear." 16 Nov on Courtois: only "Yours · not in the plan" and the next five showed, no
     score-if-starts or start % line. Code: `wantProfile`, `locateNameBlock`, `placeStrip` (~2744-2840).
 13. **Live Futbol Fantasy reads:** "Good." Keep.

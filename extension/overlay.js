@@ -2508,21 +2508,34 @@
     const el = node("span", "sfx-worth");
     el.setAttribute("data-sfx", "");
     const what = listed === false ? "Sorare's estimate (no copy of his listed)" : "The cheapest copy of this card on the market";
-    el.title = `${what} at Sofix's refresh of ${refreshed()}${paid === null ? "" : `; you paid €${paid.toFixed(2)}`}`;
+    el.title = `${what} at Sofix's refresh of ${refreshed()}; ${!(paid > 0) ? "you paid nothing for it (crafted, won or minted)" : `you paid €${paid.toFixed(2)}`}`;
     el.append(node("span", "", line.now), node("b", `sfx-worth--${line.tone}`, line.change));
     row.after(el);
     record.worthEl = el;
     record.worthSig = sig;
   }
 
-  /** The row that holds Sorare's "All / Reveal" and its sort: the box sits between them. Looked for at most once a second. */
+  /**
+   * Where the box goes: between Sorare's "All / Reveal" and its sort when they share a row; since Reveal became a tab (17 Nov 2026)
+   * the sort ("New ▾") stands alone in a row under the tabs, at its right, and the box takes the left. Looked for at most once a second.
+   */
   function locateToolbar() {
     if (now() - toolbarAt < 1000) return null;
     toolbarAt = now();
+    const spread = (el) => {
+      const style = getComputedStyle(el);
+      return style.display === "flex" && style.justifyContent === "space-between";
+    };
     const reveal = [...document.querySelectorAll("button, a, div, span")].find((el) => el.children.length <= 2 && el.textContent.trim() === "Reveal" && !el.closest("[data-sfx]"));
-    for (let row = reveal && reveal.parentElement, level = 0; row && row !== document.body && level < 6; row = row.parentElement, level += 1) {
-      const style = getComputedStyle(row);
-      if (style.display === "flex" && style.justifyContent === "space-between" && row.children.length >= 2) return row;
+    if (!reveal) return null;
+    for (let row = reveal.parentElement, level = 0; row && row !== document.body && level < 6; row = row.parentElement, level += 1) {
+      if (spread(row) && row.children.length >= 2) return { row, after: row.children[0] };
+    }
+    for (const sort of document.querySelectorAll("button[aria-haspopup]")) {
+      if (!(reveal.compareDocumentPosition(sort) & Node.DOCUMENT_POSITION_FOLLOWING) || sort.closest("[data-sfx]")) continue;
+      for (let row = sort.parentElement, level = 0; row && row !== document.body && level < 4; row = row.parentElement, level += 1) {
+        if (spread(row) && row.getBoundingClientRect().width > 600) return { row, after: null };
+      }
     }
     return null;
   }
@@ -2534,8 +2547,8 @@
       return;
     }
     if (worthBox && worthBox.isConnected) return;
-    const row = locateToolbar();
-    if (!row) return;
+    const spot = locateToolbar();
+    if (!spot) return;
     const t = core.worthTotal(worth);
     const box = node("div", "sfx-worthbox");
     box.setAttribute("data-sfx", "");
@@ -2543,7 +2556,9 @@
     box.setAttribute("aria-label", `Your bought cards are worth ${t.now} now; ${t.paid}; ${t.change}`);
     box.title = `As on Sofix's Prices page: each card at its cheapest copy listed, at Sofix's refresh of ${refreshed()}`;
     box.append(node("span", "sfx-cap", "BOUGHT, NOW"), node("b", "sfx-worthbox-now", t.now), node("span", "", t.paid), node("b", `sfx-worth--${t.tone}`, t.change));
-    row.children[0].after(box);
+    if (spot.after) spot.after.after(box);
+    else if (getComputedStyle(spot.row).flexDirection === "row-reverse") spot.row.append(box); // Sorare's row: the sort stays right
+    else spot.row.prepend(box);
     worthBox = box;
   }
 

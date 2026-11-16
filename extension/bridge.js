@@ -279,6 +279,17 @@
         ... on ThresholdsStreakTask { id title description progress target expired rewardConfigs { ${REWARDS} } } } } }`,
 
     // Your common cards, 100 at a time; the app keeps the current set's.
+    // What you paid for each card, market credits off: your account's payments, 100 a page. Read only, for the gallery's prices.
+    SofixPayments: (variables) => {
+      const after = variables?.after ?? null;
+      if (after !== null && (typeof after !== "string" || after.length > 500)) return null;
+      return `query SofixPayments { currentUser { accountEntries(first: 100, entryType: [PAYMENT], after: ${JSON.stringify(after)}) {
+        nodes { aasmState amounts { eurCents } tokenOperation { __typename
+          ... on TokenOffer { senderSide { anyCards { slug } } receiverSide { anyCards { slug } } }
+          ... on TokenBid { auction { anyCards { slug } } }
+          ... on TokenPrimaryOffer { anyCards { slug } } } }
+        pageInfo { hasNextPage endCursor } } } }`;
+    },
     SofixArcadeCards: (variables) => {
       const after = variables?.after ?? null;
       if (after !== null && (typeof after !== "string" || after.length > 500)) return null;

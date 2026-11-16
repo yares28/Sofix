@@ -765,7 +765,11 @@ function needFrom(step, data, input = {}, now = Date.now()) {
     const me = String(user.slug ?? "");
     const lineups = (Array.isArray(user.setBoard.steps) ? user.setBoard.steps : []).flatMap((st) => {
       const ranked = (Array.isArray(st.squadLeaderboardLineups) ? st.squadLeaderboardLineups : [])
-        .map((r) => ({ user: String(r?.lineup?.user?.slug ?? ""), score: num(r?.lineup?.score) }));
+        .map((r) => {
+          const cards = Array.isArray(r?.lineup?.taskAppearances) ? r.lineup.taskAppearances : [];
+          // still able to score: a card of it not done (its game over, taken off, or settled); unknown counts as able
+          return { user: String(r?.lineup?.user?.slug ?? ""), score: num(r?.lineup?.score), open: !cards.length || cards.some((a) => !doneScoring(a)) };
+        });
       const target = globalThis.__sofixCore.squadTarget(num(st.target), num(st.totalScore), ranked, me);
       return (Array.isArray(st.myLineups) ? st.myLineups : []).filter(openLineup)
         .map((l) => ({ id: String(l.id), kind: "squad", step: String(st.id), target, squad: num(st.target), cards: appearancesOf(l) }));

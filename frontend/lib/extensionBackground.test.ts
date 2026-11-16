@@ -794,8 +794,9 @@ describe("points needed on sorare.com", () => {
     const w = load({ sorareTab: true, operationData: (operation) => answers(operation) });
     await w.send({ type: "need-data", fresh: true });
     const kept = w.local.get("needData") as { squadLineups: { id: string; kind: string; target: number; squad: number; cards: { slug: string }[] }[] };
-    // 700 to reach, the best three count (300 = 120 + 90 + 90), the others' best two have 210: yours must make 490.
-    expect(kept.squadLineups).toEqual([expect.objectContaining({ id: "mine", kind: "squad", target: 490, squad: 700 })]);
+    // 700 to reach, the best three count (300 = 120 + 90 + 90), the others' best two have 210 and may still score: the 400 missing
+    // are shared three ways, so yours aims at 90 + 133.33.
+    expect(kept.squadLineups).toEqual([expect.objectContaining({ id: "mine", kind: "squad", target: 223.33, squad: 700 })]);
     expect(kept.squadLineups[0]!.cards.map((c) => c.slug)).toEqual(["s1"]);
   });
 });

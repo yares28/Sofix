@@ -949,8 +949,10 @@
   /**
    * Arcade Squad mode (sorare.com/football/series/squad): a step is cleared when the squad's best lineups added up reach its target.
    * Sorare adds up the best few (three on 16 Nov 2026: totalScore 936.265 = the best three), read here from its own total. Your lineup
-   * counts when it is among them, so what it must reach is the target less the other members' best scores that count beside it, as
-   * they stand now (they may still score more): 0 once the others alone clear it. `ranked`: every lineup of the step, { user, score }.
+   * counts when it is among them. What is still missing (the target less your score and the other members' best that count beside
+   * yours) is shared between your lineup and those of them still able to score: before anyone plays, a third of the target each; once
+   * their games are over, all of the rest is yours. 0 once the others alone clear it. `ranked`: every lineup of the step,
+   * { user, score, open } (`open` false once none of its cards can score any more).
    */
   function squadTarget(target, total, ranked, me) {
     if (typeof target !== "number" || !Number.isFinite(target)) return null;
@@ -961,9 +963,15 @@
     if (typeof total === "number" && total > 0) {
       for (let k = 1; k <= all.length; k += 1) if (Math.abs(sum(all, k) - total) < 0.5) { counted = k; break; }
     }
-    const others = (Array.isArray(ranked) ? ranked : []).filter((r) => r.user !== me).map(score).sort((a, b) => b - a);
-    if (sum(others, counted) >= target) return 0;
-    return Math.round((target - sum(others, counted - 1)) * 100) / 100;
+    const list = Array.isArray(ranked) ? ranked : [];
+    const others = list.filter((r) => r.user !== me).sort((a, b) => score(b) - score(a));
+    const scores = others.map(score);
+    if (sum(scores, counted) >= target) return 0;
+    const beside = others.slice(0, counted - 1);
+    const mine = list.filter((r) => r.user === me).map(score).reduce((a, b) => Math.max(a, b), 0);
+    const missing = Math.max(0, target - sum(scores, counted - 1) - mine);
+    const sharing = 1 + beside.filter((r) => r.open !== false).length;
+    return Math.round((mine + missing / sharing) * 100) / 100;
   }
   function pointsNeeded(target, cards, size = 5) {
     const none = (reason, state = "unknown") => ({ state, current: null, remaining: null, room: null, cards: cards.map(() => ({ kind: "unknown", reason })) });

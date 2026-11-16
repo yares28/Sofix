@@ -1638,15 +1638,15 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-16",
-        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.13 adds the read-only SofixSquadLineups query (allowlisted in bridge.js and background STEPS, checked against Sorare's schema: 0 to fix) for the Squad mode points-needed pill, with background tests; no write, permission or Apply step changed",
+        "note": "offscreen Arcade engine, its read-only background handlers, arcade-watch alarm and offscreen permission; 0.5.14: the read-only SofixSquadLineups query (allowlisted in bridge.js and background STEPS, checked against Sorare's schema: 0 to fix) also reads each member lineup's card statuses, for the Squad mode points-needed aim; no write, permission or Apply step changed",
         "files": {
-          "extension/background.js": "6ef86964069b64ead8155486082800899a215fb523af743e760ac718b70dd9dc",
-          "extension/bridge.js": "3ea56ac7728819ce574407d6d61ecda4ab7639b5aa180eb2e58d8af0d6155bc7",
-          "extension/manifest.template.json": "3174dd24bdb35400d69b0f9ad3b743299260e697246bc51304119f88d6d47cbb",
+          "extension/background.js": "54d91f63355a6385eeb316ca4023c96c8c4a9291689a324da7d199a0700baef6",
+          "extension/bridge.js": "25ddce76431b38e49af3ab009c6b19f6caa5fec73f602e0436b856c56992f9e5",
+          "extension/manifest.template.json": "b027b24e2a117a93402a407e7e24db8e2fe04bb688bc2023f9284e244981dc04",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",
-          "frontend/lib/extensionBackground.test.ts": "bd5a2cdf083a74e561be7c7a78166be65bac3af1edb21d613a5981f12dbeeaed"
+          "frontend/lib/extensionBackground.test.ts": "5268168f1abe22c67c7d1f6159d8e3676f17bdeabfa20e6cb9b163c3da4455ef"
         }
       }
     },

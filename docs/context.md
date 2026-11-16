@@ -602,6 +602,7 @@ All current backend/artifacts JSON files have an ownership entry in the registry
 | `team_decisives.json` | generated | `backend/app/sorare/team_decisives.py` | `backend/app/services/fixture_grid.py` | Module main writes rates from exported games. Config selects the consumed path. |
 | `keeper_score.json` | generated | `backend/app/jobs/keeper_fit.py`, `backend/app/sorare/keeper.py` | `backend/app/sorare/keeper.py` | keeper_fit only writes the runtime artifact with --write; fit and evaluation output alone do not replace it. |
 | `outfield_score.json` | generated | `backend/app/jobs/outfield_fit.py`, `backend/app/sorare/outfield.py` | `backend/app/sorare/outfield.py` | outfield_fit --write saves position models; preserve documented temporal evaluation boundaries. |
+| `score_engine.json` | generated | `backend/app/jobs/engine_check.py`, `backend/app/sorare/engine/walk.py` | `backend/app/jobs/engine_check.py` | engine_check --tune fits the score engine on 2023/24-2024/25 only; research only, no live job reads it (plans/score-engine.md E4). |
 | `sub_shape.json` | generated | `backend/app/jobs/outfield_fit.py`, `backend/app/sorare/outfield.py` | `backend/app/sorare/outfield.py` | The same --write path saves substitute shapes separately from starter models. |
 | `european_clubs.json` | reviewed reference | No generator found | `backend/app/services/european_sources.py` | No generator found in repository search. current_clubs requires matching season and 36 distinct club identities; perform source-verified yearly rollover. |
 | `league_xscore/PL.json` | candidate promotion | `backend/app/research/league_xscore_validation.py` | `backend/app/sorare/foreign_scores.py` | Validator writes candidate.json in its output folder, not this production path. Promotion is separate; loader checks protocol, evidence and release gates. |
@@ -669,6 +670,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | artifact | `market_blend.json` | `backend/artifacts/market_blend.json` |
 | artifact | `opening_projection.json` | `backend/artifacts/opening_projection.json` |
 | artifact | `outfield_score.json` | `backend/artifacts/outfield_score.json` |
+| artifact | `score_engine.json` | `backend/artifacts/score_engine.json` |
 | artifact | `sub_shape.json` | `backend/artifacts/sub_shape.json` |
 | artifact | `team_decisives.json` | `backend/artifacts/team_decisives.json` |
 | document (check authority) | `docs/architecture.md` | [open](../docs/architecture.md) |
@@ -2949,6 +2951,18 @@ This block is the single machine-readable index for the sections above. Test ref
         "backend/app/sorare/outfield.py"
       ],
       "note": "outfield_fit --write saves position models; preserve documented temporal evaluation boundaries."
+    },
+    {
+      "path": "backend/artifacts/score_engine.json",
+      "lifecycle": "generated",
+      "producers": [
+        "backend/app/jobs/engine_check.py",
+        "backend/app/sorare/engine/walk.py"
+      ],
+      "consumers": [
+        "backend/app/jobs/engine_check.py"
+      ],
+      "note": "engine_check --tune fits the score engine on 2023/24-2024/25 only; research only, no live job reads it (plans/score-engine.md E4)."
     },
     {
       "path": "backend/artifacts/sub_shape.json",

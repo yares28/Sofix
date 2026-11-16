@@ -1,0 +1,1040 @@
+{
+  "through": "2025-08-01",
+  "rates": {
+    "k": {
+      "accurate_keeper_sweeper": 4.0,
+      "accurate_long_balls": 1.0,
+      "accurate_pass": 1.0,
+      "adjusted_total_att_assist": 8.0,
+      "assist_penalty_won": 256.0,
+      "big_chance_created": 16.0,
+      "big_chance_missed": 32.0,
+      "blocked_cross": 32.0,
+      "clean_sheet_60": 8.0,
+      "clearance_off_line": 1024.0,
+      "cross_not_claimed": 1024.0,
+      "dive_catch": 64.0,
+      "dive_save": 1024.0,
+      "double_double": 64.0,
+      "duel_lost": 4.0,
+      "duel_won": 4.0,
+      "effective_clearance": 0.5,
+      "error_lead_to_goal": 1024.0,
+      "error_lead_to_shot": 64.0,
+      "fouls": 8.0,
+      "gk_smother": 32.0,
+      "goal_assist": 32.0,
+      "goals": 16.0,
+      "goals_conceded": 2.0,
+      "good_high_claim": 8.0,
+      "interception_won": 8.0,
+      "last_man_tackle": 128.0,
+      "long_pass_own_to_opp_success": 0.5,
+      "missed_pass": 0.25,
+      "ontarget_scoring_att": 16.0,
+      "outfielder_block": 16.0,
+      "own_goals": 1024.0,
+      "pen_area_entries": 2.0,
+      "penalty_conceded": 1024.0,
+      "penalty_kick_missed": 1024.0,
+      "penalty_save": 64.0,
+      "penalty_won": 128.0,
+      "poss_lost_ctrl": 2.0,
+      "poss_won": 0.25,
+      "punches": 16.0,
+      "red_card": 128.0,
+      "saved_ibox": 1024.0,
+      "saves": 32.0,
+      "successful_final_third_passes": 1.0,
+      "triple_double": 64.0,
+      "triple_triple": 128.0,
+      "was_fouled": 2.0,
+      "won_contest": 4.0,
+      "won_tackle": 2.0,
+      "yellow_card": 32.0
+    },
+    "tau": {
+      "accurate_keeper_sweeper": 90.0,
+      "accurate_long_balls": 365.0,
+      "accurate_pass": 180.0,
+      "adjusted_total_att_assist": 365.0,
+      "assist_penalty_won": 365.0,
+      "big_chance_created": null,
+      "big_chance_missed": null,
+      "blocked_cross": null,
+      "clean_sheet_60": null,
+      "clearance_off_line": 365.0,
+      "cross_not_claimed": 365.0,
+      "dive_catch": null,
+      "dive_save": 45.0,
+      "double_double": null,
+      "duel_lost": 180.0,
+      "duel_won": 365.0,
+      "effective_clearance": 180.0,
+      "error_lead_to_goal": 365.0,
+      "error_lead_to_shot": 180.0,
+      "fouls": 365.0,
+      "gk_smother": null,
+      "goal_assist": 365.0,
+      "goals": 365.0,
+      "goals_conceded": null,
+      "good_high_claim": 180.0,
+      "interception_won": 365.0,
+      "last_man_tackle": 365.0,
+      "long_pass_own_to_opp_success": 365.0,
+      "missed_pass": 365.0,
+      "ontarget_scoring_att": null,
+      "outfielder_block": 365.0,
+      "own_goals": null,
+      "pen_area_entries": 180.0,
+      "penalty_conceded": 365.0,
+      "penalty_kick_missed": 365.0,
+      "penalty_save": null,
+      "penalty_won": 365.0,
+      "poss_lost_ctrl": 180.0,
+      "poss_won": 180.0,
+      "punches": null,
+      "red_card": null,
+      "saved_ibox": 180.0,
+      "saves": 90.0,
+      "successful_final_third_passes": 180.0,
+      "triple_double": 180.0,
+      "triple_triple": null,
+      "was_fouled": null,
+      "won_contest": 365.0,
+      "won_tackle": null,
+      "yellow_card": null
+    },
+    "level": {},
+    "minutes_tau": 180.0,
+    "k_minutes": 3.0
+  },
+  "style": {
+    "m_club": {
+      "accurate_keeper_sweeper": 50.0,
+      "accurate_long_balls": 50.0,
+      "accurate_pass": 10.0,
+      "adjusted_total_att_assist": 50.0,
+      "assist_penalty_won": 1000000000.0,
+      "big_chance_created": 1000000000.0,
+      "big_chance_missed": 1000000000.0,
+      "blocked_cross": 100.0,
+      "clean_sheet_60": 1.0,
+      "clearance_off_line": 1000000000.0,
+      "cross_not_claimed": 100.0,
+      "dive_catch": 100.0,
+      "dive_save": 50.0,
+      "double_double": 100.0,
+      "duel_lost": 20.0,
+      "duel_won": 10.0,
+      "effective_clearance": 50.0,
+      "error_lead_to_goal": 1000000000.0,
+      "error_lead_to_shot": 1000000000.0,
+      "fouls": 50.0,
+      "gk_smother": 1000000000.0,
+      "goal_assist": 100.0,
+      "goals": 100.0,
+      "goals_conceded": 1.0,
+      "good_high_claim": 100.0,
+      "interception_won": 50.0,
+      "last_man_tackle": 1000000000.0,
+      "long_pass_own_to_opp_success": 20.0,
+      "missed_pass": 10.0,
+      "ontarget_scoring_att": 100.0,
+      "outfielder_block": 100.0,
+      "own_goals": 1000000000.0,
+      "pen_area_entries": 20.0,
+      "penalty_conceded": 1000000000.0,
+      "penalty_kick_missed": 1000000000.0,
+      "penalty_save": 1000000000.0,
+      "penalty_won": 1000000000.0,
+      "poss_lost_ctrl": 10.0,
+      "poss_won": 50.0,
+      "punches": 1000000000.0,
+      "red_card": 1000000000.0,
+      "saved_ibox": 10.0,
+      "saves": 10.0,
+      "successful_final_third_passes": 10.0,
+      "triple_double": 1000000000.0,
+      "triple_triple": 1000000000.0,
+      "was_fouled": 50.0,
+      "won_contest": 50.0,
+      "won_tackle": 100.0,
+      "yellow_card": 1000000000.0
+    },
+    "m_venue": {
+      "accurate_keeper_sweeper": 1000000000.0,
+      "accurate_long_balls": 100.0,
+      "accurate_pass": 100.0,
+      "adjusted_total_att_assist": 100.0,
+      "assist_penalty_won": 1000000000.0,
+      "big_chance_created": 100.0,
+      "big_chance_missed": 100.0,
+      "blocked_cross": 100.0,
+      "clean_sheet_60": 1.0,
+      "clearance_off_line": 1000000000.0,
+      "cross_not_claimed": 1000000000.0,
+      "dive_catch": 1000000000.0,
+      "dive_save": 100.0,
+      "double_double": 1000000000.0,
+      "duel_lost": 1000000000.0,
+      "duel_won": 1000000000.0,
+      "effective_clearance": 100.0,
+      "error_lead_to_goal": 1000000000.0,
+      "error_lead_to_shot": 1000000000.0,
+      "fouls": 1000000000.0,
+      "gk_smother": 1000000000.0,
+      "goal_assist": 1000000000.0,
+      "goals": 1000000000.0,
+      "goals_conceded": 1.0,
+      "good_high_claim": 100.0,
+      "interception_won": 1000000000.0,
+      "last_man_tackle": 1000000000.0,
+      "long_pass_own_to_opp_success": 100.0,
+      "missed_pass": 100.0,
+      "ontarget_scoring_att": 100.0,
+      "outfielder_block": 100.0,
+      "own_goals": 1000000000.0,
+      "pen_area_entries": 100.0,
+      "penalty_conceded": 1000000000.0,
+      "penalty_kick_missed": 1000000000.0,
+      "penalty_save": 100.0,
+      "penalty_won": 1000000000.0,
+      "poss_lost_ctrl": 50.0,
+      "poss_won": 100.0,
+      "punches": 100.0,
+      "red_card": 1000000000.0,
+      "saved_ibox": 20.0,
+      "saves": 20.0,
+      "successful_final_third_passes": 20.0,
+      "triple_double": 1000000000.0,
+      "triple_triple": 1000000000.0,
+      "was_fouled": 1000000000.0,
+      "won_contest": 1000000000.0,
+      "won_tackle": 100.0,
+      "yellow_card": 100.0
+    },
+    "state": {
+      "GK": {
+        "accurate_keeper_sweeper": [
+          0.027804417748158092,
+          -0.10173238119614657
+        ],
+        "accurate_long_balls": [
+          -0.1509661394367885,
+          0.012519777914739304
+        ],
+        "accurate_pass": [
+          -0.017771360079449613,
+          0.016431783629075034
+        ],
+        "adjusted_total_att_assist": [
+          0.07192403480826517,
+          0.026959086454574177
+        ],
+        "assist_penalty_won": [
+          0.0,
+          0.0
+        ],
+        "big_chance_created": [
+          0.0,
+          0.0
+        ],
+        "big_chance_missed": [
+          0.0,
+          0.0
+        ],
+        "blocked_cross": [
+          0.0,
+          0.0
+        ],
+        "clean_sheet_60": [
+          0.0,
+          0.0
+        ],
+        "clearance_off_line": [
+          0.0,
+          0.0
+        ],
+        "cross_not_claimed": [
+          0.0,
+          0.0
+        ],
+        "dive_catch": [
+          0.05797521646085631,
+          -0.07832181214426251
+        ],
+        "dive_save": [
+          -0.09983103580278391,
+          0.22665023467543885
+        ],
+        "double_double": [
+          0.0,
+          0.0
+        ],
+        "duel_lost": [
+          0.0,
+          0.0
+        ],
+        "duel_won": [
+          0.0,
+          0.0
+        ],
+        "effective_clearance": [
+          0.0,
+          0.0
+        ],
+        "error_lead_to_goal": [
+          -0.0622919195777205,
+          0.1840857635387229
+        ],
+        "error_lead_to_shot": [
+          -0.08630116421647183,
+          0.09289569761346839
+        ],
+        "fouls": [
+          0.0,
+          0.0
+        ],
+        "gk_smother": [
+          -0.14949035599274751,
+          0.02810623626326813
+        ],
+        "goal_assist": [
+          0.0,
+          0.0
+        ],
+        "goals": [
+          0.0,
+          0.0
+        ],
+        "goals_conceded": [
+          0.0,
+          0.0
+        ],
+        "good_high_claim": [
+          -0.15524269732523285,
+          -0.11027049591109009
+        ],
+        "interception_won": [
+          0.0,
+          0.0
+        ],
+        "last_man_tackle": [
+          0.0,
+          0.0
+        ],
+        "long_pass_own_to_opp_success": [
+          0.0,
+          0.0
+        ],
+        "missed_pass": [
+          -0.1982121595285086,
+          -0.008199673993168328
+        ],
+        "ontarget_scoring_att": [
+          0.0,
+          0.0
+        ],
+        "outfielder_block": [
+          0.0,
+          0.0
+        ],
+        "own_goals": [
+          0.0,
+          0.0
+        ],
+        "pen_area_entries": [
+          0.0,
+          0.0
+        ],
+        "penalty_conceded": [
+          0.0,
+          0.0
+        ],
+        "penalty_kick_missed": [
+          0.0,
+          0.0
+        ],
+        "penalty_save": [
+          -0.11220995377465066,
+          0.06781337751589314
+        ],
+        "penalty_won": [
+          0.0,
+          0.0
+        ],
+        "poss_lost_ctrl": [
+          -0.2173513896990102,
+          -0.03899512621553646
+        ],
+        "poss_won": [
+          0.0,
+          0.0
+        ],
+        "punches": [
+          -0.07694852711914872,
+          0.0660348032036993
+        ],
+        "red_card": [
+          0.0,
+          0.0
+        ],
+        "saved_ibox": [
+          -0.0700522540234111,
+          0.07041346279881418
+        ],
+        "saves": [
+          -0.07526112418224175,
+          0.08008416265782739
+        ],
+        "successful_final_third_passes": [
+          -0.24953492542042152,
+          -0.1622786405219906
+        ],
+        "triple_double": [
+          0.0,
+          0.0
+        ],
+        "triple_triple": [
+          0.0,
+          0.0
+        ],
+        "was_fouled": [
+          0.0,
+          0.0
+        ],
+        "won_contest": [
+          0.0,
+          0.0
+        ],
+        "won_tackle": [
+          0.0,
+          0.0
+        ],
+        "yellow_card": [
+          -0.17311911477448363,
+          -0.05227420594301151
+        ]
+      },
+      "DEF": {
+        "accurate_keeper_sweeper": [
+          0.0,
+          0.0
+        ],
+        "accurate_long_balls": [
+          -0.05492720044799658,
+          -0.10029835629395836
+        ],
+        "accurate_pass": [
+          0.06999328288738711,
+          -0.009792348283352624
+        ],
+        "adjusted_total_att_assist": [
+          0.03595781893892087,
+          -0.09312599280580285
+        ],
+        "assist_penalty_won": [
+          0.0,
+          0.0
+        ],
+        "big_chance_created": [
+          0.22186547415894947,
+          -0.07790535971615073
+        ],
+        "big_chance_missed": [
+          0.18577493769509765,
+          -0.1322610019743247
+        ],
+        "blocked_cross": [
+          -0.1358203760831383,
+          -0.06382520099463193
+        ],
+        "clean_sheet_60": [
+          0.0,
+          0.0
+        ],
+        "clearance_off_line": [
+          -0.11555723100660757,
+          0.183218873192498
+        ],
+        "cross_not_claimed": [
+          0.0,
+          0.0
+        ],
+        "dive_catch": [
+          0.0,
+          0.0
+        ],
+        "dive_save": [
+          0.0,
+          0.0
+        ],
+        "double_double": [
+          -0.18220100492255853,
+          -0.06931898409496291
+        ],
+        "duel_lost": [
+          -0.08078923476915158,
+          -0.058316671558850244
+        ],
+        "duel_won": [
+          -0.05181641047491325,
+          -0.0810438854723387
+        ],
+        "effective_clearance": [
+          -0.19655039107457584,
+          -0.09976810360089564
+        ],
+        "error_lead_to_goal": [
+          -0.07529107543145983,
+          0.17216254084468338
+        ],
+        "error_lead_to_shot": [
+          -0.01775147504726903,
+          0.1746515120554715
+        ],
+        "fouls": [
+          -0.03697371484963195,
+          -0.0623354459256209
+        ],
+        "gk_smother": [
+          0.0,
+          0.0
+        ],
+        "goal_assist": [
+          0.55806275055716,
+          0.039407254248502936
+        ],
+        "goals": [
+          0.18408700574627965,
+          -0.10432244113878898
+        ],
+        "goals_conceded": [
+          0.0,
+          0.0
+        ],
+        "good_high_claim": [
+          0.0,
+          0.0
+        ],
+        "interception_won": [
+          -0.03732817881409056,
+          0.0866011804742517
+        ],
+        "last_man_tackle": [
+          -0.1914740463773529,
+          0.2997449378552409
+        ],
+        "long_pass_own_to_opp_success": [
+          0.0058199204794264865,
+          -0.07903272582358765
+        ],
+        "missed_pass": [
+          -0.06426990703148758,
+          -0.0708547965630193
+        ],
+        "ontarget_scoring_att": [
+          0.00827969719792531,
+          -0.12773460092248584
+        ],
+        "outfielder_block": [
+          -0.11029052300682075,
+          0.11554682601008853
+        ],
+        "own_goals": [
+          0.0,
+          0.0
+        ],
+        "pen_area_entries": [
+          -0.007931592149891876,
+          -0.10418387349880272
+        ],
+        "penalty_conceded": [
+          -0.15648420520877696,
+          0.28791045154992256
+        ],
+        "penalty_kick_missed": [
+          0.0,
+          0.0
+        ],
+        "penalty_save": [
+          0.0,
+          0.0
+        ],
+        "penalty_won": [
+          0.0,
+          0.0
+        ],
+        "poss_lost_ctrl": [
+          -0.06344522637255658,
+          -0.07250641955000264
+        ],
+        "poss_won": [
+          0.02022649951784378,
+          -0.03996813372476511
+        ],
+        "punches": [
+          0.0,
+          0.0
+        ],
+        "red_card": [
+          -0.016994493146094056,
+          -0.09030090078108768
+        ],
+        "saved_ibox": [
+          0.0,
+          0.0
+        ],
+        "saves": [
+          0.0,
+          0.0
+        ],
+        "successful_final_third_passes": [
+          0.16141961905253246,
+          0.017960068580224576
+        ],
+        "triple_double": [
+          0.003239834570541889,
+          0.0628098958234185
+        ],
+        "triple_triple": [
+          0.0,
+          0.0
+        ],
+        "was_fouled": [
+          0.0,
+          0.0
+        ],
+        "won_contest": [
+          0.007831164441897817,
+          -0.08022413824923699
+        ],
+        "won_tackle": [
+          -0.1629248942331206,
+          -0.03426706365112227
+        ],
+        "yellow_card": [
+          -0.021754172825182647,
+          -0.03535569409934481
+        ]
+      },
+      "MID": {
+        "accurate_keeper_sweeper": [
+          0.0,
+          0.0
+        ],
+        "accurate_long_balls": [
+          0.11272068168762793,
+          0.027606239213988134
+        ],
+        "accurate_pass": [
+          0.09801230129449975,
+          0.016595591358808576
+        ],
+        "adjusted_total_att_assist": [
+          0.18561147986508128,
+          -0.0008261124652229797
+        ],
+        "assist_penalty_won": [
+          0.0,
+          0.0
+        ],
+        "big_chance_created": [
+          0.22902708454953072,
+          0.08173182696784961
+        ],
+        "big_chance_missed": [
+          0.17864486522385736,
+          -0.10623817953736282
+        ],
+        "blocked_cross": [
+          0.04611500549096446,
+          -0.21354864320478073
+        ],
+        "clean_sheet_60": [
+          0.0,
+          0.0
+        ],
+        "clearance_off_line": [
+          0.0,
+          0.0
+        ],
+        "cross_not_claimed": [
+          0.0,
+          0.0
+        ],
+        "dive_catch": [
+          0.0,
+          0.0
+        ],
+        "dive_save": [
+          0.0,
+          0.0
+        ],
+        "double_double": [
+          -0.08268975290687984,
+          -0.09969253652529422
+        ],
+        "duel_lost": [
+          -0.030968635197464445,
+          -0.03818328576009752
+        ],
+        "duel_won": [
+          -0.00021844037693321479,
+          -0.03606751573671956
+        ],
+        "effective_clearance": [
+          0.0,
+          0.0
+        ],
+        "error_lead_to_goal": [
+          -0.14934816924044253,
+          0.1911445719853346
+        ],
+        "error_lead_to_shot": [
+          -0.048581250396151104,
+          0.27382112147378873
+        ],
+        "fouls": [
+          -0.052732315074273596,
+          -0.01525420333095207
+        ],
+        "gk_smother": [
+          0.0,
+          0.0
+        ],
+        "goal_assist": [
+          0.20687505427808925,
+          -0.04751904536199909
+        ],
+        "goals": [
+          0.17227236450161995,
+          -0.11754396248247434
+        ],
+        "goals_conceded": [
+          0.0,
+          0.0
+        ],
+        "good_high_claim": [
+          0.0,
+          0.0
+        ],
+        "interception_won": [
+          -0.04030263939172064,
+          0.08218265327265306
+        ],
+        "last_man_tackle": [
+          0.0,
+          0.0
+        ],
+        "long_pass_own_to_opp_success": [
+          0.0,
+          0.0
+        ],
+        "missed_pass": [
+          0.005976772290249629,
+          -0.03342701027576475
+        ],
+        "ontarget_scoring_att": [
+          0.11742477615895228,
+          -0.12899928117402523
+        ],
+        "outfielder_block": [
+          0.013197273106738051,
+          0.26386974682301867
+        ],
+        "own_goals": [
+          0.0,
+          0.0
+        ],
+        "pen_area_entries": [
+          0.06874038152523951,
+          -0.07365809762854292
+        ],
+        "penalty_conceded": [
+          -0.03684467502782147,
+          0.15760060300312956
+        ],
+        "penalty_kick_missed": [
+          0.0,
+          0.0
+        ],
+        "penalty_save": [
+          0.0,
+          0.0
+        ],
+        "penalty_won": [
+          0.0,
+          0.0
+        ],
+        "poss_lost_ctrl": [
+          -0.020602703226661186,
+          -0.044693809899364514
+        ],
+        "poss_won": [
+          0.043511137563704526,
+          0.007832101473515977
+        ],
+        "punches": [
+          0.0,
+          0.0
+        ],
+        "red_card": [
+          -0.026161883805976296,
+          -0.004018907385246706
+        ],
+        "saved_ibox": [
+          0.0,
+          0.0
+        ],
+        "saves": [
+          0.0,
+          0.0
+        ],
+        "successful_final_third_passes": [
+          0.14025393496716154,
+          0.01061709576635689
+        ],
+        "triple_double": [
+          -0.040937923140883174,
+          0.12012817099099904
+        ],
+        "triple_triple": [
+          0.0,
+          0.0
+        ],
+        "was_fouled": [
+          -0.03235042885618474,
+          -0.09895493023960934
+        ],
+        "won_contest": [
+          0.03244466744716914,
+          -0.07381602228098795
+        ],
+        "won_tackle": [
+          -0.03785739399489328,
+          -0.05359297604661201
+        ],
+        "yellow_card": [
+          -0.14313075627807523,
+          -0.09103929954280002
+        ]
+      },
+      "FWD": {
+        "accurate_keeper_sweeper": [
+          0.0,
+          0.0
+        ],
+        "accurate_long_balls": [
+          0.0,
+          0.0
+        ],
+        "accurate_pass": [
+          0.09368129282156065,
+          0.010974583006599772
+        ],
+        "adjusted_total_att_assist": [
+          0.14184559711190112,
+          -0.06878640747899463
+        ],
+        "assist_penalty_won": [
+          0.07172035692140916,
+          -0.11033304397985792
+        ],
+        "big_chance_created": [
+          0.10471986742942008,
+          -0.02603136114475038
+        ],
+        "big_chance_missed": [
+          0.1247210435268556,
+          0.07011433347852367
+        ],
+        "blocked_cross": [
+          0.0,
+          0.0
+        ],
+        "clean_sheet_60": [
+          0.0,
+          0.0
+        ],
+        "clearance_off_line": [
+          0.0,
+          0.0
+        ],
+        "cross_not_claimed": [
+          0.0,
+          0.0
+        ],
+        "dive_catch": [
+          0.0,
+          0.0
+        ],
+        "dive_save": [
+          0.0,
+          0.0
+        ],
+        "double_double": [
+          -0.05254806583764931,
+          -0.08534578067375458
+        ],
+        "duel_lost": [
+          -0.05132881544360235,
+          -0.025545815797605752
+        ],
+        "duel_won": [
+          -0.02736078906617805,
+          -0.06593855727073765
+        ],
+        "effective_clearance": [
+          0.0,
+          0.0
+        ],
+        "error_lead_to_goal": [
+          0.0,
+          0.0
+        ],
+        "error_lead_to_shot": [
+          -0.07958848623972532,
+          -0.036816775993427406
+        ],
+        "fouls": [
+          -0.07483051604428029,
+          -1.0263884759062611e-06
+        ],
+        "gk_smother": [
+          0.0,
+          0.0
+        ],
+        "goal_assist": [
+          0.24358980977272254,
+          -0.04869875227942668
+        ],
+        "goals": [
+          0.41602314597840323,
+          0.012673613453868382
+        ],
+        "goals_conceded": [
+          0.0,
+          0.0
+        ],
+        "good_high_claim": [
+          0.0,
+          0.0
+        ],
+        "interception_won": [
+          -0.11601511521826807,
+          0.07158951697241234
+        ],
+        "last_man_tackle": [
+          0.0,
+          0.0
+        ],
+        "long_pass_own_to_opp_success": [
+          0.0,
+          0.0
+        ],
+        "missed_pass": [
+          0.0,
+          0.0
+        ],
+        "ontarget_scoring_att": [
+          0.2636729057754703,
+          0.03977908033253282
+        ],
+        "outfielder_block": [
+          0.0,
+          0.0
+        ],
+        "own_goals": [
+          0.0,
+          0.0
+        ],
+        "pen_area_entries": [
+          0.13307624493969322,
+          -0.03328999457353284
+        ],
+        "penalty_conceded": [
+          0.0,
+          0.0
+        ],
+        "penalty_kick_missed": [
+          0.0,
+          0.0
+        ],
+        "penalty_save": [
+          0.0,
+          0.0
+        ],
+        "penalty_won": [
+          0.11839080764169278,
+          -0.022965032278715942
+        ],
+        "poss_lost_ctrl": [
+          0.012841488298054078,
+          -0.02128853648807546
+        ],
+        "poss_won": [
+          0.0,
+          0.0
+        ],
+        "punches": [
+          0.0,
+          0.0
+        ],
+        "red_card": [
+          0.0,
+          0.0
+        ],
+        "saved_ibox": [
+          0.0,
+          0.0
+        ],
+        "saves": [
+          0.0,
+          0.0
+        ],
+        "successful_final_third_passes": [
+          0.12015142900524593,
+          -0.004688169684968044
+        ],
+        "triple_double": [
+          0.0,
+          0.0
+        ],
+        "triple_triple": [
+          0.0,
+          0.0
+        ],
+        "was_fouled": [
+          -0.08825015874035638,
+          -0.17648975975857012
+        ],
+        "won_contest": [
+          0.14882435855627454,
+          0.014980498859824736
+        ],
+        "won_tackle": [
+          0.0,
+          0.0
+        ],
+        "yellow_card": [
+          -0.10989181170761546,
+          -0.09135797480891801
+        ]
+      }
+    }
+  },
+  "minutes_tau": 90.0,
+  "k_minutes": 1.0,
+  "clean_sheet": [
+    0.026256735874570246,
+    1.1871993767142814
+  ],
+  "scale": {
+    "GK": 0.9200000000000004,
+    "DEF": 0.9000000000000004,
+    "MID": 0.8600000000000003,
+    "FWD": 0.9400000000000004
+  }
+}

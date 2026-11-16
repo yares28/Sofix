@@ -17,14 +17,18 @@ the games export, each one rebuilt within 0.15 points (`backend/reports/experime
 
 ```text
 score = min(100, max(floor, level points + all-around))
-level = goals + assists + penalties won + clearances off the line + last-man tackles + penalty saves + keeper's clean sheet
-        − red cards − own goals − penalties conceded − errors leading to a goal          (kept between −3 and +5)
+level = goals + assists + penalties won that were scored + clearances off the line + last-man tackles + penalty saves
+        + keeper's clean sheet − red cards − own goals − penalties conceded − errors leading to a goal   (kept between −3 and +5)
 level points: −3 → 0, −2 → 5, −1 → 15, 0 → 35, 1 → 60, 2 → 70, 3 → 80, 4 → 90, 5 → 100
 floor = level points from level 1 up, else 0
 all-around = Σ over his stats (count × points for his position)   (scoring version 7; a keeper's goal conceded −5)
 ```
 
 *Example:* Sivera at Athletic on 19 Sep: a clean sheet and a penalty save make level 2 (70), plus 14.8 all-around, 84.8.
+
+The level was rebuilt from the stats on all 38,850 appearances of the export on 28 Oct (E4): exact for every one but 8 keepers taken
+off with a clean sheet. A penalty won counts for the level only when it is scored (`assist_penalty_won`); one that is missed
+(`penalty_won`) is a 3-point all-around stat.
 
 So if the engine predicts the counts of every stat and every decisive action, Sorare's own formula gives the score. Nothing is guessed at
 the end.
@@ -303,6 +307,27 @@ not from one average.
 all-around; then the whole score against the shipped number. Defenders and midfielders are expected to gain most (§2: 74–80% within
 ±7 when the all-around is known exactly).
 
+**Built 28 Oct 2026** (`backend/app/sorare/engine/roles.py`, `allround.py`; tests `tests/test_engine_allround.py`):
+
+- **Roles.** The line order holds: of the 218 players with ten starts in a back four, 193 are always at an end or always in the
+  middle, and 103 of the 111 at an end keep the same side. Roles: GK, CB, FB (the ends of a back four or five, wing-backs behind a
+  back three), CM, AM (wide midfielders, wingers of a front three, the line behind the strikers), ST.
+- **Rates.** All 50 stats, shrunk to the role by `k` ninetieths, each forgetting at its own pace (`tau`), both fitted per stat on
+  2023/24 and 2024/25 only (Poisson deviance; grids of 5 and 12). Frequent stats keep little pull (passes k 1, missed passes 0.25),
+  rare ones are mostly their role's (an error leading to a goal or an own goal k 1,024). The export now covers 2023/24 on (1,238
+  games), and the football model's forecasts were joined back to 2023/24 (`engine/data.py`, six clubs of those seasons added to
+  `gamedata.CLUB`).
+- **The points** are read from the games as they come; version 7 rebuilds every appearance's all-around to the point.
+- **Goals conceded and the clean sheet at 60** come from the match (his side's expected goals against × his minutes; the clean-sheet
+  chance × his chance of playing 60), the rest from his rates × his usual minutes as a starter.
+- **The score if he starts** = his all-around + the shipped line's chance of a decisive action × (score − all-around of earlier starts
+  with one) + the rest × (the same without).
+
+**Result.** The all-around part is closer than the shipped line's for defenders on the build window (2025/26 to 30 Sep, every week from
+the games before it: −0.15 [−0.25, −0.04]) and for every outfield position on the held-out weeks; his last five all-around are the
+worst of the three everywhere. But the whole score is only level with the shipped number (defenders −0.04 [−0.15, +0.06], forwards
+worse, +0.30), so **E1 is not switched on.** Tables under E4.
+
 ### E2 · The opponent's style, home or away, and the game state
 
 What you get: the same player's number moves with who he plays. More tackles against one club, fewer shots on target against another.
@@ -317,6 +342,22 @@ What you get: the same player's number moves with who he plays. More tackles aga
 
 *Check:* the same rulers, E1 against E1 + E2. Ships per position only where it helps.
 
+**Built 28 Oct 2026** (`engine/style.py`; tests `tests/test_engine_style_decisive.py`):
+
+- Each start's counts are set against his own rates for his minutes before the game is added; the sums by opposing club and role
+  are the style, by home or away and role the venue. Each pulls towards 1 by `m` games' worth, fitted per stat on 2023/24-2024/25
+  (passes, losses of the ball, saves: 10 games; tackles and shots on target: 100; most rare stats never move off 1).
+- The game state is measured against **his side's usual** expected goals (his rates already hold its usual game; against the
+  league's 1.35 the coefficients would count a strong side twice). Fitted per position and stat; for example a forward's goals
+  ×e^0.37 per goal his side is expected to score above its usual, a defender's clearances fall when his side is expected to score more.
+- The deviance of every stat falls with each part (accurate passes 57,964 → 50,553 with the clubs → 49,828 with the venue → 49,278 with
+  the game state, on the tuning seasons).
+- Not built: the reasons in points (E2.4). They belong with the number that ships; none did.
+
+**Result.** The all-around part gains again (build window: midfielders −0.19 [−0.31, −0.07], forwards −0.12 [−0.19, −0.04], defenders
+−0.18 [−0.30, −0.07]), but no position's whole score clears the bar (the squared miss's interval crosses zero everywhere), so **E2 is
+not switched on.**
+
 ### E3 · Minutes, starts and the official eleven
 
 What you get: a player usually taken off at the hour, or about to be benched, is priced as such.
@@ -329,6 +370,21 @@ What you get: a player usually taken off at the hour, or about to be benched, is
 4. **Red cards:** his rate per 90 cuts his minutes.
 
 *Check:* minutes within 15 of what he played, by band; the all-around ruler again.
+
+**Built 28 Oct 2026** (`allround.Book.minutes`, the minutes settings fitted in `engine/walk.py`):
+
+- Minutes as a starter and the chance of playing 60: his own record, forgetting over 90 days, pulled towards his role's by one start
+  (fitted on the tuning seasons from 4 × 4 choices). Within 15 minutes of what he played: 83% on the build window, 79% held out
+  (typical miss 8.7 and 9.5 minutes).
+- Tonight's role from the official eleven: the walk uses it, and `e4 before the eleven` in the tables is the same number with his
+  usual role, as the refresh knows it today.
+- Red cards: already inside his minutes record (a start ended by one is a short start); a separate cut would count them twice.
+- A European game three days before: not tried, the export holds LaLiga games only.
+- Not built: reading Sorare's eleven in the near-lock runs (E3.3). The near-lock runs only start the refresh today; nothing reads an
+  eleven before kick-off. It is needed only once a number that uses the eleven ships (see E4).
+
+**Result.** Midfielders' whole score is closer on the typical miss (−0.16 [−0.28, −0.04]) but not on the squared miss (−3.87 [−7.66,
++0.07]); no other position passes. **E3 is not switched on.**
 
 ### E4 · Decisive actions
 
@@ -351,6 +407,66 @@ band.
 
 *Check:* each chance honest by band (said 30%, about 30% happened), overall and for each kind; the level reached (15, 35, 60, 70+)
 expected against happened; the whole score's rulers.
+
+**Built 28 Oct 2026** (`engine/decisive.py`, `engine/walk.py`; settings in `backend/artifacts/score_engine.json`, written by
+`python -m app.jobs.engine_check --tune`, fitted on 2023/24-2024/25 only; item X8 of multi-competition-review.md):
+
+- Each kind's expected count = his rate (shrunk to his role's) × his minutes × E2's factor; the positive kinds and the negative ones are
+  Poisson counts and a keeper's clean sheet a coin, so the level's whole distribution follows, with each kind's chance, the chance of
+  a decisive action (level 1+) and of a negative one, and the expected score by Sorare's formula with its floor.
+- The football model's clean-sheet chance is corrected on its log-odds (0.03 + 1.19 × logit: it is a little under-confident), and the
+  positive counts by a factor per position that makes the chance honest on the tuning seasons (GK 0.92, DEF 0.90, MID 0.86, FWD 0.94).
+- Penalty goals go to the taker through his own goal rate (takers score more), not by a separate share; the next taker does not yet
+  inherit, and the side's goals are not moved by team news (E4.1's P9 part 13): both left for E5's simulation.
+- Not used: Understat expected goals (not in the export) and scorer prices (needs the 1-credit check of §8, still your call).
+
+**Its chances are honest**, overall and kind by kind (build window): forwards' goal said 25% → 26% (762 starts), 34% → 40% (268);
+midfielders' goal 14% → 12% (438); keepers' clean sheet 25% → 23% (220), 35% → 31% (195); penalty saves 2% → 2%; the chance of any
+decisive action GK 28% → 27%, DEF 11% → 12%, MID 14% → 15%, FWD 29% → 30%.
+
+**Result.** On the build window E4 clears the bar for **defenders** (typical miss −0.14 [−0.26, −0.02], squared −4.76 [−9.12, −0.43])
+and **midfielders** (−0.13 [−0.24, −0.02], −4.90 [−8.33, −1.18]); keepers and forwards are level. Held out from 1 Oct (three
+gameweeks), defenders point the same way (−0.04, −6.24) and midfielders do not (+0.20, +5.52). Both passes need tonight's role from the
+official eleven: with his usual role (`e4 before the eleven`, what the refresh knows) the defenders' squared miss no longer clears
+zero (−4.03 [−8.55, +0.49]). **So E4 is not switched on yet:** for defenders it waits for E3.3 (the near-lock runs reading Sorare's
+eleven, then scoring the starters with E4); for midfielders the held-out weeks are rerun as they grow.
+
+**Since then (16 Nov):** the live LaLiga number is Sofix v1 (12 Nov, [sofix-v1.md](sofix-v1.md)), and the owner's bar is the count of
+starts within ±7 (more than 2,765 of 6,754, aiming above 50%; [xscore-research-handover.md](../docs/xscore-research-handover.md)).
+The tables above compare with the lines Sofix v1 replaced. E1-E4 give an expected score, which lands within ±7 on 25-41% of starts
+(build window), below Sofix v1's 38% overall, so none is a candidate for the tile's number under that bar. What E4 adds is honest
+per-kind chances (X8): a goal, an assist, a clean sheet, a penalty save, each checked band by band. They are the input the handover's
+decisive tests (37-39) use, ready for that research.
+
+**Build window** (2025/26 to 30 Sep 2026; the shipped lines refitted each week on the weeks before, no projection; typical / squared
+miss / lean / within ±7; difference in typical and squared miss from the shipped number with a 95% interval, whole weeks resampled):
+
+| | GK (738) | DEF (3,513) | MID (2,467) | FWD (2,489) |
+|---|---|---|---|---|
+| shipped | 15.49 / 19.03 / −0.1 / 25% | 14.50 / 18.29 / +0.1 / 30% | 11.67 / 15.25 / −0.1 / 40% | 13.79 / 16.59 / +0.1 / 26% |
+| E1 | +0.12 [−0.12, +0.36] · +4.7 [−3.6, +13.8] | −0.04 [−0.15, +0.06] · −1.1 [−5.2, +2.8] | +0.02 [−0.08, +0.13] · +0.1 [−3.5, +3.7] | +0.30 [+0.20, +0.40] · +4.0 [+0.8, +7.2] |
+| E2 | +0.03 [−0.12, +0.17] · −4.0 [−9.3, +1.4] | −0.08 [−0.20, +0.05] · −3.4 [−8.1, +1.3] | −0.10 [−0.21, +0.01] · −2.9 [−6.7, +1.1] | +0.11 [+0.03, +0.21] · +1.6 [−1.2, +4.8] |
+| E3 | +0.03 [−0.12, +0.17] · −4.0 [−9.3, +1.3] | −0.09 [−0.22, +0.03] · −4.4 [−9.0, +0.2] | −0.16 [−0.28, −0.04] · −3.9 [−7.7, +0.1] | +0.10 [+0.01, +0.19] · +0.9 [−2.1, +3.9] |
+| E4 | +0.05 [−0.09, +0.20] · −5.2 [−10.8, +0.4] | **−0.14 [−0.26, −0.02] · −4.8 [−9.1, −0.4]** | **−0.13 [−0.24, −0.02] · −4.9 [−8.3, −1.2]** | −0.02 [−0.15, +0.09] · +2.7 [−1.4, +6.9] |
+| E4 before the eleven | +0.05 [−0.09, +0.20] · −5.2 [−10.8, +0.4] | −0.13 [−0.25, −0.00] · −4.0 [−8.6, +0.5] | −0.10 [−0.21, +0.00] · −4.4 [−7.9, −0.7] | −0.04 [−0.16, +0.08] · +2.5 [−1.3, +6.4] |
+
+The all-around part alone (typical miss minus the shipped line's implied all-around): E1 GK +0.14, DEF −0.15, MID −0.09, FWD −0.03;
+E3 GK −0.12, DEF −0.20, MID −0.24, FWD −0.15 (DEF, MID and FWD with intervals under zero).
+
+**Held out** (1 to 21 Oct 2026, three gameweeks; the shipped lines' files as production runs them):
+
+| | GK (40) | DEF (161) | MID (120) | FWD (119) |
+|---|---|---|---|---|
+| shipped | 13.40 / 16.44 / −1.7 / 28% | 15.61 / 20.25 / −0.2 / 29% | 12.52 / 15.91 / +0.2 / 36% | 13.79 / 16.89 / −1.1 / 25% |
+| E1 | −0.06 · +0.4 | +0.04 · −0.6 | +0.13 · +3.7 | +0.18 · −2.2 |
+| E2 | −0.29 · −6.5 | +0.02 · −8.9 | +0.35 · +9.9 | −0.00 · −4.2 |
+| E3 | −0.27 · −6.2 | −0.05 · −10.8 | +0.37 · +11.1 | +0.03 · −2.2 |
+| E4 | −0.28 · −6.5 | −0.04 · −6.2 | +0.20 · +5.5 | +0.17 · +3.8 |
+
+(Typical and squared miss minus the shipped number's; three weeks give intervals too wide to read, so only the direction counts here.)
+All-around alone, held out: E3 DEF −0.27 [−0.74, −0.00], MID −0.30 [−0.41, −0.02], FWD −0.17 [−0.21, −0.10].
+
+Rerun: `python -m app.jobs.engine_check --engine` (held out) and `--engine --holdout 2025-08-01 --until 2026-10-01 --refit` (build).
 
 ### E5 · The match simulation
 
@@ -393,5 +509,7 @@ frozen held-out check (their xScore models were validated that way). The FDR pla
 
 ## 8 · Your calls
 
-1. Spend 1 Odds API credit (one run of the odds job) to see whether the free plan has anytime-scorer prices for LaLiga? It is needed
-   only at E4.
+1. Spend 1 Odds API credit (one run of the odds job) to see whether the free plan has anytime-scorer prices for LaLiga? E4 was built
+   without them (28 Oct); they would pull each player's goal chance towards the market's.
+2. Build E3.3 now (the near-lock runs read Sorare's official eleven and score the named starters with E4), so E4 can ship for
+   defenders, or first wait for more held-out weeks?

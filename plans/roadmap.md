@@ -43,7 +43,7 @@ researched as the fallback.
 decisive action of a game simulated and scored with Sorare's own formula, the opponent's style per position, no Sorare projection as
 an input. Then **the difficulty board tuned with the same data** for every league ([fdr-tuning.md](fdr-tuning.md), F0 to F7; two
 calls of yours in its §5). Other leagues' xScore follows LaLiga's. **E0 built 26 Oct:** Sofix's LaLiga number no longer reads
-Sorare's projection, every LaLiga game is kept daily (`games-export.yml`), and `app.jobs.engine_check` prints the rulers. Next: E1.
+Sorare's projection, every LaLiga game is kept daily (`games-export.yml`), and `app.jobs.engine_check` prints the rulers. **E1-E4 built 28 Oct** (`backend/app/sorare/engine/`), none switched on yet: E4 beats the shipped number for defenders and midfielders on the build window, with tonight's eleven; it waits for the eleven at near-lock (E3.3) and more held-out weeks (score-engine.md E4); since 12 Nov the live number is Sofix v1, judged on starts within ±7, where an expected score does not compete. E4's per-kind chances (X8) stay for the decisive research.
 
 23 Oct owner priority: Conference is released as an explicitly provisional FDR/xScore model,
 under [the owner-directed release contract](conference-release.md). All 36 clubs / 1,110 current players

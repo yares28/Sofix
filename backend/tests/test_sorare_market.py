@@ -98,7 +98,7 @@ def test_a_broken_club_list_leaves_the_index_empty() -> None:
     assert laliga_index(client) == []
 
 
-def test_card_prices_keep_what_you_paid_and_the_value_for_the_cards_own_rarity_and_season() -> None:
+def test_card_prices_keep_what_you_paid_and_the_cheapest_listing_of_the_same_card_else_the_estimate() -> None:
     from app.sorare.publish import collection_out
     from app.sorare.sync import card_prices
 
@@ -115,7 +115,13 @@ def test_card_prices_keep_what_you_paid_and_the_value_for_the_cards_own_rarity_a
             values = {"limited_IN_SEASON": {"eurCents": 1277}, "rare_CLASSIC": {"eurCents": 191}}
             return {
                 "anyCards": [
-                    {"slug": "bought", "ownershipHistory": history, "anyPlayer": {"commonPlayer": values}},
+                    {
+                        "slug": "bought",
+                        "ownershipHistory": history,
+                        "anyPlayer": {"commonPlayer": values},
+                        # the cheapest live listing of the same player, rarity and season (owner, 16 Nov 2026: "now" is that)
+                        "lowestPriceCard": {"liveSingleSaleOffer": {"receiverSide": {"amounts": {"eurCents": 65}}}},
+                    },
                     {
                         "slug": "crafted",
                         "ownershipHistory": [{"from": "x", "user": {"slug": "yares"}, "amounts": None}],
@@ -129,8 +135,9 @@ def test_card_prices_keep_what_you_paid_and_the_value_for_the_cards_own_rarity_a
         {"slug": "crafted", "rarityTyped": "rare", "inSeasonEligible": False},
     ]
     prices = card_prices(Prices(), "yares", rows)  # type: ignore[arg-type]
-    assert prices["bought"] == {"paid": 19.09, "value": 12.77, "since": "2026-08-26T21:57:01Z"}
-    assert prices["crafted"] == {"paid": None, "value": 1.91, "since": "x"}
+    assert prices["bought"] == {"paid": 19.09, "value": 0.65, "listed": True, "since": "2026-08-26T21:57:01Z"}
+    # nothing of his listed: Sorare's estimate, said to be one
+    assert prices["crafted"] == {"paid": None, "value": 1.91, "listed": False, "since": "x"}
     # a batch Sorare does not answer is left out, never fatal
     assert card_prices(Prices(), "yares", [{"slug": "broken", "rarityTyped": "limited"}]) == {}  # type: ignore[arg-type]
     assert collection_out([], prices) == []

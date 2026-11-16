@@ -943,7 +943,10 @@ describe("overlayWorth: what each card of your gallery cost and is worth now (B2
     const worth = overlayWorth(data);
     expect(worth.user).toBe("yares");
     expect(worth.at).toBe("2026-10-21T06:00:00Z");
-    expect(worth.cards).toEqual({ "bought-up": [3.02, 3.4], "bought-down": [5.69, 4.2], crafted: [null, 2.1], won: [null, 4.8] });
+    // the third: whether "now" is the cheapest copy listed (an old payload without `listed` counts as listed)
+    expect(worth.cards).toEqual({ "bought-up": [3.02, 3.4, true], "bought-down": [5.69, 4.2, true], crafted: [null, 2.1, true], won: [null, 4.8, true] });
+    const estimated = overlayWorth({ ...data, collection: data.collection!.map((c) => (c.slug === "won" ? { ...c, listed: false } : c)) });
+    expect(estimated.cards.won).toEqual([null, 4.8, false]); // none listed: Sorare's estimate
   });
 
   it("totals the bought cards exactly as the Prices page does", () => {

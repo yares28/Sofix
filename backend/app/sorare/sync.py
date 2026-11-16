@@ -456,20 +456,23 @@ def cards(client: SorareClient, user: str, fixtures: dict[str, str]) -> list[dic
 _VALUE = "{r}_{s}: marketValue(rarity: {r}, seasonEligibility: {s}) {{ eurCents }}"
 PRICES = (
     "query($s:[String!]!){ anyCards(slugs: $s) { slug ownershipHistory { from user { slug } amounts { eurCents } } "
+    "lowestPriceCard { liveSingleSaleOffer { receiverSide { amounts { eurCents } } } } "
     "anyPlayer { ... on Player { commonPlayer(rarity: limited) { "
     + " ".join(_VALUE.format(r=r, s=s) for r in ("limited", "rare") for s in ("IN_SEASON", "CLASSIC"))
     + " } } } } }"
 )
-"""Sorare refuses one root field twice in a query, so a batch is one `anyCards`; a card's value is its player's market value
-for its own rarity and season, all four asked and the right one kept."""
+"""Sorare refuses one root field twice in a query, so a batch is one `anyCards`. A card is worth what the cheapest copy of it on
+the market costs now (`lowestPriceCard`: the same player, rarity, season and print batch, owner's ask of 16 Nov 2026); with
+none listed, its player's market value for its own rarity and season (all four asked and the right one kept), marked an estimate."""
 PRICE_BATCH = (7, 100)
 """Cards a batch, without and with an API key: a card costs Sorare about 62 of the 500 (keyless) or 30000 a query allows."""
 
 
 def card_prices(client: SorareClient, user: str, rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """What you paid for each card and what Sorare values it at now (its player's market value for that rarity and season),
-    in euros, by card slug. `paid` is None for a card you did not buy (crafted, won, minted). Best-effort: a batch Sorare will
-    not answer is left out, never fatal."""
+    """What you paid for each card and what it is worth now, in euros, by card slug: `value` is the cheapest live listing of the
+    same card (`listed` True), else Sorare's market value for its player, rarity and season (`listed` False). `paid` is the euros
+    Sorare recorded for your purchase (an ETH price at that day's rate), None for a card you did not buy (crafted, won, minted).
+    Best-effort: a batch Sorare will not answer is left out, never fatal."""
     out: dict[str, dict[str, Any]] = {}
     cards = [r for r in rows if r.get("slug") and r.get("rarityTyped") in ("limited", "rare")]
     size = PRICE_BATCH[1] if getattr(client, "api_key", "") else PRICE_BATCH[0]
@@ -486,10 +489,14 @@ def card_prices(client: SorareClient, user: str, rows: list[dict[str, Any]]) -> 
             mine = [o for o in card.get("ownershipHistory") or [] if (o.get("user") or {}).get("slug") == user]
             paid = (mine[-1].get("amounts") or {}).get("eurCents") if mine else None
             key = f"{row['rarityTyped']}_{'IN_SEASON' if row.get('inSeasonEligible') else 'CLASSIC'}"
-            value = (((card.get("anyPlayer") or {}).get("commonPlayer") or {}).get(key) or {}).get("eurCents")
+            offer = ((card.get("lowestPriceCard") or {}).get("liveSingleSaleOffer") or {}).get("receiverSide") or {}
+            listed = (offer.get("amounts") or {}).get("eurCents")
+            estimate = (((card.get("anyPlayer") or {}).get("commonPlayer") or {}).get(key) or {}).get("eurCents")
+            value = listed if isinstance(listed, int | float) and listed > 0 else estimate
             out[row["slug"]] = {
                 "paid": paid / 100 if isinstance(paid, int | float) else None,
                 "value": value / 100 if isinstance(value, int | float) else None,
+                "listed": value is listed and value is not None,
                 "since": mine[-1].get("from") if mine else None,
             }
     return out

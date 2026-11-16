@@ -272,18 +272,19 @@ export type DockMission = { id: string; title: string; reward: string | null; pi
 export type DockMissions = { status: MissionsStatus; seenAt: string | null; rarity: string; missions: DockMission[] };
 
 /**
- * Your gallery's prices for the overlay (plans/overlay-bridge.md, B2): each valued card by its slug, [what you paid, its worth now]
+ * Your gallery's prices for the overlay (plans/overlay-bridge.md, B2): each valued card by its slug, [what you paid, its worth now,
+ * whether that is the cheapest copy listed (else Sorare's estimate)]
  * (paid null for a card you did not buy, crafted or won), the bought cards' totals as the Prices page has them, whose gallery it is
  * (the Sorare account the job reads) and when Sorare's values were read. A card Sorare does not value is left out.
  */
-export type OverlayWorth = { user: string; at: string; paid: number; worth: number; profit: number; bought: number; cards: Record<string, [number | null, number]> };
+export type OverlayWorth = { user: string; at: string; paid: number; worth: number; profit: number; bought: number; cards: Record<string, [number | null, number, boolean]> };
 
 export function overlayWorth(sorare: Sorare): OverlayWorth {
   const collection = sorare.collection ?? [];
   const p = prices(collection);
   const cards: OverlayWorth["cards"] = {};
   for (const card of collection) {
-    if (typeof card.value === "number") cards[card.slug] = [typeof card.paid === "number" && card.paid > 0 ? card.paid : null, card.value];
+    if (typeof card.value === "number") cards[card.slug] = [typeof card.paid === "number" && card.paid > 0 ? card.paid : null, card.value, card.listed !== false];
   }
   return { user: sorare.user, at: sorare.generatedAt, paid: p.paid, worth: p.worth, profit: p.profit, bought: p.bought.length, cards };
 }

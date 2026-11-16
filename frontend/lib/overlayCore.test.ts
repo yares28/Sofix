@@ -16,7 +16,7 @@ type Core = {
   MY_GALLERY: string;
   playerPageOf: (pathname: unknown) => string | null;
   verdictLine: (profile: { yours: boolean; inPlan: string[]; verdict: { kind: string; value: string; note: string } | null }) => { text: string; tone: "own" | "up" | "flat" } | null;
-  worthLine: (paid: number | null, value: number) => { now: string; change: string; tone: "up" | "down" | "flat" | "free" };
+  worthLine: (paid: number | null, value: number, listed?: boolean) => { now: string; change: string; tone: "up" | "down" | "flat" | "free" };
   worthTotal: (w: { paid: number; worth: number; profit: number; bought: number }) => { now: string; paid: string; change: string; tone: "up" | "down" | "flat" };
   collectStartingOdds: (json: unknown) => { game: string; player: string; basisPoints: number | null; status?: string }[];
   collectCards: (json: unknown, limit?: number) => { key: string; cardSlug: string | null; playerSlug: string | null; name: string | null }[];
@@ -805,6 +805,8 @@ describe("your gallery's prices (B2)", () => {
     expect(core.worthLine(5.69, 4.2)).toEqual({ now: "now €4.20", change: "▼26%", tone: "down" });
     expect(core.worthLine(4, 4)).toEqual({ now: "now €4.00", change: "level", tone: "flat" });
     expect(core.worthLine(null, 2.1)).toEqual({ now: "now €2.10", change: "not bought", tone: "free" });
+    // "now" is the cheapest copy listed; with none listed it is Sorare's estimate, and says so (16 Nov 2026)
+    expect(core.worthLine(1.01, 3.31, false)).toEqual({ now: "est. €3.31", change: "▲228%", tone: "up" });
   });
 
   it("totals the bought cards as Prices does: worth now, what was paid, the difference", () => {

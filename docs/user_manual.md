@@ -795,8 +795,9 @@ the address (`?chart=&cw=`).
 with what the bought cards cost and are worth now. A tide line stands every bought card on what it cost: a green bar for each gain,
 a red one for each loss, best on the left, with the biggest gain and the biggest loss named on their card (hover a bar for its card).
 Below, every bought card with its gain, "paid → now" and the change in percent, sorted by biggest gain, biggest loss or worth. Cards you
-did not buy (crafted from essence, won) come last at their worth. What you paid is Sorare's record of your purchase; the worth is
-Sorare's market value for that player at the card's rarity and season, not an offer for the card. A card Sorare does not value is left out and counted.
+did not buy (crafted from essence, won) come last at their worth. What you paid is Sorare's record of your purchase (in euros at that day's rate when you paid in ETH); the worth is what the cheapest copy
+of the same card (player, rarity, season) is listed at on the market (16 Nov 2026), or, with none listed, Sorare's market value for that
+player, marked "est." on the gallery. A card with neither is left out and counted.
 
 ## 10a. Missions
 

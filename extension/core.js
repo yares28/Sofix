@@ -543,8 +543,8 @@
   const tone = (amount) => (amount > 0.005 ? "up" : amount < -0.005 ? "down" : "flat"); // the Prices page's own cut-off
 
   /** A gallery card's line: its worth now, and how far that is up or down on what you paid ("not bought" for a crafted or won card). */
-  function worthLine(paid, value) {
-    const now = `now ${euros(value)}`;
+  function worthLine(paid, value, listed = true) {
+    const now = `${listed === false ? "est." : "now"} ${euros(value)}`; // "now": the cheapest copy listed; "est.": none listed, Sorare's estimate
     if (paid === null) return { now, change: "not bought", tone: "free" };
     const t = tone(value - paid);
     const percent = Math.round((Math.abs(value - paid) / paid) * 100);

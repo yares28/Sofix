@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Prices · Sofix" };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-/** Prices: what each card of the gallery cost and what Sorare values it at now (backend/app/sorare/sync.py `card_prices`). */
+/** Prices: what each card of the gallery cost and what it is worth now, its cheapest copy listed (backend/app/sorare/sync.py `card_prices`). */
 export default async function Prices({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const single = (key: string) => {

@@ -2469,14 +2469,15 @@
     if (!record.worthRow || !record.worthRow.isConnected) record.worthRow = locateAgo(record.media);
     const row = record.worthRow;
     if (!row) return removeWorth(record);
-    const [paid, value] = said;
-    const line = core.worthLine(paid, value);
+    const [paid, value, listed] = said;
+    const line = core.worthLine(paid, value, listed);
     const sig = `${line.now}|${line.change}|${worth.at}`;
     if (record.worthEl && record.worthEl.isConnected && record.worthEl.previousElementSibling === row && record.worthSig === sig) return;
     removeWorth(record);
     const el = node("span", "sfx-worth");
     el.setAttribute("data-sfx", "");
-    el.title = `Sorare's value at Sofix's refresh of ${refreshed()}${paid === null ? "" : `; you paid €${paid.toFixed(2)}`}`;
+    const what = listed === false ? "Sorare's estimate (no copy of his listed)" : "The cheapest copy of this card on the market";
+    el.title = `${what} at Sofix's refresh of ${refreshed()}${paid === null ? "" : `; you paid €${paid.toFixed(2)}`}`;
     el.append(node("span", "", line.now), node("b", `sfx-worth--${line.tone}`, line.change));
     row.after(el);
     record.worthEl = el;
@@ -2509,7 +2510,7 @@
     box.setAttribute("data-sfx", "");
     box.setAttribute("role", "group");
     box.setAttribute("aria-label", `Your bought cards are worth ${t.now} now; ${t.paid}; ${t.change}`);
-    box.title = `As on Sofix's Prices page; Sorare's values at Sofix's refresh of ${refreshed()}`;
+    box.title = `As on Sofix's Prices page: each card at its cheapest copy listed, at Sofix's refresh of ${refreshed()}`;
     box.append(node("span", "sfx-cap", "BOUGHT, NOW"), node("b", "sfx-worthbox-now", t.now), node("span", "", t.paid), node("b", `sfx-worth--${t.tone}`, t.change));
     row.children[0].after(box);
     worthBox = box;

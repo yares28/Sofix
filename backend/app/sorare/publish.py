@@ -2046,7 +2046,8 @@ def collection_out(cards: list[Card], prices: Mapping[str, Mapping[str, Any]] | 
     L5 and L40 are Sorare's average scores over those windows; L10 is the last-ten-played average the rest of
     the app already uses. `started` is the share of games in that window he actually played. `stars` is his
     gameplay tier (Star, Icon, and the rest). `paid`, `value` and `since` are the Prices page's: what you paid in euros
-    (None when you did not buy it), what Sorare values it at now, and when it became yours (`sync.card_prices`).
+    (None when you did not buy it), what it is worth now (the cheapest copy listed, `listed`, else Sorare's estimate), and when it
+    became yours (`sync.card_prices`).
     """
     prices = prices or {}
     return [
@@ -2067,7 +2068,7 @@ def collection_out(cards: list[Card], prices: Mapping[str, Mapping[str, Any]] | 
                 {"window": "L40", "score": c.l40, "started": c.started40},
             ],
             "stars": c.stars,
-            **({k: prices[c.slug].get(k) for k in ("paid", "value", "since")} if c.slug in prices else {}),
+            **({k: prices[c.slug].get(k) for k in ("paid", "value", "listed", "since")} if c.slug in prices else {}),
         }
         for c in cards
     ]

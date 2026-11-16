@@ -917,10 +917,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-13",
-        "note": "13 Nov 2026: Sofix v1 refits for PL, BL1, FL1, CL, EL, CONF (foreign_scores v1 hook, per-model version recorded in publish, refresh replans on a new competition artifact); LaLiga path unchanged; checked with unit tests and a run on local real blocks, not on a live refresh",
+        "date": "2026-11-16",
+        "note": "13 Nov 2026: Sofix v1 refits for PL, BL1, FL1, CL, EL, CONF (foreign_scores v1 hook, per-model version recorded in publish, refresh replans on a new competition artifact); LaLiga path unchanged; checked with unit tests and a run on local real blocks, not on a live refresh. 16 Nov 2026: publish.collection_out also passes the card price's 'listed' flag (cheapest listing vs estimate); selection and forecasts unchanged",
         "files": {
-          "backend/app/sorare/publish.py": "76402106558ee93133896deeeff7cb9d4e5265566e5512718d4cc2bfb8df4a60",
+          "backend/app/sorare/publish.py": "85bf008f4058d489a461c2069b47f108f477ed45cb1fe59ea054329f5c06777c",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
@@ -1050,10 +1050,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-13",
-        "note": "13 Nov 2026: Sofix v1 refits for PL, BL1, FL1, CL, EL, CONF (foreign_scores v1 hook, per-model version recorded in publish, refresh replans on a new competition artifact); LaLiga path unchanged; checked with unit tests and a run on local real blocks, not on a live refresh",
+        "date": "2026-11-16",
+        "note": "13 Nov 2026: Sofix v1 refits for PL, BL1, FL1, CL, EL, CONF (foreign_scores v1 hook, per-model version recorded in publish, refresh replans on a new competition artifact); LaLiga path unchanged; checked with unit tests and a run on local real blocks, not on a live refresh. 16 Nov 2026: publish.collection_out also passes the card price's 'listed' flag (cheapest listing vs estimate); selection and forecasts unchanged",
         "files": {
-          "backend/app/sorare/publish.py": "76402106558ee93133896deeeff7cb9d4e5265566e5512718d4cc2bfb8df4a60",
+          "backend/app/sorare/publish.py": "85bf008f4058d489a461c2069b47f108f477ed45cb1fe59ea054329f5c06777c",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "8fbe107bd6eb5f1ae45d19128a1b759d690dbe2decf3c1fd99d0a5a90f715241"
@@ -1106,11 +1106,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-12",
-        "note": "Inspected the optional per-game frontend fields; they describe score forecasts independently of the reward simulation.",
+        "date": "2026-11-16",
+        "note": "Inspected the optional per-game frontend fields; they describe score forecasts independently of the reward simulation. 16 Nov 2026: CollectionCard gains the optional 'listed' price flag; rewards unchanged",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "59cc1f95df8ed4bb4a174185f6f30f2959980c44cd8e35e0b8e3baaafd1c7c07",
+          "frontend/lib/play.ts": "b1ae1903494d4767198fd37188deab8174a02578c3cc37d2d0fdffda65365b6b",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }

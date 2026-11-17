@@ -1642,9 +1642,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "0.5.20: the read-only SofixPayments query (your account's PAYMENT entries, Sorare gives 50 a page, at most 20 pages, allowlisted in bridge.js only and called by the background's paidCards, not an app-askable step; checked live: 247 entries in 5 pages) puts what you actually paid, market credits off, into the gallery's prices; with background tests; no write, permission or Apply step changed",
+        "note": "0.5.20: the read-only SofixPayments query (your account's PAYMENT entries, Sorare gives 50 a page, at most 20 pages, allowlisted in bridge.js only and called by the background's paidCards, not an app-askable step; checked live: 247 entries in 5 pages) puts what you actually paid, market credits off, into the gallery's prices; with background tests; no write, permission or Apply step changed. 0.5.21 (17 Nov 2026): one app message, xs-version, stores the xS version the overlay draws (v0/v1/v2 allowlisted, app origin only, no Sorare request, no write).",
         "files": {
-          "extension/background.js": "04199c8da4153aef5b75240977bb895e3298c192280dceeaa7a84b8127ee893b",
+          "extension/background.js": "cb6e59c6b0609a7c0be6c6bfa98a9bc3d353b8344718df21081be2566f33ecba",
           "extension/bridge.js": "867affedbdea8d6fc7e3cf6fe77f151230242f78e1a75b3cea7cd1bef06be149",
           "extension/manifest.template.json": "c08adc37a3e284b9320424d49345ee700e29148ded2358f0ded4abe74509f9c3",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",

@@ -817,6 +817,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/strategies-decision-board.md` | [open](../plans/strategies-decision-board.md) |
 | document (check authority) | `plans/strategies-podium-charts.md` | [open](../plans/strategies-podium-charts.md) |
 | document (check authority) | `plans/unshipped-commit-review.md` | [open](../plans/unshipped-commit-review.md) |
+| document (check authority) | `plans/xscore-versions.md` | [open](../plans/xscore-versions.md) |
 | document (check authority) | `plans/xscore.md` | [open](../plans/xscore.md) |
 | table | `competitions` | `backend/app/models.py` |
 | table | `stadiums` | `backend/app/models.py` |

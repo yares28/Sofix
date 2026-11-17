@@ -42,6 +42,10 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink); }
+/* The xS version switch (lib/xs.ts): a number drawn in every version shows only the picked one; v1 when none is picked. */
+html:not([data-xs="v0"]):not([data-xs="v2"]) [data-xsv]:not([data-xsv="v1"]),
+html[data-xs="v0"] [data-xsv]:not([data-xsv="v0"]),
+html[data-xs="v2"] [data-xsv]:not([data-xsv="v2"]) { display: none !important; }
 body {
   font-family: var(--font-sans);
   font-size: var(--text-base);

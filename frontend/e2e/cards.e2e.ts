@@ -113,7 +113,7 @@ test("every LaLiga player has a start chance and an xScore, not only yours, pric
   await search.fill("Raphinha");
   const raphinha = page.locator(".s5-res", { hasText: "Raphinha" });
   await expect(raphinha.locator(".s5-stat", { hasText: "Starts" })).toContainText("85%");
-  await expect(raphinha.locator(".s5-stat", { hasText: "xScore" }).locator("b")).toHaveText("67");
+  await expect(raphinha.locator(".s5-stat", { hasText: "xScore" }).locator("b:visible")).toHaveText("67");
 
   await search.fill("Unpriced");
   const kid = page.locator(".s5-res", { hasText: "Unpriced Kid" });
@@ -125,6 +125,29 @@ test("every LaLiga player has a start chance and an xScore, not only yours, pric
   await expect(hero).toContainText("v Sevilla");
   await expect(hero).toContainText("xScore if he plays"); // no conditional starting score was published for this player
   await expect(hero.locator(".pd-s")).toHaveText("4%");
+});
+
+test("the xS switch top right shows every card in the picked version, keeps it after a reload, and goes back to v1", async ({ page }) => {
+  await page.goto("/players");
+  await page.getByRole("searchbox").or(page.getByRole("textbox")).first().fill("Raphinha");
+  const xs = page.locator(".s5-res", { hasText: "Raphinha" }).locator(".s5-stat", { hasText: "xScore" }).locator("b:visible");
+  await expect(xs).toHaveText("67"); // v1, the default: his expected points
+  const pick = async (version: string) => {
+    await page.locator(".xs-switch-btn").click();
+    await page.getByRole("radio", { name: new RegExp(`Sofix ${version}`) }).click();
+  };
+  await pick("v2");
+  await expect(page.locator("html")).toHaveAttribute("data-xs", "v2");
+  await expect(xs).toHaveText("61"); // his most likely score if he starts, the likelier role
+  await page.reload(); // kept in this browser, set before the first paint
+  await page.getByRole("searchbox").or(page.getByRole("textbox")).first().fill("Raphinha");
+  await expect(xs).toHaveText("61");
+  await expect(page.locator(".xs-switch-btn")).toHaveAccessibleName("xS version: v2");
+  await pick("v0");
+  await expect(xs).toHaveText("72"); // the old formula: 0.85 × 80 + 0.08 × 45
+  await pick("v1");
+  await expect(page.locator("html")).not.toHaveAttribute("data-xs", /./);
+  await expect(xs).toHaveText("67");
 });
 
 test("Stats ranks LaLiga players by their mean per start: the first five on a staircase, 1st on the left, the next five as big cards, then a wall", async ({ page }) => {

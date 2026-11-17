@@ -20,6 +20,8 @@ import { chanceLabel, startChance, type MarketPlayer, type Sorare } from "../../
 import { Foil } from "../play/bits";
 import SourceMark from "../SourceMark";
 import CardArt from "./CardArt";
+import XsSwap from "../XsSwap";
+import { xsNumbers } from "../../lib/xs";
 import useCountUp from "./useCountUp";
 
 const LIMIT = 30;
@@ -184,9 +186,7 @@ function ResultCard({
           <span>{start ? "Starts" : "Plays"}</span>
         </span>
         <span className="s5-stat" title={player.x === undefined ? "No forecast saved for this GW" : `${Math.round(player.mu ?? 0)} if he plays`}>
-          <b className={player.x === undefined ? undefined : "sc-chip"} style={player.x === undefined ? undefined : { background: scoreColour(player.x).fill, color: scoreColour(player.x).ink }}>
-            {player.x === undefined ? "—" : Math.round(player.x)}
-          </b>
+          {player.x === undefined ? <b>—</b> : <XsSwap values={xsNumbers(player.x, player.fixture, { pStart: player.pStart, pOn: player.pStart === undefined || player.p === undefined ? undefined : Math.max(0, player.p - player.pStart) })} render={(n, mark) => <b {...mark} className="sc-chip" style={{ background: scoreColour(n).fill, color: scoreColour(n).ink }}>{n === null ? "—" : Math.round(n)}</b>} />}
           <span>{player.waiting === "board" ? "Waiting for the board" : player.by === "form" ? "Form xScore" : player.by === "sorare" ? "Sorare xScore" : "xScore"}</span>
         </span>
         <span className="s5-stat" title={player.projection === null ? dash : undefined}>

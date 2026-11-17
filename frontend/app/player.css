@@ -253,3 +253,4 @@
    and the Recap's row of lineup cards, which scrolls sideways, keeps 30 px of headroom above the cards. */
 .hm-tile, .pl-lu, .pl-hero, .lu-pitch, .lu-match { overflow: clip; overflow-clip-margin: 32px; }
 .rc-team { padding-top: 30px; margin-top: -22px; }
+.pd-dec { display: block; margin: 6px 0 2px; color: var(--ink); font-size: 14px; font-weight: 650; }

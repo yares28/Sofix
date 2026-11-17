@@ -1,5 +1,7 @@
 "use client";
 
+import XsSwap from "../XsSwap";
+import { decisiveOf, roleNumbers } from "../../lib/xs";
 import { useMemo, useState } from "react";
 import { scoreColour } from "../../lib/cards";
 import type { MarketPlayer, PlayingPlayer } from "../../lib/play";
@@ -60,6 +62,8 @@ export default function PlayerView({
     : theirs && typeof (theirs.start ?? theirs.mu) === "number"
       ? Math.round((theirs.start ?? theirs.mu) as number)
       : null;
+  const starts = typeof (planned?.start ?? theirs?.start) === "number";
+  const decisive = decisiveOf(shown ?? undefined, { pStart: 1, pOn: 0 });
   const last10 = sheet ? Math.round(sheet.last.reduce((a, r) => a + r[0], 0) / Math.max(1, sheet.last.length)) : null;
   const bars = useMemo(() => (shape && score !== null ? shapeBars(shape, score) : []), [shape, score]);
   const pickers: [Window, string][] = [...(factors ? ([["next", "Next game"]] as [Window, string][]) : []), ["l10", "Last 10"], ["all", "Saved starts"]];
@@ -89,7 +93,8 @@ export default function PlayerView({
             {score !== null ? (
               <>
                 <div>
-                  <span className="pd-x sc-chip" style={{ background: scoreColour(score).fill, color: scoreColour(score).ink }}>{score}</span>
+                  <XsSwap values={roleNumbers(score, shown ?? undefined, starts ? "start" : null)} render={(n, mark) => <span {...mark} className="pd-x sc-chip" style={{ background: scoreColour(n).fill, color: scoreColour(n).ink }}>{Math.round(n ?? score)}</span>} />
+                  {starts && decisive ? <span data-xsv="v2" className="pd-dec">{decisive.pct}% chance of {decisive.score}</span> : null}
                   <small>{(planned?.by ?? theirs?.by) === "form" ? "Form: " : (planned?.by ?? theirs?.by) === "sorare" ? "Sorare: " : ""}{typeof (planned?.start ?? theirs?.start) === "number" ? "xScore if he starts" : "xScore if he plays"}</small>
                 </div>
                 {typeof pStart === "number" ? (

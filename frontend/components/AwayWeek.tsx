@@ -3,6 +3,8 @@ import { playerHref } from "../lib/links";
 import type { GameweekPlan, PlayerGame, PlayingPlayer } from "../lib/play";
 import { dayName } from "../lib/weeks";
 import SorareImage from "./play/SorareImage";
+import XsSwap from "./XsSwap";
+import { playerXs } from "../lib/xs";
 
 const COMPETITION: Record<string, string> = {
   "uefa-nations-league": "Nations League",
@@ -137,7 +139,7 @@ export default function AwayWeek({
               </span>
               <span className="pct">{Math.round(player.p * 100)}%</span>
               <span className="xs">
-                <b>{Math.round(player.x)}</b>
+                <XsSwap values={playerXs(player.x, player)} render={(n, mark) => <b {...mark}>{Math.round(n ?? player.x)}</b>} />
                 <span>xScore</span>
               </span>
               <span className="opp">
@@ -195,7 +197,7 @@ export default function AwayWeek({
                   <span>play</span>
                 </span>
                 <span className="xs">
-                  <b>{Math.round(row.player.x)}</b>
+                  <XsSwap values={playerXs(row.player.x, row.player)} render={(n, mark) => <b {...mark}>{Math.round(n ?? row.player.x)}</b>} />
                   <span>xScore</span>
                 </span>
                 <span className="at">{clock.format(new Date(row.game.kickoff))}</span>

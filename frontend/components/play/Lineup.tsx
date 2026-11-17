@@ -13,6 +13,7 @@ import LineupSheet from "./LineupSheet";
 import { ProSheet, ProTags } from "./Pro";
 import SorareImage from "./SorareImage";
 import SeasonIcon from "../SeasonIcon";
+import { cardXs } from "../../lib/xs";
 
 const time = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
@@ -81,7 +82,7 @@ export default function Lineup({
           const stayedOut = after && bench && !cameIn.has(card.slug);
           const score = after ? (stayedOut ? null : card.actual) : got?.played ? got.score : null;
           return { slug: card.slug, name: card.name, picture: card.pic ?? null, rarity: lineup.rarity, captain: !!card.captain, bench, xd: card.xd,
-            x: hindsight ? undefined : cardScore(card).value, score, total: cardTotal(score, card, lineup.captainBonus),
+            x: hindsight ? undefined : cardScore(card).value, xs: hindsight ? undefined : cardXs(card, players), score, total: cardTotal(score, card, lineup.captainBonus),
             why: stayedOut ? "Stayed on the bench" : (after ? card.actual === null : got && !got.played) ? "Did not play" : "Not played yet" };
         })}
       />

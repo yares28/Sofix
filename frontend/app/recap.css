@@ -598,3 +598,4 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .rx-mk.y { background: #1f8a3a; } .rx-mk.n { background: #c0433f; }
 .rc-ms li.miss .rc-art img { filter: grayscale(.85); opacity: .75; }
 .rc-ms .rc-art { position: relative; overflow: visible; }
+.rx-dec { color: var(--ink-2); font-weight: 500; }

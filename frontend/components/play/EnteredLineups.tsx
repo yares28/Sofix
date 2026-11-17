@@ -13,6 +13,7 @@ import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import { chanceLabel, type GameweekPlan } from "../../lib/play";
 import { enteredScore, playerKey, type ActualScores } from "../../lib/lineupScores";
 import { ComparisonCards, ComparisonScores, type ComparisonCard } from "../recap/LineupComparison";
+import { playerXs } from "../../lib/xs";
 import { CompTag, RewardPair, ScoreTrack } from "../recap/LineupStrip";
 import { useEnteredCount } from "../recap/LineupsSwitch";
 import DataAction from "../ui/DataAction";
@@ -197,6 +198,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
             const size = lineup.scoring?.slots.filter(s => !s.sub).length ?? options.find(l => l.board === lineup.board)?.starters.length;
             const cards = [...lineup.cards].sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
               .map((c, i) => ({ ...c, x: known.get(c.slug)?.x ?? (c.player ? players.get(c.player)?.x : null) ?? null,
+                xs: playerXs(known.get(c.slug)?.x ?? (c.player ? players.get(c.player)?.x : null) ?? null, c.player ? players.get(c.player) : undefined),
                 xd: known.get(c.slug)?.xd ?? (c.player ? players.get(c.player)?.xd : null) ?? null, bench: size !== undefined && i >= size }));
             const needs = enteredProNeeds(lineup, cards.filter((c) => !c.bench), forecast?.gameweek.slug === week.slug ? forecast : null, scores);
             // The same row as the Recap draws it, on the home page and on Play.

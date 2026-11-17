@@ -5,12 +5,16 @@ import { scoreColour } from "../../lib/cards";
 import CardArt from "../cards/CardArt";
 import NeedPill from "../NeedPill";
 import type { NeedBadge } from "../../lib/pointsNeeded";
+import type { XsVersion } from "../../lib/xs";
+import XsSwap from "../XsSwap";
 
 export type ComparisonCard = { slug: string; player?: string | null; name: string; picture: string | null; rarity: string | null; captain: boolean; bench?: boolean; xd?: number | null;
   /** What he scored on Sorare; null until he has. */
   score: number | null;
   /** His xScore; left out for a lineup built knowing the scores. */
   x?: number | null;
+  /** His xS in every version the switch offers (lib/xs.ts); without it every version shows . */
+  xs?: Record<XsVersion, number | null>;
   /** His card's score with its bonuses (the card's, the captain's), when `score` is his own; shown on hover. */
   total?: number | null;
   /** Why there is no score: "Not played yet", "Did not play", ... */
@@ -42,7 +46,7 @@ export function ComparisonCards({ cards, linked = true }: { cards: ComparisonCar
           <span className={`rc-hex sm${card.score === null ? "" : " scored"}`} style={fill(card.score, true)} title={card.score === null ? (card.why ?? "No score yet") : total === null ? "His score" : "His score, before bonuses"}>
             {card.score === null ? "-" : Math.round(card.score)}
           </span>
-          {card.x === undefined ? null : <span className="rc-xs" style={fill(x)} title="His xS">{x === null ? "-" : Math.round(x)}</span>}
+          {card.x === undefined ? null : <XsSwap values={card.xs ?? { v0: x, v1: x, v2: x }} render={(n, mark) => <span {...mark} className="rc-xs" style={fill(n)} title="His xS">{n === null ? "-" : Math.round(n)}</span>} />}
         </span>
         <span className="visually-hidden">{card.name}{card.bench ? ", bench" : ""}{card.score === null ? `, ${card.why ?? "no score yet"}` : `, scored ${Math.round(card.score)}`}{total === null ? "" : `, ${Math.round(total)} with bonuses`}{x === null ? "" : `, xS ${Math.round(x)}`}{xd === null ? "" : `, ${xd.toFixed(2)} xD`}</span>
       </li>;

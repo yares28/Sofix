@@ -26,6 +26,8 @@ import SeasonIcon from "../SeasonIcon";
 import type { CardReturn } from "../../lib/myWeeks";
 import { cashLabel, essenceLabel } from "../../lib/play";
 import DetailTip from "../ui/DetailTip";
+import XsSwap from "../XsSwap";
+import { xsNumbers } from "../../lib/xs";
 
 const PAGE_SIZE = 12;
 
@@ -304,7 +306,7 @@ export default function CardsView({ data, upcoming, initialPage = 0, returns = {
 }
 
 function CardTile({ card, index, stack, anchor, target, next, earned }: { card: CollectionCard; index: number; stack: number; anchor: boolean; target: boolean; next: NextGame | undefined; earned?: CardReturn | null }) {
-  const score = next?.forecast?.x ?? null, colour = scoreColour(score);
+  const score = next?.forecast?.x ?? null;
   return (
     <article className={`s5-pc${anchor && target ? " is-target" : ""}`} data-card={card.slug} id={anchor ? cardAnchor(card.player) : undefined} style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
       {/* The card and the name open his player page. */}
@@ -314,7 +316,7 @@ function CardTile({ card, index, stack, anchor, target, next, earned }: { card: 
         <SeasonMark card={card} />
         <span className="s5-card-ratings">
           <span className={`s5-card-fdr${next?.fdr ? ` f${next.fdr.bucket}` : ""}`} title={next?.fdr?.difficulty != null ? `${gameLine(next.game)} · ${next.fdr.label} · FDR ${Math.round(next.fdr.difficulty)} of 100 (lower is easier)` : "FDR unavailable for this fixture"}><small>FDR</small><b>{next?.fdr?.difficulty == null ? "—" : Math.round(next.fdr.difficulty)}</b></span>
-          <span className="s5-card-score" style={{ background: colour.fill, color: colour.ink }} aria-label={score === null ? "xScore unavailable for this fixture" : `xScore ${Math.round(score)}`} title={next?.game.modelVersion ? `${next.game.modelVersion} · Expected points before bonuses. Score prediction: ${next.game.startPoint} if starting, ${next.game.subPoint} if coming on.` : "Published player xScore, before competition and captain bonuses"}><b>{score === null ? "—" : Math.round(score)}</b></span>
+          <XsSwap values={xsNumbers(score, next?.game, next?.roles ?? {})} render={(n, mark) => <span {...mark} className="s5-card-score" style={{ background: scoreColour(n).fill, color: scoreColour(n).ink }} aria-label={n === null ? "xScore unavailable for this fixture" : `xScore ${Math.round(n)}`} title="His xS, before competition and captain bonuses"><b>{n === null ? "—" : Math.round(n)}</b></span>} />
         </span>
       </Link>
       <InfoButton card={card} next={next} earned={earned} />

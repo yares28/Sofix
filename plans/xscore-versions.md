@@ -75,6 +75,15 @@ in the score record: the decisive scenario (the Audit's step 4 adds it if it nee
 
 ### 2. The switch and the app's cards
 
+**Done 17 Nov (not deployed):** the choice lives in this browser (`localStorage` `sofix-xs`, set before the first
+paint like the theme, `lib/xs.ts` `XS_SCRIPT`) instead of a cookie: pages draw each chip in every version
+(`components/XsSwap.tsx`) and one rule in `globals.css` shows the picked one, so pages stay cacheable and switching
+costs no request. Wired: gallery, Players, Play's plans and your entered lineups, Home's fan and away-week rows, the
+player page (with the v2 decisive line) and Home's front-card line. Below 1200 px the button is the version alone and
+the theme toggle moves into its menu (the bar had no room). **Still on v1:** Arcade's cards and Play's Pro windows
+(their payloads carry no per-game versions yet), the overlay (step 3). Real data: v2 shows today; v0 needs the next
+refresh with step 1's fields.
+
 - `components/XsSwitch.tsx` beside `ThemeSwitch` in `SiteNav`: the button, the menu (three rows, check, hit rate),
   the ±7/±10/±15 toggle. Keyboard and focus like the existing menus; reduced motion respected.
 - The choice lives in a cookie (`xs=v0|v1|v2`, default v1) so the server draws the chosen number with no flicker.

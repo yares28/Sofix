@@ -1,4 +1,5 @@
 import { absenceText } from "./absence";
+import { decisiveOf, playerXs, type XsVersion } from "./xs";
 import { formatShortKickoff } from "./grid";
 import { gameweekMatches } from "./matches";
 import { paidTiers, type FfStatus, type Lineup, type Plan, type PlayerGame, type PlayingPlayer, type StartSource } from "./play";
@@ -24,6 +25,9 @@ export type BestCard = {
   source: StartSource | null;
   /** "v Valencia, Sun" / "at Paderborn, Sat", or null when he has no game listed. */
   game: string | null;
+  /** `x` in every xS version, and the decisive scenario Sofix v2 names under the front card (lib/xs.ts). */
+  xs: Record<XsVersion, number | null>;
+  decisive: { pct: number; score: number } | null;
 };
 
 const firstGame = (player: PlayingPlayer): PlayerGame | null =>
@@ -51,6 +55,8 @@ export function bestCards(players: PlayingPlayer[], count = 10): BestCard[] {
         start,
         source: (game?.pStart !== undefined ? game.startSource : player.startSource) ?? null,
         game: game ? gameLabel(game) : null,
+        xs: playerXs(player.x, player),
+        decisive: decisiveOf(game ?? undefined, { pStart: start, pOn: game?.pOn ?? player.pOn }),
       };
     });
 }

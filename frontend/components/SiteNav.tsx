@@ -9,6 +9,7 @@ import StatusPill from "./StatusPill";
 import LensBar from "./LensBar";
 import TabBar from "./TabBar";
 import ThemeSwitch from "./ThemeSwitch";
+import XsSwitch from "./XsSwitch";
 import WeekPicker from "./WeekPicker";
 import type { Competition } from "../lib/competitions";
 
@@ -36,6 +37,7 @@ export default function SiteNav({ meta, system, current, week, competition }: Pr
             {week ? <WeekPicker weeks={week.weeks} current={week.current} now={week.now} competition={competition} /> : null}
             <StatusPill syncedAt={syncedAt(meta, system, competition)} system={system} current={current === "control"} />
             <PlayerSearch />
+            <XsSwitch />
             <ThemeSwitch />
           </div>
         </div>

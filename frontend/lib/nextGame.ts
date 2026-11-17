@@ -24,6 +24,8 @@ export type NextGame = {
   chances: SourceChances;
   /** A single game's published forecast; a double's best-game number cannot describe this fixture. */
   forecast: { x: number | null; xd: number | null } | null;
+  /** His chance of starting this game and of coming on in it: which role each xS version answers for (lib/xs.ts). */
+  roles?: { pStart?: number | null; pOn?: number | null };
   fdr?: FdrSide;
 };
 
@@ -50,7 +52,8 @@ export function nextGames(weeks: GameweekPlan[], now: Date): Map<string, NextGam
             ? { list: [{ source: game.startSource, percent: Math.round(game.pStart * 100) }], used: game.startSource }
             : { list: [], used: null };
       const forecast = games.length === 1 && player.availabilityKnown !== false && game.availabilityKnown !== false ? { x: player.x ?? null, xd: player.xd ?? null } : null;
-      next.set(key, { week: week.gameweek.number, kickoff: game.kickoff, game, chances, forecast });
+      const roles = { pStart: game.pStart ?? (index === 0 ? player.pStart : undefined), pOn: game.pOn ?? (index === 0 ? player.pOn : undefined) };
+      next.set(key, { week: week.gameweek.number, kickoff: game.kickoff, game, chances, forecast, roles });
     }
   }
   return next;

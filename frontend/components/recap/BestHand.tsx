@@ -1,5 +1,6 @@
 "use client";
 
+import XsSwap from "../XsSwap";
 import { useState, type CSSProperties } from "react";
 import Link from "../FootballLink";
 import { scoreColour } from "../../lib/cards";
@@ -45,7 +46,8 @@ export default function BestHand({ cards }: { cards: HandCard[] }) {
                 {card.scored !== null ? <span className="rx-st" style={band(card.x)} aria-hidden="true">xS {Math.round(card.x)}</span>
                   : card.start !== null ? <span className="rx-st" style={band(card.start * 100)} aria-hidden="true">{pct(card.start)}</span> : null}
                 {card.scored === "dnp" ? <span className="rx-hx dnp" aria-hidden="true">DNP</span>
-                  : <span className="rx-hx" style={card.scored === null ? band(card.x) : band(card.scored, true)} aria-hidden="true">{Math.round(card.scored ?? card.x)}</span>}
+                  : card.scored === null ? <XsSwap values={card.xs} render={(n, mark) => <span {...mark} className="rx-hx" style={band(n ?? card.x)} aria-hidden="true">{Math.round(n ?? card.x)}</span>} />
+                  : <span className="rx-hx" style={band(card.scored, true)} aria-hidden="true">{Math.round(card.scored)}</span>}
               </Link>
             </li>
           );
@@ -55,7 +57,7 @@ export default function BestHand({ cards }: { cards: HandCard[] }) {
         <span className="rx-rk">{active + 1}</span>
         <span className="rx-who2"><b>{on.name}</b>{on.game ? <span>{on.game}</span> : null}</span>
         {on.start !== null ? <span className="rx-ch" style={band(on.start * 100)} title={on.source ? `${SOURCE_SHORT[on.source]}: ${SOURCE_NAME[on.source]}` : undefined}>{pct(on.start)} start</span> : null}
-        <span className="rx-xs">xS <b>{Math.round(on.x)}</b>{on.scored === null ? null : <> → <b style={{ color: on.scored === "dnp" ? "var(--ink-2)" : on.scored >= on.x ? "var(--win)" : "var(--loss)" }}>{on.scored === "dnp" ? "did not play" : `${Math.round(on.scored)} scored`}</b></>}</span>
+        <span className="rx-xs">xS {on.scored === null ? <XsSwap values={on.xs} render={(n, mark) => <b {...mark}>{Math.round(n ?? on.x)}</b>} /> : <b>{Math.round(on.x)}</b>}{on.scored === null && on.decisive ? <span data-xsv="v2" className="rx-dec"> · {on.decisive.pct}% chance of {on.decisive.score}</span> : null}{on.scored === null ? null : <> → <b style={{ color: on.scored === "dnp" ? "var(--ink-2)" : on.scored >= on.x ? "var(--win)" : "var(--loss)" }}>{on.scored === "dnp" ? "did not play" : `${Math.round(on.scored)} scored`}</b></>}</span>
       </p>
     </div>
   );

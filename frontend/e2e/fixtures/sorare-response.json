@@ -6117,7 +6117,13 @@
           "opponent": "Sevilla",
           "opponentCrest": null,
           "venue": "H",
-          "kickoff": "2026-10-10T19:00:00Z"
+          "kickoff": "2026-10-10T19:00:00Z",
+          "startPoint": 61,
+          "subPoint": 40,
+          "startPrev": 80,
+          "subPrev": 45,
+          "pDec": 0.41,
+          "decIf": 88
         }
       },
       {

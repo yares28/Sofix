@@ -97,6 +97,15 @@ The sun/moon button at the top right of the bar switches between the light and t
 this browser; until one is made, Sofix follows the system's light or dark setting. The magnifier beside it searches players by
 name (accents ignored) and opens his page. Every Sorare card drawn anywhere in the app opens that player's page too.
 
+The **xS** button beside them picks which xS every card shows ([plan](../plans/xscore-versions.md)): **Sofix v1**
+(his expected points, the default), **Sofix v2** (the most likely final score, the number to expect) or **Sofix v0**
+(the formula used before 12 Nov). Its menu shows each version's hit rate within ±7, ±10 or ±15 points (±10 and ±15 say
+"being measured" until the replay has them). The choice is kept in this browser and nothing reloads: only the numbers
+change. Lineup totals, plans and rewards stay on expected points in every version. In v2, the player page and the line
+under Home's front card add his decisive scenario, "27% chance of 79": his whole score if a positive decisive action
+comes, never added to the number. A game no version worked out keeps v1's number. Below 1200 px the button shows only
+the version, and the light/dark switch moves inside its menu.
+
 A week has one name on every page, in the bar, in the Play title and on Lineups and Home, because the two leagues count their
 weeks differently (LaLiga's round 8 is Sorare's GW21): **LaLiga round 8 · Sorare GW21**; before Sorare opens the week
 **LaLiga round 9 · Sorare not open**; an international break has no LaLiga round, **Sorare GW19 · national teams**.

@@ -1427,7 +1427,7 @@ test.describe("the sorare.com overlay", () => {
     expect(await text(page, "doubtful")).toEqual(["53", "58", "80%"]); // his score if he starts does not move
 
     await doubtful.hover();
-    await expect(panel(page)).toContainText("FF live 2 min ago");
+    await expect(panel(page)).toContainText("FF · 2 min ago");
     await expect(panel(page).getByRole("status")).toHaveCount(0); // no longer a doubt
 
     // It asked once, for the match the cards on screen are about, and named nothing else.

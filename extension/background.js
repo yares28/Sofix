@@ -1192,6 +1192,10 @@ chrome.runtime.onMessageExternal.addListener((message, sender) => {
   if (message?.type === "arcade-aim" && Number.isInteger(message.step) && message.step >= 1 && message.step <= 50) {
     chrome.storage.local.set({ arcadeAim: { step: message.step, at: Date.now() } });
   }
+  // The xS version the app shows (plans/xscore-versions.md): the overlay draws the same one, and redraws when it changes.
+  if (message?.type === "xs-version" && ["v0", "v1", "v2"].includes(message.version)) {
+    chrome.storage.local.set({ xsVersion: message.version });
+  }
 });
 
 // The watch: near a kick-off of the plan or of an entered lineup, while a sorare.com tab is open, read again every five minutes so

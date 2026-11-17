@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decisiveOf, roleNumbers, shownXs, xsNumbers } from "./xs";
+import { decisiveOf, roleNumbers, shownXs, tileVersions, xsNumbers } from "./xs";
 
 const game = { startPoint: 45, subPoint: 35, startPrev: 55, subPrev: 41, pDec: 0.27, decIf: 79, subPDec: 0.1, subDecIf: 70 };
 
@@ -43,5 +43,17 @@ describe("roleNumbers", () => {
     expect(roleNumbers(38, game, "sub")).toEqual({ v0: 41, v1: 38, v2: 35 });
     expect(roleNumbers(47, game, null)).toEqual({ v0: 47, v1: 47, v2: 47 });
     expect(roleNumbers(50, { startPoint: 44 }, "start")).toEqual({ v0: 50, v1: 50, v2: 44 });
+  });
+});
+
+describe("tileVersions", () => {
+  it("gives the overlay tile its other versions and the decisive scenario, in the role the tile shows", () => {
+    expect(tileVersions(50, game, { pStart: 0.9, pOn: 0.1 }, true)).toEqual({ xs: { v0: 55, v2: 45 }, dec: { pct: 27, score: 79 } });
+    expect(tileVersions(52, game, { pStart: 0.9, pOn: 0.1 }, false)).toEqual({ xs: { v0: 54, v2: 45 }, dec: { pct: 27, score: 79 } });
+  });
+
+  it("sends nothing for a game with no other version, so the payload stays as it was", () => {
+    expect(tileVersions(50, undefined, {}, true)).toEqual({});
+    expect(tileVersions(50, { startPoint: 50 }, {}, true)).toEqual({});
   });
 });

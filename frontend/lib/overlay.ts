@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { tileVersions } from "./xs";
 import { NATIONAL_COMPETITION, clubKey, nextFive, sideOutlook, type NextGameCell, type SideOutlook } from "./home";
 import { squadBar, verdict, type Verdict } from "./cards";
 import { cardScore, cashLabel, essenceLabel, likelyResult, nextWeek, proOpen, resultLabel, waitingFor, weekPlan, type BenchRecord, type FfStatus, type GameweekPlan, type Lineup, type MarketFixture, type MarketPlayer, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
@@ -167,6 +168,12 @@ export type OverlayEntry = {
   mult?: number;
   /** What a point of his costs, from his market row's Limited price (absent without one): the overlay's "€0.14/pt" on Limited cards. */
   price?: OverlayPrice;
+  /**
+   * The tile's number in the other xS versions (plans/xscore-versions.md step 3), in the role the tile shows, and the decisive
+   * scenario the v2 panel names ("27% chance of 79"). Absent when no version differs and there is no scenario.
+   */
+  xs?: { v0: number; v2: number };
+  dec?: { pct: number; score: number };
 };
 
 /**
@@ -654,6 +661,7 @@ function entryFor(
     ...(player.shape ? { decisive: player.shape.p } : {}),
     ...(player.mu !== undefined ? { mu: player.mu } : {}),
     ...(player.sd !== undefined ? { sd: player.sd } : {}),
+    ...tileVersions(hasSplit ? player.start! : player.x, shown ?? undefined, { pStart, pOn }, hasSplit),
   };
 }
 
@@ -686,6 +694,7 @@ function marketEntry(row: MarketPlayer, boards: (FixtureGrid | null)[], now: Dat
     ...(row.benchRecord ? { benchRecord: row.benchRecord } : {}),
     ...(row.xd !== undefined ? { xd: row.xd } : {}),
     ...(row.decisive !== undefined ? { decisive: row.decisive } : {}),
+    ...tileVersions(row.x, f, { pStart: row.pStart, pOn: row.pStart === undefined ? undefined : Math.max(0, row.p - row.pStart) }, false),
   };
 }
 

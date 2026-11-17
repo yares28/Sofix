@@ -1251,6 +1251,11 @@ reads and the dock); a part switched off disappears at once and the rest stay. T
 means Sorare has changed how it draws cards and the overlay needs an update. The larger "Sofix panel" on a player
 page in the design preview (`S7-player-page.html`) is not built.
 
+The overlay follows the app's **xS** switch (extension 0.5.21): opening any Sofix page tells the extension which version
+you picked, and every tile and panel number redraws in it. In Sofix v2 the panel names the decisive scenario beside the
+big number, small ("27% chance of 79"). In every version the panel ends with his game, then the plan's chip and how fresh
+the numbers are ("FF · 4 min ago"); the kickoff time moved to the row's hover.
+
 ### Privacy and account matching
 
 The extension captures the last Sorare GraphQL endpoint/headers in page memory only so allowlisted operations can

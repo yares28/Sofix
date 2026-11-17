@@ -187,7 +187,6 @@
 }
 .sfx-body { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
 .sfx-head { align-items: flex-end; padding: 0 4px; }
-.sfx-head-side { display: grid; justify-items: end; gap: 6px; }
 .sfx-cells { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
 .sfx-cell { display: grid; justify-items: center; gap: 1px; padding: 7px 0 6px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: #0e0e0e; }
 .sfx-cell span { font: 700 11px/13px var(--sfx-font); letter-spacing: .04em; opacity: .7; }
@@ -198,7 +197,9 @@
 .sfx-next { display: flex; align-items: center; gap: 6px; padding: 0 4px; font: 700 12px/16px var(--sfx-font); }
 .sfx-next > b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sfx-next-v { color: rgba(255, 255, 255, 0.6); }
-.sfx-next-when { margin-left: auto; padding-left: 8px; font-weight: 500; font-size: 11px; color: rgba(255, 255, 255, 0.55); white-space: nowrap; }
+.sfx-next-tail { margin-left: auto; padding-left: 8px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.sfx-dec { margin: 0 auto 4px 12px; font: 600 12px/14px var(--sfx-font); color: #c7c7cc; white-space: nowrap; }
+.sfx-dec b { color: #fff; font-weight: 700; }
 .sfx-head { display: flex; align-items: center; justify-content: space-between; }
 .sfx-age { font: 500 11px/13px var(--sfx-font); color: #a3a3ab; }
 .sfx-plan {

@@ -102,6 +102,14 @@ refresh with step 1's fields.
 
 ### 3. The overlay
 
+**Done 17 Nov (not deployed, extension 0.5.21):** overlay entries carry `xs: {v0, v2}` (the tile's number in the role it
+shows) and `dec: {pct, score}` (`lib/xs.ts` `tileVersions`); the app's switch sends `xs-version` to the worker, which keeps
+`xsVersion` in `chrome.storage.local`; `overlay.js` draws tiles and the panel in it and redraws on a change. The panel's
+head row is the number and, in v2, the small decisive line; its last row is the game, the plan's chip and "FF · N min ago".
+The "LaLiga" pill on the panel was the plan's chip (which lineup holds the card), not the competition: it moved down as a
+pill rather than becoming a league icon, so the lineup name and captain mark stay. Not checked on sorare.com yet: needs
+the deploy, `configure.mjs` and the owner's Chrome.
+
 - The extension learns the choice from Sofix: the page bridge posts it on load and on change (`bridge.js`), the
   worker keeps it in `chrome.storage`, `/api/ext/overlay` takes `xs=` and answers that version's number.
 - Tiles: same chip, the chosen number (`overlay.js` tile score).

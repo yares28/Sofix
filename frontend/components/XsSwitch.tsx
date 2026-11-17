@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import replay from "../lib/data/sofix_v1_replay.json";
 import { shownXs, XS_KEY, XS_VERSIONS, type XsVersion } from "../lib/xs";
 import ThemeSwitch from "./ThemeSwitch";
+import { askExtension } from "../lib/extension";
 
 /** What each version is, in the owner's words (plans/xscore-versions.md). */
 const ABOUT: Record<XsVersion, string> = {
@@ -36,6 +37,7 @@ export default function XsSwitch() {
       saved = localStorage.getItem(XS_KEY);
     } catch {}
     setVersion(shownXs(saved));
+    void askExtension({ type: "xs-version", version: shownXs(saved) }, 1000); // the sorare.com overlay draws the same version
   }, []);
 
   useEffect(() => {
@@ -56,6 +58,7 @@ export default function XsSwitch() {
     } catch {}
     setVersion(next);
     setOpen(false);
+    void askExtension({ type: "xs-version", version: next }, 1000);
   };
 
   const key = (e: React.KeyboardEvent) => {

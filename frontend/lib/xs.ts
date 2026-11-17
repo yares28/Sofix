@@ -63,3 +63,21 @@ export function playerXs(x: number | null, player: Pick<PlayingPlayer, "games" |
   const first = player ? [...player.games].sort((a, b) => a.kickoff.localeCompare(b.kickoff))[0] : undefined;
   return xsNumbers(x, first, { pStart: first?.pStart ?? player?.pStart, pOn: first?.pOn ?? player?.pOn });
 }
+
+/**
+ * The sorare.com overlay's tile in the other versions (it shows his score if he starts when it has the split, else his expected
+ * points), and the decisive scenario of that role. Nothing when no version differs from v1's and there is no scenario: older
+ * payloads and other leagues answer exactly as before.
+ */
+export function tileVersions(
+  v1: number,
+  game: XsVersions | undefined,
+  roles: Roles,
+  starts: boolean,
+): { xs?: { v0: number; v2: number }; dec?: { pct: number; score: number } } {
+  if (!game) return {};
+  const all = starts ? roleNumbers(v1, game, "start") : xsNumbers(v1, game, roles);
+  const [v0, v2] = [Math.round(all.v0 ?? v1), Math.round(all.v2 ?? v1)];
+  const dec = decisiveOf(game, starts ? { pStart: 1, pOn: 0 } : roles);
+  return { ...(v0 !== Math.round(v1) || v2 !== Math.round(v1) ? { xs: { v0, v2 } } : {}), ...(dec ? { dec } : {}) };
+}

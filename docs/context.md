@@ -1644,7 +1644,7 @@ This block is the single machine-readable index for the sections above. Test ref
         "files": {
           "extension/background.js": "04199c8da4153aef5b75240977bb895e3298c192280dceeaa7a84b8127ee893b",
           "extension/bridge.js": "867affedbdea8d6fc7e3cf6fe77f151230242f78e1a75b3cea7cd1bef06be149",
-          "extension/manifest.template.json": "2d9d02ef9bf8dfb6b7c10d15daaa90a16ab4cc51c2345da718542163a83c803c",
+          "extension/manifest.template.json": "c08adc37a3e284b9320424d49345ee700e29148ded2358f0ded4abe74509f9c3",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

@@ -32,6 +32,7 @@
 
   let enabled = false;
   let off = new Set(); // the parts switched off in the popup (core.OVERLAY_PARTS)
+  let xsVersion = "v1"; // the xS version the app shows (plans/xscore-versions.md), written by the worker from the app
   const on = (part) => !off.has(part);
   let dead = false; // the extension was reloaded under this tab: the old script has nothing left to talk to
   let mutations = null;
@@ -445,7 +446,8 @@
     const startChance = core.startChance(entry);
     return {
       split,
-      score: Math.round(split ? entry.start : entry.x),
+      // the number in the version the app shows, in the same role; v1's when the entry has no other (older payloads, other leagues)
+      score: xsVersion !== "v1" && entry.xs ? entry.xs[xsVersion] : Math.round(split ? entry.start : entry.x),
       startChance,
       tone: core.startTone(entry),
       doubt: core.startTone(entry) !== "ok",
@@ -748,7 +750,14 @@
     const body = node("div", "sfx-body");
     const top = node("div", "sfx-head");
     top.append(panelHero(entry, benched));
-    const side = node("div", "sfx-head-side");
+    // Sofix v2 names the decisive scenario beside the number, small: never added to it ("27% chance of 79").
+    if (xsVersion === "v2" && entry.dec && !benched) {
+      const dec = node("span", "sfx-dec");
+      dec.append(node("b", "", `${entry.dec.pct}%`), " chance of ", node("b", "", String(entry.dec.score)));
+      top.append(dec);
+    }
+    // The plan's chip and how fresh the numbers are close the panel, in place of the kickoff time (the owner, 17 Nov 2026).
+    const side = node("div", "sfx-next-tail");
     if (plan) {
       const chip = node("span", "sfx-plan", plan.lineup);
       if (plan.captain) {
@@ -759,31 +768,35 @@
       side.append(chip);
     }
     const age = entry.live ? core.freshLabel(entry.startAt, now()) : core.freshLabel(entry.at, now());
-    if (age) side.append(node("span", "sfx-age", entry.live ? `FF live ${age}` : age));
-    top.append(side);
+    if (age) side.append(node("span", "sfx-age", entry.live ? `FF · ${age}` : age));
     body.append(top);
     const stale = core.staleness(entry, now());
     if (stale) body.append(node("p", "sfx-note", stale.kind === "over" ? "His game has started." : `These numbers are ${stale.hours} h old.`));
     body.append(panelCells(entry));
     const alert = alertNode(entry);
     if (alert) body.append(alert);
-    const next = nextGameNode(entry);
+    const next = nextGameNode(entry, side);
     if (next) body.append(next);
     el.append(body);
     return el;
   }
 
-  /** His next game in one short line: "v [crest] Barcelona" at home, "[crest] Sevilla v" away, then when. */
-  function nextGameNode(entry) {
+  /** His next game in one short line: "v [crest] Barcelona" at home, "[crest] Sevilla v" away, then the plan's chip and how fresh. */
+  function nextGameNode(entry, tail) {
     const g = Array.isArray(entry.island) ? entry.island[0] : null;
-    if (!g || !g.opponent) return null;
     const row = node("div", "sfx-next");
+    if (!g || !g.opponent) {
+      if (!tail.childElementCount) return null;
+      row.append(tail);
+      return row;
+    }
     row.setAttribute("aria-label", gameWords(g));
     const crest = clubMark(g.opponentCrest, g.opponent, g.opponentCode, g.opponentColor, 20);
     const name = node("b", "", g.opponent);
     if (g.venue === "A") row.append(crest, name, node("span", "sfx-next-v", "v"));
     else row.append(node("span", "sfx-next-v", "v"), crest, name);
-    row.append(node("span", "sfx-next-when", core.islandWhen(g.kickoff)));
+    row.title = core.islandWhen(g.kickoff); // the kickoff stays on hover; the row ends with the plan's chip and the freshness
+    if (tail.childElementCount) row.append(tail);
     return row;
   }
 
@@ -2960,7 +2973,17 @@
       },
       () => apply(true),
     );
+    const setXs = guard((value) => {
+      const next = ["v0", "v1", "v2"].includes(value) ? value : "v1";
+      if (next === xsVersion) return;
+      xsVersion = next;
+      if (!enabled) return;
+      stop();
+      start();
+    });
+    chrome.storage.local.get("xsVersion").then(({ xsVersion: saved }) => setXs(saved), () => {});
     chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes.xsVersion) setXs(changes.xsVersion.newValue);
       if (area !== "sync") return;
       if (changes.overlayOff) setOff(changes.overlayOff.newValue);
       if (changes.overlay) apply(changes.overlay.newValue);

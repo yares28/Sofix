@@ -2019,6 +2019,17 @@ def score_record(
                             "sofixOnPoint": versioned.sub.point,
                             "previousSofix": round(versioned.previous, 1) if versioned.previous is not None else None,
                             "previousSofixOn": f.previous_on if f else None,
+                            # v0's normal and decisive scores and its decisive chance, for Sofix v3's live check (research plan V3);
+                            # nothing on screen reads them, and a game with no v0 on file has none
+                            **(
+                                {
+                                    "startPlainPrev": round(before.if_plain, 1),
+                                    "startDecPrev": round(before.if_decisive, 1),
+                                    "pDecPrev": round(before.p_decisive, 3),
+                                }
+                                if (before := versioned.previous_outcome) is not None
+                                else {}
+                            ),
                         }
                         if versioned
                         else {}

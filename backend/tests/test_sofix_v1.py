@@ -185,3 +185,49 @@ def test_live_counts_keep_each_competition_apart_under_one_name():
         "Sofix v1 PL": (1, 0),
         "Sofix v1 CL": (1, 1),
     }
+
+
+def test_the_pre_lock_record_keeps_v0s_normal_and_decisive_scores_for_sofix_v3():
+    """Sofix v3 (research plan Phase V3) is judged live from v0's two scores and its decisive chance, saved before the lock
+    next to `previousSofix`; nothing on screen reads them."""
+    model = sofix_v1.Model({"start": [[[[40, 181], [6, 4]]]], "bench": [[[[35], [1]]]]})
+    numbers = keeper.GameNumbers(0.3, 1, 1)
+    old = model.game("DEF", True, numbers, [], None)
+    outcome = model.game("DEF", True, numbers, [], old)
+    game = {"id": "a", "kickoff": "2026-10-10T20:00:00Z", "competition": keeper.LALIGA}
+    week = PlayerWeek(
+        games=1,
+        pos="DEF",
+        game_ids=["a"],
+        game_starts=[GameStart("a", 1)],
+        game_scores=(outcome.start,),
+        game_models=(outcome,),
+        shape=outcome,
+        game_dec=(outcome.p_decisive,),
+    )
+    record = publish.score_record(
+        {"slug": "week", "number": 1, "lock": "2026-10-09T14:00:00Z"},
+        {"p": week},
+        {"p": forecast(week)},
+        {"p": [game]},
+        {"fetchedAt": "2026-10-09T13:00:00Z"},
+    )
+    (saved,) = record["players"]["p"]["games"]
+    assert (saved["previousSofix"], saved["startPlainPrev"], saved["startDecPrev"], saved["pDecPrev"]) == (
+        56,
+        40,
+        80,
+        0.4,
+    )
+    first = model.game("DEF", True, numbers, [], None)
+    week.game_models = (first,)
+    (bare,) = publish.score_record(
+        {"slug": "week", "number": 1, "lock": "2026-10-09T14:00:00Z"},
+        {"p": week},
+        {"p": forecast(week)},
+        {"p": [game]},
+        {"fetchedAt": "2026-10-09T13:00:00Z"},
+    )["players"]["p"]["games"]
+    assert (
+        not {"startPlainPrev", "startDecPrev", "pDecPrev"} & bare.keys()
+    )  # no v0 on file: none saved, never v1's copied in

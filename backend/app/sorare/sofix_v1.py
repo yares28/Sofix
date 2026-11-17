@@ -73,6 +73,8 @@ class GameScore(Outcome):
     point: float
     sub: Score
     previous: float | None
+    # v0's whole game, behind `previous`: its normal and decisive scores and chance, saved for Sofix v3's live check (research plan V3)
+    previous_outcome: Outcome | None = None
     version: str = VERSION
 
 
@@ -142,6 +144,7 @@ class Model:
             point=start.point,
             sub=sub,
             previous=previous.start if previous else None,
+            previous_outcome=previous,
             version=self.version,
         )
 

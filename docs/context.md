@@ -77,7 +77,7 @@ Conditional score, chance of starting, chance of coming on, chance of any appear
 
 **Rule:** construct `score_record` from raw forecasts before applying `score_fix` to copies used in planning. The record and Lineups comparison retain the raw number so future measurement evaluates the underlying model. Planning can apply `a + b * mu`, clipped to `[0, 100]`, only when the correction is enabled. Do not write adjusted means back into raw capture evidence.
 
-For Sofix v1, `sofix` and `sofixOn` remain conditional means. The versioned `sofixPoint` and `sofixOnPoint` are for the within-seven Audit and never train the planning adjustment.
+For Sofix v1, `sofix` and `sofixOn` remain conditional means. The versioned `sofixPoint` and `sofixOnPoint` are for the within-seven Audit and never train the planning adjustment. Since 17 Nov 2026 a game with v0 on file also saves v0's normal and decisive scores and its decisive chance (`startPlainPrev`, `startDecPrev`, `pDecPrev`) for Sofix v3's live check; they are raw evidence only, read by no screen and no planner.
 
 Correction needs at least 200 settled starting cases; each usable held-out week and its training complement need 30 cases. The bootstrap slope interval must exclude 1 and held-out mean squared error must improve. The case loader uses dates at least 26 hours old, a known actual score, a start and captured Sofix evidence; it depends on the upstream pre-lock writer, rather than independently reconstructing every lock. Residual spread may be measured even with correction off. Publisher uses measured spread only when the forecast has no own `sd`; `17.6` is a fallback, not a universal current per-player spread.
 
@@ -923,9 +923,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "17 Nov 2026: publish.py change only adds display fields to published games (_versions, with_now); the plan pipeline, planner inputs and contest are untouched.",
+        "note": "17 Nov 2026 (v3 evidence): sofix_v1.GameScore keeps v0's Outcome (previous_outcome) behind previous; score_record saves startPlainPrev/startDecPrev/pDecPrev beside previousSofix when it exists; no planner, payload for pages or overlay reads them. Test test_the_pre_lock_record_keeps_v0s_normal_and_decisive_scores_for_sofix_v3.",
         "files": {
-          "backend/app/sorare/publish.py": "d8fcdcd4c6165fc2d2852c70a0d0786c6fbaaebbdeec39aede5cd602c352c425",
+          "backend/app/sorare/publish.py": "c024f3faaec89e97546c61ab01fdf1b100859cd3ba36b11d0b6b91d84981a70a",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
@@ -988,12 +988,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "17 Nov 2026: publish._game_numbers adds v0 and the decisive scenario per game through _versions (only when Sofix v1 worked the game out); identities and source policy unchanged. Tests test_each_game_carries_every_xs_version_and_the_decisive_scenario and test_a_game_without_sofix_v1_publishes_no_other_version.",
+        "note": "17 Nov 2026 (v3 evidence): sofix_v1.GameScore keeps v0's Outcome (previous_outcome) behind previous; score_record saves startPlainPrev/startDecPrev/pDecPrev beside previousSofix when it exists; no planner, payload for pages or overlay reads them. Test test_the_pre_lock_record_keeps_v0s_normal_and_decisive_scores_for_sofix_v3.",
         "files": {
           "backend/app/sorare/forecast.py": "7eff5d487fd1df31f5507bd43538a27ff37ea60ba758af671c95fc155bfa0edf",
-          "backend/app/sorare/sofix_v1.py": "5b6dee423b7e9b39927d4c93a3345e839e9e0cfa48d127b52df3dde8d46a2797",
+          "backend/app/sorare/sofix_v1.py": "fba877393050f6af70be90bdaaf0aa01bd14661d5363a945db8f4d24fe5ac467",
           "backend/tests/test_sorare_ff_forecast.py": "cbc230010a5956ec2250c97434b7357451d11abbfa1200dc6f510f3f44b1f12a",
-          "backend/tests/test_sofix_v1.py": "d49f78c65d2814b19c0bf84ccd4967cfc3317fdaddd1cbaf6b732494026d0206"
+          "backend/tests/test_sofix_v1.py": "c9f2bb51212dd10c3cf687a78affde9fc7bd6fcf46ced90d9d587c11c747710f"
         }
       }
     },
@@ -1056,9 +1056,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "17 Nov 2026: with_now copies sofixPoint and previousSofix from the frozen record as startPoint/startPrev; score_record and the raw-before-planning order are untouched (publish.py diff inspected).",
+        "note": "17 Nov 2026 (v3 evidence): sofix_v1.GameScore keeps v0's Outcome (previous_outcome) behind previous; score_record saves startPlainPrev/startDecPrev/pDecPrev beside previousSofix when it exists; no planner, payload for pages or overlay reads them. Test test_the_pre_lock_record_keeps_v0s_normal_and_decisive_scores_for_sofix_v3.",
         "files": {
-          "backend/app/sorare/publish.py": "d8fcdcd4c6165fc2d2852c70a0d0786c6fbaaebbdeec39aede5cd602c352c425",
+          "backend/app/sorare/publish.py": "c024f3faaec89e97546c61ab01fdf1b100859cd3ba36b11d0b6b91d84981a70a",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
@@ -1588,13 +1588,13 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "17 Nov 2026: versus.starts_of/figures take an xS version (_number: v0 from sofix before Sofix v1 else previousSofix, v1 sofix, v2 sofixPoint, substitute twins); _side adds within10/within15; audit.py publishes versions alongside the unchanged versus. Pre-lock and late-record rules unchanged (a late record's cleared sofix still drops the game for every version). Tests test_each_xs_version_is_judged_on_its_own_saved_number and test_figures_say_how_often_each_number_lands_within_7_10_and_15.",
+        "note": "17 Nov 2026 (v3 evidence): sofix_v1.GameScore keeps v0's Outcome (previous_outcome) behind previous; score_record saves startPlainPrev/startDecPrev/pDecPrev beside previousSofix when it exists; no planner, payload for pages or overlay reads them. Test test_the_pre_lock_record_keeps_v0s_normal_and_decisive_scores_for_sofix_v3.",
         "files": {
           "backend/app/sorare/player_audit.py": "3436b64cf197d937aefbd51a213af0e28c396ebab23ff8b883e52091bea89427",
           "backend/app/sorare/audit.py": "ea8f89ebfa164a56eea73174e3fb39185ca652ab8dfa417d71fae64541dd8a60",
           "backend/app/sorare/versus.py": "d427da90f643a8d3f1e9edaf723b9885914ab8e40c84fc2360d2ee543b55c99a",
           "backend/tests/test_player_audit.py": "2712237e9be35154a26790e59acceaeeb6c921ca0fd1b5990f0f47f7e42f2a63",
-          "backend/tests/test_sofix_v1.py": "d49f78c65d2814b19c0bf84ccd4967cfc3317fdaddd1cbaf6b732494026d0206"
+          "backend/tests/test_sofix_v1.py": "c9f2bb51212dd10c3cf687a78affde9fc7bd6fcf46ced90d9d587c11c747710f"
         }
       }
     },

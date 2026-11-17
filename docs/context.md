@@ -1639,10 +1639,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-16",
-        "note": "0.5.20: the read-only SofixPayments query (your account's PAYMENT entries, 100 a page, allowlisted in bridge.js only and called by the background's paidCards, not an app-askable step; checked live: 247 entries in 5 pages) puts what you actually paid, market credits off, into the gallery's prices; with background tests; no write, permission or Apply step changed",
+        "date": "2026-11-17",
+        "note": "0.5.20: the read-only SofixPayments query (your account's PAYMENT entries, Sorare gives 50 a page, at most 20 pages, allowlisted in bridge.js only and called by the background's paidCards, not an app-askable step; checked live: 247 entries in 5 pages) puts what you actually paid, market credits off, into the gallery's prices; with background tests; no write, permission or Apply step changed",
         "files": {
-          "extension/background.js": "464039ed4560a691d105e15a4b0ec240184af4f6b7b6ba256d8916bd71636cef",
+          "extension/background.js": "04199c8da4153aef5b75240977bb895e3298c192280dceeaa7a84b8127ee893b",
           "extension/bridge.js": "867affedbdea8d6fc7e3cf6fe77f151230242f78e1a75b3cea7cd1bef06be149",
           "extension/manifest.template.json": "2d9d02ef9bf8dfb6b7c10d15daaa90a16ab4cc51c2345da718542163a83c803c",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",

@@ -64,7 +64,7 @@ The planner weights essence by the share of its leagues the owner plays, searche
 
 Conditional score, chance of starting, chance of coming on, chance of any appearance, and unconditional expectation are different quantities. When `game_scores` exists, the own-score branch in `forecast` removes Sorare’s projection from its score calculation. Without own game scores, the generic forecast path can still use Sorare projection/form; do not claim all paths are independent just because the LaLiga model is. The alternative Sorare-projection strategy stays separately identified.
 
-[Sofix v1](../plans/sofix-v1.md) uses distinct starter and substitute distributions for covered LaLiga fixtures; since 13 Nov 2026 PL, Bundesliga, Ligue 1, CL, EL and Conference have their own refits (`artifacts/sofix_v1/<code>.json.gz`, version `Sofix v1` like LaLiga's, live counts kept apart per competition, his games in that competition only, the starter's point from trees fitted on ordinary games: [evidence](../plans/competitions-xscore-evidence.md)), answering only locks after their `trainedThrough` and only where the board gives the game's numbers; otherwise the earlier per-competition formula. Expected points use their means and the role chances. The game also carries `modelVersion` (the model's own version), `startPoint` and `subPoint` for the separate accuracy target of landing within seven. Since 17 Nov 2026 it also carries the other versions the xS switch offers ([plan](../plans/xscore-versions.md)): v0's `startPrev`/`subPrev` and the decisive scenario, `pDec` with `decIf` (his whole score if a positive decisive comes, absent when the chance is none) and `subPDec`/`subDecIf` if he comes on. A game Sofix v1 did not work out carries none of them, never v1's number copied in.
+[Sofix v1](../plans/sofix-v1.md) uses distinct starter and substitute distributions for covered LaLiga fixtures; since 13 Nov 2026 PL, Bundesliga, Ligue 1, CL, EL and Conference have their own refits (`artifacts/sofix_v1/<code>.json.gz`, version `Sofix v1` like LaLiga's, live counts kept apart per competition, his games in that competition only, the starter's point from trees fitted on ordinary games: [evidence](../plans/competitions-xscore-evidence.md)), answering only locks after their `trainedThrough` and only where the board gives the game's numbers; otherwise the earlier per-competition formula. Expected points use their means and the role chances. The game also carries `modelVersion` (the model's own version), `startPoint` and `subPoint` for the separate accuracy target of landing within seven. Since 17 Nov 2026 it also carries the other versions the xS switch offers ([plan](../plans/xscore-versions.md)): v0's `startPrev`/`subPrev` and the decisive scenario, `pDec` with `decIf` (his whole score if a positive decisive comes, absent when the chance is none) and `subPDec`/`subDecIf` if he comes on; with v0 on file also Sofix v3's starter number `startV3` (v0's normal score, its decisive one from a 75% chance, `sofix_v1.v3_start`) and, while it has not switched, v0's scenario `pDecPrev`/`decPrevIf`. A game Sofix v1 did not work out carries none of them, never v1's number copied in.
 
 **Exceptions/limits:** in a double GW, per-game chances preserve each source and game; chance of any appearance combines misses, while the week-level start display follows the first game. The score includes a best-of-two adjustment, not a sum of two scores. Each game also carries its own expectation and start score (`game_x`, `game_start`, published as game `x`/`start`) with no best-of-two lift: the overlay shows them for one-game cards (Pro, Arcade); plans and Classic keep the week number. No eligible game means no forecast. No known game IDs uses the legacy week-level path; do not imply equivalent per-game evidence.
 
@@ -211,7 +211,7 @@ The owner requires starters and substitutes apart, the within-seven-points compa
 
 The Sofix v1 section distinguishes the dated replay from pre-lock versioned live scores. The latter use settled game records, match the point forecast to the player's actual role, and show gains and losses on the games with a previous-model prediction on file.
 
-Since 17 Nov 2026 the same Sofix-against-Sorare figures are published per xS version (`versions`, [plan](../plans/xscore-versions.md) step 4), each on its own saved number: before Sofix v1 the saved `sofix` was v0's; on a game Sofix v1 worked out, v0 is `previousSofix`, v1 `sofix` and v2 `sofixPoint` (each with its substitute's twin). A version with no number for a game leaves the game out; it is never filled with another version's. Each side also counts within 10 and 15 points. The legacy `versus` (the number shown at the time) stays as it was.
+Since 17 Nov 2026 the same Sofix-against-Sorare figures are published per xS version (`versions`, [plan](../plans/xscore-versions.md) step 4), each on its own saved number: before Sofix v1 the saved `sofix` was v0's; on a game Sofix v1 worked out, v0 is `previousSofix`, v1 `sofix` and v2 `sofixPoint` (each with its substitute's twin). v3 (from 17 Nov) is a starter's saved v0 normal score switching to v0's decisive score at a 75% chance (`startPlainPrev`, `startDecPrev`, `pDecPrev`) and a substitute's `sofixOnPoint`; a game saved before those fields has no v3 case. A version with no number for a game leaves the game out; it is never filled with another version's. Each side also counts within 10 and 15 points. The legacy `versus` (the number shown at the time) stays as it was.
 
 <a id="extension-actions-001"></a>
 ## EXTENSION-ACTIONS-001
@@ -923,9 +923,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "17 Nov 2026 (v3 evidence): sofix_v1.GameScore keeps v0's Outcome (previous_outcome) behind previous; score_record saves startPlainPrev/startDecPrev/pDecPrev beside previousSofix when it exists; no planner, payload for pages or overlay reads them. Test test_the_pre_lock_record_keeps_v0s_normal_and_decisive_scores_for_sofix_v3.",
+        "note": "17 Nov 2026 (Sofix v3): publish._versions adds startV3 and, unswitched, pDecPrev/decPrevIf from v0's outcome (sofix_v1.v3_start, V3_SWITCH 0.75); versus._number judges v3 on startPlainPrev/startDecPrev/pDecPrev with sofixOnPoint for substitutes, no case without them; frontend types gain the three optional fields. No planner, reward or Apply path reads them. Tests: test_sofix_v3_* in test_sofix_v1.py and test_sorare_versus.py.",
         "files": {
-          "backend/app/sorare/publish.py": "c024f3faaec89e97546c61ab01fdf1b100859cd3ba36b11d0b6b91d84981a70a",
+          "backend/app/sorare/publish.py": "c98d798811129357ab29f23a710a1b9eb701db70b9ba4b94200e49706de6df2c",
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
@@ -988,12 +988,12 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "17 Nov 2026 (v3 evidence): sofix_v1.GameScore keeps v0's Outcome (previous_outcome) behind previous; score_record saves startPlainPrev/startDecPrev/pDecPrev beside previousSofix when it exists; no planner, payload for pages or overlay reads them. Test test_the_pre_lock_record_keeps_v0s_normal_and_decisive_scores_for_sofix_v3.",
+        "note": "17 Nov 2026 (Sofix v3): publish._versions adds startV3 and, unswitched, pDecPrev/decPrevIf from v0's outcome (sofix_v1.v3_start, V3_SWITCH 0.75); versus._number judges v3 on startPlainPrev/startDecPrev/pDecPrev with sofixOnPoint for substitutes, no case without them; frontend types gain the three optional fields. No planner, reward or Apply path reads them. Tests: test_sofix_v3_* in test_sofix_v1.py and test_sorare_versus.py.",
         "files": {
           "backend/app/sorare/forecast.py": "7eff5d487fd1df31f5507bd43538a27ff37ea60ba758af671c95fc155bfa0edf",
-          "backend/app/sorare/sofix_v1.py": "fba877393050f6af70be90bdaaf0aa01bd14661d5363a945db8f4d24fe5ac467",
+          "backend/app/sorare/sofix_v1.py": "09e2a8a0d8148387dea8ab1f63c3b0e833b601083e574c3bed1fdd954842c3fd",
           "backend/tests/test_sorare_ff_forecast.py": "cbc230010a5956ec2250c97434b7357451d11abbfa1200dc6f510f3f44b1f12a",
-          "backend/tests/test_sofix_v1.py": "c9f2bb51212dd10c3cf687a78affde9fc7bd6fcf46ced90d9d587c11c747710f"
+          "backend/tests/test_sofix_v1.py": "d7c632590d5693fbf5a3c0b8bad4dcc9870a4d5c4c064763d87203c4629ff98e"
         }
       }
     },
@@ -1056,9 +1056,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "17 Nov 2026 (v3 evidence): sofix_v1.GameScore keeps v0's Outcome (previous_outcome) behind previous; score_record saves startPlainPrev/startDecPrev/pDecPrev beside previousSofix when it exists; no planner, payload for pages or overlay reads them. Test test_the_pre_lock_record_keeps_v0s_normal_and_decisive_scores_for_sofix_v3.",
+        "note": "17 Nov 2026 (Sofix v3): publish._versions adds startV3 and, unswitched, pDecPrev/decPrevIf from v0's outcome (sofix_v1.v3_start, V3_SWITCH 0.75); versus._number judges v3 on startPlainPrev/startDecPrev/pDecPrev with sofixOnPoint for substitutes, no case without them; frontend types gain the three optional fields. No planner, reward or Apply path reads them. Tests: test_sofix_v3_* in test_sofix_v1.py and test_sorare_versus.py.",
         "files": {
-          "backend/app/sorare/publish.py": "c024f3faaec89e97546c61ab01fdf1b100859cd3ba36b11d0b6b91d84981a70a",
+          "backend/app/sorare/publish.py": "c98d798811129357ab29f23a710a1b9eb701db70b9ba4b94200e49706de6df2c",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
@@ -1112,10 +1112,10 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "17 Nov 2026: frontend/lib/play.ts only gains the XsVersions type on PlayerGame and MarketFixture and two optional now fields; no reward or outcome logic changed.",
+        "note": "17 Nov 2026 (Sofix v3): publish._versions adds startV3 and, unswitched, pDecPrev/decPrevIf from v0's outcome (sofix_v1.v3_start, V3_SWITCH 0.75); versus._number judges v3 on startPlainPrev/startDecPrev/pDecPrev with sofixOnPoint for substitutes, no case without them; frontend types gain the three optional fields. No planner, reward or Apply path reads them. Tests: test_sofix_v3_* in test_sofix_v1.py and test_sorare_versus.py.",
         "files": {
           "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
-          "frontend/lib/play.ts": "a400196ddeba4b00036a401128ece018938e2a8305b90c336f1dde91be328a68",
+          "frontend/lib/play.ts": "1968c916eb9d8e03e4cd6e120ef5a114fb1a08c8557b98c75ce5bd04d07930d3",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1588,13 +1588,13 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "17 Nov 2026 (v3 evidence): sofix_v1.GameScore keeps v0's Outcome (previous_outcome) behind previous; score_record saves startPlainPrev/startDecPrev/pDecPrev beside previousSofix when it exists; no planner, payload for pages or overlay reads them. Test test_the_pre_lock_record_keeps_v0s_normal_and_decisive_scores_for_sofix_v3.",
+        "note": "17 Nov 2026 (Sofix v3): publish._versions adds startV3 and, unswitched, pDecPrev/decPrevIf from v0's outcome (sofix_v1.v3_start, V3_SWITCH 0.75); versus._number judges v3 on startPlainPrev/startDecPrev/pDecPrev with sofixOnPoint for substitutes, no case without them; frontend types gain the three optional fields. No planner, reward or Apply path reads them. Tests: test_sofix_v3_* in test_sofix_v1.py and test_sorare_versus.py.",
         "files": {
           "backend/app/sorare/player_audit.py": "3436b64cf197d937aefbd51a213af0e28c396ebab23ff8b883e52091bea89427",
           "backend/app/sorare/audit.py": "ea8f89ebfa164a56eea73174e3fb39185ca652ab8dfa417d71fae64541dd8a60",
-          "backend/app/sorare/versus.py": "d427da90f643a8d3f1e9edaf723b9885914ab8e40c84fc2360d2ee543b55c99a",
+          "backend/app/sorare/versus.py": "ccbb0ca8f680bef6a82e9671fce559678ec1cf3d984aebb4cf30bd5e682c6879",
           "backend/tests/test_player_audit.py": "2712237e9be35154a26790e59acceaeeb6c921ca0fd1b5990f0f47f7e42f2a63",
-          "backend/tests/test_sofix_v1.py": "c9f2bb51212dd10c3cf687a78affde9fc7bd6fcf46ced90d9d587c11c747710f"
+          "backend/tests/test_sofix_v1.py": "d7c632590d5693fbf5a3c0b8bad4dcc9870a4d5c4c064763d87203c4629ff98e"
         }
       }
     },
@@ -1643,11 +1643,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "0.5.20: the read-only SofixPayments query (your account's PAYMENT entries, Sorare gives 50 a page, at most 20 pages, allowlisted in bridge.js only and called by the background's paidCards, not an app-askable step; checked live: 247 entries in 5 pages) puts what you actually paid, market credits off, into the gallery's prices; with background tests; no write, permission or Apply step changed. 0.5.21 (17 Nov 2026): one app message, xs-version, stores the xS version the overlay draws (v0/v1/v2 allowlisted, app origin only, no Sorare request, no write).",
+        "note": "0.5.20: the read-only SofixPayments query (your account's PAYMENT entries, Sorare gives 50 a page, at most 20 pages, allowlisted in bridge.js only and called by the background's paidCards, not an app-askable step; checked live: 247 entries in 5 pages) puts what you actually paid, market credits off, into the gallery's prices; with background tests; no write, permission or Apply step changed. 0.5.21 (17 Nov 2026): one app message, xs-version, stores the xS version the overlay draws (app origin only, no Sorare request, no write); 0.5.22 adds v3 to its allowlist (v0/v1/v2/v3).",
         "files": {
-          "extension/background.js": "cb6e59c6b0609a7c0be6c6bfa98a9bc3d353b8344718df21081be2566f33ecba",
+          "extension/background.js": "fd707ab70c918537c24908ad0ca6b310e6cadf990275789cead4c2355f796603",
           "extension/bridge.js": "867affedbdea8d6fc7e3cf6fe77f151230242f78e1a75b3cea7cd1bef06be149",
-          "extension/manifest.template.json": "c08adc37a3e284b9320424d49345ee700e29148ded2358f0ded4abe74509f9c3",
+          "extension/manifest.template.json": "a7e80de230f007c718a41ce29e5faaad5945c5dfb42bbd855fae66b767b6c87f",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

@@ -750,10 +750,12 @@
     const body = node("div", "sfx-body");
     const top = node("div", "sfx-head");
     top.append(panelHero(entry, benched));
-    // Sofix v2 names the decisive scenario beside the number, small: never added to it ("27% chance of 79").
-    if (xsVersion === "v2" && entry.dec && !benched) {
+    // Sofix v2 and v3 name the decisive scenario beside the number, small: never added to it ("27% chance of 79").
+    // v3 names v0's scenario, and none once its number has switched to it (the job leaves dec3 out then).
+    const scenario = xsVersion === "v2" ? entry.dec : xsVersion === "v3" ? entry.dec3 : null;
+    if (scenario && !benched) {
       const dec = node("span", "sfx-dec");
-      dec.append(node("b", "", `${entry.dec.pct}%`), " chance of ", node("b", "", String(entry.dec.score)));
+      dec.append(node("b", "", `${scenario.pct}%`), " chance of ", node("b", "", String(scenario.score)));
       top.append(dec);
     }
     // The plan's chip and how fresh the numbers are close the panel, in place of the kickoff time (the owner, 17 Nov 2026).
@@ -2974,7 +2976,7 @@
       () => apply(true),
     );
     const setXs = guard((value) => {
-      const next = ["v0", "v1", "v2"].includes(value) ? value : "v1";
+      const next = ["v0", "v1", "v2", "v3"].includes(value) ? value : "v1";
       if (next === xsVersion) return;
       xsVersion = next;
       if (!enabled) return;

@@ -28,6 +28,7 @@ export type BestCard = {
   /** `x` in every xS version, and the decisive scenario Sofix v2 names under the front card (lib/xs.ts). */
   xs: Record<XsVersion, number | null>;
   decisive: { pct: number; score: number } | null;
+  decisive3: { pct: number; score: number } | null;
 };
 
 const firstGame = (player: PlayingPlayer): PlayerGame | null =>
@@ -57,6 +58,7 @@ export function bestCards(players: PlayingPlayer[], count = 10): BestCard[] {
         game: game ? gameLabel(game) : null,
         xs: playerXs(player.x, player),
         decisive: decisiveOf(game ?? undefined, { pStart: start, pOn: game?.pOn ?? player.pOn }),
+        decisive3: decisiveOf(game ?? undefined, { pStart: start, pOn: game?.pOn ?? player.pOn }, "v3"),
       };
     });
 }

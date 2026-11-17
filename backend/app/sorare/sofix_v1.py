@@ -62,6 +62,16 @@ def features(pos: str, home: bool, numbers: GameNumbers, past: list[dict[str, An
     return found
 
 
+# Sofix v3 (owner, 17 Nov 2026; research plan V3): a starter's number is v0's normal score, and v0's decisive score from this
+# chance of a decisive action up. Research: it almost never fires (mostly a star forward at home).
+V3_SWITCH = 0.75
+
+
+def v3_start(plain: float, decisive: float, chance: float) -> float:
+    """Sofix v3's number for a starter, from v0's two scores and its decisive chance."""
+    return decisive if chance >= V3_SWITCH else plain
+
+
 @dataclass(frozen=True)
 class Score:
     point: float

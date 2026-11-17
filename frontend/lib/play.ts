@@ -555,6 +555,11 @@ export type XsVersions = {
   decIf?: number;
   subPDec?: number;
   subDecIf?: number;
+  /** Sofix v3 for a starter (payloads from 17 Nov 2026): v0's normal score, or its decisive one from a 75% chance; and v0's
+   * decisive scenario while it has not switched. Absent without v0 on file. */
+  startV3?: number;
+  pDecPrev?: number;
+  decPrevIf?: number;
 };
 
 export type MarketFixture = XsVersions & {

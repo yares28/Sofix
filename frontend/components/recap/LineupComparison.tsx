@@ -46,7 +46,7 @@ export function ComparisonCards({ cards, linked = true }: { cards: ComparisonCar
           <span className={`rc-hex sm${card.score === null ? "" : " scored"}`} style={fill(card.score, true)} title={card.score === null ? (card.why ?? "No score yet") : total === null ? "His score" : "His score, before bonuses"}>
             {card.score === null ? "-" : Math.round(card.score)}
           </span>
-          {card.x === undefined ? null : <XsSwap values={card.xs ?? { v0: x, v1: x, v2: x }} render={(n, mark) => <span {...mark} className="rc-xs" style={fill(n)} title="His xS">{n === null ? "-" : Math.round(n)}</span>} />}
+          {card.x === undefined ? null : <XsSwap values={card.xs ?? { v0: x, v1: x, v2: x, v3: x }} render={(n, mark) => <span {...mark} className="rc-xs" style={fill(n)} title="His xS">{n === null ? "-" : Math.round(n)}</span>} />}
         </span>
         <span className="visually-hidden">{card.name}{card.bench ? ", bench" : ""}{card.score === null ? `, ${card.why ?? "no score yet"}` : `, scored ${Math.round(card.score)}`}{total === null ? "" : `, ${Math.round(total)} with bonuses`}{x === null ? "" : `, xS ${Math.round(x)}`}{xd === null ? "" : `, ${xd.toFixed(2)} xD`}</span>
       </li>;

@@ -207,7 +207,9 @@ test("every xS version is compared within 7, 10 and 15 points, and picking one f
   await expect(row("v1")).toContainText("In use");
   await page.getByRole("group", { name: "Hit window" }).getByRole("button", { name: "±10" }).click();
   await expect(row("v2").getByRole("cell").nth(0)).toContainText("50%");
-  await expect(row("v2").getByRole("cell").nth(1)).toContainText("Being measured"); // the replay has ±7 only
+  await expect(row("v2").getByRole("cell").nth(1)).toContainText("49%of 6,754"); // the research's side-by-side replay: 3,343 of 6,754
+  await expect(row("v0").getByRole("cell").nth(1)).toContainText("Being measured"); // v0 is replayed at ±7 only
+  await expect(row("v3").getByRole("cell").nth(1)).toContainText("50%of 6,754"); // 3,386 of 6,754
   await row("v2").getByRole("button").click();
   await expect(page.getByRole("heading", { level: 1, name: "Sofix v2 against Sorare" })).toBeVisible();
   await expect(page.locator(".ax-duo > div").nth(0).locator(".ax-duo-n")).toHaveText("39%");

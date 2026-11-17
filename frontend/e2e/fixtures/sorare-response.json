@@ -6123,7 +6123,10 @@
           "startPrev": 80,
           "subPrev": 45,
           "pDec": 0.41,
-          "decIf": 88
+          "decIf": 88,
+          "startV3": 64,
+          "pDecPrev": 0.38,
+          "decPrevIf": 90
         }
       },
       {

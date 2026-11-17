@@ -10,6 +10,6 @@ export default function XsSwap({ values, render }: {
   render: (n: number | null, mark: { "data-xsv"?: XsVersion }) => ReactNode;
 }) {
   const shown = (n: number | null) => (n === null ? null : Math.round(n));
-  if (shown(values.v0) === shown(values.v1) && shown(values.v2) === shown(values.v1)) return <>{render(values.v1, {})}</>;
+  if (XS_VERSIONS.every((v) => shown(values[v]) === shown(values.v1))) return <>{render(values.v1, {})}</>;
   return <>{XS_VERSIONS.map((v) => <Fragment key={v}>{render(values[v], { "data-xsv": v })}</Fragment>)}</>;
 }

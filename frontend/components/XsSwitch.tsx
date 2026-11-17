@@ -2,18 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import replay from "../lib/data/sofix_v1_replay.json";
-import { replayRates, shownXs, XS_ABOUT, XS_KEY, XS_VERSIONS, type XsVersion } from "../lib/xs";
+import { shownXs, starterRates, XS_ABOUT, XS_KEY, XS_VERSIONS, type Band, type XsVersion } from "../lib/xs";
 import ThemeSwitch from "./ThemeSwitch";
 import { askExtension } from "../lib/extension";
 
 
-// Within 7 points on the same replayed LaLiga starters (Jan-Oct 2026): v0 is the previous model, v1 its expected points,
-// v2 its most likely score. ±10 and ±15 per version wait for the research's replay (plans/xscore-versions.md step 4).
-const RATES: Record<7 | 10 | 15, Partial<Record<XsVersion, number>>> = {
-  7: replayRates(replay.phases.at(-1)!.start),
-  10: {},
-  15: {},
-};
+// Starters within ±7, ±10 and ±15 on the same replayed LaLiga starts (Jan-Oct 2026, lib/xs.ts starterRates); a version the
+// replay has no figure for says "being measured" (v0 at ±10 and ±15).
+const latest = replay.phases.at(-1)!.start;
+const RATES: Record<Band, Partial<Record<XsVersion, number>>> = { 7: starterRates(7, latest), 10: starterRates(10, latest), 15: starterRates(15, latest) };
 const BANDS = [7, 10, 15] as const;
 const rate = new Intl.NumberFormat("en-GB", { style: "percent", maximumFractionDigits: 1, minimumFractionDigits: 1 });
 

@@ -13,8 +13,7 @@ three rounds of comments (17 Nov). Research behind it: `plans/xscore-accuracy.md
   - **v1:** today's number, his expected points (`sofix` in the score records; `x` / `mu` on cards).
   - **v2:** his most likely final score, the number the user should expect as the final score, decisive actions
     included. Sofix v1 already works it out (`point`, published as `sofixPoint` / `sofixOnPoint`).
-  - v3 (normal score switching to the decisive one) stays out until the research's Phase V3 passes. The switch must
-    take a fourth row without a redesign.
+  - **v3** (added 17 Nov at the owner's ask, step 6): v0's normal score, its decisive one at a 75% chance.
 - **The big number is the score to expect, never a base plus extra.** No "40 + decisive", no "→ +30".
 - **The decisive chance is a separate scenario: "27% chance of 79"**, where 79 is the full score if a positive
   decisive action happens (goal, assist, penalty won, last-man tackle, clearance off the line, penalty save, the
@@ -140,6 +139,17 @@ below (the v1 replay card, league replay, match and player comparisons) and the 
 
 - User manual: the switch, what each version means, where the decisive line shows. `docs/how_it_works.md`: v2's
   number and the "never a base plus extra" rule. Roadmap: this plan's steps in "Next up" when the owner orders them.
+
+### 6. Sofix v3 in the switch (owner, 17 Nov 2026)
+
+**Done 17 Nov (not deployed, extension 0.5.22):** v3 is the fourth choice. A starter's number is v0's normal score, v0's
+decisive score when v0's decisive chance is 75% or more (`sofix_v1.v3_start`); a substitute's is v2's; with no v0 on file, v2's.
+The job publishes `startV3` and, while the number has not switched, v0's scenario (`pDecPrev`, `decPrevIf`) for the v3
+decisive line; the Audit judges v3 live on the saved `startPlainPrev`/`startDecPrev`/`pDecPrev` (from bf482213, so its first
+live cases are the 21 Nov round) and `sofixOnPoint`. Replay figures from the research's side-by-side replay (starters,
+Jan–Oct 2026, 6,754): v3 2,611 / 3,386 / 4,366 within 7 / 10 / 15; v1 2,036 / 2,922 / 4,240; v2 2,596 / 3,343 / 4,229
+(`docs/xscore-failure-analysis.md` "Sofix v0, v1, v2 and v3 replayed side by side" and "V3.4" on the research branch).
+Pro windows and Arcade still show v1 for every version.
 
 ## Open points to settle while building
 

@@ -127,6 +127,16 @@ def test_each_game_carries_every_xs_version_and_the_decisive_scenario():
     assert (published["startPoint"], published["start"], published["startPrev"]) == (40, 56, 56)
     assert (published["pDec"], published["decIf"]) == (0.4, 80)
     assert published["subPDec"] == 0 and "subDecIf" not in published
+    # Sofix v3 (owner, 17 Nov 2026): v0's normal score, and its decisive scenario apart while the chance is under 75%
+    assert (published["startV3"], published["pDecPrev"], published["decPrevIf"]) == (40, 0.4, 80)
+
+
+def test_sofix_v3_takes_v0s_decisive_score_from_a_75_percent_chance_and_then_names_no_scenario():
+    model = sofix_v1.Model({"start": [[[[40, 181], [1, 4]]]], "bench": [[[[35], [1]]]]})
+    numbers = keeper.GameNumbers(0.3, 1, 1)
+    outcome = model.game("DEF", True, numbers, [], model.game("DEF", True, numbers, [], None))
+    published = publish._versions(outcome, None)
+    assert published["startV3"] == 80 and not {"pDecPrev", "decPrevIf"} & published.keys()
 
 
 def test_a_game_without_sofix_v1_publishes_no_other_version():

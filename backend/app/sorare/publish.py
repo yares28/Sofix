@@ -219,6 +219,23 @@ def _versions(model: Any, previous_on: float | None) -> dict[str, Any]:
         **({"decIf": round(model.if_decisive, 1)} if model.p_decisive > 0 else {}),
         "subPDec": round(sub.p_decisive, 3),
         **({"subDecIf": round(sub.if_decisive, 1)} if sub.p_decisive > 0 else {}),
+        **_v3(model.previous_outcome),
+    }
+
+
+def _v3(before: Any) -> dict[str, Any]:
+    """Sofix v3 for a starter (`sofix_v1.v3_start`), from v0's game; its decisive scenario only while the number has not switched
+    to it, so a card never names the same score twice. Nothing without v0 on file (the page then shows v2's)."""
+    if before is None:
+        return {}
+    switched = before.p_decisive >= sofix_v1.V3_SWITCH
+    return {
+        "startV3": round(sofix_v1.v3_start(before.if_plain, before.if_decisive, before.p_decisive), 1),
+        **(
+            {"pDecPrev": round(before.p_decisive, 3), "decPrevIf": round(before.if_decisive, 1)}
+            if not switched and before.p_decisive > 0
+            else {}
+        ),
     }
 
 

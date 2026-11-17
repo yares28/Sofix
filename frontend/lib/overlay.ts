@@ -172,8 +172,10 @@ export type OverlayEntry = {
    * The tile's number in the other xS versions (plans/xscore-versions.md step 3), in the role the tile shows, and the decisive
    * scenario the v2 panel names ("27% chance of 79"). Absent when no version differs and there is no scenario.
    */
-  xs?: { v0: number; v2: number };
+  xs?: { v0: number; v2: number; v3: number };
   dec?: { pct: number; score: number };
+  /** Sofix v3's decisive scenario (v0's), absent once v3's number has switched to it. */
+  dec3?: { pct: number; score: number };
 };
 
 /**

@@ -3,13 +3,15 @@
 import { useEffect, useState, type ReactNode } from "react";
 import replay from "../../lib/data/sofix_v1_replay.json";
 import { percent, type Versus, type VersusSide } from "../../lib/audit";
-import { replayRates, shownXs, XS_ABOUT, XS_KEY, XS_VERSIONS, type XsVersion } from "../../lib/xs";
+import { replayRates, shownXs, starterRates, XS_ABOUT, XS_KEY, XS_VERSIONS, type Band, type XsVersion } from "../../lib/xs";
 import VersusAudit from "./VersusAudit";
 
-const BANDS = [7, 10, 15] as const;
-type Band = (typeof BANDS)[number];
+const BANDS: Band[] = [7, 10, 15];
 const latest = replay.phases.at(-1)!;
-const REPLAY = { start: replayRates(latest.start), bench: replayRates(latest.bench), starts: latest.start.cases, games: latest.bench.cases };
+// Starters: the replay file and the research's side-by-side replay at every width; substitutes: the replay file, ±7 only.
+const REPLAY = { starts: latest.start.cases, games: latest.bench.cases };
+const replayRate = (version: XsVersion, role: "start" | "bench", band: Band) =>
+  (role === "start" ? starterRates(band, latest.start) : band === 7 ? replayRates(latest.bench) : {})[version];
 const count = (n: number) => n.toLocaleString("en-GB");
 const within = (side: VersusSide, band: Band) => (band === 7 ? side.within : band === 10 ? side.within10 : side.within15) ?? null;
 
@@ -37,8 +39,10 @@ export default function XsAudit({ versions, fallback, updated }: { versions: Par
     const n = figures?.starts ?? 0;
     return n && rate !== null ? { n: percent(rate), sub: `${count(n)} ${role === "all" ? "starts" : "games"}` } : { n: "—", sub: "Awaiting results" };
   };
-  const replayed = (version: XsVersion, role: "start" | "bench") =>
-    band === 7 ? { n: percent(REPLAY[role][version]), sub: `of ${count(role === "start" ? REPLAY.starts : REPLAY.games)}` } : { n: "—", sub: "Being measured" };
+  const replayed = (version: XsVersion, role: "start" | "bench") => {
+    const rate = replayRate(version, role, band);
+    return rate === undefined ? { n: "—", sub: "Being measured" } : { n: percent(rate), sub: `of ${count(role === "start" ? REPLAY.starts : REPLAY.games)}` };
+  };
 
   return (
     <>

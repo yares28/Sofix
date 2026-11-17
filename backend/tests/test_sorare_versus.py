@@ -164,3 +164,23 @@ def test_figures_say_how_often_each_number_lands_within_7_10_and_15():
         week["players"][who]["games"][0]["actual"] = {"score": 50.0, "played": True, "started": True}
     side = versus.figures([week])["all"]["sofix"]
     assert (side["within"], side["within10"], side["within15"]) == (0.0, 0.5, 1.0)
+
+
+def test_sofix_v3_is_judged_on_v0s_normal_score_switching_at_75_percent_and_v2s_substitute_number():
+    week = record(
+        {"a": {"pos": "MID", "sorare": 50.0, "sofix": 52.0}, "b": {"pos": "MID", "sorare": 50.0, "sofix": 52.0}}
+    )
+    week["players"]["a"]["games"][0].update(
+        modelVersion="Sofix v1", startPlainPrev=44.0, startDecPrev=78.0, pDecPrev=0.3
+    )
+    week["players"]["b"]["games"][0].update(
+        modelVersion="Sofix v1", startPlainPrev=60.0, startDecPrev=90.0, pDecPrev=0.8
+    )
+    for who in ("a", "b"):
+        week["players"][who]["games"][0]["actual"] = {"score": 50.0, "played": True, "started": True}
+    assert sorted(r["sofix"] for r in versus.starts_of(week, version="v3")) == [44.0, 90.0]
+    bare = record({"c": {"pos": "MID", "sorare": 50.0, "sofix": 52.0}})
+    bare["players"]["c"]["games"][0].update(
+        modelVersion="Sofix v1", actual={"score": 50.0, "played": True, "started": True}
+    )
+    assert versus.starts_of(bare, version="v3") == []  # saved before v3's numbers were: no case

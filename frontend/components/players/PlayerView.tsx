@@ -64,6 +64,7 @@ export default function PlayerView({
       : null;
   const starts = typeof (planned?.start ?? theirs?.start) === "number";
   const decisive = decisiveOf(shown ?? undefined, { pStart: 1, pOn: 0 });
+  const decisive3 = decisiveOf(shown ?? undefined, { pStart: 1, pOn: 0 }, "v3");
   const last10 = sheet ? Math.round(sheet.last.reduce((a, r) => a + r[0], 0) / Math.max(1, sheet.last.length)) : null;
   const bars = useMemo(() => (shape && score !== null ? shapeBars(shape, score) : []), [shape, score]);
   const pickers: [Window, string][] = [...(factors ? ([["next", "Next game"]] as [Window, string][]) : []), ["l10", "Last 10"], ["all", "Saved starts"]];
@@ -95,6 +96,7 @@ export default function PlayerView({
                 <div>
                   <XsSwap values={roleNumbers(score, shown ?? undefined, starts ? "start" : null)} render={(n, mark) => <span {...mark} className="pd-x sc-chip" style={{ background: scoreColour(n).fill, color: scoreColour(n).ink }}>{Math.round(n ?? score)}</span>} />
                   {starts && decisive ? <span data-xsv="v2" className="pd-dec">{decisive.pct}% chance of {decisive.score}</span> : null}
+                  {starts && decisive3 ? <span data-xsv="v3" className="pd-dec">{decisive3.pct}% chance of {decisive3.score}</span> : null}
                   <small>{(planned?.by ?? theirs?.by) === "form" ? "Form: " : (planned?.by ?? theirs?.by) === "sorare" ? "Sorare: " : ""}{typeof (planned?.start ?? theirs?.start) === "number" ? "xScore if he starts" : "xScore if he plays"}</small>
                 </div>
                 {typeof pStart === "number" ? (

@@ -1193,7 +1193,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender) => {
     chrome.storage.local.set({ arcadeAim: { step: message.step, at: Date.now() } });
   }
   // The xS version the app shows (plans/xscore-versions.md): the overlay draws the same one, and redraws when it changes.
-  if (message?.type === "xs-version" && ["v0", "v1", "v2"].includes(message.version)) {
+  if (message?.type === "xs-version" && ["v0", "v1", "v2", "v3"].includes(message.version)) {
     chrome.storage.local.set({ xsVersion: message.version });
   }
 });

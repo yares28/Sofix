@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.services import kept_blocks
 from app.services.publish import put
+from app.sorare import sofix_v1
 from app.sorare.client import SorareClient, SorareError
 
 logger = logging.getLogger(__name__)
@@ -114,7 +115,7 @@ def settle(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
 # --------------------------------------------------------------------------- figures
 # The xS versions the switch offers (plans/xscore-versions.md): before Sofix v1 (12 Nov 2026) the saved `sofix` was v0's number;
 # a game Sofix v1 worked out saves v1's (`sofix`), v2's (`sofixPoint`) and v0's (`previousSofix`), each with its substitute's twin.
-VERSIONS = ("v0", "v1", "v2")
+VERSIONS = ("v0", "v1", "v2", "v3")
 _KEYS = {"v0": ("previousSofix", "previousSofixOn"), "v1": ("sofix", "sofixOn"), "v2": ("sofixPoint", "sofixOnPoint")}
 
 
@@ -122,6 +123,14 @@ def _number(game: dict[str, Any], started: bool, version: str | None) -> Any:
     """The number a version stood on for this game (his start's, or his coming on's when it was saved), None when it has none.
     `version` None is the number the page showed at the time, whichever model made it."""
     newer = bool(game.get("modelVersion"))
+    if version == "v3":
+        # Sofix v3: a starter's v0 normal score, switching to v0's decisive score at 75%; a substitute's v2 number. Saved since
+        # 17 Nov 2026 (`startPlainPrev`, `startDecPrev`, `pDecPrev`): an older game has no v3 case.
+        plain, decisive, chance = game.get("startPlainPrev"), game.get("startDecPrev"), game.get("pDecPrev")
+        if not newer or plain is None or decisive is None or chance is None:
+            return None
+        start = sofix_v1.v3_start(plain, decisive, chance)
+        return start if started or game.get("sofixOnPoint") is None else game.get("sofixOnPoint")
     if version is None or (version == "v0" and not newer):
         start, sub = "sofix", "sofixOn"
     elif version != "v0" and not newer:

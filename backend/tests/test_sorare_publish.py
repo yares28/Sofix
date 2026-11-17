@@ -1216,6 +1216,31 @@ def test_a_market_row_carries_his_game_of_the_week_being_played_while_it_is_stil
     assert publish.with_now(rows, None, at) == rows
 
 
+def test_with_now_carries_every_xs_version_the_record_saved() -> None:
+    """The version switch (plans/xscore-versions.md): a card on a page naming no week shows v2's and v0's numbers too, from the
+    frozen record; a game the record has none for names none (the test above)."""
+    record = {
+        "players": {
+            "p": {
+                "pPlay": 0.9,
+                "mu": 50,
+                "games": [
+                    {
+                        "id": "Game:a",
+                        "kickoff": "2026-11-04T17:45:00Z",
+                        "venue": "H",
+                        "sofix": 50,
+                        "sofixPoint": 44,
+                        "previousSofix": 53.5,
+                    }
+                ],
+            }
+        }
+    }
+    (row,) = publish.with_now([{"slug": "p"}], record, datetime(2026, 11, 3, 12, 0, tzinfo=UTC))
+    assert (row["now"]["start"], row["now"]["startPoint"], row["now"]["startPrev"]) == (50, 44, 53.5)
+
+
 def test_with_now_carries_futbol_fantasy_match_so_the_overlay_reads_it_live() -> None:
     """9 Nov 2026: 251 rows of the round being played had FF's start %, none its match page, so the overlay could not read it live."""
     ff = {"id": 123456, "url": "https://www.futbolfantasy.com/partidos/123456-sevilla-betis"}

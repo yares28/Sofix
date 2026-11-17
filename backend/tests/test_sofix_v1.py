@@ -84,6 +84,10 @@ def test_expected_points_and_frozen_predictions_are_published_together():
         "modelVersion": sofix_v1.VERSION,
         "startPoint": 40,
         "subPoint": 35,
+        "subPrev": 42.0,
+        "pDec": 0.4,
+        "decIf": 80.0,
+        "subPDec": 0.0,
     }
     record = publish.score_record(
         {"slug": "week", "number": 1, "lock": "2026-10-09T14:00:00Z"},
@@ -99,6 +103,38 @@ def test_expected_points_and_frozen_predictions_are_published_together():
         35,
         sofix_v1.VERSION,
     )
+
+
+def test_each_game_carries_every_xs_version_and_the_decisive_scenario():
+    """The version switch (plans/xscore-versions.md step 1): v1 (`x`, `start`), v2 (`startPoint`), v0 (`startPrev`) and the
+    decisive scenario ("40% chance of 80": `pDec`, `decIf`) ride with each game; a chance of none has no score to name."""
+    model = sofix_v1.Model({"start": [[[[40, 181], [6, 4]]]], "bench": [[[[35], [1]]]]})
+    numbers = keeper.GameNumbers(0.3, 1, 1)
+    old = model.game("DEF", True, numbers, [], None)
+    outcome = model.game("DEF", True, numbers, [], old)
+    game = {"id": "a", "kickoff": "2026-10-10T20:00:00Z", "competition": keeper.LALIGA}
+    week = PlayerWeek(
+        games=1,
+        pos="DEF",
+        game_ids=["a"],
+        game_starts=[GameStart("a", 1)],
+        game_scores=(outcome.start,),
+        game_models=(outcome,),
+        shape=outcome,
+        game_dec=(outcome.p_decisive,),
+    )
+    published = publish._game_numbers([game], forecast(week))["a"]
+    assert (published["startPoint"], published["start"], published["startPrev"]) == (40, 56, 56)
+    assert (published["pDec"], published["decIf"]) == (0.4, 80)
+    assert published["subPDec"] == 0 and "subDecIf" not in published
+
+
+def test_a_game_without_sofix_v1_publishes_no_other_version():
+    """No made-up numbers: a game Sofix v1 did not work out names no v0, v2 or decisive scenario (never v1 copied in)."""
+    game = {"id": "a", "kickoff": "2026-10-10T20:00:00Z", "competition": keeper.LALIGA}
+    week = PlayerWeek(games=1, pos="DEF", game_ids=["a"], game_starts=[GameStart("a", 1)], game_scores=(50.0,))
+    published = publish._game_numbers([game], forecast(week)).get("a", {})
+    assert not {"startPoint", "startPrev", "pDec", "decIf"} & published.keys()
 
 
 def test_competition_artifact_loads_as_sofix_v1_and_refuses_another_version_or_code(tmp_path, monkeypatch):

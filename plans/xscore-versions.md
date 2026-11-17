@@ -55,6 +55,13 @@ Two rules to keep while filling the gaps:
 
 ### 1. Publish every version's number with every game
 
+**Done 17 Nov (backend, not deployed):** `publish._versions` adds `startPrev`/`subPrev` (v0), `pDec`/`decIf` and
+`subPDec`/`subDecIf` (the decisive scenario) next to `startPoint`/`subPoint` (v2) on every game Sofix v1 worked out,
+through `_game_numbers`: the week's players, the market's `fixture` and `next` (every LaLiga player), and the other
+leagues' markets. The overlay's `now` rows take `startPoint`/`startPrev` from the frozen record. Frontend type
+`XsVersions` (`lib/play.ts`). The Sorare block grows about 60 kB (1.33 → ~1.39 MB, under the 1.6 MB line). Not yet
+in the score record: the decisive scenario (the Audit's step 4 adds it if it needs it).
+
 - Backend: everywhere a game's Sofix number is published for a card (`card_games`, the week's `players` rows,
   `_split_out`, the market `next` games, Arcade's LaLiga rows, league squads), publish `v0`, `v1`, `v2` side by side
   and the decisive split `{p, dec}`, for every player Sofix forecasts, not only the owner's.

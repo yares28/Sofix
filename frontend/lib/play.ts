@@ -231,7 +231,7 @@ export type GameOdds = {
   source: "sorare";
 };
 
-export type PlayerGame = {
+export type PlayerGame = XsVersions & {
   /** Imported mission game without a forecast; the card stays selectable without a fabricated play chance. */
   availabilityKnown?: boolean;
   id?: string;
@@ -253,9 +253,6 @@ export type PlayerGame = {
   /** This game on its own (payloads from 3 Nov 2026): what he is expected to score in it and if he starts it. A Pro or Arcade card plays one game. */
   x?: number;
   start?: number;
-  modelVersion?: string;
-  startPoint?: number;
-  subPoint?: number;
   /**
    * His chance of starting this game and of coming on in it, once Futbol Fantasy speaks about one of his games
    * (plans/futbolfantasy.md): every game of such a player carries them, each with the source of its number. Absent
@@ -536,12 +533,31 @@ export type MarketPlayer = {
   /** His first game of the week being played still ahead when the refresh ran, from that week's frozen record (plans/overlay-v2.md 1.7.3). */
   now?: {
     p: number; pStart?: number; startSource?: StartSource; start?: number; x: number; fixture: MarketFixture;
+    /** v2's and v0's number if he starts, from the same record (payloads from 17 Nov 2026, plans/xscore-versions.md). */
+    startPoint?: number; startPrev?: number;
     /** For a game Futbol Fantasy spoke about (payloads from 9 Nov 2026): every source's start % and his FF match, for the live read. */
     sources?: Partial<Record<StartSource, number>>; ffMatch?: { id: number; url: string }; ffPlayer?: string;
   };
 };
 
-export type MarketFixture = {
+/**
+ * A game in the other xS versions the switch offers (payloads from 17 Nov 2026, plans/xscore-versions.md): v2's most likely
+ * score and v0's, if he starts and if he comes on, and the decisive scenario, his chance of a positive decisive action and
+ * his whole score if it comes. Absent for a game Sofix v1 did not work out; `decIf` absent when the chance is none.
+ */
+export type XsVersions = {
+  modelVersion?: string;
+  startPoint?: number;
+  subPoint?: number;
+  startPrev?: number;
+  subPrev?: number;
+  pDec?: number;
+  decIf?: number;
+  subPDec?: number;
+  subDecIf?: number;
+};
+
+export type MarketFixture = XsVersions & {
   id?: string;
   team?: string | null;
   teamCrest?: string | null;

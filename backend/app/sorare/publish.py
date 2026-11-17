@@ -203,9 +203,29 @@ def _with_chances(games: list[dict[str, Any]], forecast: Forecast | None) -> lis
     ]
 
 
+def _versions(model: Any, previous_on: float | None) -> dict[str, Any]:
+    """A game Sofix v1 worked out, in every xS version the switch offers (plans/xscore-versions.md): v2's most likely score
+    (`startPoint`, `subPoint`), v0's (`startPrev`, `subPrev`), and the decisive scenario, his chance of a positive decisive
+    action and his whole score if it comes (`pDec`/`decIf` if he starts, `subPDec`/`subDecIf` if he comes on). A chance of none
+    names no score."""
+    sub = model.sub.outcome
+    return {
+        "modelVersion": model.version,
+        "startPoint": model.point,
+        "subPoint": model.sub.point,
+        **({"startPrev": round(model.previous, 1)} if model.previous is not None else {}),
+        **({"subPrev": previous_on} if previous_on is not None else {}),
+        "pDec": round(model.p_decisive, 3),
+        **({"decIf": round(model.if_decisive, 1)} if model.p_decisive > 0 else {}),
+        "subPDec": round(sub.p_decisive, 3),
+        **({"subDecIf": round(sub.if_decisive, 1)} if sub.p_decisive > 0 else {}),
+    }
+
+
 def _game_numbers(games: list[dict[str, Any]], forecast: Forecast | None) -> dict[str, dict[str, Any]]:
     """Each game's own numbers by game id: `x` what he is expected to score in it, `start` if he starts it (the forecast holds them in
-    kickoff order). A Pro or Arcade card plays one game, so the overlay shows that game's; the week's numbers stay for the rest."""
+    kickoff order), and the other xS versions when Sofix v1 worked the game out (`_versions`). A Pro or Arcade card plays one game, so
+    the overlay shows that game's; the week's numbers stay for the rest."""
     if not forecast or len(forecast.game_x) != len(games) or len(forecast.game_start) != len(games):
         return {}
     ordered = sorted(games, key=lambda g: g.get("kickoff") or "")
@@ -213,9 +233,7 @@ def _game_numbers(games: list[dict[str, Any]], forecast: Forecast | None) -> dic
         g["id"]: {
             "x": x,
             "start": start,
-            **(
-                {"modelVersion": model.version, "startPoint": model.point, "subPoint": model.sub.point} if model else {}
-            ),
+            **(_versions(model, forecast.previous_on) if model else {}),
         }
         for i, (g, x, start) in enumerate(zip(ordered, forecast.game_x, forecast.game_start, strict=True))
         if g.get("id")
@@ -2205,6 +2223,9 @@ def with_now(rows: list[dict[str, Any]], record: dict[str, Any] | None, at: date
                 else {}
             ),
             **({"start": game["sofix"]} if game.get("sofix") is not None else {}),
+            # the other xS versions the record saved for the switch (plans/xscore-versions.md): v2, then v0
+            **({"startPoint": game["sofixPoint"]} if game.get("sofixPoint") is not None else {}),
+            **({"startPrev": game["previousSofix"]} if game.get("previousSofix") is not None else {}),
             "x": round(his["pPlay"] * his["mu"], 1),
             # His Futbol Fantasy match, so the overlay reads it live; only for a game FF spoke about (bytes: the blocks' budgets).
             **(

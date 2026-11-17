@@ -112,9 +112,28 @@ def settle(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
 
 
 # --------------------------------------------------------------------------- figures
-def starts_of(record: dict[str, Any], started: bool = True) -> list[dict[str, Any]]:
+# The xS versions the switch offers (plans/xscore-versions.md): before Sofix v1 (12 Nov 2026) the saved `sofix` was v0's number;
+# a game Sofix v1 worked out saves v1's (`sofix`), v2's (`sofixPoint`) and v0's (`previousSofix`), each with its substitute's twin.
+VERSIONS = ("v0", "v1", "v2")
+_KEYS = {"v0": ("previousSofix", "previousSofixOn"), "v1": ("sofix", "sofixOn"), "v2": ("sofixPoint", "sofixOnPoint")}
+
+
+def _number(game: dict[str, Any], started: bool, version: str | None) -> Any:
+    """The number a version stood on for this game (his start's, or his coming on's when it was saved), None when it has none.
+    `version` None is the number the page showed at the time, whichever model made it."""
+    newer = bool(game.get("modelVersion"))
+    if version is None or (version == "v0" and not newer):
+        start, sub = "sofix", "sofixOn"
+    elif version != "v0" and not newer:
+        return None
+    else:
+        start, sub = _KEYS[version]
+    return game.get(start) if started or game.get(sub) is None else game.get(sub)
+
+
+def starts_of(record: dict[str, Any], started: bool = True, version: str | None = None) -> list[dict[str, Any]]:
     """Every settled game a player started (or, with `started` false, came on in) with both numbers written down before the lock:
-    (week, pos, sorare, sofix, actual)."""
+    (week, pos, sorare, sofix, actual). `sofix` is the number of `version` (`_number`), the one shown at the time when None."""
     week = (record.get("gameweek") or {}).get("number")
     out = []
     for slug, entry in (record.get("players") or {}).items():
@@ -124,7 +143,8 @@ def starts_of(record: dict[str, Any], started: bool = True) -> list[dict[str, An
                 continue
             if not started and not did.get("played"):
                 continue
-            if game.get("sorare") is None or game.get("sofix") is None:
+            number = _number(game, started, version)
+            if game.get("sorare") is None or game.get("sofix") is None or number is None:
                 continue
             out.append(
                 {
@@ -132,7 +152,7 @@ def starts_of(record: dict[str, Any], started: bool = True) -> list[dict[str, An
                     "week": week,
                     "pos": entry.get("pos"),
                     "sorare": float(game["sorare"]),
-                    "sofix": float(game["sofix"] if started or game.get("sofixOn") is None else game["sofixOn"]),
+                    "sofix": float(number),
                     "actual": float(did["score"]),
                 }
             )
@@ -209,6 +229,9 @@ def _side(rows: list[dict[str, Any]], key: str) -> dict[str, Any]:
         "miss": round(sum(abs(m) for m in misses) / n, 2) if n else None,  # how far off, on average, in points
         "lean": round(sum(misses) / n, 2) if n else None,  # positive: too high on average
         "within": round(sum(1 for m in misses if abs(m) <= CLOSE) / n, 4) if n else None,
+        # the switch's ±10 and ±15 (plans/xscore-versions.md): the same count with a wider window
+        "within10": round(sum(1 for m in misses if abs(m) <= 10) / n, 4) if n else None,
+        "within15": round(sum(1 for m in misses if abs(m) <= 15) / n, 4) if n else None,
         "pair": round(pair, 4) if pair is not None else None,
         "pairs": pairs,
     }
@@ -227,9 +250,10 @@ def compare(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def figures(all_records: list[dict[str, Any]]) -> dict[str, Any]:
-    """The Audit's Sorare-against-Sofix view: everything together, by position, and week by week."""
-    rows = [row for record in all_records for row in starts_of(record)]
+def figures(all_records: list[dict[str, Any]], version: str | None = None) -> dict[str, Any]:
+    """The Audit's Sorare-against-Sofix view: everything together, by position, and week by week; with `version`, that xS
+    version's own numbers on the games it has one for."""
+    rows = [row for record in all_records for row in starts_of(record, version=version)]
     by_week: dict[Any, list[dict[str, Any]]] = {}
     for row in rows:
         by_week.setdefault(row["week"], []).append(row)
@@ -240,7 +264,7 @@ def figures(all_records: list[dict[str, Any]]) -> dict[str, Any]:
             {"week": week, **compare(found)} for week, found in sorted(by_week.items(), key=lambda item: item[0] or 0)
         ],
         # the games a player came on in, counted apart: both numbers are for a start, so a substitute's score judges them differently
-        "subs": compare([row for record in all_records for row in starts_of(record, started=False)]),
+        "subs": compare([row for record in all_records for row in starts_of(record, started=False, version=version)]),
         "recorded": len(all_records),
         "settled": sum(1 for record in all_records if record.get("settledAt")),
     }

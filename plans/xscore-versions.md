@@ -121,6 +121,13 @@ the deploy, `configure.mjs` and the owner's Chrome.
 
 ### 4. Audit: every version on one page
 
+**Done 17 Nov (not deployed):** the job publishes `versions` (`versus.figures` per version on its own saved number:
+v0 from `sofix` before Sofix v1 and `previousSofix` after, v1 `sofix`, v2 `sofixPoint`), each side now with `within10`/`within15`.
+The page opens with `components/audit/XsAudit.tsx`: the versions compared (live and replay, starters and subs, ±7/±10/±15,
+the one in use marked), a row or the Version menu picks which version fills "Sofix against Sorare". The switch's menu keeps
+the replay rates (the same games for every version); the Audit holds the live ones. **Still on one number:** the sections
+below (the v1 replay card, league replay, match and player comparisons) and the replay's ±10/±15 (research step V3.2).
+
 - Job (`versus.py`, `audit.py`): per version, starters and played substitutes, hits within 7, 10 and 15, live
   (saved before lock) and replay. v0 live from `previousSofix`, v1 from `sofix`, v2 from `sofixPoint`.
 - Replay ±10/±15: from the research's step V3.2 when it lands; until then those cells say "Being measured".

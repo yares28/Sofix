@@ -104,7 +104,10 @@ The **xS** button beside them picks which xS every card shows ([plan](../plans/x
 change. Lineup totals, plans and rewards stay on expected points in every version. In v2, the player page and the line
 under Home's front card add his decisive scenario, "27% chance of 79": his whole score if a positive decisive action
 comes, never added to the number. A game no version worked out keeps v1's number. Below 1200 px the button shows only
-the version, and the light/dark switch moves inside its menu.
+the version, and the light/dark switch moves inside its menu. Audit · xS opens with every version compared, live (saved before each lock) and on
+the replay, starters and substitutes, within ±7, ±10 or ±15; picking a version (its row or the Version menu) fills the
+"Sofix against Sorare" section under it with that version's own numbers. Before 12 Nov the saved number was v0's, so v1's
+and v2's live figures start with the games after Sofix v1's release.
 
 A week has one name on every page, in the bar, in the Play title and on Lineups and Home, because the two leagues count their
 weeks differently (LaLiga's round 8 is Sorare's GW21): **LaLiga round 8 · Sorare GW21**; before Sorare opens the week

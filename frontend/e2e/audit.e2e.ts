@@ -197,6 +197,29 @@ test("the page leads with Sofix's and Sorare's success rate within 7 points, sta
   }
 });
 
+test("every xS version is compared within 7, 10 and 15 points, and picking one fills the section with its own numbers", async ({ page, request }) => {
+  await resetBackend(request, "audit-enough");
+  await page.goto("/audit?w=2026-10-09");
+  const table = page.getByRole("table", { name: /Each xS version within/ });
+  const row = (v: string) => table.getByRole("row", { name: new RegExp(`Sofix ${v}`) });
+  await expect(row("v2").getByRole("cell").nth(0)).toContainText("39%380 starts"); // live, starters
+  await expect(row("v1").getByRole("cell").nth(0)).toContainText("Awaiting results"); // nothing of v1 settled yet
+  await expect(row("v1")).toContainText("In use");
+  await page.getByRole("group", { name: "Hit window" }).getByRole("button", { name: "±10" }).click();
+  await expect(row("v2").getByRole("cell").nth(0)).toContainText("50%");
+  await expect(row("v2").getByRole("cell").nth(1)).toContainText("Being measured"); // the replay has ±7 only
+  await row("v2").getByRole("button").click();
+  await expect(page.getByRole("heading", { level: 1, name: "Sofix v2 against Sorare" })).toBeVisible();
+  await expect(page.locator(".ax-duo > div").nth(0).locator(".ax-duo-n")).toHaveText("39%");
+  await page.getByRole("combobox", { name: "Version" }).selectOption("v0");
+  await expect(page.getByRole("heading", { level: 1, name: "Sofix v0 against Sorare" })).toBeVisible();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(await smallText(page, width === 390 ? 10 : 11)).toEqual([]);
+  }
+});
+
 test("saved weeks survive without Chrome on Audit · Rewards and Cards, beside the plan frozen at lock", async ({ page, request }) => {
   const card = sorare.collection![0]!;
   const start = `${new Date().getUTCFullYear()}-08-01T14:00:00Z`;

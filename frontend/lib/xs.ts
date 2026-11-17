@@ -81,3 +81,20 @@ export function tileVersions(
   const dec = decisiveOf(game, starts ? { pStart: 1, pOn: 0 } : roles);
   return { ...(v0 !== Math.round(v1) || v2 !== Math.round(v1) ? { xs: { v0, v2 } } : {}), ...(dec ? { dec } : {}) };
 }
+
+/** What each version is, in the owner's words (plans/xscore-versions.md): the switch's menu and the Audit say the same. */
+export const XS_ABOUT: Record<XsVersion, string> = {
+  v0: "Before 12 Nov: normal and decisive score mixed",
+  v1: "Expected points · the default",
+  v2: "The most likely final score",
+};
+
+export type Replay = { cases: number; previousHits: number; meanHits: number; hits: number };
+
+/**
+ * Each version's share within 7 points on one replay (lib/data/sofix_v1_replay.json, the same games for all three): v0 is the
+ * previous model, v1 Sofix v1's expected points, v2 its most likely score. ±10 and ±15 are not in the replay yet.
+ */
+export function replayRates(replay: Replay): Record<XsVersion, number> {
+  return { v0: replay.previousHits / replay.cases, v1: replay.meanHits / replay.cases, v2: replay.hits / replay.cases };
+}

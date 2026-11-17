@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decisiveOf, roleNumbers, shownXs, tileVersions, xsNumbers } from "./xs";
+import { decisiveOf, replayRates, roleNumbers, shownXs, tileVersions, xsNumbers } from "./xs";
 
 const game = { startPoint: 45, subPoint: 35, startPrev: 55, subPrev: 41, pDec: 0.27, decIf: 79, subPDec: 0.1, subDecIf: 70 };
 
@@ -55,5 +55,11 @@ describe("tileVersions", () => {
   it("sends nothing for a game with no other version, so the payload stays as it was", () => {
     expect(tileVersions(50, undefined, {}, true)).toEqual({});
     expect(tileVersions(50, { startPoint: 50 }, {}, true)).toEqual({});
+  });
+});
+
+describe("replayRates", () => {
+  it("reads each version's hits on the same replayed games", () => {
+    expect(replayRates({ cases: 200, previousHits: 60, meanHits: 62, hits: 80 })).toEqual({ v0: 0.3, v1: 0.31, v2: 0.4 });
   });
 });

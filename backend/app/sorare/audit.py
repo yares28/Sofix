@@ -463,6 +463,8 @@ def build(
         "missions": missions.record(mission_logs or []),
         # Sorare's projection against Sofix's xScore on the same starts, from the numbers written down before each lock (6 Oct 2026)
         "versus": versus.figures(score_records or []),
+        # the same view for each xS version on its own saved numbers: the Audit compares them and opens one (plans/xscore-versions.md)
+        "versions": {version: versus.figures(score_records or [], version) for version in versus.VERSIONS},
     }
 
 

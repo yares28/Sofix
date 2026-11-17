@@ -211,6 +211,8 @@ The owner requires starters and substitutes apart, the within-seven-points compa
 
 The Sofix v1 section distinguishes the dated replay from pre-lock versioned live scores. The latter use settled game records, match the point forecast to the player's actual role, and show gains and losses on the games with a previous-model prediction on file.
 
+Since 17 Nov 2026 the same Sofix-against-Sorare figures are published per xS version (`versions`, [plan](../plans/xscore-versions.md) step 4), each on its own saved number: before Sofix v1 the saved `sofix` was v0's; on a game Sofix v1 worked out, v0 is `previousSofix`, v1 `sofix` and v2 `sofixPoint` (each with its substitute's twin). A version with no number for a game leaves the game out; it is never filled with another version's. Each side also counts within 10 and 15 points. The legacy `versus` (the number shown at the time) stays as it was.
+
 <a id="extension-actions-001"></a>
 ## EXTENSION-ACTIONS-001
 
@@ -1585,11 +1587,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-17",
-        "note": "17 Nov 2026: test_sofix_v1.py gains publication tests for the per-game versions; the Audit evidence tests and versus.py are unchanged.",
+        "note": "17 Nov 2026: versus.starts_of/figures take an xS version (_number: v0 from sofix before Sofix v1 else previousSofix, v1 sofix, v2 sofixPoint, substitute twins); _side adds within10/within15; audit.py publishes versions alongside the unchanged versus. Pre-lock and late-record rules unchanged (a late record's cleared sofix still drops the game for every version). Tests test_each_xs_version_is_judged_on_its_own_saved_number and test_figures_say_how_often_each_number_lands_within_7_10_and_15.",
         "files": {
           "backend/app/sorare/player_audit.py": "3436b64cf197d937aefbd51a213af0e28c396ebab23ff8b883e52091bea89427",
-          "backend/app/sorare/audit.py": "990ba4ee4989da1185ce3a61f2f53bdfc13047b977dd91804fb335aa8b6beb03",
-          "backend/app/sorare/versus.py": "422026b17ca3550d637ff63d62743271456f452778984d886e4d35a6f12e94db",
+          "backend/app/sorare/audit.py": "ea8f89ebfa164a56eea73174e3fb39185ca652ab8dfa417d71fae64541dd8a60",
+          "backend/app/sorare/versus.py": "d427da90f643a8d3f1e9edaf723b9885914ab8e40c84fc2360d2ee543b55c99a",
           "backend/tests/test_player_audit.py": "2712237e9be35154a26790e59acceaeeb6c921ca0fd1b5990f0f47f7e42f2a63",
           "backend/tests/test_sofix_v1.py": "d49f78c65d2814b19c0bf84ccd4967cfc3317fdaddd1cbaf6b732494026d0206"
         }

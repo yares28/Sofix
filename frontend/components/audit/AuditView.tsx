@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import MissionsAudit from "./MissionsAudit";
 import type { MissionOutcome } from "../../lib/missionOutcomes";
 import MatchAudit from "./MatchAudit";
-import VersusAudit from "./VersusAudit";
+import XsAudit from "./XsAudit";
 import RewardsAudit from "./RewardsAudit";
 import LineupsAudit from "./LineupsAudit";
 import StrategiesAudit from "./StrategiesAudit";
@@ -69,7 +69,7 @@ export default function AuditView({
   if (show === "xscore") {
     return (
       <>
-        <VersusAudit versus={data.versus} updated={updated} />
+        <XsAudit versions={data.versions ?? {}} fallback={data.versus} updated={updated} />
         <XscoreModel live={data.xscore.models} />
         {league ? <LeagueAudit data={league} /> : null}
         <MatchAudit data={data.matches} />

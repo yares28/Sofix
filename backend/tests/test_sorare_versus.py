@@ -137,3 +137,30 @@ def test_results_read_every_game_although_sorare_refuses_two_games_in_one_questi
     found = versus.results(StrictSorare(), games)  # type: ignore[arg-type]
     assert sorted(found) == games
     assert found[GAME]["a"] == {"score": 61.5, "played": True, "started": True, "mins": 90}
+
+
+def test_each_xs_version_is_judged_on_its_own_saved_number():
+    """plans/xscore-versions.md step 4: before Sofix v1 (12 Nov 2026) the saved `sofix` was v0's number; since, v0's is
+    `previousSofix`, v1's `sofix` and v2's `sofixPoint`. A version with no number for a game leaves that game out."""
+    old = record({"a": {"pos": "MID", "sorare": 50.0, "sofix": 44.0}})
+    new = record({"b": {"pos": "MID", "sorare": 50.0, "sofix": 52.0}})
+    new["players"]["b"]["games"][0].update(modelVersion="Sofix v1", sofixPoint=47.0, previousSofix=58.0)
+    for week, who in ((old, "a"), (new, "b")):
+        week["players"][who]["games"][0]["actual"] = {"score": 50.0, "played": True, "started": True}
+    assert [r["sofix"] for r in versus.starts_of(old, version="v0")] == [44.0]
+    assert versus.starts_of(old, version="v1") == [] and versus.starts_of(old, version="v2") == []
+    assert [r["sofix"] for r in versus.starts_of(new, version="v0")] == [58.0]
+    assert [r["sofix"] for r in versus.starts_of(new, version="v1")] == [52.0]
+    assert [r["sofix"] for r in versus.starts_of(new, version="v2")] == [47.0]
+    assert versus.figures([old, new], "v0")["all"]["starts"] == 2
+    assert versus.figures([old, new], "v1")["all"]["starts"] == 1
+
+
+def test_figures_say_how_often_each_number_lands_within_7_10_and_15():
+    week = record(
+        {"a": {"pos": "MID", "sorare": 50.0, "sofix": 41.0}, "b": {"pos": "MID", "sorare": 50.0, "sofix": 62.0}}
+    )
+    for who in ("a", "b"):
+        week["players"][who]["games"][0]["actual"] = {"score": 50.0, "played": True, "started": True}
+    side = versus.figures([week])["all"]["sofix"]
+    assert (side["within"], side["within10"], side["within15"]) == (0.0, 0.5, 1.0)

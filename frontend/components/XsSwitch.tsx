@@ -2,22 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import replay from "../lib/data/sofix_v1_replay.json";
-import { shownXs, XS_KEY, XS_VERSIONS, type XsVersion } from "../lib/xs";
+import { replayRates, shownXs, XS_ABOUT, XS_KEY, XS_VERSIONS, type XsVersion } from "../lib/xs";
 import ThemeSwitch from "./ThemeSwitch";
 import { askExtension } from "../lib/extension";
 
-/** What each version is, in the owner's words (plans/xscore-versions.md). */
-const ABOUT: Record<XsVersion, string> = {
-  v0: "Before 12 Nov: normal and decisive score mixed",
-  v1: "Expected points · the default",
-  v2: "The most likely final score",
-};
 
 // Within 7 points on the same replayed LaLiga starters (Jan-Oct 2026): v0 is the previous model, v1 its expected points,
 // v2 its most likely score. ±10 and ±15 per version wait for the research's replay (plans/xscore-versions.md step 4).
-const latest = replay.phases.at(-1)!.start;
 const RATES: Record<7 | 10 | 15, Partial<Record<XsVersion, number>>> = {
-  7: { v0: latest.previousHits / latest.cases, v1: latest.meanHits / latest.cases, v2: latest.hits / latest.cases },
+  7: replayRates(replay.phases.at(-1)!.start),
   10: {},
   15: {},
 };
@@ -89,7 +82,7 @@ export default function XsSwitch() {
             return (
               <button key={v} type="button" role="radio" aria-checked={v === version} className="xs-switch-opt" onClick={() => pick(v)}>
                 <span className="xs-switch-tick" aria-hidden="true">{v === version ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg> : null}</span>
-                <span className="xs-switch-name"><b>Sofix {v}</b><small>{ABOUT[v]}</small></span>
+                <span className="xs-switch-name"><b>Sofix {v}</b><small>{XS_ABOUT[v]}</small></span>
                 <span className="xs-switch-rate"><b>{hit === undefined ? "—" : rate.format(hit)}</b><small>{hit === undefined ? "being measured" : `±${band} · replay`}</small></span>
               </button>
             );

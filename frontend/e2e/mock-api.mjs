@@ -300,6 +300,11 @@ function auditPayload(kind) {
       recorded: 3,
       settled: 2,
     };
+    // each xS version on its own saved numbers (plans/xscore-versions.md step 4): v1 has none settled yet
+    data.versions = {
+      v0: structuredClone(data.versus),
+      v2: { ...structuredClone(data.versus), all: { ...figures(380, 15.8, 18.6), sofix: { ...side(15.8, 0.2, 0.39), within10: 0.5, within15: 0.63 } } },
+    };
   }
   const emptySource = () => ({ state: "none", recorded: 0, settled: 0, right: null, brier: null, mean: null, started: null, buckets: null });
   const emptyScope = () => ({ sources: Object.fromEntries(["futbolfantasy", "sorare", "sofix"].map(s => [s, emptySource()])), bands: {}, weeks: [], elevens: { all: { futbolfantasy: { picked: 0, checked: 0, started: 0, rate: null }, sorare: { picked: 0, checked: 0, started: 0, rate: null }, sofix: { picked: 0, checked: 0, started: 0, rate: null } }, weeks: [], clubs: [] } });

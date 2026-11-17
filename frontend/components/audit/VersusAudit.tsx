@@ -3,7 +3,6 @@ import { percent, points, type Line, type Versus, type VersusFigures } from "../
 import { POSITION_NAME } from "../../lib/leagueAudit";
 
 const LINES: Line[] = ["GK", "DEF", "MID", "FWD"];
-const SIDES = [["sofix", "Sofix"], ["sorare", "Sorare"]] as const;
 const count = (n: number) => n.toLocaleString("en-GB");
 const plural = (n: number, one: string) => `${count(n)} ${one}${n === 1 ? "" : "s"}`;
 
@@ -41,8 +40,9 @@ function Row({ name, figures, unit = "start" }: { name: string; figures: VersusF
  * within 7 points of what the player scored is a success, anything else is a miss. Every player with both numbers saved before the lock
  * counts on his own, starters and the men who came on as two separate rates, from the first game checked (no floor).
  */
-export default function VersusAudit({ versus, updated = null }: { versus: Versus; updated?: ReactNode }) {
+export default function VersusAudit({ versus, updated = null, label = "Sofix" }: { versus: Versus; updated?: ReactNode; /** "Sofix v2" when one xS version is shown (plans/xscore-versions.md). */ label?: string }) {
   const { all, subs } = versus;
+  const SIDES = [["sofix", label], ["sorare", "Sorare"]] as const;
   const best = better(all);
   const rows = [{ name: "All", figures: all }, ...LINES.map((line) => ({ name: POSITION_NAME[line], figures: versus.positions[line] }))];
   const none = versus.recorded && !all.starts && !subs.starts ? "Waiting for results" : "Nothing checked yet";
@@ -50,7 +50,7 @@ export default function VersusAudit({ versus, updated = null }: { versus: Versus
     <>
       <section className="ax-hero">
         <div className="ax-lead">
-          <h1>Sofix against Sorare</h1>
+          <h1>{label} against Sorare</h1>
           <p className="ax-sub">How often each expected score, saved before the lock, landed within 7 points of the real one</p>
           <dl className="ax-duo">
             {SIDES.map(([side, name]) => (

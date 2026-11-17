@@ -1,4 +1,5 @@
 import type { StartsBoard } from "./startsBoard";
+import type { XsVersion } from "./xs";
 /**
  * The Audit page: types for the payload the job publishes (`read_models` key `audit`, built by backend/app/sorare/audit.py) and the
  * small pure helpers the page shares. The numbers, the floors under which a figure is not given and each source's state all come from
@@ -89,7 +90,9 @@ export type Missions = {
 
 /** One side of the Sorare-against-Sofix comparison, on the same starts: how far off on average, which way it leans, how often within 7
  * points, and how often it rated the better of two starters of one position higher. */
-export type VersusSide = { miss: number | null; lean: number | null; within: number | null; pair: number | null; pairs: number };
+export type VersusSide = { miss: number | null; lean: number | null; within: number | null; pair: number | null; pairs: number;
+  /** The same share within 10 and 15 points (payloads from 17 Nov 2026, the xS switch's ±10 and ±15). */
+  within10?: number | null; within15?: number | null };
 export type VersusFigures = { starts: number; sofixCloser: number | null; sofix: VersusSide; sorare: VersusSide };
 /** Sorare's projection against Sofix's xScore, from the numbers written down before each lock (backend/app/sorare/versus.py). */
 export type Versus = {
@@ -188,6 +191,8 @@ export type Audit = {
   rewards: Rewards;
   missions: Missions;
   versus: Versus;
+  /** The same comparison for each xS version on its own saved numbers (payloads from 17 Nov 2026, plans/xscore-versions.md step 4). */
+  versions?: Partial<Record<XsVersion, Versus>>;
   elevens: Elevens;
   frozenPlans: FrozenWeek[];
   lineups: LineupsAudit;
@@ -247,6 +252,7 @@ export function readable(value: unknown): Audit | null {
     missions: { ...NO_MISSIONS, ...(data.missions ?? {}) },
     // and one published before Sorare and Sofix were written down side by side has an empty comparison
     versus: { ...NO_VERSUS, ...(data.versus ?? {}), positions: { ...NO_VERSUS.positions, ...(data.versus?.positions ?? {}) } },
+    versions: Object.fromEntries(Object.entries(data.versions ?? {}).map(([version, one]) => [version, { ...NO_VERSUS, ...one, positions: { ...NO_VERSUS.positions, ...(one?.positions ?? {}) } }])),
     elevens: { ...NO_ELEVENS, ...(data.elevens ?? {}) },
     frozenPlans: data.frozenPlans ?? [],
     // and one published before the saved plans were judged has none

@@ -790,3 +790,29 @@
 .ax-model .ax-grid { animation: ax-swap .22s ease-out; }
 @keyframes ax-swap { from { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .ax-model .ax-grid { animation: none; } }
+
+/* ---------- Audit · every xS version (components/audit/XsAudit.tsx) ---------- */
+.xa-card { margin-top: 8px; }
+.xa-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 14px; }
+.xa-head h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.025em; }
+.xa-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.xa-table th, .xa-table td { padding: 14px 12px; text-align: left; vertical-align: middle; border-top: 1px solid var(--line); }
+.xa-table thead th { padding-top: 0; border-top: 0; color: var(--ink-2); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.xa-table td b { display: block; font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+.xa-table td small, .xa-pick small { display: block; margin-top: 4px; color: var(--ink-2); font-size: 12px; }
+.xa-table .xa-none { color: var(--ink-3); }
+.xa-table tr[aria-current="true"] > * { background: var(--hover); }
+.xa-table tr[aria-current="true"] > th { border-radius: 14px 0 0 14px; }
+.xa-table tr[aria-current="true"] > td:last-child { border-radius: 0 14px 14px 0; }
+.xa-pick { appearance: none; border: 0; background: transparent; padding: 0; font: inherit; color: var(--ink); text-align: left; cursor: pointer; min-height: 44px; }
+.xa-pick b { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 650; }
+.xa-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+.xa-use { padding: 3px 7px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 11px; font-weight: 650; }
+.xa-pickrow { display: flex; justify-content: flex-end; margin: 22px 0 -6px; }
+.xa-pickrow label { display: inline-flex; align-items: center; gap: 10px; color: var(--ink-2); font-size: 13px; font-weight: 600; }
+.xa-pickrow select { min-height: 44px; padding: 8px 34px 8px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; font-size: 15px; font-weight: 650; }
+@media (max-width: 700px) {
+  .xa-card { overflow-x: auto; }
+  .xa-table { min-width: 560px; }
+  .xa-table td b { font-size: 20px; }
+}

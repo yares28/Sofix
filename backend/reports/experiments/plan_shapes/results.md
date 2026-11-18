@@ -31,3 +31,23 @@ v3 as the plan's number: chances far too low (30% said, 64% real at 300), 5 poin
 
 Not covered: everyone in a pool started (no start risk), no bench, flat card bonus, LaLiga only. The other competitions keep the bell
 until their shapes are replayed the same way.
+
+## Candidate changes replayed on eight real gameweeks (GW21-29, four searches each)
+
+Rebuilt from each frozen plan, judged on real scores and real cutoffs; bell-curve forecasts, because those weeks saved no distributions.
+Reward counts each lineup up to 500 essence, so one 90,000-essence-equivalent win cannot decide it.
+
+| Candidate | Paid lineups a week | Reward a week | Lineup points | Error of stated chances |
+|---|---|---|---|---|
+| Today | 1.41 | 291 | 322.4 | 0.177 |
+| Bench ranked by reward | 1.44 | 298 | 324.0 | 0.180 |
+| Bench first, lineups over 2% | 1.41 | 305 | 327.3 | 0.184 |
+| Bench first, lineups over 5% | 1.25 | 286 | 326.3 | 0.171 |
+| Start chance capped at 93% | 1.38 | 245 | 322.4 | 0.194 |
+| Start chance capped at 90% | 1.44 | 347 | 326.9 | 0.195 |
+| Uncertain cutoffs | 1.62 | 453 | 320.1 | 0.190 |
+| Recent cutoffs | 1.81 | 375 | 326.5 | 0.230 |
+| Recent + uncertain cutoffs | 1.59 | 378 | 322.0 | 0.177 |
+
+No candidate is proven. The two uncertain-cutoff versions are tracked live (`cutoffTests`); proving a gain of 0.2 paid lineups a week takes about
+30 gameweeks. Recent cutoffs alone won more while estimating the cutoffs worse (30.9 points off against 22.3), so that gain is treated as luck.

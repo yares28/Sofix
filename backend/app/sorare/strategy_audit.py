@@ -181,6 +181,7 @@ class _Week:
             "number": info.get("number"),
             "end": info["end"],
             "strategies": {},
+            "cutoffTests": {},
             "sofix": None,
             "sorare": None,
             "you": None,
@@ -396,8 +397,14 @@ def week_of(
         plan = next((p for i, p in enumerate(payload.get("plans") or []) if p.get("rank", i + 1) == 1), None)
         if plan:
             week.out[source] = week.judge(who, label, plan.get("lineups") or [], maps[source], actuals, reference)
+    tracked = lab.get("cutoffTests") or []
+    for entry in tracked:
+        tally = week.judge(entry["key"], entry["label"], entry.get("lineups") or [], maps["lab"], actuals, reference)
+        week.out["cutoffTests"][entry["key"]] = {**tally, "label": entry["label"]}
     week.out["you"] = week.yours(saved)
+    hidden = {entry["key"] for entry in tracked}  # a test of the planner, not a lineup to compare on the week's boards
     for board in week.boards.values():
+        board["rows"] = [row for row in board["rows"] if row["who"] not in hidden]
         board["rows"].sort(
             key=lambda r: (r["who"] != "you", r["score"] is None, -(r["score"] or 0), r["who"] != "sofix")
         )
@@ -453,7 +460,12 @@ def page(weeks: list[dict[str, Any]]) -> dict[str, Any]:
     weeks = sorted(weeks, key=lambda w: w["end"], reverse=True)
     season: dict[str, dict[str, Any]] = {s.key: {**_tally(), "weeks": 0} for s in strategies.STRATEGIES}
     sofix, sorare, mine = ({**_tally(), "weeks": 0} for _ in range(3))
+    tests: dict[str, dict[str, Any]] = {}
     for week in weeks:
+        for key, tally in (week.get("cutoffTests") or {}).items():
+            total = tests.setdefault(key, {"key": key, "label": tally["label"], **_tally(), "weeks": 0})
+            _add(total, tally)
+            total["weeks"] += 1
         for key, tally in week["strategies"].items():
             if key in season:
                 _add(season[key], tally)
@@ -465,6 +477,7 @@ def page(weeks: list[dict[str, Any]]) -> dict[str, Any]:
     listed = [{"key": s.key, "label": s.label, "note": s.note, **season[s.key]} for s in strategies.STRATEGIES]
     return {
         "strategies": listed,
+        "cutoffTests": list(tests.values()),
         "sofix": sofix,
         "sorare": sorare,
         "you": mine,

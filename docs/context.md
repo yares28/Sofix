@@ -90,7 +90,7 @@ Correction needs at least 200 settled starting cases; each usable held-out week 
 
 **Scope/status:** whole-plan reward simulation and Play presentation; implemented. **Requires:** FORECAST-RAW-001.
 
-**Rule:** `planner.plan_outcomes` draws each unique player once per simulated week and shares those outcomes across every lineup holding that player. Forecast game links inform correlated score draws. A LaLiga player whose every game of the week has Sofix v1's distribution is drawn from it (`Forecast.score_cdf`, since 18 Nov 2026): half that distribution and half v0's normal and decisive scores if he starts, his substitute distribution by his chance of coming on, the better game of two. Everyone else keeps the bell around `mu`. `pAny` is the fraction of simulated weeks with any cash, essence or card reward; XP alone does not count. Do not calculate it as `1 - product(1 - lineup.pReturn)`.
+**Rule:** `planner.plan_outcomes` draws each unique player once per simulated week and shares those outcomes across every lineup holding that player. Forecast game links inform correlated score draws. A LaLiga player whose every game of the week has Sofix v1's distribution is drawn from it (`Forecast.score_cdf`, since 18 Nov 2026): half that distribution and half v0's normal and decisive scores if he starts, his substitute distribution by his chance of coming on, the better game of two. Everyone else keeps the bell around `mu`. `Competition.cut_spread` is 0 for every live plan; only the saved `cutoffTests` (`publish.cutoff_tests`, scored by `strategy_audit`, never on Play) treat a cutoff as a range. `pAny` is the fraction of simulated weeks with any cash, essence or card reward; XP alone does not count. Do not calculate it as `1 - product(1 - lineup.pReturn)`.
 
 The most likely result is the most frequent whole-plan reward tuple. A plan’s expected reward, most likely tuple and probability of any reward are different answers. Room entry fees are costs displayed separately from the won tuple. Keep cash, essence and card counts in their own units. The frontend uses the published `plan.likely` when present; only its legacy missing-field fallback convolves independent lineup outcomes.
 
@@ -923,10 +923,10 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-18",
-        "note": "Replayed 6,754 LaLiga starts and 1,200 lineup pools through planner._draw; score_cdf, planning average and Sorare's stripped models tested; live plans not yet rebuilt",
+        "note": "Replayed candidate cutoff handling on eight saved gameweeks; cutoff_tests and strategy_audit tracking covered by tests; no live week scored yet",
         "files": {
-          "backend/app/sorare/publish.py": "9eadb96a535e464864866b82185674b55ec958c04b1e705d75c8f36e6fe3ffb9",
-          "backend/app/sorare/planner.py": "58f01f101179695ec6f7bb062bc821ab4a3d62690d37670de73f2247dcb3e747",
+          "backend/app/sorare/publish.py": "1f4b552591ccd6dfd19ba0bfff833e9ad3e72688de200036f26475a3c8e1068c",
+          "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
           "backend/app/jobs/sorare.py": "de5530aa0a261243a9048857a246b7c36968eed0cb85c144d4ac6e74f99c50c8",
@@ -1056,9 +1056,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-18",
-        "note": "Replayed 6,754 LaLiga starts and 1,200 lineup pools through planner._draw; score_cdf, planning average and Sorare's stripped models tested; live plans not yet rebuilt",
+        "note": "Replayed candidate cutoff handling on eight saved gameweeks; cutoff_tests and strategy_audit tracking covered by tests; no live week scored yet",
         "files": {
-          "backend/app/sorare/publish.py": "9eadb96a535e464864866b82185674b55ec958c04b1e705d75c8f36e6fe3ffb9",
+          "backend/app/sorare/publish.py": "1f4b552591ccd6dfd19ba0bfff833e9ad3e72688de200036f26475a3c8e1068c",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
@@ -1112,9 +1112,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-18",
-        "note": "Replayed 6,754 LaLiga starts and 1,200 lineup pools through planner._draw; score_cdf, planning average and Sorare's stripped models tested; live plans not yet rebuilt",
+        "note": "Replayed candidate cutoff handling on eight saved gameweeks; cutoff_tests and strategy_audit tracking covered by tests; no live week scored yet",
         "files": {
-          "backend/app/sorare/planner.py": "58f01f101179695ec6f7bb062bc821ab4a3d62690d37670de73f2247dcb3e747",
+          "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "frontend/lib/play.ts": "1968c916eb9d8e03e4cd6e120ef5a114fb1a08c8557b98c75ce5bd04d07930d3",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"

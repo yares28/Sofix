@@ -13,6 +13,7 @@ import zlib
 from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
+from statistics import mean, stdev
 from typing import Any
 
 import numpy as np
@@ -1530,6 +1531,15 @@ def build_payload(
         logger.exception("strategy lab failed")
         lab = None
     laps("strategy lab")
+    if lab is not None:
+        try:
+            tested = cutoff_tests(
+                plan_week, plan_comps, cards, planning, plan_games, references, order=order, runs=runs, draws=draws
+            )
+            lab = {**lab, "cutoffTests": tested["tests"], "games": {**lab["games"], **tested["games"]}}
+        except Exception:  # a side record, like the lab: it must never cost the page its plans
+            logger.exception("cutoff tests failed")
+    laps("cutoff tests")
     try:
         lenses: dict[str, dict[str, Any]] | None = lens_plans(
             plan_week,
@@ -1884,6 +1894,111 @@ KEEP_CARD = (
 )
 
 
+def _kept_lineup(row: dict[str, Any], *, subs: bool = False) -> dict[str, Any]:
+    """The numbers a saved lineup needs to be scored later, and no more."""
+    kept = lambda c: {k: c[k] for k in KEEP_CARD if k in c}  # noqa: E731
+    return {
+        **{k: row[k] for k in KEEP_LINEUP if k in row},
+        "starters": [kept(c) for c in row["starters"]],
+        "subs": [kept(c) for c in row["subs"] if c] if subs else [],
+    }
+
+
+# Plans saved beside the live one and scored after the games, never shown on Play: is a reward cutoff better treated as a range, and
+# from the latest weeks? (key, label, recent weeks, as a range). "cutoff-today" is the fair baseline: the same search as the two others.
+CUTOFF_TESTS = (
+    ("cutoff-today", "Cutoffs as today", False, False),
+    ("cutoff-range", "Cutoffs as a range", False, True),
+    ("cutoff-recent-range", "Recent cutoffs as a range", True, True),
+)
+CUTOFF_SPREAD = 0.05  # with under three finished weeks to measure a competition's own
+CUTOFF_RECENT_WEEKS = 3
+_MONTHS = {
+    m: i for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)
+}
+
+
+def _week_end(slug: str) -> tuple[int, int, int] | None:
+    """When a gameweek ends, from its slug ("football-30-oct-3-nov-2026"); None for any other key."""
+    parts = slug.split("-")
+    if len(parts) < 4 or parts[0] != "football" or parts[-2] not in _MONTHS:
+        return None
+    return (int(parts[-1]), _MONTHS[parts[-2]], int(parts[-3])) if parts[-1].isdigit() and parts[-3].isdigit() else None
+
+
+def cutoff_versions(
+    comps: list[Competition], references: dict[str, Any], week_slug: str
+) -> dict[str, list[Competition]]:
+    """The week's competitions as each cutoff test sees them, from the weeks finished before it only."""
+    end = _week_end(week_slug)
+    finished = sorted((e, s) for s in references if (e := _week_end(s)) and end and e < end)
+    out: dict[str, list[Competition]] = {key: [] for key, *_ in CUTOFF_TESTS}
+    for comp in comps:
+        held = [s for _, s in finished if ((references[s] or {}).get(comp.key) or {}).get("cuts")]
+        spread, recent = CUTOFF_SPREAD, comp.reference
+        if not comp.is_room and comp.rewarding_tiers and held:
+            rank = max(tier.hi for tier in comp.rewarding_tiers)
+            cuts = [{int(r): float(v) for r, v in references[s][comp.key]["cuts"].items()} for s in held]
+            paid = [score for c in cuts if (score := score_at_rank(c, rank))]
+            if len(paid) >= 3:
+                spread = stdev(paid) / mean(paid)
+            last = held[-CUTOFF_RECENT_WEEKS:]
+            kept = season_reference({s: {comp.key: references[s][comp.key]} for s in last}, last)
+            recent = kept.get(comp.key, {}).get("cuts") or comp.reference
+        for key, _, use_recent, as_range in CUTOFF_TESTS:
+            out[key].append(
+                replace(
+                    comp, reference=recent if use_recent else comp.reference, cut_spread=spread if as_range else 0.0
+                )
+                if as_range and not comp.is_room
+                else comp
+            )
+    return out
+
+
+def cutoff_tests(
+    week: dict[str, Any],
+    comps: list[Competition],
+    cards: list[Card],
+    forecasts: dict[str, Forecast],
+    games: dict[str, list[dict[str, Any]]],
+    references: dict[str, Any],
+    *,
+    order: tuple[str, ...],
+    runs: int,
+    draws: int,
+) -> dict[str, Any]:
+    """One whole plan per cutoff test, on the same cards and forecasts and with the same search."""
+    forecasts = {
+        slug: replace(f, links=tuple((g["id"], g["venue"]) for g in games.get(slug, []) if g.get("venue")))
+        for slug, f in forecasts.items()
+    }
+    cards = in_week(cards, games)
+    ready = [
+        c
+        for c in comps
+        if (c.reference or c.reference_rooms) and not c.pro_steps and lineups_possible(c, cards, forecasts)
+    ]
+    versions = cutoff_versions(ready, references, week["slug"])
+    tests, used = [], set()
+    for key, label, *_ in CUTOFF_TESTS:
+        found = (
+            plans(versions[key], cards, forecasts, count=1, runs=max(4, runs // 4), draws=draws, order=order)
+            if ready
+            else []
+        )
+        lineups = found[0].lineups if found else []
+        used |= {c.player for lineup in lineups for c in lineup.cards}
+        tests.append(
+            {
+                "key": key,
+                "label": label,
+                "lineups": [_kept_lineup(lineup_payload(lu, forecasts, games), subs=True) for lu in lineups],
+            }
+        )
+    return {"tests": tests, "games": {p: [g["id"] for g in games.get(p) or [] if g.get("id")] for p in sorted(used)}}
+
+
 def strategy_plans(
     week: dict[str, Any],
     snapshot: dict[str, Any],
@@ -1914,14 +2029,7 @@ def strategy_plans(
     for strategy, lineups in strategies.week(ready, cards, forecasts, games, sorare):
         rows = []
         for lineup in lineups:
-            row = lineup_payload(lineup, forecasts, games)
-            rows.append(
-                {
-                    **{k: row[k] for k in KEEP_LINEUP if k in row},
-                    "starters": [{k: c[k] for k in KEEP_CARD if k in c} for c in row["starters"]],
-                    "subs": [],
-                }
-            )
+            rows.append(_kept_lineup(lineup_payload(lineup, forecasts, games)))
             used |= {c.player for c in lineup.cards}
         out["strategies"].append({"key": strategy.key, "label": strategy.label, "note": strategy.note, "lineups": rows})
     out["games"] = {p: [g["id"] for g in games.get(p) or [] if g.get("id")] for p in sorted(used)}

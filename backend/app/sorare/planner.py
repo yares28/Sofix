@@ -251,10 +251,11 @@ def landed(lineup: Lineup, scores: np.ndarray, rng: np.random.Generator) -> np.n
         for k, tier in enumerate(tiers):
             out[(out < 0) & (place >= tier.lo) & (place <= tier.hi)] = k
         return out
+    moved = 1 + comp.cut_spread * rng.standard_normal(len(scores)) if comp.cut_spread else 1.0
     for k, tier in enumerate(tiers):  # best first: a week is given the best level it reaches
         threshold = score_at_rank(comp.reference, tier.hi)
         if threshold is not None:
-            out[(out < 0) & (scores >= threshold)] = k
+            out[(out < 0) & (scores >= threshold * moved)] = k
     return out
 
 

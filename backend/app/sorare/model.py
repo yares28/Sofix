@@ -197,6 +197,8 @@ class Competition:
     reference: dict[int, float] = field(default_factory=dict)  # rank -> score that paid, from a past gameweek
     reference_rooms: list[float] = field(default_factory=list)  # scores from real rooms of 10
     reference_from: str = ""  # which gameweek those came from
+    # How far the scores that pay may move from `reference`, as a share of them. 0 takes them as known; only the tracked cutoff tests use it.
+    cut_spread: float = 0.0
     expected: bool = (
         False  # Sorare has not opened it: copied from a finished gameweek (`expected_from`), cannot be entered
     )

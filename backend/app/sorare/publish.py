@@ -21,7 +21,7 @@ import numpy as np
 from app.services.european_fdr import CONFERENCE_NOTE
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
 from app.services.timeutil import Laps
-from app.sorare import expected, pro, projection, rules, sofix_v1, strategies, xg
+from app.sorare import expected, plan_inputs, pro, projection, rules, sofix_v1, strategies, xg
 from app.sorare.forecast import GameStart, PlayerWeek, bench_record, cup_dates, own_start
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
@@ -1539,6 +1539,15 @@ def build_payload(
             lab = {**lab, "cutoffTests": tested["tests"], "games": {**lab["games"], **tested["games"]}}
         except Exception:  # a side record, like the lab: it must never cost the page its plans
             logger.exception("cutoff tests failed")
+        try:
+            lab = {
+                **lab,
+                "_inputs": plan_inputs.dump(
+                    plan_week, plan_comps, cards, planning, plan_games, built_at=snapshot["fetchedAt"]
+                ),
+            }
+        except Exception:  # the same
+            logger.exception("plan inputs failed")
     laps("cutoff tests")
     try:
         lenses: dict[str, dict[str, Any]] | None = lens_plans(

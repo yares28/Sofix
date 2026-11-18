@@ -55,6 +55,7 @@ from app.sorare import (
     keeper,
     mission_pool,
     outfield,
+    plan_inputs,
     player_games,
     projection,
     reward_bars,
@@ -899,6 +900,10 @@ def run(
     if lenses and fetched < datetime.fromisoformat(lenses[next(iter(lenses))]["gameweek"]["lock"]):
         for key, lens in lenses.items():
             put(db, f"{sorare_publish.LENS_PREFIX}{lens['gameweek']['slug']}:{key}", lens, now)
+    # What the planner knew, the same way, so a later idea can be replanned on this week (plan_inputs.py).
+    inputs = lab.pop("_inputs", None) if lab else None
+    if inputs and fetched < datetime.fromisoformat(inputs["gameweek"]["lock"]):
+        put(db, f"{plan_inputs.PREFIX}{inputs['gameweek']['slug']}", inputs, now)
     # The strategy lab's lineups the same way: what each strategy said in time, scored after the games (strategy_audit.py).
     if lab and lab["strategies"] and fetched < datetime.fromisoformat(lab["gameweek"]["lock"]):
         put(db, f"{sorare_publish.STRATEGY_PREFIX}{lab['gameweek']['slug']}", lab, now)

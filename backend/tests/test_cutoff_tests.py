@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from app.models import ReadModel
 from app.services.publish import put
 from app.sorare import planner, publish, strategy_audit
 from app.sorare.model import Card, Competition, Forecast, Tier
@@ -114,7 +115,7 @@ def test_the_tracked_versions_are_scored_apart_and_stay_off_the_boards(db):
     put(db, "strategy_plans:gw", value, NOW)
     put(db, "sorare_references", {"gw": {KEY: {"cuts": {"10": 300, "100": 200, "500": 100}}}}, NOW)
     page = strategy_audit.read(db, NOW)
-    tests = {t["key"]: t for t in page["cutoffTests"]}
+    tests = {t["key"]: t for t in db.get(ReadModel, "plan_tracking").payload["tests"]}
     assert set(tests) == {"cutoff-today", "cutoff-range"}
     assert tests["cutoff-range"]["label"] == "Cutoffs as a range"
     assert (tests["cutoff-range"]["weeks"], tests["cutoff-range"]["scored"]) == (1, 1)

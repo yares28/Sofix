@@ -32,11 +32,17 @@ from app.sorare import strategies
 from app.sorare.frozen import PLAN_PREFIX
 from app.sorare.frozen_scores import _score, games_of, results
 from app.sorare.lineup_audit import KINDS, kept_references, prize
+from app.sorare.planner import score_at_rank
 from app.sorare.publish import ALT_PREFIX, ARCHIVE_PREFIX, SETTLE, STRATEGY_PREFIX
 from app.sorare.strategy_decision import amounts, collect, decision_of, tier_amounts
 
 KEY = "strategy_audit"
-VERSION = 6  # 6: each tally adds up the chances of a reward its judged lineups were given (`said`, the track record)
+VERSION = 7  # 7: each week keeps why Sofix's plans and the cutoff tests won or missed (`diagnosis`, `plan_tracking`)
+TRACKING_KEY = "plan_tracking"
+DIAGNOSED = {"sofix", "sorare-plan"}
+NEAR = 15.0  # points: a score this close to the lowest paid one could have gone either way
+PAID = {"card", "cash", "essence"}
+HIDDEN = {"inputs", "cutoffTests", "diagnosis"}  # kept for `plan_tracking`, not for the page
 MY_WEEK = "my_week:"
 ENTERED_WEEK = "entered_week:"
 PREFIXES = (STRATEGY_PREFIX, PLAN_PREFIX, ALT_PREFIX, MY_WEEK, ENTERED_WEEK)
@@ -90,6 +96,91 @@ def _add(total: dict[str, Any], part: dict[str, Any]) -> None:
         total["won"][kind] += count
     for verdict, count in part["verdicts"].items():
         total["verdicts"][verdict] += count
+
+
+def _diagnosis(label: str) -> dict[str, Any]:
+    return {
+        "label": label,
+        "lineups": 0,  # scored
+        "judged": 0,
+        "paid": 0,
+        "said": 0.0,  # the chances of a reward it gave the judged lineups, added up
+        "brier": 0.0,  # squared miss of those chances: lower is better, divided by `judged`
+        "overExpected": 0.0,  # real score minus expected, added up over `expectedCases`
+        "expectedCases": 0,
+        "starters": 0,
+        "starterOut": 0,  # planned starters who did not play
+        "covered": 0,  # of those, how many a substitute replaced
+        "lucky": 0,  # lineups above the top of their own range
+        "cutCases": 0,
+        "cutError": 0.0,  # real lowest paid score minus the one planned on, added up
+        "cutMiss": 0.0,  # the same without the sign
+        "lostToCut": 0,  # cleared the planned score, not the real one
+        "wonByCut": 0,  # under the planned score, over the real one
+        "nearMiss": 0,  # within `NEAR` under the real score
+        "nearWin": 0,  # within `NEAR` over it
+        "chances": {},  # by tenth of the chance given: lineups, chance added up, paid
+        "comps": {},  # by competition: lineups, paid, chance added up, points
+    }
+
+
+def _bump(row: dict[str, Any], **amounts: float) -> None:
+    for key, amount in amounts.items():
+        row[key] = row.get(key, 0) + amount
+
+
+def _diagnose(
+    why: dict[str, Any], raw: dict[str, Any], line: dict[str, Any], won: str | None, cuts: dict[int, float]
+) -> None:
+    score, cards = line["score"], [c for c in line["cards"] if not c["sub"]]
+    out = sum(not c["played"] for c in cards)
+    _bump(why, lineups=1, starters=len(cards), starterOut=out, covered=min(out, len(line["cameIn"])))
+    _bump(why, lucky=int((line.get("verdict") or {}).get("label") == "lucky"))
+    if raw.get("x") is not None:
+        _bump(why, overExpected=score - raw["x"], expectedCases=1)
+    comp = why["comps"].setdefault(raw.get("key") or "", {})
+    _bump(comp, lineups=1, points=score)
+    if won is None:
+        return
+    chance, paid = float(raw.get("pReturn") or 0.0), int(won in PAID)
+    _bump(why, judged=1, paid=paid, said=chance, brier=(chance - paid) ** 2)
+    _bump(comp, paid=paid, said=chance)
+    _bump(why["chances"].setdefault(str(min(int(chance * 10), 9) * 10), {}), lineups=1, said=chance, paid=paid)
+    paying = [t for t in raw.get("tiers") or [] if t.get("cash") or t.get("essence") or t.get("card")]
+    last = max(paying, key=lambda t: t["hi"]) if paying else None
+    real = score_at_rank(cuts, last["hi"]) if last else None
+    if last is None or real is None:
+        return
+    gap = score - real
+    _bump(why, nearMiss=int(-NEAR <= gap < 0), nearWin=int(0 <= gap < NEAR))
+    if last.get("need"):
+        said = float(last["need"])
+        _bump(why, cutCases=1, cutError=real - said, cutMiss=abs(real - said))
+        _bump(why, lostToCut=int(said <= score < real), wonByCut=int(real <= score < said))
+
+
+def _merge(total: dict[str, Any], part: dict[str, Any]) -> None:
+    for key, value in part.items():
+        if isinstance(value, dict):
+            _merge(total.setdefault(key, {}), value)
+        elif not isinstance(value, str):
+            total[key] = total.get(key, 0) + value
+
+
+def tracking(weeks: list[dict[str, Any]]) -> dict[str, Any]:
+    """The cutoff tests and every plan's reasons, added up over the weeks that have them. No page reads this block."""
+    tests: dict[str, dict[str, Any]] = {}
+    why: dict[str, dict[str, Any]] = {}
+    for week in weeks:
+        for key, tally in (week.get("cutoffTests") or {}).items():
+            total = tests.setdefault(key, {"key": key, "label": tally["label"], **_tally(), "weeks": 0})
+            _add(total, tally)
+            total["weeks"] += 1
+        for who, part in (week.get("diagnosis") or {}).items():
+            total = why.setdefault(who, {**_diagnosis(part["label"]), "weeks": 0})
+            _merge(total, part)
+            total["weeks"] += 1
+    return {"version": VERSION, "tests": list(tests.values()), "diagnosis": why}
 
 
 def hindsight_best(db: Session, slug: str) -> dict[str, float]:
@@ -182,6 +273,7 @@ class _Week:
             "end": info["end"],
             "strategies": {},
             "cutoffTests": {},
+            "diagnosis": {},
             "sofix": None,
             "sorare": None,
             "you": None,
@@ -246,6 +338,8 @@ class _Week:
                 self.settled = False
             returns = tier_amounts(raw, line["score"], won, cuts)
             collect(tally, returns)
+            if who in DIAGNOSED or who.startswith("cutoff-"):
+                _diagnose(self.out["diagnosis"].setdefault(who, _diagnosis(label)), raw, line, won, cuts)
             said = line.get("verdict")
             if said:
                 tally["verdicts"][said["label"]] += 1
@@ -451,6 +545,8 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
         weeks[slug] = {**week_of(db, slug, lab, frozen, now, references), "inputs": inputs}
     if write and (weeks != (kept.get("weeks") or {}) or kept.get("version") != VERSION):
         put(db, KEY, {"version": VERSION, "weeks": weeks}, now)
+    if write:
+        put(db, TRACKING_KEY, tracking(list(weeks.values())), now)
     return page(list(weeks.values()))
 
 
@@ -460,12 +556,7 @@ def page(weeks: list[dict[str, Any]]) -> dict[str, Any]:
     weeks = sorted(weeks, key=lambda w: w["end"], reverse=True)
     season: dict[str, dict[str, Any]] = {s.key: {**_tally(), "weeks": 0} for s in strategies.STRATEGIES}
     sofix, sorare, mine = ({**_tally(), "weeks": 0} for _ in range(3))
-    tests: dict[str, dict[str, Any]] = {}
     for week in weeks:
-        for key, tally in (week.get("cutoffTests") or {}).items():
-            total = tests.setdefault(key, {"key": key, "label": tally["label"], **_tally(), "weeks": 0})
-            _add(total, tally)
-            total["weeks"] += 1
         for key, tally in week["strategies"].items():
             if key in season:
                 _add(season[key], tally)
@@ -477,13 +568,12 @@ def page(weeks: list[dict[str, Any]]) -> dict[str, Any]:
     listed = [{"key": s.key, "label": s.label, "note": s.note, **season[s.key]} for s in strategies.STRATEGIES]
     return {
         "strategies": listed,
-        "cutoffTests": list(tests.values()),
         "sofix": sofix,
         "sorare": sorare,
         "you": mine,
         "decision": decision_of(weeks),
         "weeks": [
-            {**{k: v for k, v in week.items() if k != "inputs"}, "decision": decision_of([week])} for week in weeks
+            {**{k: v for k, v in week.items() if k not in HIDDEN}, "decision": decision_of([week])} for week in weeks
         ],
     }
 

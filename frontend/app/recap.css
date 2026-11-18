@@ -411,7 +411,7 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .rx-seg button { height: 38px; border: 0; background: transparent; border-radius: 999px; padding: 0 16px; font: inherit; font-size: 13px; color: var(--ink-seg); cursor: pointer; transition: background .2s, color .2s; }
 .rx-seg button.on { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(0, 0, 0, .1); }
 .rx-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.rc-lu.rx-lu { grid-template-columns: 196px minmax(0, 1fr) minmax(240px, 340px) 172px; grid-template-areas: "cp team trk rwd"; align-items: center; gap: 12px 26px; padding: 18px 4px 20px; }
+.rc-lu.rx-lu { grid-template-columns: 196px minmax(0, 454px) minmax(240px, 1fr) 172px; grid-template-areas: "cp team trk rwd"; align-items: center; gap: 12px 26px; padding: 18px 4px 20px; }
 .rx-lu > .rx-cp, .rx-lu > .rx-cpw { grid-area: cp; min-width: 0; }
 .rx-lu > .rc-team { grid-area: team; }
 .rx-lu > .rx-trk { grid-area: trk; }
@@ -426,11 +426,13 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .rx-mode .season-ic { color: var(--ink); flex: none; }
 .rx-protags { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 0 52px; }
 .rx-protags .pro-step { display: none; }
-/* the cards as a hand: they overlap and spread apart on hover */
-.rx-lu .rc-team { flex-wrap: nowrap; gap: 0; padding-left: 16px; }
-.rx-lu .rc-team li { flex: none; width: 62px; min-width: 0; max-width: none; margin-left: -16px; transition: margin .35s var(--ease); }
-.rx-lu .rc-team:hover li { margin-left: -4px; }
-.rx-lu .rc-team li:not(.bench) + li.bench { margin-left: 8px; }
+/* the cards as a hand: each slot is narrower than its card, so they overlap, closer when the column is tight, and spread on hover */
+.rx-lu .rc-team { flex-wrap: nowrap; gap: 0; min-width: 0; padding-inline: 8px; }
+.rx-lu .rc-team li { flex: 0 1 46px; min-width: 0; max-width: none; transition: flex-basis .35s var(--ease); }
+.rx-lu .rc-team:hover li { flex-basis: 58px; }
+.rx-lu .rc-team li > .rc-art { flex: none; width: 62px; }
+.rx-lu .rc-team .rc-cap { left: calc(50% + 16px); right: auto; }
+.rx-lu .rc-team li:not(.bench) + li.bench { margin-left: 24px; }
 .rx-lu .rc-team li:not(.bench) + li.bench::before { display: none; }
 .rx-lu .rc-team li.bench > .rc-art { opacity: .55; }
 .rx-lu .rc-team .rc-art { box-shadow: 0 0 0 2px var(--surface), 0 8px 14px -8px rgba(0, 0, 0, .45); }
@@ -465,8 +467,9 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .rx-rwd-wrap .rc-any b { font-size: 15px; }
 @keyframes rx-grow { from { transform: scaleX(0); } }
 @media (max-width: 1100px) {
-  .rc-lu.rx-lu { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "cp rwd" "team team" "trk trk"; gap: 14px 16px; }
+  .rc-lu.rx-lu { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "cp rwd" "team team" "trk trk"; gap: 26px 16px; }
   .rx-lu .rc-team { overflow-x: auto; padding-bottom: 4px; }
+  .rx-lu .rc-team li { flex-shrink: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .rx-fill { animation: none; } .rx-lu .rc-team li { transition: none; } }
 .rx-trk.rc-score-pair { display: grid; gap: 16px; align-items: center; }

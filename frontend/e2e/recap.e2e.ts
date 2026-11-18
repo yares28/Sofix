@@ -82,6 +82,20 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   const first = mine.locator(".pl-entered-lineup").first();
   await expect(first.locator(".rc-hex").first()).toHaveText("-");
   await expect(first.locator(".rc-xs").first()).toHaveText(String(Math.round(lineup.starters[0]!.x)));
+  // A full hand (seven starters and two on the bench) stays in its own column, clear of the score track.
+  const desktop = page.viewportSize()!;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const clearance = await first.evaluate((row) => {
+    const team = row.querySelector(".rc-team")!;
+    const added: Element[] = [];
+    while (team.children.length < 9) added.push(team.appendChild(team.children[0]!.cloneNode(true)) as Element);
+    const arts = team.querySelectorAll(".rc-art");
+    const gap = row.querySelector(".rx-rail")!.getBoundingClientRect().left - arts[arts.length - 1]!.getBoundingClientRect().right;
+    added.forEach((node) => node.remove());
+    return gap;
+  });
+  expect(clearance).toBeGreaterThanOrEqual(0);
+  await page.setViewportSize(desktop);
   // Your lineups shows what you entered or the Sofix plan, one at a time (plans/recap-matchnight.md).
   await page.getByRole("tab", { name: /^Sofix plan/ }).click();
   await expect(mine).toBeHidden();

@@ -28,6 +28,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 
 import numpy as np
+from scipy.special import ndtr
 
 from app.sorare import links
 from app.sorare.model import CASH_IN_ESSENCE, ESSENCE_ORDER, Card, Competition, Forecast
@@ -36,6 +37,7 @@ SCORE_SD = 17.6
 """How far a player's real score lands from his forecast, in points (measured on the owner's players,
 1–18 Sep 2026, against the same forecast the planner uses; 17.7 on the 461 LaLiga starts of GW21-24, 28 Oct 2026)."""
 
+SCORE_EDGES = np.arange(-0.5, 101)  # where each whole score's stretch of a drawn distribution starts and ends
 DRAWS = 3000
 BEAM = 120
 MIN_CHANCE = 0.005  # under half a percent a lineup waits: it is built from the cards and substitutes the others left
@@ -114,7 +116,17 @@ def _draw(
     together = links.matrix([c.positions[0] for c in cards], [forecasts[c.player].links for c in cards])
     # players of one game score together: a keeper and his defenders up and down, a keeper against the other side's forwards
     shocks = normal if np.array_equal(together, np.eye(n)) else normal @ np.linalg.cholesky(together).T
-    return plays, np.clip(mu + sd * shocks, 0, 100)
+    scores = np.clip(mu + sd * shocks, 0, 100)
+    # A player with a worked-out distribution lands on it, the same shocks keeping players of one game together. A bell around the mean
+    # put too many starters on 50-60 and halved the chance of the high totals that pay (backend/reports/experiments/plan_shapes).
+    shaped = [i for i, c in enumerate(cards) if forecasts[c.player].score_cdf is not None and sd[i] != 0]
+    if shaped:
+        chance = ndtr(shocks)
+        for i in shaped:
+            f = forecasts[cards[i].player]
+            landed_on = np.interp(chance[:, i], np.r_[0.0, f.score_cdf], SCORE_EDGES)
+            scores[:, i] = np.clip(landed_on + f.mu - f.cdf_mu, 0, 100)
+    return plays, scores
 
 
 def _lineup_bonus(lineup: Lineup) -> float:

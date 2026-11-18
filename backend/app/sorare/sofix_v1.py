@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import gzip
 import json
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+from scipy.stats import norm
 
 from app.sorare.keeper import LALIGA, GameNumbers, Outcome
 
@@ -22,6 +24,7 @@ POSITIONS = ("GK", "DEF", "MID", "FWD")
 WINDOW = timedelta(days=70)
 DELAY = timedelta(hours=48)
 POINTS = np.arange(101)
+MIN_HUMP_SD = 5.0  # v0's two scores never count as surer than this in the plan's picture of a game
 
 
 def eligible(past: list[dict[str, Any]], lock: datetime, competition: str = LALIGA) -> list[dict[str, Any]]:
@@ -76,6 +79,8 @@ def v3_start(plain: float, decisive: float, chance: float) -> float:
 class Score:
     point: float
     outcome: Outcome
+    # the chance of each score from 0 to 100, for the plan's simulation (LaLiga only: the others' shapes are not tested yet)
+    mass: np.ndarray | None = field(default=None, compare=False, repr=False)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -86,6 +91,7 @@ class GameScore(Outcome):
     # v0's whole game, behind `previous`: its normal and decisive scores and chance, saved for Sofix v3's live check (research plan V3)
     previous_outcome: Outcome | None = None
     version: str = VERSION
+    mass: np.ndarray | None = field(default=None, compare=False, repr=False)  # as `Score.mass`, if he starts
 
 
 def best_point(mass: np.ndarray) -> float:
@@ -105,7 +111,38 @@ def from_distribution(hist: np.ndarray, cs: float) -> Score:
     lo, hi = np.searchsorted(np.cumsum(mass), [0.1, 0.9])
     sd_dec = float(np.sqrt(hist[1] @ (POINTS - decisive) ** 2 / p)) if p > 1e-9 else 0.0
     sd_plain = float(np.sqrt(hist[0] @ (POINTS - plain) ** 2 / (1 - p))) if p < 1 - 1e-9 else 0.0
-    return Score(point, Outcome(cs, p, decisive, plain, mean, float(lo), float(hi), sd_dec, sd_plain))
+    return Score(point, Outcome(cs, p, decisive, plain, mean, float(lo), float(hi), sd_dec, sd_plain), mass)
+
+
+def start_cdf(game: GameScore) -> np.ndarray:
+    """The chance a starter ends on each score or lower: half Sofix v1's distribution, half v0's normal and decisive scores.
+    Replayed on 6,754 LaLiga starts of Jan-Oct 2026 this beat either alone (backend/reports/experiments/plan_shapes)."""
+    assert game.mass is not None
+    own = np.cumsum(game.mass)
+    v0 = game.previous_outcome
+    if v0 is None:
+        return own
+    edges = POINTS + 0.5
+    plain = norm.cdf((edges - v0.if_plain) / max(v0.sd_plain, MIN_HUMP_SD))
+    decisive = norm.cdf((edges - v0.if_decisive) / max(v0.sd_decisive, MIN_HUMP_SD))
+    return (own + (1 - v0.p_decisive) * plain + v0.p_decisive * decisive) / 2
+
+
+def week_cdf(games: Sequence[GameScore | None], chances: Sequence[tuple[float, float, float]]) -> np.ndarray | None:
+    """The chance his week's score is each value or lower, given he plays: `chances` holds each game's chance of starting, of
+    coming on and of playing. Sorare keeps the better of two games. None unless every game has its distribution."""
+    missed = float(np.prod([1 - played for *_, played in chances]))
+    if not games or missed >= 1:
+        return None
+    together = np.ones(len(POINTS))
+    for game, (starts, comes_on, played) in zip(games, chances, strict=True):
+        if game is None or game.mass is None or game.sub.mass is None:
+            return None
+        share = starts / (starts + comes_on) if starts + comes_on else 1.0
+        together *= 1 - played + played * (share * start_cdf(game) + (1 - share) * np.cumsum(game.sub.mass))
+    cdf = np.maximum.accumulate(np.clip((together - missed) / (1 - missed), 0, 1))
+    cdf[-1] = 1.0
+    return cdf
 
 
 class Model:
@@ -141,7 +178,7 @@ class Model:
         row = features(pos, home, numbers, past)
         score = from_distribution(self._hist(self.trees[role], row), numbers.cs)
         if role == "start" and self.trees.get("point"):
-            return Score(best_point(self._hist(self.trees["point"], row).sum(axis=0)), score.outcome)
+            return Score(best_point(self._hist(self.trees["point"], row).sum(axis=0)), score.outcome, score.mass)
         return score
 
     def game(
@@ -149,10 +186,12 @@ class Model:
     ) -> GameScore:
         start = self.predict(pos, home, numbers, past, role="start")
         sub = self.predict(pos, home, numbers, past, role="bench")
+        shaped = self.competition == LALIGA
         return GameScore(
             **vars(start.outcome),
             point=start.point,
-            sub=sub,
+            sub=sub if shaped else Score(sub.point, sub.outcome),
+            mass=start.mass if shaped else None,
             previous=previous.start if previous else None,
             previous_outcome=previous,
             version=self.version,

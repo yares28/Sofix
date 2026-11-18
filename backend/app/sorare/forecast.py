@@ -21,6 +21,8 @@ import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, NamedTuple
 
+import numpy as np
+
 from app.sorare import outfield, sofix_v1
 from app.sorare.model import Forecast, GameChance
 from app.sorare.planner import SCORE_SD
@@ -349,6 +351,10 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         mu = sum(m * p for m, p in zip(game_mu, played, strict=True)) / total if total else sum(game_mu) / len(game_mu)
     if week.games > 1 and p_any > 0:
         mu += 0.56 * sd * both / p_any
+    score_cdf = None
+    if len(week.game_models) == week.games:
+        roles = [(c.p_start, c.p_on) for c in per_game] or [(p_start, p_on)] * week.games
+        score_cdf = sofix_v1.week_cdf(week.game_models, [(*r, p) for r, p in zip(roles, played, strict=True)])
     # Expected decisives: each game's own chance when it is worked out, else his record; a substitute's is his position's. With two
     # games in the week it is the better game's, as Sorare keeps his better score (the owner, 14 Oct 2026).
     if_starts = week.game_dec if shape is not None else (() if week.dec is None else (week.dec,) * week.games)
@@ -393,6 +399,8 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         waiting=bool(week.waiting),
         sorare=week.projection,
         bench_record=week.bench_record,
+        score_cdf=score_cdf,
+        cdf_mu=0.0 if score_cdf is None else float(np.diff(score_cdf, prepend=0) @ sofix_v1.POINTS),
     )
 
 

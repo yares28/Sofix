@@ -75,7 +75,7 @@ Conditional score, chance of starting, chance of coming on, chance of any appear
 
 **Scope/status:** Sorare publisher and score correction; implemented. **Requires:** FORECAST-SOURCES-001, FORECAST-PRELOCK-001.
 
-**Rule:** construct `score_record` from raw forecasts before applying `score_fix` to copies used in planning. The record and Lineups comparison retain the raw number so future measurement evaluates the underlying model. Planning can apply `a + b * mu`, clipped to `[0, 100]`, only when the correction is enabled. Do not write adjusted means back into raw capture evidence.
+**Rule:** construct `score_record` from raw forecasts before applying `score_fix` to copies used in planning. The record and Lineups comparison retain the raw number so future measurement evaluates the underlying model. The planning copy (`publish.planning_forecast`) stands on the average of the player's score distribution where he has one, else on `mu`; Sorare's alternative plan never carries Sofix's models. Planning can apply `a + b * mu`, clipped to `[0, 100]`, only when the correction is enabled. Do not write adjusted means back into raw capture evidence.
 
 For Sofix v1, `sofix` and `sofixOn` remain conditional means. The versioned `sofixPoint` and `sofixOnPoint` are for the within-seven Audit and never train the planning adjustment. Since 17 Nov 2026 a game with v0 on file also saves v0's normal and decisive scores and its decisive chance (`startPlainPrev`, `startDecPrev`, `pDecPrev`) for Sofix v3's live check; they are raw evidence only, read by no screen and no planner.
 
@@ -90,7 +90,7 @@ Correction needs at least 200 settled starting cases; each usable held-out week 
 
 **Scope/status:** whole-plan reward simulation and Play presentation; implemented. **Requires:** FORECAST-RAW-001.
 
-**Rule:** `planner.plan_outcomes` draws each unique player once per simulated week and shares those outcomes across every lineup holding that player. Forecast game links inform correlated score draws. `pAny` is the fraction of simulated weeks with any cash, essence or card reward; XP alone does not count. Do not calculate it as `1 - product(1 - lineup.pReturn)`.
+**Rule:** `planner.plan_outcomes` draws each unique player once per simulated week and shares those outcomes across every lineup holding that player. Forecast game links inform correlated score draws. A LaLiga player whose every game of the week has Sofix v1's distribution is drawn from it (`Forecast.score_cdf`, since 18 Nov 2026): half that distribution and half v0's normal and decisive scores if he starts, his substitute distribution by his chance of coming on, the better game of two. Everyone else keeps the bell around `mu`. `pAny` is the fraction of simulated weeks with any cash, essence or card reward; XP alone does not count. Do not calculate it as `1 - product(1 - lineup.pReturn)`.
 
 The most likely result is the most frequent whole-plan reward tuple. A plan’s expected reward, most likely tuple and probability of any reward are different answers. Room entry fees are costs displayed separately from the won tuple. Keep cash, essence and card counts in their own units. The frontend uses the published `plan.likely` when present; only its legacy missing-field fallback convolves independent lineup outcomes.
 
@@ -922,11 +922,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-17",
-        "note": "17 Nov 2026 (Sofix v3): publish._versions adds startV3 and, unswitched, pDecPrev/decPrevIf from v0's outcome (sofix_v1.v3_start, V3_SWITCH 0.75); versus._number judges v3 on startPlainPrev/startDecPrev/pDecPrev with sofixOnPoint for substitutes, no case without them; frontend types gain the three optional fields. No planner, reward or Apply path reads them. Tests: test_sofix_v3_* in test_sofix_v1.py and test_sorare_versus.py.",
+        "date": "2026-11-18",
+        "note": "Replayed 6,754 LaLiga starts and 1,200 lineup pools through planner._draw; score_cdf, planning average and Sorare's stripped models tested; live plans not yet rebuilt",
         "files": {
-          "backend/app/sorare/publish.py": "c98d798811129357ab29f23a710a1b9eb701db70b9ba4b94200e49706de6df2c",
-          "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
+          "backend/app/sorare/publish.py": "9eadb96a535e464864866b82185674b55ec958c04b1e705d75c8f36e6fe3ffb9",
+          "backend/app/sorare/planner.py": "58f01f101179695ec6f7bb062bc821ab4a3d62690d37670de73f2247dcb3e747",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
           "backend/app/jobs/sorare.py": "de5530aa0a261243a9048857a246b7c36968eed0cb85c144d4ac6e74f99c50c8",
@@ -987,13 +987,13 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-17",
-        "note": "17 Nov 2026 (Sofix v3): publish._versions adds startV3 and, unswitched, pDecPrev/decPrevIf from v0's outcome (sofix_v1.v3_start, V3_SWITCH 0.75); versus._number judges v3 on startPlainPrev/startDecPrev/pDecPrev with sofixOnPoint for substitutes, no case without them; frontend types gain the three optional fields. No planner, reward or Apply path reads them. Tests: test_sofix_v3_* in test_sofix_v1.py and test_sorare_versus.py.",
+        "date": "2026-11-18",
+        "note": "Replayed 6,754 LaLiga starts and 1,200 lineup pools through planner._draw; score_cdf, planning average and Sorare's stripped models tested; live plans not yet rebuilt",
         "files": {
-          "backend/app/sorare/forecast.py": "7eff5d487fd1df31f5507bd43538a27ff37ea60ba758af671c95fc155bfa0edf",
-          "backend/app/sorare/sofix_v1.py": "09e2a8a0d8148387dea8ab1f63c3b0e833b601083e574c3bed1fdd954842c3fd",
+          "backend/app/sorare/forecast.py": "a14e81a55ed51e8cbbde1dd5ef2272e7de9faf5cc02b655784ad0ac318ba0fbc",
+          "backend/app/sorare/sofix_v1.py": "4af69f14f13b22d2ddf3f4ee9d12e0672e4b2fca7329098c4fab9ef9364f4768",
           "backend/tests/test_sorare_ff_forecast.py": "cbc230010a5956ec2250c97434b7357451d11abbfa1200dc6f510f3f44b1f12a",
-          "backend/tests/test_sofix_v1.py": "d7c632590d5693fbf5a3c0b8bad4dcc9870a4d5c4c064763d87203c4629ff98e"
+          "backend/tests/test_sofix_v1.py": "9a058692e85a1e68e80fe6e3e9498b9d63a0244427cc393d4cdc0d6bbca71d46"
         }
       }
     },
@@ -1055,10 +1055,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-17",
-        "note": "17 Nov 2026 (Sofix v3): publish._versions adds startV3 and, unswitched, pDecPrev/decPrevIf from v0's outcome (sofix_v1.v3_start, V3_SWITCH 0.75); versus._number judges v3 on startPlainPrev/startDecPrev/pDecPrev with sofixOnPoint for substitutes, no case without them; frontend types gain the three optional fields. No planner, reward or Apply path reads them. Tests: test_sofix_v3_* in test_sofix_v1.py and test_sorare_versus.py.",
+        "date": "2026-11-18",
+        "note": "Replayed 6,754 LaLiga starts and 1,200 lineup pools through planner._draw; score_cdf, planning average and Sorare's stripped models tested; live plans not yet rebuilt",
         "files": {
-          "backend/app/sorare/publish.py": "c98d798811129357ab29f23a710a1b9eb701db70b9ba4b94200e49706de6df2c",
+          "backend/app/sorare/publish.py": "9eadb96a535e464864866b82185674b55ec958c04b1e705d75c8f36e6fe3ffb9",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
@@ -1111,10 +1111,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-17",
-        "note": "17 Nov 2026 (Sofix v3): publish._versions adds startV3 and, unswitched, pDecPrev/decPrevIf from v0's outcome (sofix_v1.v3_start, V3_SWITCH 0.75); versus._number judges v3 on startPlainPrev/startDecPrev/pDecPrev with sofixOnPoint for substitutes, no case without them; frontend types gain the three optional fields. No planner, reward or Apply path reads them. Tests: test_sofix_v3_* in test_sofix_v1.py and test_sorare_versus.py.",
+        "date": "2026-11-18",
+        "note": "Replayed 6,754 LaLiga starts and 1,200 lineup pools through planner._draw; score_cdf, planning average and Sorare's stripped models tested; live plans not yet rebuilt",
         "files": {
-          "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
+          "backend/app/sorare/planner.py": "58f01f101179695ec6f7bb062bc821ab4a3d62690d37670de73f2247dcb3e747",
           "frontend/lib/play.ts": "1968c916eb9d8e03e4cd6e120ef5a114fb1a08c8557b98c75ce5bd04d07930d3",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
@@ -1587,14 +1587,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-17",
-        "note": "17 Nov 2026 (Sofix v3): publish._versions adds startV3 and, unswitched, pDecPrev/decPrevIf from v0's outcome (sofix_v1.v3_start, V3_SWITCH 0.75); versus._number judges v3 on startPlainPrev/startDecPrev/pDecPrev with sofixOnPoint for substitutes, no case without them; frontend types gain the three optional fields. No planner, reward or Apply path reads them. Tests: test_sofix_v3_* in test_sofix_v1.py and test_sorare_versus.py.",
+        "date": "2026-11-18",
+        "note": "Replayed 6,754 LaLiga starts and 1,200 lineup pools through planner._draw; score_cdf, planning average and Sorare's stripped models tested; live plans not yet rebuilt",
         "files": {
           "backend/app/sorare/player_audit.py": "3436b64cf197d937aefbd51a213af0e28c396ebab23ff8b883e52091bea89427",
           "backend/app/sorare/audit.py": "ea8f89ebfa164a56eea73174e3fb39185ca652ab8dfa417d71fae64541dd8a60",
           "backend/app/sorare/versus.py": "ccbb0ca8f680bef6a82e9671fce559678ec1cf3d984aebb4cf30bd5e682c6879",
           "backend/tests/test_player_audit.py": "2712237e9be35154a26790e59acceaeeb6c921ca0fd1b5990f0f47f7e42f2a63",
-          "backend/tests/test_sofix_v1.py": "d7c632590d5693fbf5a3c0b8bad4dcc9870a4d5c4c064763d87203c4629ff98e"
+          "backend/tests/test_sofix_v1.py": "9a058692e85a1e68e80fe6e3e9498b9d63a0244427cc393d4cdc0d6bbca71d46"
         }
       }
     },

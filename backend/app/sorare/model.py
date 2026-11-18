@@ -137,6 +137,10 @@ class Forecast:
     sorare: float | None = None
     # his last ten games' minutes, for the overlay's "comes on" (forecast.bench_record); the planner never reads it
     bench_record: dict[str, Any] | None = None
+    # The chance his score is each value from 0 to 100 or lower, if he plays, and that picture's own average. The plan draws from it
+    # (moved by however far `mu` stands from `cdf_mu`); without it, a bell around `mu`.
+    score_cdf: Any = field(default=None, compare=False, repr=False)
+    cdf_mu: float = field(default=0.0, compare=False, repr=False)
 
 
 @dataclass(frozen=True)

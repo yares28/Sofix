@@ -1,10 +1,13 @@
+from dataclasses import replace
 from datetime import datetime
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from app.sorare import keeper, publish, scores, sofix_v1, versus
+from app.sorare import keeper, planner, publish, scores, sofix_v1, versus
 from app.sorare.forecast import GameStart, PlayerWeek, forecast
+from app.sorare.score_fixes import ScoreFix
 
 
 def test_seven_point_pick_and_expected_score_answer_different_questions():
@@ -241,3 +244,98 @@ def test_the_pre_lock_record_keeps_v0s_normal_and_decisive_scores_for_sofix_v3()
     assert (
         not {"startPlainPrev", "startDecPrev", "pDecPrev"} & bare.keys()
     )  # no v0 on file: none saved, never v1's copied in
+
+
+def _shaped(previous=None, sub_at=30):
+    start, sub = np.zeros(101), np.zeros(101)
+    start[40], start[80], sub[sub_at] = 0.7, 0.3, 1
+    outcome = keeper.Outcome(0.2, 0.3, 80, 40, 52, 40, 80)
+    return sofix_v1.GameScore(
+        **vars(outcome),
+        point=40,
+        sub=sofix_v1.Score(sub_at, keeper.Outcome(0.2, 0, sub_at, sub_at, sub_at, sub_at, sub_at), sub),
+        previous=previous.start if previous else None,
+        previous_outcome=previous,
+        mass=start,
+    )
+
+
+def _week(*models, starts=(1.0,)):
+    ids = [f"g{i}" for i in range(len(models))]
+    return PlayerWeek(
+        games=len(models),
+        pos="DEF",
+        game_ids=ids,
+        game_starts=[GameStart(g, p) for g, p in zip(ids, starts, strict=True)],
+        game_scores=tuple(m.start if m else None for m in models),
+        game_models=models,
+    )
+
+
+def _plan_draws(made, seed=1):
+    card = SimpleNamespace(player="p", positions=["DEF"])
+    return planner._draw([card], {"p": made}, np.random.default_rng(seed), 20000)[1][:, 0]
+
+
+def test_the_plan_draws_a_player_from_his_own_two_humped_score_not_a_bell():
+    made = forecast(_week(_shaped()))
+    drawn = _plan_draws(made)
+    assert (drawn >= 70).mean() == pytest.approx(0.3, abs=0.01)
+    assert ((drawn > 50) & (drawn < 70)).mean() == 0
+    assert drawn.mean() == pytest.approx(made.mu, abs=0.5)
+    bell = _plan_draws(replace(made, score_cdf=None))
+    assert ((bell > 50) & (bell < 70)).mean() > 0.3
+
+
+def test_a_moved_number_moves_the_shape_and_a_known_score_stays_known():
+    made = forecast(_week(_shaped()))
+    assert _plan_draws(replace(made, mu=made.mu + 5)).mean() == pytest.approx(made.mu + 5, abs=0.5)
+    assert set(_plan_draws(replace(made, mu=61, sd=0.0))) == {61}
+
+
+def test_the_shape_mixes_starting_and_coming_on_by_their_chances():
+    cdf = forecast(_week(_shaped(), starts=(0.5,))).score_cdf
+    made = forecast(_week(_shaped(), starts=(0.5,)))
+    on_share = made.p_on / (made.p_start + made.p_on)
+    assert cdf[30] == pytest.approx(on_share)
+    assert cdf[40] == pytest.approx(on_share + (1 - on_share) * 0.7)
+
+
+def test_the_shape_is_half_the_model_and_half_v0s_normal_and_decisive_scores():
+    previous = keeper.Outcome(0.2, 0.25, 90, 20, 37.5, 20, 90, sd_decisive=5, sd_plain=5)
+    cdf = forecast(_week(_shaped(previous))).score_cdf
+    assert cdf[50] == pytest.approx(0.5 * 0.7 + 0.5 * 0.75, abs=0.001)
+
+
+def test_two_games_keep_the_better_score_and_a_game_with_no_model_keeps_the_bell():
+    cdf = forecast(_week(_shaped(), _shaped(), starts=(1.0, 1.0))).score_cdf
+    assert cdf[40] == pytest.approx(0.49)
+    assert forecast(_week(_shaped(), None, starts=(1.0, 1.0))).score_cdf is None
+
+
+def test_the_plan_stands_on_the_shapes_average_and_the_record_keeps_sofixs_number():
+    previous = keeper.Outcome(0.2, 0.25, 90, 20, 37.5, 20, 90, sd_decisive=5, sd_plain=5)
+    made = forecast(_week(_shaped(previous)))
+    assert made.mu == 52
+    assert publish.planning_forecast(made, None).mu == pytest.approx(made.cdf_mu, abs=0.01)
+    assert made.cdf_mu == pytest.approx((52 + 37.5) / 2, abs=0.6)
+    fix = ScoreFix(a=5, b=1, on=True, spread=12)
+    planned = publish.planning_forecast(made, fix)
+    assert planned.mu == pytest.approx(made.cdf_mu + 5, abs=0.01) and planned.sd == 12
+    plain = replace(made, score_cdf=None)
+    assert publish.planning_forecast(plain, None).mu == 52
+
+
+def test_sorares_plan_stays_on_sorares_number_for_a_player_sofix_has_worked_out():
+    week = replace(_week(_shaped()), projection=30.0, start_odds=1.0, plays_odds=1.0)
+    assert forecast(week).mu == 52
+    stripped = publish.stripped_forecasts({"p": week})["p"]
+    assert stripped.mu == 30 and stripped.score_cdf is None
+
+
+def test_only_laliga_games_carry_a_shape_until_the_others_are_tested():
+    trees = {"start": [[[[45], [1]]]], "bench": [[[[35], [1]]]]}
+    args = ("DEF", True, keeper.GameNumbers(0.2, 1.5, 1), [], None)
+    assert sofix_v1.Model(trees).game(*args).mass is not None
+    other = sofix_v1.Model(trees, competition="premier-league-gb-eng").game(*args)
+    assert other.mass is None and other.sub.mass is None

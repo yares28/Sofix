@@ -1494,18 +1494,7 @@ def build_payload(
     league_games.update(plan_games)
     # What the record says Sofix's number should be (`score_fixes`), for planning only: the record and the Lineups page keep the
     # number as Sofix gave it, so the next measurement is of Sofix's own number again.
-    planning = (
-        {
-            k: replace(
-                f,
-                mu=score_fix.apply(f.mu),
-                sd=f.sd if f.sd is not None or score_fix.spread is None else score_fix.spread,
-            )
-            for k, f in plan_forecasts.items()
-        }
-        if score_fix is not None
-        else plan_forecasts
-    )
+    planning = {k: planning_forecast(f, score_fix) for k, f in plan_forecasts.items()}
     laps("forecasts")
 
     next_gw = gameweek_payload(
@@ -1775,7 +1764,16 @@ RECORD_PREFIX = "score_record:"
 
 def stripped_forecasts(weeks: Mapping[str, PlayerWeek]) -> dict[str, Forecast]:
     """Every player's score as Sorare's projection (his last five games where Sorare has none): the same chances, another number."""
-    return build_forecasts({slug: replace(w, game_scores=(), shape=None) for slug, w in weeks.items()})
+    return build_forecasts({slug: replace(w, game_scores=(), game_models=(), shape=None) for slug, w in weeks.items()})
+
+
+def planning_forecast(f: Forecast, fix: ScoreFix | None) -> Forecast:
+    """The copy of a forecast the plans use: the average of his score's whole picture where he has one (it picks better lineups than
+    Sofix v1's average alone, backend/reports/experiments/plan_shapes), moved by what the record says (`score_fixes`)."""
+    mu = round(f.cdf_mu, 2) if f.score_cdf is not None else f.mu
+    if fix is None:
+        return replace(f, mu=mu)
+    return replace(f, mu=fix.apply(mu), sd=f.sd if f.sd is not None or fix.spread is None else fix.spread)
 
 
 LENS_PREFIX = "sorare_lens:"

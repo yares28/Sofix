@@ -174,16 +174,10 @@
   position: fixed;
   z-index: 2147483000;
   width: 272px;
-  border-radius: 26px;
-  background: rgba(18, 18, 22, 0.8);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 30px 60px -20px rgba(0, 0, 0, 0.7);
   color: var(--sfx-white);
   font: 500 12px/16px var(--sfx-font);
   pointer-events: auto;
   outline: none;
-  --sfx-r: 26px;
 }
 .sfx-body { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
 .sfx-head { align-items: flex-end; padding: 0 4px; }
@@ -267,7 +261,7 @@
 @keyframes sfx-num { from { opacity: 0; transform: translateY(5px); } }
 @keyframes sfx-shimmer { from { background-position: -44px 0; } to { background-position: 44px 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .sfx-ribs, .sfx-tile, .sfx-panel, .sfx-big, .sfx-morph, .sfx-morph > *, .sfx-morph-out, .sfx-skel > i { animation: none !important; }
+  .sfx-ribs, .sfx-tile, .sfx-panel, .sfx-big, .sfx-skel > i { animation: none !important; }
 }
 
 
@@ -345,9 +339,8 @@
 @keyframes sfx-sonar { 0% { transform: scale(1); opacity: .7; } 70%, 100% { transform: scale(3); opacity: 0; } }
 
 .sfx-island {
-  position: fixed; width: 420px; display: grid; gap: 8px; padding: 10px 20px 10px 14px; border-radius: 46px; background: #000;
-  box-shadow: 0 20px 44px -16px rgb(0 0 0 / .9), inset 0 0 0 1px rgba(255, 255, 255, 0.06); pointer-events: auto; outline: none;
-  font: 600 11px/1.2 var(--sfx-font); color: #fff; --sfx-r: 46px;
+  position: fixed; width: 420px; display: grid; gap: 8px; padding: 10px 16px 10px 14px; pointer-events: auto; outline: none;
+  font: 600 11px/1.2 var(--sfx-font); color: #fff;
 }
 .sfx-isl-game { display: flex; align-items: center; gap: 12px; min-height: 72px; }
 .sfx-isl-game + .sfx-isl-game { padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
@@ -363,21 +356,65 @@
 .sfx-isl-stat--fill b { color: #0e0e0e; }
 .sfx-isl-stat--none b { color: #8e8e93; }
 
-/* The island's motion: grows out of a black pill at what was hovered, with a spring; its content fades up after it. */
-.sfx-morph { animation: sfx-grow .55s linear(0, .012, .05 2.4%, .2 5.5%, .45 9.6%, .78 15%, .95 19.5%, 1.03 24%, 1.06 28%, 1.05 33%, 1.01 41%, .995 50%, 1) backwards; }
-.sfx-morph > * { animation: sfx-reveal .3s .09s cubic-bezier(.2, .8, .2, 1) backwards; }
-.sfx-morph-out { animation: sfx-shrink .2s cubic-bezier(.5, 0, .9, .4) forwards; }
-.sfx-morph-out > * { opacity: 0; transition: opacity .08s; }
-@keyframes sfx-grow { from { clip-path: var(--sfx-from); transform: scale(.94); } to { clip-path: inset(0 round var(--sfx-r, 24px)); transform: none; } }
-@keyframes sfx-shrink { to { clip-path: var(--sfx-from); transform: scale(.96); opacity: .3; } }
-@keyframes sfx-reveal { from { opacity: 0; filter: blur(5px); transform: scale(.97); } }
+/* The hover popups (xS, crest, start %): a pill and a body drawn as one soft shape, on a 600 ms spring. The popup's own box is the
+   body; the pill stands outside it, on the edge facing what was hovered (data-edge="top" puts it under the body). */
+.sfx-sileo {
+  --sfx-spring: linear(0, .002 .6%, .007 1.2%, .015 1.8%, .026 2.4%, .041 3.1%, .06 3.8%, .108 5.3%, .157 6.6%, .214 8%, .467 13.7%, .577 16.3%, .631 17.7%, .682 19.1%, .73 20.5%, .771 21.8%, .808 23.1%, .844 24.5%, .874 25.8%, .903 27.2%, .928 28.6%, .952 30.1%, .972 31.6%, .988 33.1%, 1.01 35.7%, 1.025 38.5%, 1.034 41.6%, 1.038 45%, 1.035 50.1%, 1.012 64.2%, 1.003 73%, .999 83.7%, 1);
+  --sfx-pill: 40px; --sfx-nudge: 3px; --sfx-enter: -6px;
+  animation: sfx-sl-in .4s var(--sfx-spring) backwards;
+}
+.sfx-sileo[data-edge="top"] { --sfx-nudge: -3px; --sfx-enter: 6px; }
+.sfx-sileo > :not(.sfx-goo, .sfx-sl-head) { position: relative; animation: sfx-sl-show .36s ease .18s backwards; }
+.sfx-goo {
+  position: absolute; left: 0; top: calc(var(--sfx-pill) * -1); width: var(--sfx-w); height: calc(var(--sfx-b) + var(--sfx-pill));
+  overflow: visible; pointer-events: none; filter: drop-shadow(0 16px 28px rgb(0 0 0 / .5));
+}
+.sfx-sileo[data-edge="top"] .sfx-goo { top: auto; bottom: calc(var(--sfx-pill) * -1); transform: scaleY(-1); }
+.sfx-goo rect { fill: #1a1a1a; rx: 16px; ry: 16px; }
+.sfx-goo-pill {
+  x: var(--sfx-px); width: var(--sfx-pw); height: calc(var(--sfx-pill) + 24px);
+  transition: x .6s var(--sfx-spring), width .6s var(--sfx-spring);
+  animation: sfx-sl-pill .6s var(--sfx-spring) backwards;
+}
+.sfx-goo-body {
+  y: var(--sfx-pill); width: var(--sfx-w); height: var(--sfx-b);
+  transition: height .6s var(--sfx-spring);
+  animation: sfx-sl-body .6s var(--sfx-spring) .06s backwards;
+}
+.sfx-sl-head {
+  position: absolute; z-index: 1; left: var(--sfx-px); top: calc(var(--sfx-pill) * -1); display: flex; align-items: center;
+  width: max-content; height: var(--sfx-pill); padding: 8px 18px 8px 8px; transform: translateY(var(--sfx-nudge)) scale(.9);
+  transition: left .6s var(--sfx-spring); animation: sfx-sl-settle .6s var(--sfx-spring) backwards;
+}
+.sfx-sileo[data-edge="top"] .sfx-sl-head { top: auto; bottom: calc(var(--sfx-pill) * -1); }
+.sfx-sl-face { display: flex; align-items: center; gap: 8px; color: var(--sfx-tone, #fff); white-space: nowrap; animation: sfx-sl-blur-in .6s var(--sfx-spring) both; }
+.sfx-sl-face--out { position: absolute; left: 8px; animation: sfx-sl-blur-out .42s ease forwards; }
+.sfx-sl-badge {
+  display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%;
+  background: color-mix(in oklch, var(--sfx-tone) 20%, transparent); font: 800 13px/1 var(--sfx-cond);
+}
+.sfx-sl-title { max-width: calc(var(--sfx-w) - 50px); overflow: hidden; text-overflow: ellipsis; font: 500 13px/16px var(--sfx-font); }
+
+.sfx-sileo-out { animation: sfx-sl-out .3s ease .06s forwards; }
+.sfx-sileo-out > :not(.sfx-goo, .sfx-sl-head) { opacity: 0; transition: opacity .05s; animation: none; }
+.sfx-sileo-out .sfx-goo-pill { animation: sfx-sl-pill-out .3s cubic-bezier(.4, 0, .2, 1) forwards; }
+.sfx-sileo-out .sfx-goo-body { animation: sfx-sl-body-out .3s cubic-bezier(.4, 0, .2, 1) forwards; }
+
+@keyframes sfx-sl-in { from { opacity: 0; transform: translateY(var(--sfx-enter)) scale(.95); } }
+@keyframes sfx-sl-out { to { opacity: 0; transform: translateY(var(--sfx-enter)) scale(.95); } }
+@keyframes sfx-sl-show { from { opacity: 0; } }
+@keyframes sfx-sl-pill { from { x: calc(var(--sfx-px) + var(--sfx-pw) / 2 - 20px); width: var(--sfx-pill); height: var(--sfx-pill); } }
+@keyframes sfx-sl-pill-out { to { height: var(--sfx-pill); } }
+@keyframes sfx-sl-body { from { height: 0; } }
+@keyframes sfx-sl-body-out { to { height: 0; } }
+@keyframes sfx-sl-settle { from { transform: none; } }
+@keyframes sfx-sl-blur-in { from { opacity: 0; filter: blur(6px); } }
+@keyframes sfx-sl-blur-out { to { opacity: 0; filter: blur(6px); } }
 
 /* The start island: two buttons (to start, to come on), then the sources or his record off the bench. */
 .sfx-tip {
-  position: fixed; z-index: 2147483000; width: 156px; display: grid; gap: 8px; padding: 8px; border-radius: 20px;
-  background: rgba(18, 18, 22, 0.8); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 18px 40px -14px rgba(0, 0, 0, 0.7); color: #fff; font: 600 11px/1.2 var(--sfx-font);
-  pointer-events: auto; --sfx-r: 20px;
+  position: fixed; z-index: 2147483000; width: 156px; display: grid; gap: 8px; padding: 8px; color: #fff; font: 600 11px/1.2 var(--sfx-font);
+  pointer-events: auto;
 }
 .sfx-tip-seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
 .sfx-tip-seg button {
@@ -404,7 +441,10 @@
 .sfx-tip .sfx-mins { height: 36px; gap: 2px; }
 .sfx-tip .sfx-mins i { min-height: 2px; border-radius: 2px; }
 .sfx-tip .sfx-mins-axis { margin-top: 0; }
-@media (prefers-reduced-motion: reduce) { .sfx-island, .sfx-tip, .sfx-live-dot, .sfx-live-dot::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .sfx-live-dot, .sfx-live-dot::after { animation: none; }
+  .sfx-sileo, .sfx-sileo * { animation: none !important; transition: none !important; }
+}
 
 /* What a point of his costs, on the market and your gallery (1.2): green in the cheapest third of similar players, red in the dearest. */
 .sfx-price {

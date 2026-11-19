@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /**
  * The sorare.com overlay, against a Sorare that is not there (plans/overlay.md, O5).
@@ -900,6 +900,7 @@ test.describe("the sorare.com overlay", () => {
     const art = await box(page, "#big img");
     const shown = await isle.boundingBox();
     expect(shown!.y + shown!.height).toBeLessThanOrEqual(art.top + 21); // above the card, not over its art
+    await isle.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished))); // contrast is read once it has faded in
     expect((await new AxeBuilder({ page }).include(".sfx-island").analyze()).violations).toEqual([]);
     await page.mouse.move(5, 5);
     await expect(isle).toHaveCount(0);
@@ -1443,6 +1444,59 @@ test.describe("the sorare.com overlay", () => {
 
     expect(await text(page, "doubtful")).toEqual(["53", "58", "31%"]);
     await expect(startOf(page, "doubtful")).toHaveClass(/sfx-start--doubt/);
+  });
+
+  test("xS, crest and start % each open one fused shape: a pill naming it, joined to a body that follows its content", async ({ page }) => {
+    await openPage(page, { url: BUILDER_URL });
+    await settled(page);
+    await page.locator("#doubtful").scrollIntoViewIfNeeded();
+    const shape = (popup: Locator) =>
+      popup.evaluate((el) => {
+        const [head, body] = [el.querySelector<HTMLElement>(".sfx-sl-head")!.getBoundingClientRect(), el.getBoundingClientRect()];
+        const rect = el.querySelector(".sfx-goo-body")!;
+        return {
+          fused: Boolean(el.querySelector("g[filter^='url(#sfx-goo-']")),
+          clear: getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)",
+          inside: head.left >= body.left - 1 && head.right <= body.right + 1,
+          touches: Math.min(Math.abs(head.bottom - body.top), Math.abs(head.top - body.bottom)) < 8,
+          follows: parseFloat(getComputedStyle(rect).height) === (el as HTMLElement).offsetHeight,
+        };
+      });
+    const whole = { fused: true, clear: true, inside: true, touches: true, follows: true };
+    const settle = () => page.waitForTimeout(750);
+
+    await tileOf(page, "doubtful").hover();
+    await expect(panel(page).locator(".sfx-sl-head")).toHaveText(/^xS\s*If he starts$/);
+    await settle();
+    expect(await shape(panel(page))).toEqual(whole);
+    await page.mouse.move(2, 2);
+    await expect(panel(page)).toHaveCount(0);
+
+    await startOf(page, "doubtful").hover();
+    const tip = page.getByRole("dialog", { name: "Sofix: chance to start" });
+    await expect(tip.locator(".sfx-sl-head")).toHaveText("To start");
+    await settle();
+    expect(await shape(tip)).toEqual(whole);
+    await tip.getByRole("button", { name: /^Chance to come on/ }).click();
+    await expect(tip.locator(".sfx-sl-head")).toHaveText("Comes on"); // the old words blur away, the body grows to the new content
+    await settle();
+    expect(await shape(tip)).toEqual(whole);
+    await page.mouse.move(2, 2);
+    await expect(tip).toHaveCount(0);
+
+    const onScreen = await page.evaluate(() =>
+      [...document.querySelectorAll(".sfx-crest")].findIndex((c) => {
+        const r = c.getBoundingClientRect();
+        return r.top > 0 && r.bottom < innerHeight && r.left > 0 && r.right < innerWidth;
+      }),
+    );
+    const at = (await page.locator(".sfx-crest").nth(onScreen).boundingBox())!;
+    await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+    const isle = page.locator(".sfx-island");
+    await expect(isle.locator(".sfx-sl-head")).not.toHaveText("");
+    await expect(isle.locator(".sfx-sl-badge img, .sfx-sl-badge .sfx-shield")).toHaveCount(1); // the club's real crest
+    await settle();
+    expect(await shape(isle)).toEqual(whole);
   });
 
   test("the start % opens its island: his chance to start and to come on; the first lists each source, the second his last ten games", async ({ page }, testInfo) => {

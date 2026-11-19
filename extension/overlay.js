@@ -407,30 +407,107 @@
    * The iPhone-style island: a popup grows out of a small black pill at what was hovered, with a spring, its content fading in
    * after it; closing shrinks it back into that pill. Called once the popup is placed.
    */
-  function islandFrom(el, anchor) {
-    const a = anchor.getBoundingClientRect();
-    const r = el.getBoundingClientRect();
-    const x = Math.min(Math.max(a.left + a.width / 2 - r.left, 22), r.width - 22);
-    const y = Math.min(Math.max(a.top + a.height / 2 - r.top, 15), r.height - 15);
-    el.style.setProperty("--sfx-from", `inset(${y - 15}px ${r.width - x - 22}px ${r.height - y - 15}px ${x - 22}px round 15px)`);
-    el.style.transformOrigin = `${x}px ${y}px`;
-    el.classList.remove("sfx-morph");
-    void el.offsetWidth; // restart when the same popup grows again
-    el.classList.add("sfx-morph");
+  const PILL_H = 40;
+  const PILL_ICONS = { check: "M20 6 9 17l-5-5", doubt: "M12 8v4M12 16h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0", out: "M18 6 6 18M6 6l12 12", on: "M5 12h14M12 5l7 7-7 7" };
+  const pills = new WeakMap();
+  let pillCount = 0;
+  const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function svgNode(tag, attributes) {
+    const made = document.createElementNS(SVG_NS, tag);
+    for (const [name, value] of Object.entries(attributes)) made.setAttribute(name, String(value));
+    return made;
   }
 
-  /** Takes a popup away the island's way: out of the page's reach at once (no role, no pointer), gone once it has shrunk. */
-  function islandAway(el) {
+  function pillIcon(name) {
+    const icon = svgNode("svg", { viewBox: "0 0 24 24", width: 16, height: 16, fill: "none", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    icon.append(svgNode("path", { d: PILL_ICONS[name] }));
+    return icon;
+  }
+
+  /** What a pill says: a round badge (text, icon or crest) and a title, both in the popup's colour. */
+  function pillFace(badge, title, tone) {
+    const face = node("span", "sfx-sl-face");
+    if (tone) face.style.setProperty("--sfx-tone", tone);
+    const mark = node("span", "sfx-sl-badge");
+    mark.append(badge);
+    face.append(mark, node("span", "sfx-sl-title", title));
+    return face;
+  }
+
+  /**
+   * Makes a popup one soft shape: a pill by what was hovered, fused by a blur-and-threshold filter to a body that pours out of it.
+   * `place` positions the popup and ends in pillFit; it runs again whenever the popup's content changes its size.
+   */
+  function pillOn(el, face, place) {
+    const id = `sfx-goo-${++pillCount}`;
+    const filter = svgNode("filter", { id, filterUnits: "userSpaceOnUse", x: -20, y: -20, "color-interpolation-filters": "sRGB" });
+    filter.append(
+      svgNode("feGaussianBlur", { in: "SourceGraphic", stdDeviation: 8, result: "blur" }),
+      svgNode("feColorMatrix", { in: "blur", type: "matrix", values: "1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10", result: "goo" }),
+      svgNode("feComposite", { in: "SourceGraphic", in2: "goo", operator: "atop" }),
+    );
+    const defs = svgNode("defs", {});
+    defs.append(filter);
+    const shapes = svgNode("g", { filter: `url(#${id})` });
+    shapes.append(svgNode("rect", { class: "sfx-goo-pill" }), svgNode("rect", { class: "sfx-goo-body" }));
+    const svg = svgNode("svg", { class: "sfx-goo", "aria-hidden": "true" });
+    svg.append(defs, shapes);
+    const head = node("div", "sfx-sl-head");
+    head.setAttribute("aria-hidden", "true");
+    head.append(face);
+    el.prepend(svg, head);
+    el.classList.add("sfx-sileo");
+    const observer = new ResizeObserver(guard(place));
+    pills.set(el, { head, filter, observer });
+    place();
+    observer.observe(el);
+  }
+
+  /** Fits the shape to the popup as it now stands, the pill over the middle of `anchor` as far as the body's width allows. */
+  function pillFit(el, anchor) {
+    const pill = pills.get(el);
+    if (!pill) return;
+    const [width, height] = [el.offsetWidth, el.offsetHeight];
+    el.style.setProperty("--sfx-w", `${width}px`);
+    el.style.setProperty("--sfx-b", `${height}px`);
+    const pillWidth = pill.head.offsetWidth;
+    const a = anchor.getBoundingClientRect();
+    const x = Math.round(Math.max(0, Math.min(a.left + a.width / 2 - parseFloat(el.style.left) - pillWidth / 2, width - pillWidth)));
+    el.style.setProperty("--sfx-px", `${x}px`);
+    el.style.setProperty("--sfx-pw", `${pillWidth}px`);
+    el.style.transformOrigin = `${x + pillWidth / 2}px ${el.dataset.edge === "top" ? height + PILL_H / 2 : -PILL_H / 2}px`;
+    pill.filter.setAttribute("width", String(width + 40));
+    pill.filter.setAttribute("height", String(height + PILL_H + 40));
+  }
+
+  /** New words in the pill: the old ones blur away under the new. */
+  function pillSwap(el, face, anchor) {
+    const pill = pills.get(el);
+    if (!pill) return;
+    const old = pill.head.firstElementChild;
+    if (calm()) old.remove();
+    else {
+      old.classList.add("sfx-sl-face--out");
+      old.addEventListener("animationend", guard(() => old.remove()), { once: true });
+    }
+    pill.head.prepend(face);
+    pillFit(el, anchor);
+  }
+
+  /** Takes a popup away: out of the page's reach at once (no role, no pointer), gone once the body has drawn back into the pill. */
+  function pillAway(el) {
     el.removeAttribute("role");
     el.setAttribute("aria-hidden", "true");
     el.style.pointerEvents = "none";
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches || !el.style.getPropertyValue("--sfx-from")) {
+    const pill = pills.get(el);
+    if (pill) pill.observer.disconnect();
+    if (calm() || !pill) {
       el.remove();
       return;
     }
-    el.classList.remove("sfx-morph");
-    el.classList.add("sfx-morph-out");
-    setTimeout(() => el.remove(), 200);
+    el.classList.add("sfx-sileo-out");
+    setTimeout(() => el.remove(), 360);
   }
 
   /** The small mark that says whose number a start chance is: a filled dot for FF, a ring for SO, a dashed ring for SF. */
@@ -813,10 +890,12 @@
       side = "right";
       left = Math.min(media.right + 12, innerWidth - PANEL_WIDTH - 8);
     }
-    const top = Math.min(Math.max(tile.top + tile.height / 2 - 21, 8), Math.max(8, innerHeight - height - 8));
+    const lowest = 8 + PILL_H; // the pill stands on the panel's top edge, level with the tile
+    const top = Math.min(Math.max(tile.top + tile.height / 2 + PILL_H / 2, lowest), Math.max(lowest, innerHeight - height - 8));
     panel.el.dataset.side = side;
     panel.el.style.left = `${Math.max(8, left)}px`;
     panel.el.style.top = `${top}px`;
+    pillFit(panel.el, panel.record.tile);
   }
 
   function scheduleClose() {
@@ -839,7 +918,7 @@
     const { record, el, timer } = panel;
     clearTimeout(timer);
     const hadFocus = el.contains(document.activeElement) || (record.tile && record.tile === document.activeElement);
-    islandAway(el);
+    pillAway(el);
     if (record.tile) record.tile.setAttribute("aria-expanded", "false");
     document.removeEventListener("keydown", onPanelKey, true);
     document.removeEventListener("pointerdown", onOutside, true);
@@ -891,8 +970,8 @@
     panel = state;
     document.body.append(state.el);
     record.tile.setAttribute("aria-expanded", "true");
-    positionPanel();
-    islandFrom(state.el, record.tile);
+    const score = benchedNow && facts(entry).split ? core.comesOnScore(entry).score : facts(entry).score;
+    pillOn(state.el, pillFace("xS", benchedNow && facts(entry).split ? "If he comes on" : "If he starts", scoreColourOf(score)), positionPanel);
     document.addEventListener("keydown", onPanelKey, true);
     document.addEventListener("pointerdown", onOutside, true);
     window.addEventListener("scroll", onPanelScroll, true);
@@ -1148,8 +1227,11 @@
     const el = island.el;
     const width = el.offsetWidth || 420;
     const height = el.offsetHeight;
+    const above = r.top - 8 - PILL_H - height >= 8; // above the crest, the card's art left in view, unless the screen ends first
+    el.dataset.edge = above ? "top" : "bottom";
     el.style.left = `${Math.round(Math.min(Math.max(8, r.left + r.width / 2 - width / 2), innerWidth - width - 8))}px`;
-    el.style.top = `${Math.round(Math.max(8, r.top - 8 - height))}px`; // above the crest, the card's art left in view
+    el.style.top = `${Math.round(above ? r.top - 8 - PILL_H - height : r.bottom + 8 + PILL_H)}px`;
+    pillFit(el, island.record.crest);
   }
 
   function openIsland(record, focusInside) {
@@ -1174,8 +1256,8 @@
     crestHome().append(el);
     island = { record, el, timer: 0 };
     record.crest.setAttribute("aria-expanded", "true");
-    positionIsland();
-    islandFrom(el, record.crest);
+    const g = games[0];
+    pillOn(el, pillFace(clubMark(g.teamCrest, g.team || "", null, null, 20), g.team || "Next game"), positionIsland);
     document.addEventListener("keydown", onIslandKey, true);
     if (focusInside) el.focus({ preventScroll: true });
   }
@@ -1195,7 +1277,7 @@
     if (!island) return;
     const { record, el, timer } = island;
     clearTimeout(timer);
-    islandAway(el);
+    pillAway(el);
     island = null;
     document.removeEventListener("keydown", onIslandKey, true);
     if (record.crest) {
@@ -1683,9 +1765,14 @@
     const comes = comesRecord && comesRecord.p !== null ? comesRecord.p : core.benchOnChance(entry);
     const switches = node("div", "sfx-tip-seg");
     const body = node("div", "sfx-tip-body");
+    const startIcon = f.tone === "out" ? "out" : f.tone === "doubt" ? "doubt" : "check";
+    const faceOf = (mode) => (mode === "bench" ? pillFace(pillIcon("on"), "Comes on", "#fff") : pillFace(pillIcon(startIcon), "To start", chip.style.background));
+    let shown = "start";
     const show = (mode) => {
       for (const b of switches.children) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
       body.replaceChildren(mode === "bench" ? comesNode(entry) : tipStart(entry, onPage, f));
+      if (mode !== shown) pillSwap(el, faceOf(mode), chip);
+      shown = mode;
     };
     for (const [mode, value, label] of [["start", f.startChance, "Chance to start"], ["bench", comes, "Chance to come on"]]) {
       if (typeof value !== "number") continue;
@@ -1706,11 +1793,15 @@
     el.addEventListener("pointerleave", guard(() => scheduleTipClose()));
     show("start");
     document.body.append(el);
-    const a = chip.getBoundingClientRect();
-    const [w, h] = [el.offsetWidth, el.offsetHeight];
-    el.style.left = `${Math.round(Math.min(Math.max(8, a.right - w), innerWidth - w - 8))}px`;
-    el.style.top = `${Math.round(a.bottom + 6 + h > innerHeight - 8 ? Math.max(8, a.top - 6 - h) : a.bottom + 6)}px`;
-    islandFrom(el, chip);
+    pillOn(el, faceOf("start"), () => {
+      const a = chip.getBoundingClientRect();
+      const [w, h] = [el.offsetWidth, el.offsetHeight];
+      const below = a.bottom + 6 + PILL_H + h <= innerHeight - 8;
+      el.dataset.edge = below ? "bottom" : "top";
+      el.style.left = `${Math.round(Math.min(Math.max(8, a.right - w), innerWidth - w - 8))}px`;
+      el.style.top = `${Math.round(below ? a.bottom + 6 + PILL_H : Math.max(8, a.top - 6 - PILL_H - h))}px`;
+      pillFit(el, chip);
+    });
     tip = { el, chip, timer: 0 };
   }
 
@@ -1725,7 +1816,7 @@
   function closeTip() {
     if (!tip) return;
     clearTimeout(tip.timer);
-    islandAway(tip.el);
+    pillAway(tip.el);
     tip = null;
   }
 

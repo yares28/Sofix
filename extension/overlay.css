@@ -356,60 +356,43 @@
 .sfx-isl-stat--fill b { color: #0e0e0e; }
 .sfx-isl-stat--none b { color: #8e8e93; }
 
-/* The hover popups (xS, crest, start %): a pill and a body drawn as one soft shape, on a 600 ms spring. The popup's own box is the
-   body; the pill stands outside it, on the edge facing what was hovered (data-edge="top" puts it under the body). */
+/* The hover popups (xS, crest, start %): what was hovered is the pill. A dark shape grows around it and the popup's body pours out
+   of that shape on a 600 ms spring, the two drawn as one. The popup's own box is the body; data-edge="top" means it rises. */
 .sfx-sileo {
   --sfx-spring: linear(0, .002 .6%, .007 1.2%, .015 1.8%, .026 2.4%, .041 3.1%, .06 3.8%, .108 5.3%, .157 6.6%, .214 8%, .467 13.7%, .577 16.3%, .631 17.7%, .682 19.1%, .73 20.5%, .771 21.8%, .808 23.1%, .844 24.5%, .874 25.8%, .903 27.2%, .928 28.6%, .952 30.1%, .972 31.6%, .988 33.1%, 1.01 35.7%, 1.025 38.5%, 1.034 41.6%, 1.038 45%, 1.035 50.1%, 1.012 64.2%, 1.003 73%, .999 83.7%, 1);
-  --sfx-pill: 40px; --sfx-nudge: 3px; --sfx-enter: -6px;
-  animation: sfx-sl-in .4s var(--sfx-spring) backwards;
+  animation: sfx-show .12s ease-out backwards;
 }
-.sfx-sileo[data-edge="top"] { --sfx-nudge: -3px; --sfx-enter: 6px; }
-.sfx-sileo > :not(.sfx-goo, .sfx-sl-head) { position: relative; animation: sfx-sl-show .36s ease .18s backwards; }
+.sfx-sileo > :not(.sfx-goo, .sfx-sl-head) { position: relative; animation: sfx-show .36s ease .18s backwards; }
 .sfx-goo {
-  position: absolute; left: 0; top: calc(var(--sfx-pill) * -1); width: var(--sfx-w); height: calc(var(--sfx-b) + var(--sfx-pill));
+  position: absolute; left: 0; top: 0; width: var(--sfx-w); height: var(--sfx-b);
   overflow: visible; pointer-events: none; filter: drop-shadow(0 16px 28px rgb(0 0 0 / .5));
 }
-.sfx-sileo[data-edge="top"] .sfx-goo { top: auto; bottom: calc(var(--sfx-pill) * -1); transform: scaleY(-1); }
-.sfx-goo rect { fill: #1a1a1a; rx: 16px; ry: 16px; }
+.sfx-sileo[data-edge="top"] .sfx-goo { transform: scaleY(-1); }
+.sfx-goo rect { fill: #1a1a1a; }
 .sfx-goo-pill {
-  x: var(--sfx-px); width: var(--sfx-pw); height: calc(var(--sfx-pill) + 24px);
-  transition: x .6s var(--sfx-spring), width .6s var(--sfx-spring);
-  animation: sfx-sl-pill .6s var(--sfx-spring) backwards;
+  x: var(--sfx-px); y: var(--sfx-py); width: var(--sfx-pw); height: var(--sfx-ph); rx: var(--sfx-pr); ry: var(--sfx-pr);
+  transition: x .6s var(--sfx-spring), y .6s var(--sfx-spring), width .6s var(--sfx-spring), height .6s var(--sfx-spring);
+  animation: sfx-pill .6s var(--sfx-spring) backwards;
 }
 .sfx-goo-body {
-  y: var(--sfx-pill); width: var(--sfx-w); height: var(--sfx-b);
+  y: 0; width: var(--sfx-w); height: var(--sfx-b); rx: 16px; ry: 16px;
   transition: height .6s var(--sfx-spring);
-  animation: sfx-sl-body .6s var(--sfx-spring) .06s backwards;
+  animation: sfx-body .6s var(--sfx-spring) .06s backwards;
 }
-.sfx-sl-head {
-  position: absolute; z-index: 1; left: var(--sfx-px); top: calc(var(--sfx-pill) * -1); display: flex; align-items: center;
-  width: max-content; height: var(--sfx-pill); padding: 8px 18px 8px 8px; transform: translateY(var(--sfx-nudge)) scale(.9);
-  transition: left .6s var(--sfx-spring); animation: sfx-sl-settle .6s var(--sfx-spring) backwards;
-}
-.sfx-sileo[data-edge="top"] .sfx-sl-head { top: auto; bottom: calc(var(--sfx-pill) * -1); }
-.sfx-sl-face { display: flex; align-items: center; gap: 8px; color: var(--sfx-tone, #fff); white-space: nowrap; animation: sfx-sl-blur-in .6s var(--sfx-spring) both; }
-.sfx-sl-face--out { position: absolute; left: 8px; animation: sfx-sl-blur-out .42s ease forwards; }
-.sfx-sl-badge {
-  display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%;
-  background: color-mix(in oklch, var(--sfx-tone) 20%, transparent); font: 800 13px/1 var(--sfx-cond);
-}
-.sfx-sl-title { max-width: calc(var(--sfx-w) - 50px); overflow: hidden; text-overflow: ellipsis; font: 500 13px/16px var(--sfx-font); }
+.sfx-sl-head { position: absolute; z-index: 1; left: var(--sfx-hx); top: var(--sfx-hy); width: var(--sfx-hw); height: var(--sfx-hh); pointer-events: none; }
+.sfx-sl-head > * { position: relative !important; inset: auto !important; margin: 0 !important; transform: none !important; animation: none !important; }
 
-.sfx-sileo-out { animation: sfx-sl-out .3s ease .06s forwards; }
+.sfx-sileo-out { animation: sfx-hide .12s ease .22s forwards; }
 .sfx-sileo-out > :not(.sfx-goo, .sfx-sl-head) { opacity: 0; transition: opacity .05s; animation: none; }
-.sfx-sileo-out .sfx-goo-pill { animation: sfx-sl-pill-out .3s cubic-bezier(.4, 0, .2, 1) forwards; }
-.sfx-sileo-out .sfx-goo-body { animation: sfx-sl-body-out .3s cubic-bezier(.4, 0, .2, 1) forwards; }
+.sfx-sileo-out .sfx-goo-pill { animation: sfx-pill-out .3s cubic-bezier(.4, 0, .2, 1) forwards; }
+.sfx-sileo-out .sfx-goo-body { animation: sfx-body-out .3s cubic-bezier(.4, 0, .2, 1) forwards; }
 
-@keyframes sfx-sl-in { from { opacity: 0; transform: translateY(var(--sfx-enter)) scale(.95); } }
-@keyframes sfx-sl-out { to { opacity: 0; transform: translateY(var(--sfx-enter)) scale(.95); } }
-@keyframes sfx-sl-show { from { opacity: 0; } }
-@keyframes sfx-sl-pill { from { x: calc(var(--sfx-px) + var(--sfx-pw) / 2 - 20px); width: var(--sfx-pill); height: var(--sfx-pill); } }
-@keyframes sfx-sl-pill-out { to { height: var(--sfx-pill); } }
-@keyframes sfx-sl-body { from { height: 0; } }
-@keyframes sfx-sl-body-out { to { height: 0; } }
-@keyframes sfx-sl-settle { from { transform: none; } }
-@keyframes sfx-sl-blur-in { from { opacity: 0; filter: blur(6px); } }
-@keyframes sfx-sl-blur-out { to { opacity: 0; filter: blur(6px); } }
+@keyframes sfx-show { from { opacity: 0; } }
+@keyframes sfx-hide { to { opacity: 0; } }
+@keyframes sfx-pill { from { x: var(--sfx-ax); y: var(--sfx-ay); width: var(--sfx-aw); height: var(--sfx-ah); } }
+@keyframes sfx-pill-out { to { x: var(--sfx-ax); y: var(--sfx-ay); width: var(--sfx-aw); height: var(--sfx-ah); } }
+@keyframes sfx-body { from { height: 0; } }
+@keyframes sfx-body-out { to { height: 0; } }
 
 /* The start island: two buttons (to start, to come on), then the sources or his record off the bench. */
 .sfx-tip {

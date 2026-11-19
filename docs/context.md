@@ -1643,11 +1643,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-19",
-        "note": "Manifest template: version bump to 0.5.23 only, for the overlay hover restyle; hosts, permissions and action rules unchanged. No session action was exercised.",
+        "note": "Manifest template: version bump to 0.5.24 only, for the overlay hover change; hosts, permissions and action rules unchanged. No session action was exercised.",
         "files": {
           "extension/background.js": "fd707ab70c918537c24908ad0ca6b310e6cadf990275789cead4c2355f796603",
           "extension/bridge.js": "867affedbdea8d6fc7e3cf6fe77f151230242f78e1a75b3cea7cd1bef06be149",
-          "extension/manifest.template.json": "55db22da6b3e9a6c85cea10dfccd43df4d9882851b5050ec9d37faa4e6ec6689",
+          "extension/manifest.template.json": "0b4f07a43387ae2ad50fd32f629196143bbb2e01e6bc2607ade98ca2dae502c5",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

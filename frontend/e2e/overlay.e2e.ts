@@ -1446,41 +1446,44 @@ test.describe("the sorare.com overlay", () => {
     await expect(startOf(page, "doubtful")).toHaveClass(/sfx-start--doubt/);
   });
 
-  test("xS, crest and start % each open one fused shape: a pill naming it, joined to a body that follows its content", async ({ page }) => {
+  test("xS, crest and start % each pour straight out of what was hovered: that element is the pill, with no label between", async ({ page }) => {
     await openPage(page, { url: BUILDER_URL });
     await settled(page);
     await page.locator("#doubtful").scrollIntoViewIfNeeded();
-    const shape = (popup: Locator) =>
-      popup.evaluate((el) => {
-        const [head, body] = [el.querySelector<HTMLElement>(".sfx-sl-head")!.getBoundingClientRect(), el.getBoundingClientRect()];
-        const rect = el.querySelector(".sfx-goo-body")!;
+    const shape = async (popup: Locator, anchor: Locator) =>
+      popup.evaluate((el, hovered) => {
+        const near = (a: number, b: number) => Math.abs(a - b) <= 1;
+        const [pop, at, pill, copy] = [el, hovered as Element, el.querySelector(".sfx-goo-pill")!, el.querySelector(".sfx-sl-head > *")!].map((one) => one.getBoundingClientRect()) as [DOMRect, DOMRect, DOMRect, DOMRect];
         return {
           fused: Boolean(el.querySelector("g[filter^='url(#sfx-goo-']")),
           clear: getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)",
-          inside: head.left >= body.left - 1 && head.right <= body.right + 1,
-          touches: Math.min(Math.abs(head.bottom - body.top), Math.abs(head.top - body.bottom)) < 8,
-          follows: parseFloat(getComputedStyle(rect).height) === (el as HTMLElement).offsetHeight,
+          around: pill.left <= at.left && pill.right >= at.right && pill.top <= at.top && pill.bottom >= at.bottom,
+          joined: pill.left < pop.right && pill.right > pop.left && pill.top < pop.bottom && pill.bottom > pop.top,
+          inPlace: near(copy.left, at.left) && near(copy.top, at.top),
+          follows: parseFloat(getComputedStyle(el.querySelector(".sfx-goo-body")!).height) === (el as HTMLElement).offsetHeight,
+          words: el.querySelector(".sfx-sl-head")!.textContent === hovered!.textContent,
         };
-      });
-    const whole = { fused: true, clear: true, inside: true, touches: true, follows: true };
+      }, await anchor.elementHandle());
+    const whole = { fused: true, clear: true, around: true, joined: true, inPlace: true, follows: true, words: true };
     const settle = () => page.waitForTimeout(750);
 
-    await tileOf(page, "doubtful").hover();
-    await expect(panel(page).locator(".sfx-sl-head")).toHaveText(/^xS\s*If he starts$/);
+    const tileAnchor = tileOf(page, "doubtful");
+    await tileAnchor.hover();
+    await expect(panel(page)).toBeVisible();
     await settle();
-    expect(await shape(panel(page))).toEqual(whole);
+    expect(await shape(panel(page), tileAnchor)).toEqual(whole);
     await page.mouse.move(2, 2);
     await expect(panel(page)).toHaveCount(0);
 
-    await startOf(page, "doubtful").hover();
+    const chip = startOf(page, "doubtful");
+    await chip.hover();
     const tip = page.getByRole("dialog", { name: "Sofix: chance to start" });
-    await expect(tip.locator(".sfx-sl-head")).toHaveText("To start");
+    await expect(tip).toBeVisible();
     await settle();
-    expect(await shape(tip)).toEqual(whole);
+    expect(await shape(tip, chip)).toEqual(whole);
     await tip.getByRole("button", { name: /^Chance to come on/ }).click();
-    await expect(tip.locator(".sfx-sl-head")).toHaveText("Comes on"); // the old words blur away, the body grows to the new content
     await settle();
-    expect(await shape(tip)).toEqual(whole);
+    expect(await shape(tip, chip)).toEqual(whole); // the body has grown to the new content, still joined
     await page.mouse.move(2, 2);
     await expect(tip).toHaveCount(0);
 
@@ -1490,13 +1493,13 @@ test.describe("the sorare.com overlay", () => {
         return r.top > 0 && r.bottom < innerHeight && r.left > 0 && r.right < innerWidth;
       }),
     );
-    const at = (await page.locator(".sfx-crest").nth(onScreen).boundingBox())!;
+    const crest = page.locator(".sfx-crest").nth(onScreen);
+    const at = (await crest.boundingBox())!;
     await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
     const isle = page.locator(".sfx-island");
-    await expect(isle.locator(".sfx-sl-head")).not.toHaveText("");
-    await expect(isle.locator(".sfx-sl-badge img, .sfx-sl-badge .sfx-shield")).toHaveCount(1); // the club's real crest
+    await expect(isle).toBeVisible();
     await settle();
-    expect(await shape(isle)).toEqual(whole);
+    expect(await shape(isle, crest)).toEqual(whole);
   });
 
   test("the start % opens its island: his chance to start and to come on; the first lists each source, the second his last ten games", async ({ page }, testInfo) => {

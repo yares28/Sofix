@@ -915,6 +915,12 @@ test.describe("the sorare.com overlay", () => {
     expect(await page.evaluate(() => (window as unknown as { __clicked?: string }).__clicked ?? null)).toBeNull();
   });
 
+  test("editing an entered lineup is the builder too: its crests are drawn", async ({ page }) => {
+    await openPage(page, { url: `${BUILDER_URL}/lineup/88b5441d-d484-4209-baa7-9e26c93864e6` });
+    await settled(page);
+    await expect.poll(() => page.locator(".sfx-crest").count()).toBeGreaterThan(0);
+  });
+
   test("the crest disappears with the switch and its motion stops under reduced motion", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await openPage(page, { url: BUILDER_URL });

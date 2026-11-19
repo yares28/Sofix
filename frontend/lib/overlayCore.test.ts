@@ -611,6 +611,11 @@ describe("the dock", () => {
     const slug = "football-23-27-oct-2026-seasonal-spain-in_season_spain_limited";
     expect(core.composeBoard(`/football/play/classic/compose/${slug}`)).toBe(slug);
     expect(core.composeBoard(`/football/play/compose/${slug}/`)).toBe(slug);
+    // Editing an entered lineup is the same builder, at the lineup's own address.
+    expect(core.composeBoard(`/football/play/classic/compose/${slug}/lineup/88b5441d-d484-4209-baa7-9e26c93864e6`)).toBe(slug);
+    expect(core.composeBoard(`/football/play/classic/compose/${slug}/lineup/88b5441d-d484-4209-baa7-9e26c93864e6/`)).toBe(slug);
+    expect(core.composeBoard(`/football/play/classic/compose/${slug}/lineup`)).toBeNull();
+    expect(core.composeBoard(`/football/play/classic/compose/${slug}/rewards`)).toBeNull();
     expect(core.composeBoard(`/football/play/boards/arena/cash/football-23-27-oct-2026/${slug}/lineups`)).toBeNull();
     expect(core.composeBoard("/football/missions/play/limited")).toBeNull();
     expect(core.composeBoard(undefined)).toBeNull();

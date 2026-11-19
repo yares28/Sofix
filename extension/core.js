@@ -828,9 +828,9 @@
   // A slot is a button labelled "Select <player>" once a card is in it and "Select DEF", "Select MID"... while it is empty. The
   // cards to pick from sit under "Pick <player>". The captain is not chosen on this page, so a total here is the cards' scores alone.
 
-  /** The competition a lineup page is about, from its address ("/football/play/classic/compose/<slug>"), or null. */
+  /** The competition a lineup page is about, from its address ("/football/play/classic/compose/<slug>", "…/lineup/<id>" when editing one), or null. */
   function composeBoard(pathname) {
-    const found = /^\/football\/play\/(?:classic\/)?compose\/([a-z0-9_-]{1,120})\/?$/i.exec(String(pathname || ""));
+    const found = /^\/football\/play\/(?:classic\/)?compose\/([a-z0-9_-]{1,120})(?:\/lineup\/[a-z0-9-]{1,80})?\/?$/i.exec(String(pathname || ""));
     return found ? found[1].toLowerCase() : null;
   }
 

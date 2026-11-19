@@ -426,7 +426,7 @@
    * `place` positions the popup and ends in pillFit; it runs again whenever the popup's content changes its size.
    */
   function pillOn(el, anchor, place) {
-    const id = `sfx-goo-${++pillCount}`;
+    const id = `sfx-pour-${++pillCount}`;
     const filter = svgNode("filter", { id, filterUnits: "userSpaceOnUse", "color-interpolation-filters": "sRGB" });
     filter.append(
       svgNode("feGaussianBlur", { in: "SourceGraphic", stdDeviation: 8, result: "blur" }),
@@ -436,17 +436,17 @@
     const defs = svgNode("defs", {});
     defs.append(filter);
     const shapes = svgNode("g", { filter: `url(#${id})` });
-    shapes.append(svgNode("rect", { class: "sfx-goo-pill" }), svgNode("rect", { class: "sfx-goo-body" }));
-    const svg = svgNode("svg", { class: "sfx-goo", "aria-hidden": "true" });
+    shapes.append(svgNode("rect", { class: "sfx-pour-pill" }), svgNode("rect", { class: "sfx-pour-body" }));
+    const svg = svgNode("svg", { class: "sfx-pour-shape", "aria-hidden": "true" });
     svg.append(defs, shapes);
-    const head = node("div", "sfx-sl-head");
+    const head = node("div", "sfx-pour-head");
     head.inert = true;
     head.setAttribute("aria-hidden", "true");
     const copy = anchor.cloneNode(true);
     copy.removeAttribute("id");
     head.append(copy);
     el.prepend(svg, head);
-    el.classList.add("sfx-sileo");
+    el.classList.add("sfx-pour");
     const observer = new ResizeObserver(guard(place));
     pills.set(el, { head, filter, observer });
     place();
@@ -490,7 +490,7 @@
       el.remove();
       return;
     }
-    el.classList.add("sfx-sileo-out");
+    el.classList.add("sfx-pour-out");
     setTimeout(() => el.remove(), 360);
   }
 
@@ -867,14 +867,17 @@
     const tile = panel.record.tile.getBoundingClientRect();
     const height = panel.el.offsetHeight;
     const width = panel.el.offsetWidth;
-    let side = "left";
-    let left = tile.left - POP_GAP - width;
+    const beside = Math.max(8, Math.min(tile.top - 10, innerHeight - height - 8)); // its top corner meets the tile
+    // Left of the tile, else above it; over his own card only when the screen leaves nowhere else.
+    let [side, left, top] = ["left", tile.left - POP_GAP - width, beside];
     if (left < 8) {
-      side = "right";
-      left = Math.min(tile.right + POP_GAP, innerWidth - width - 8);
+      const above = tile.top - POP_GAP - height >= 8;
+      side = above ? "above" : "right";
+      left = above ? Math.min(Math.max(8, tile.left - 10), innerWidth - width - 8) : Math.min(tile.right + POP_GAP, innerWidth - width - 8);
+      if (above) top = tile.top - POP_GAP - height;
     }
-    const top = Math.max(8, Math.min(tile.top - 10, innerHeight - height - 8)); // its top corner meets the tile
     panel.el.dataset.side = side;
+    panel.el.dataset.edge = side === "above" ? "top" : "bottom";
     panel.el.style.left = `${Math.max(8, left)}px`;
     panel.el.style.top = `${top}px`;
     pillFit(panel.el, panel.record.tile);
@@ -1771,10 +1774,11 @@
     pillOn(el, chip, () => {
       const a = chip.getBoundingClientRect();
       const [w, h] = [el.offsetWidth, el.offsetHeight];
+      const beside = a.right + POP_GAP + w <= innerWidth - 8; // the chip is on the card's right edge: out that way, his card stays in view
       const below = a.bottom + POP_GAP + h <= innerHeight - 8;
-      el.dataset.edge = below ? "bottom" : "top";
-      el.style.left = `${Math.round(Math.min(Math.max(8, a.right - w), innerWidth - w - 8))}px`;
-      el.style.top = `${Math.round(below ? a.bottom + POP_GAP : Math.max(8, a.top - POP_GAP - h))}px`;
+      el.dataset.edge = beside || below ? "bottom" : "top";
+      el.style.left = `${Math.round(beside ? a.right + POP_GAP : Math.min(Math.max(8, a.right - w), innerWidth - w - 8))}px`;
+      el.style.top = `${Math.round(beside ? Math.max(8, Math.min(a.top - 10, innerHeight - h - 8)) : below ? a.bottom + POP_GAP : Math.max(8, a.top - POP_GAP - h))}px`;
       pillFit(el, chip);
     });
     tip = { el, chip, timer: 0 };

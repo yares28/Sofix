@@ -1643,11 +1643,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-19",
-        "note": "Manifest template: version bump to 0.5.25 only, for the builder address fix; hosts, permissions and action rules unchanged. No session action was exercised.",
+        "note": "Manifest template: version bump to 0.5.26 only, for the overlay popup placement and stylesheet names; hosts, permissions and action rules unchanged. No session action was exercised.",
         "files": {
           "extension/background.js": "fd707ab70c918537c24908ad0ca6b310e6cadf990275789cead4c2355f796603",
           "extension/bridge.js": "867affedbdea8d6fc7e3cf6fe77f151230242f78e1a75b3cea7cd1bef06be149",
-          "extension/manifest.template.json": "15458e1319dbc1c1fd0ae073287f185ccd4cda90fb8c14c26b8f3e2a7a4d95e1",
+          "extension/manifest.template.json": "f8468d871ea148f559b86cd84704b1b1be9a55ba7a6112e8c93332664df2e377",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

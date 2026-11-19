@@ -1387,9 +1387,11 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page)).toHaveCount(0);
     await expect(tileOf(page, "abroad")).toHaveAttribute("aria-expanded", "false");
 
-    // On a card near the left edge it opens on the right.
+    // On a card near the left edge it opens above the tile, his card left in view.
     await tileOf(page, "big").hover();
-    await expect(panel(page)).toHaveAttribute("data-side", "right");
+    await expect(panel(page)).toHaveAttribute("data-side", "above");
+    const over = (await panel(page).boundingBox())!;
+    expect(meets({ left: over.x, top: over.y, right: over.x + over.width, bottom: over.y + over.height, width: over.width, height: over.height }, await art(page, "big"))).toBe(false);
 
     // A midfielder with nothing for his xD says so in a dash, never a zero.
     await page.mouse.move(2, 2);
@@ -1459,15 +1461,15 @@ test.describe("the sorare.com overlay", () => {
     const shape = async (popup: Locator, anchor: Locator) =>
       popup.evaluate((el, hovered) => {
         const near = (a: number, b: number) => Math.abs(a - b) <= 1;
-        const [pop, at, pill, copy] = [el, hovered as Element, el.querySelector(".sfx-goo-pill")!, el.querySelector(".sfx-sl-head > *")!].map((one) => one.getBoundingClientRect()) as [DOMRect, DOMRect, DOMRect, DOMRect];
+        const [pop, at, pill, copy] = [el, hovered as Element, el.querySelector(".sfx-pour-pill")!, el.querySelector(".sfx-pour-head > *")!].map((one) => one.getBoundingClientRect()) as [DOMRect, DOMRect, DOMRect, DOMRect];
         return {
-          fused: Boolean(el.querySelector("g[filter^='url(#sfx-goo-']")),
+          fused: Boolean(el.querySelector("g[filter^='url(#sfx-pour-']")),
           clear: getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)",
           around: pill.left <= at.left && pill.right >= at.right && pill.top <= at.top && pill.bottom >= at.bottom,
           joined: pill.left < pop.right && pill.right > pop.left && pill.top < pop.bottom && pill.bottom > pop.top,
           inPlace: near(copy.left, at.left) && near(copy.top, at.top),
-          follows: parseFloat(getComputedStyle(el.querySelector(".sfx-goo-body")!).height) === (el as HTMLElement).offsetHeight,
-          words: el.querySelector(".sfx-sl-head")!.textContent === hovered!.textContent,
+          follows: parseFloat(getComputedStyle(el.querySelector(".sfx-pour-body")!).height) === (el as HTMLElement).offsetHeight,
+          words: el.querySelector(".sfx-pour-head")!.textContent === hovered!.textContent,
         };
       }, await anchor.elementHandle());
     const whole = { fused: true, clear: true, around: true, joined: true, inPlace: true, follows: true, words: true };
@@ -1487,6 +1489,7 @@ test.describe("the sorare.com overlay", () => {
     await expect(tip).toBeVisible();
     await settle();
     expect(await shape(tip, chip)).toEqual(whole);
+    expect((await tip.boundingBox())!.x).toBeGreaterThanOrEqual((await chip.boundingBox())!.x + (await chip.boundingBox())!.width); // his card stays in view
     await tip.getByRole("button", { name: /^Chance to come on/ }).click();
     await settle();
     expect(await shape(tip, chip)).toEqual(whole); // the body has grown to the new content, still joined

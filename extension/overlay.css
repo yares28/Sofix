@@ -358,34 +358,34 @@
 
 /* The hover popups (xS, crest, start %): what was hovered is the pill. A dark shape grows around it and the popup's body pours out
    of that shape on a 600 ms spring, the two drawn as one. The popup's own box is the body; data-edge="top" means it rises. */
-.sfx-sileo {
+.sfx-pour {
   --sfx-spring: linear(0, .002 .6%, .007 1.2%, .015 1.8%, .026 2.4%, .041 3.1%, .06 3.8%, .108 5.3%, .157 6.6%, .214 8%, .467 13.7%, .577 16.3%, .631 17.7%, .682 19.1%, .73 20.5%, .771 21.8%, .808 23.1%, .844 24.5%, .874 25.8%, .903 27.2%, .928 28.6%, .952 30.1%, .972 31.6%, .988 33.1%, 1.01 35.7%, 1.025 38.5%, 1.034 41.6%, 1.038 45%, 1.035 50.1%, 1.012 64.2%, 1.003 73%, .999 83.7%, 1);
   animation: sfx-show .12s ease-out backwards;
 }
-.sfx-sileo > :not(.sfx-goo, .sfx-sl-head) { position: relative; animation: sfx-show .36s ease .18s backwards; }
-.sfx-goo {
+.sfx-pour > :not(.sfx-pour-shape, .sfx-pour-head) { position: relative; animation: sfx-show .36s ease .18s backwards; }
+.sfx-pour-shape {
   position: absolute; left: 0; top: 0; width: var(--sfx-w); height: var(--sfx-b);
   overflow: visible; pointer-events: none; filter: drop-shadow(0 16px 28px rgb(0 0 0 / .5));
 }
-.sfx-sileo[data-edge="top"] .sfx-goo { transform: scaleY(-1); }
-.sfx-goo rect { fill: #1a1a1a; }
-.sfx-goo-pill {
+.sfx-pour[data-edge="top"] .sfx-pour-shape { transform: scaleY(-1); }
+.sfx-pour-shape rect { fill: #1a1a1a; }
+.sfx-pour-pill {
   x: var(--sfx-px); y: var(--sfx-py); width: var(--sfx-pw); height: var(--sfx-ph); rx: var(--sfx-pr); ry: var(--sfx-pr);
   transition: x .6s var(--sfx-spring), y .6s var(--sfx-spring), width .6s var(--sfx-spring), height .6s var(--sfx-spring);
   animation: sfx-pill .6s var(--sfx-spring) backwards;
 }
-.sfx-goo-body {
+.sfx-pour-body {
   y: 0; width: var(--sfx-w); height: var(--sfx-b); rx: 16px; ry: 16px;
   transition: height .6s var(--sfx-spring);
   animation: sfx-body .6s var(--sfx-spring) .06s backwards;
 }
-.sfx-sl-head { position: absolute; z-index: 1; left: var(--sfx-hx); top: var(--sfx-hy); width: var(--sfx-hw); height: var(--sfx-hh); pointer-events: none; }
-.sfx-sl-head > * { position: relative !important; inset: auto !important; margin: 0 !important; transform: none !important; animation: none !important; }
+.sfx-pour-head { position: absolute; z-index: 1; left: var(--sfx-hx); top: var(--sfx-hy); width: var(--sfx-hw); height: var(--sfx-hh); pointer-events: none; }
+.sfx-pour-head > * { position: relative !important; inset: auto !important; margin: 0 !important; transform: none !important; animation: none !important; }
 
-.sfx-sileo-out { animation: sfx-hide .12s ease .22s forwards; }
-.sfx-sileo-out > :not(.sfx-goo, .sfx-sl-head) { opacity: 0; transition: opacity .05s; animation: none; }
-.sfx-sileo-out .sfx-goo-pill { animation: sfx-pill-out .3s cubic-bezier(.4, 0, .2, 1) forwards; }
-.sfx-sileo-out .sfx-goo-body { animation: sfx-body-out .3s cubic-bezier(.4, 0, .2, 1) forwards; }
+.sfx-pour-out { animation: sfx-hide .12s ease .22s forwards; }
+.sfx-pour-out > :not(.sfx-pour-shape, .sfx-pour-head) { opacity: 0; transition: opacity .05s; animation: none; }
+.sfx-pour-out .sfx-pour-pill { animation: sfx-pill-out .3s cubic-bezier(.4, 0, .2, 1) forwards; }
+.sfx-pour-out .sfx-pour-body { animation: sfx-body-out .3s cubic-bezier(.4, 0, .2, 1) forwards; }
 
 @keyframes sfx-show { from { opacity: 0; } }
 @keyframes sfx-hide { to { opacity: 0; } }
@@ -426,7 +426,7 @@
 .sfx-tip .sfx-mins-axis { margin-top: 0; }
 @media (prefers-reduced-motion: reduce) {
   .sfx-live-dot, .sfx-live-dot::after { animation: none; }
-  .sfx-sileo, .sfx-sileo * { animation: none !important; transition: none !important; }
+  .sfx-pour, .sfx-pour * { animation: none !important; transition: none !important; }
 }
 
 /* What a point of his costs, on the market and your gallery (1.2): green in the cheapest third of similar players, red in the dearest. */

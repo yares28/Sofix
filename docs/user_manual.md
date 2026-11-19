@@ -1084,7 +1084,7 @@ colour for that score. Under it is one thing that drives the score, chosen by po
   competition, and five numbers for his side (win %, clean sheet %, xG, xG against, FDR), each coloured by its sixth among all the
   games Sofix rates that gameweek (the season's when fewer than 12), Sorare's colours from red to cyan; Escape closes it.
   The xScore panel, the crest island and the start % all open the same way (19 Nov 2026): what you hovered becomes a dark pill
-  and the details pour straight out of it on a spring, one soft shape, and draw back into it. The panel is his xScore large, then xD, xG, win %, clean sheet %
+  and the details pour straight out of it on a spring, one soft shape, and draw back into it. Each opens beside or above the card where the screen allows, so his card stays in view. The panel is his xScore large, then xD, xG, win %, clean sheet %
   and FDR in one row coloured good to bad (xD stays plain: Sofix has no scale for it yet), then "v [crest] Barcelona" at home or
   "[crest] Sevilla v" away. The crest island is a black strip above the card: both crests, when, win %, CS %, xG and the FDR. The
   start % opens a small island with two buttons, his chance to start (FF, SO and SF beneath) and to come on (that chance from

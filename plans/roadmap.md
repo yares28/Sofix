@@ -15,7 +15,7 @@ and a check, so a session can work through it alone and stop only where you have
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
 20 Nov, first: **Arcade you can trust** ([plans/arcade-trust.md](arcade-trust.md), TODO.md "Arcade audit: every tab against the main
-app"), in its §11 order: 1 honest start and bench chances everywhere (waiting for your choice of rule), 2 Date TBC, 3 finished games,
+app"), in its §11 order: 1 every source ranked by accuracy with fallbacks, 2 Date TBC, 3 finished games,
 4 stale copy, 5 the move's heading, 6 Surest by step, 7-9 learning from real results, 10-12 the Arcade audit, 13 the main app's words,
 14 layout.
 

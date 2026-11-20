@@ -21,6 +21,8 @@ built; that file keeps its design notes. Owner rules in AGENTS.md and contracts 
 10. "I told you once to have the Arcade get all the info to train the algorithm of choosing the players, lineup, step chance, success
     rate of the lineups, etc… Where is that info? From weeks ago, what did we learn?"
 11. "Did you add the Arcade audit?" Then: "Put everything we talked about in a plan (even the audit), EVERYTHING."
+12. On the rule for missing start %: "You need to put the one with the best accuracy at the top and each time fallback to the second,
+    third, etc."
 
 From 29 Oct ([arcade-player-choice.md](arcade-player-choice.md)): "make xScore trustworthy and let the algorithm learn from real
 results", with an Arcade audit page (in hindsight, how often each step could have been hit, which teams got there, strategies compared,
@@ -144,12 +146,59 @@ Arcade gets it only for each player's next game.
 
 ## 4 · The fix for missing start % (step 1)
 
-**Decision waiting for you** (recommended first):
-- **Sofix's chances for every game (recommended).** The refresh publishes, for every Arcade player and every game to the set's end,
-  Sofix's chance to start, chance to come on, score if he starts and score if he comes on (`_split`), in one small block
-  (`arcade_outlook`, about 5,000 players × a few games, under the 1.6 MB piece size) that the page reads once. Measured honest (§3).
-- Only real start %: plan only games with a published %. Honest but the chain ends after one or two days.
-- Rejected: keep 100% with a penalty (a made-up number).
+**Your rule (20 Nov 2026): "put the one with the best accuracy at the top and each time fallback to the second, third, etc."** For each
+competition and each number (start chance, come-on chance, score if he starts), the sources are ranked by their measured accuracy; a
+card uses the best one that has a number for that game, then the second, and so on, down to his record. Nothing is ever 100% by default.
+
+**Where the ranking comes from.** The Audit already measures every start source by competition (read model `audit`,
+`starts.live.<source>.byCompetition`: settled games and error score); the score sources are measured on the same games from
+`player_games` (`sofix_x`, `sorare_x`, his last five starts). The refresh re-ranks them each run and publishes the order with the
+numbers, so the ranking follows the evidence as it grows. A source with fewer than 100 settled games in a competition is ranked by its
+figure over all competitions, marked "too few here" (the Audit's floor of 100). Head-to-head on the same games comes with step 7, which
+freezes every source for every game; until then start sources are measured on the games each one covered (Sorare's % is read only near
+kick-off, so its games are easier).
+
+**Start chance, ranked today** (error score, lower is better; settled games in brackets; 20 Nov 2026):
+
+| Competition | 1st | 2nd | 3rd | 4th |
+|---|---|---|---|---|
+| LaLiga | Sorare 0.107 (1,066) | FF 0.118 (2,036) | Sofix 0.145 (2,497) | record 0.146 |
+| Premier League | Sorare 0.107 (all; 15 here) | Sofix 0.113 (1,211) | record 0.115 | |
+| Bundesliga | Sorare 0.107 (all; 77 here) | Sofix 0.130 (1,077) | record 0.133 | |
+| Ligue 1 | Sorare 0.107 (all; 38 here) | Sofix 0.137 (1,045) | record 0.147 | |
+| Champions League | Sorare 0.107 (all; 62 here) | Sofix 0.151 (1,411) | record 0.156 | FF 0.179 (157) |
+| Europa League | Sorare 0.107 (all; 1 here) | Sofix 0.164 (1,279) | record 0.197 | FF 0.203 (68) |
+| Conference League | Sofix 0.163 (1,180) | record 0.227 | | |
+| Nations League | Sorare 0.107 (all; 44 here) | record 0.287 | Sofix 0.312 (126) | |
+
+The record (his share of starts in his last 10 games) is measured on 30 Oct to 20 Nov; the other three are the Audit's live figures.
+Finding: on LaLiga Sorare's % measures better than FF's, while the main app's order is FF → Sorare → Sofix. Step 7's same-game
+comparison settles it; if Sorare still wins there, the main app's order changes too, with your yes.
+
+**Score if he starts, ranked today** (typical miss in points on the same starts, 30 Oct to 20 Nov):
+
+| Competition | 1st | 2nd | 3rd |
+|---|---|---|---|
+| LaLiga | Sorare 17.1 | Sofix 17.2 | his last five starts 19.1 (420 starts; first two a tie) |
+| Premier League | Sofix 18.3 | Sorare 18.4 | last five 18.8 (401) |
+| Bundesliga | Sofix 17.3 | Sorare 17.8 | last five 19.1 (344) |
+| Ligue 1 | Sofix 17.6 | Sorare 18.1 | last five 19.3 (349) |
+| Champions League | Sofix 18.8 | Sorare 19.4 | last five 21.5 (291) |
+| Europa League | Sorare 16.7 | Sofix 17.4 | last five 18.2 (209) |
+| Conference League | ranked by all competitions (37 here): Sofix, Sorare, last five | | |
+| Nations League | Sorare | last five | (no Sofix number there) |
+
+**Coming off the bench** (chance and score): Sorare's "plays" odds where published, else Sofix's `_split` from his record; ranked the
+same way once step 7 has the frozen numbers (today only the record is measured: 5-30% come on, about 40 points).
+
+**What each source covers:** FF only LaLiga's next game (and some European ones); Sorare's % from the day before the game week and its
+projection for the next days; Sofix's numbers for the next one or two games; the record and the last five for every game. So a card's
+next game usually uses the 1st source, and games further away fall through to the record.
+
+**What gets built:** the refresh publishes, for every Arcade player and every game to the set's end, Sofix's start chance, come-on
+chance and both scores (`_split`), plus the ranking above, in one small block (`arcade_outlook`, under the 1.6 MB piece size) read once
+per change; the page applies the ranking with the Sorare and FF numbers it already has. Rejected: plan only games with a real start %
+(the chain would end after a day or two); keep 100% with a penalty (a made-up number).
 
 **How a card is scored:** start chance × start score + come-on chance × bench score, each × bonuses; the simulation draws start, came
 on or out, then the score; the spread includes both risks. Source of each part shown on the card ("FF 80%", "Sorare 70%", "Sofix 62%
@@ -157,9 +206,9 @@ from his record").
 
 | Case | What happens |
 |---|---|
-| LaLiga, next game | FF, then Sorare, then Sofix, as the main app (FF measured best) |
-| Premier League, Bundesliga, Ligue 1, Europe, next game | Sorare's % once out, else Sofix's own; no FF exists there |
-| Any game after the next | Sofix's chances from his record; never 100% |
+| Any game, any league | The ranked sources above, best first, falling through to the record; never 100% |
+| A source says nothing for this game | Skipped, never read as 0; the next one in the ranking is used |
+| Two sources tie within 0.005 | The one covering more settled games ranks first |
 | Champions, Europa, Conference League | Start chance from league games (rotation, your 7 Oct rule); his European record shown apart when it differs |
 | Nations League and friendlies | Sorare's % and projection only; none means a dash and out of the pool |
 | Comes off the bench | Counted with his come-on chance and bench score (about 40), not 0 |
@@ -266,7 +315,7 @@ Done when each is checked at 1440 px and 390 px on your board in Chrome, and `we
 
 | Step | Delivers | Proof |
 |---|---|---|
-| 1 | Honest start and bench chances everywhere (§4), dock included | Tests of §4; the 28 Nov lineup ≈ 0%; your board in Chrome |
+| 1 | Ranked sources with fallbacks for start, bench and score, everywhere (§4), dock included | Tests of §4; the 28 Nov lineup ≈ 0%; your board in Chrome |
 | 2 | Date TBC | Test; chain and Batch with no 01:00 |
 | 3 | Finished games dropped | Test; day filter from today |
 | 4 | Stale copy marked | Copy older than 6 h shows the dot line |
@@ -286,7 +335,8 @@ only when you ask, batched.
 
 ## 12 · Decisions and limits
 
-- **Waiting for you:** step 1's rule (§4): Sofix's chances for every game (recommended) or only real start %.
+- **Decided (you, 20 Nov):** step 1 ranks every source by measured accuracy per competition and falls back down the list (§4).
+- **Waiting for you later:** if step 7's same-game comparison confirms Sorare's % beats FF's on LaLiga, whether the main app's order changes too.
 - **Free limits:** the new block is one read per change (R2), not per view; the audit job runs in GitHub Actions after the score step and
   reads the games mirror, not Neon; the lineup log is one route write per change (Vercel CPU budget, AGENTS.md "Limits").
 - **Small samples:** one set is about 60-100 windows; every audit and calibration figure says "too few to tell" under 100.

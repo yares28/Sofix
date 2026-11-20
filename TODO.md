@@ -23,8 +23,8 @@ the order in §11). In short: the review of the four tabs; "don't stop at surfac
 issues like this" on lineups built on cards with no start % (the 42% step 4 lineup of 28 Nov is about 0%: two of its five, the captain
 included, have not played for months); "concise and small" for the move's heading; "the surest has to let me choose a step"; every
 edge case of a missing start % (FF only in LaLiga, injuries, the bench…); "where is the info to train the algorithm, what did we learn"
-(only the elevens of the 29 Oct plan were built; nothing has checked a printed chance); and the Arcade audit itself. Waiting for you:
-step 1's rule (Sofix's chances for every game, recommended, or only real start %).
+(only the elevens of the 29 Oct plan were built; nothing has checked a printed chance); and the Arcade audit itself. Step 1's rule (you): rank
+every source by measured accuracy per competition, best first, falling back to the next.
 
 ---
 

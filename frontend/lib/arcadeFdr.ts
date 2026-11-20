@@ -81,16 +81,18 @@ const TBC_DAYS = 4;
 
 /**
  * A game Sorare has not timed takes its board fixture's kick-off (same league, both clubs' names, within four days); with none it is
- * marked `tbc` ("Date TBC", AGENTS.md), so no plan puts a lineup at a made-up 01:00 (plans/arcade-trust.md step 2).
+ * marked `tbc` ("Date TBC", AGENTS.md), so no plan puts a lineup at a made-up 01:00 (plans/arcade-trust.md step 2). On a board copy
+ * read hours ago (`old`), every game takes its board fixture's time the same way, since Sorare may have moved it since (step 4).
  */
-export function settleKickoffs<G extends { kickoff: string; competition: { slug: string }; home: { name: string } | null; away: { name: string } | null }>(games: G[], fixtures: FdrFixture[]): (G & { tbc?: true })[] {
+export function settleKickoffs<G extends { kickoff: string; competition: { slug: string }; home: { name: string } | null; away: { name: string } | null }>(games: G[], fixtures: FdrFixture[], old = false): (G & { tbc?: true })[] {
   return games.map((game) => {
-    if (!PLACEHOLDER.test(game.kickoff)) return game;
+    const placeholder = PLACEHOLDER.test(game.kickoff);
+    if (!placeholder && !old) return game;
     const league = BOARD_OF[game.competition.slug];
     const at = Date.parse(game.kickoff);
     const found = league ? fixtures
       .filter((f) => f.league === league && !PLACEHOLDER.test(f.kickoff) && Math.abs(Date.parse(f.kickoff) - at) <= TBC_DAYS * 86_400_000)
       .find((f) => nameMatch(game.home?.name ?? "", f.home.name) > 0 && nameMatch(game.away?.name ?? "", f.away.name) > 0) : undefined;
-    return found ? { ...game, kickoff: found.kickoff } : { ...game, tbc: true as const };
+    return found ? { ...game, kickoff: found.kickoff } : placeholder ? { ...game, tbc: true as const } : game;
   });
 }

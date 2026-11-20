@@ -97,3 +97,14 @@ describe("kick-offs Sorare has not set yet (plans/arcade-trust.md step 2)", () =
     expect(settleKickoffs([real], [])).toEqual([real]);
   });
 });
+
+describe("an old board copy's kick-offs (plans/arcade-trust.md step 4)", () => {
+  const board = [fixture("2026-12-07T20:00:00Z", "Sevilla", "Malaga", "PD")];
+  const copied = { ...game("2026-12-06T15:15:00Z", "Sevilla FC", "Málaga CF", "laliga-es"), id: "s" };
+  it("takes the board's time for a game moved since the copy was read", () => {
+    expect(settleKickoffs([copied], board, true)[0]).toMatchObject({ kickoff: "2026-12-07T20:00:00Z" });
+  });
+  it("keeps Sorare's own time on a fresh read", () => {
+    expect(settleKickoffs([copied], board)[0]).toMatchObject({ kickoff: "2026-12-06T15:15:00Z" });
+  });
+});

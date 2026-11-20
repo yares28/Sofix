@@ -25,6 +25,8 @@ type View = "play" | "packs" | "players" | "batch";
 const VIEWS: { value: View; label: string }[] = [{ value: "play", label: "Play now" }, { value: "packs", label: "Missions & packs" }, { value: "players", label: "Players" }, { value: "batch", label: "Batch" }];
 const VIEW_KEY = "sofix-arcade-view";
 
+/** A board copy older than this is marked as of its read time, and its games take Sofix's board times (step 4). */
+const OLD_MS = 6 * 3_600_000;
 /** The least time between two reads when you come back to the tab. */
 const REREAD_MS = 3 * 60_000;
 /** The board your Chrome read, kept on the dev server for a browser without the extension (lib/chromeCopy.ts). */
@@ -69,10 +71,10 @@ const WALKED: Record<string, string> = {
   error: "Reading Sorare's page failed; nothing more was saved.",
 };
 
-function Loaded({ arcade: board, unread, laliga, fdr, onReload, busy }: { arcade: Arcade; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; onReload: () => void; busy: boolean }) {
+function Loaded({ arcade: board, old, unread, laliga, fdr, onReload, busy }: { arcade: Arcade; old: boolean; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; onReload: () => void; busy: boolean }) {
   // Games Sorare has not timed take the board's kick-off, else stay "Date TBC" and out of every timed plan (plans/arcade-trust.md step 2).
   // Games of an earlier day leave every view; today's finished ones stay for the missions' picks (step 3). Worked out once per read.
-  const allGames = useMemo(() => (board.games ? currentGames(settleKickoffs(board.games, fdr), Date.now()) : null), [board.games, fdr]);
+  const allGames = useMemo(() => (board.games ? currentGames(settleKickoffs(board.games, fdr, old), Date.now()) : null), [board.games, fdr, old]);
   const arcade = useMemo(() => ({ ...board, games: allGames?.filter((g) => !g.tbc) ?? null }), [board, allGames]);
   // Each game of a league with a Sofix board, matched to the board's fixture (kick-off and clubs).
   const boards = useMemo(() => new Map((arcade.games ?? []).flatMap((g) => { const f = matchFixture(g, fdr); return f ? [[g.id, f] as const] : []; })), [arcade.games, fdr]);
@@ -254,6 +256,8 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
   }, [load]);
   const at = board?.at != null ? madrid(new Date(board.at).toISOString()) : null;
   const ended = board ? setEnded(board.arcade) : false;
+  // A copy read hours ago: its games take Sofix's board times, and the page says what is as of then (plans/arcade-trust.md step 4).
+  const old = useMemo(() => board?.at != null && Date.now() - board.at > OLD_MS, [board]);
 
   return (
     <main className="arc-main" aria-busy={busy}>
@@ -268,7 +272,10 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
             <p className="arc-note is-warn" role="status">Your board as read {at}. {whyNot(read)}</p>
           ) : null}
           {!ended && !at && read && read.state !== "ok" ? <p className="arc-note is-warn" role="status">{whyNot(read)} Showing the last successful read.</p> : null}
-          <Loaded arcade={board.arcade} unread={board.unread} laliga={laliga} fdr={fdr} onReload={() => void load()} busy={busy} />
+          {!ended && old && read?.state === "chrome-copy" ? (
+            <p className="arc-note is-warn" role="status">Board, lives and lineups as read {at} in your Chrome; start %, forecasts and kick-offs are today&apos;s. Open Arcade there to read it again.</p>
+          ) : null}
+          <Loaded arcade={board.arcade} old={old} unread={board.unread} laliga={laliga} fdr={fdr} onReload={() => void load()} busy={busy} />
         </>
       ) : (
         <section className="arc-empty" role="status">

@@ -16,6 +16,64 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Arcade audit: every tab against the main app (you, 20 Nov 2026)
+
+Audit of Play now, Missions & packs, Players and Batch on 20 Nov (local dev server, the board your Chrome read on 10 Nov). Your answers:
+the board's age is expected (national break) but "don't stop at surface level"; the made-up start % is bad, "find issues like this"; the
+move's heading "has to be concise and small"; "plan the rest". Order: wrong numbers first, then the main app's words, then layout.
+
+### A · Missing numbers score higher than real ones (broken)
+
+What lies under the 10-day-old board: the age is fine, but beyond each player's **next** game Arcade has no real number at all, at any time.
+- Sofix's start % and xS (`loadArcadeLaLiga`) are one row per player, keyed by his next kick-off. Sorare's projections (`readArcadeExtras`)
+  cover the next days only: on 10 Nov, 4 Nations League games and 0 of 377 club games to 6 Jan.
+- So every later game is scored on the average of his past scores (`outlookOf`: `score = xscore ?? projection ?? form`) and counted as a
+  sure start (`start ?? 1` in `predicted`, `baseScore`, `moments`, the simulation; `likely` keeps him in every pool). The spread also
+  leaves out the risk of not starting, so these lineups look steadier than they are.
+- Result: a game with no information beats one with real information. On 20 Nov, Play next proposed Tue 24 Nov (Champions League), 5 of 5
+  cards with no start %, xS 57-71, over tonight's games whose start % is known. The chain to 6 Jan is built the same way, and Batch,
+  Teams to build around, Pick teams, cut losses and the Players sort all inherit it.
+- Fix: a card with no start % counts at his own record (his share of starts in recent games of that competition, from the games mirror),
+  never 100%; with no record, a dash and out of the pool (rule "No made-up numbers"). The spread includes the start risk. Past-score
+  averages say "Recent form" on the card, as now, and the move's verdict says how many of its cards are on form, not a forecast.
+- Also: a stale board copy freezes Sorare's game list (kick-off times, finished games) and projections; when the copy is older than
+  6 hours, Arcade re-reads the game list from Sofix's boards where it can and says which parts are as of the copy.
+- Done when: on your board, no Play next, chain step or Batch team is chosen on cards with neither a start % nor a record; a test
+  pins that an unknown-start card never outranks the same card with a known 80%.
+
+### B · Kick-offs not set yet are planned at 01:00 (broken)
+40 games (all of LaLiga's 6 Dec round, among others) come from Sorare at 00:00 UTC, a placeholder. The chain plans "Sun 6 Dec 01:00",
+Batch makes one 40-game window. Fix: a game at 00:00 UTC with no Sofix board fixture at that time is "Date TBC", counted only on its day
+(no settle time, no window); a board fixture's real kick-off wins when they match by clubs. Done when the chain and Batch show no 01:00.
+
+### C · Finished games count as a card's next game (broken)
+`gamesOf` keeps games already played: the Players day filter offers 12-14 Nov, and a card's badges, start % and FDR can point at them.
+Fix: drop games more than 2 h past kick-off everywhere a "next game" is taken (Players, PlayerCard, Missions, Teams). Test.
+
+### D · The move's heading (you: concise and small)
+"Play next" heads a bar that advises Hold (46% / 54%). The heading becomes the verdict itself, one or two words in the small heading
+size: "Play now", "Hold for Tue 21:00", "Nothing to play".
+
+### E · The main app's words and pictures in Arcade
+1. Clubs by Sofix's names (Espanyol, Deportivo, Alavés, Racing Santander, Man City), as leagues already are: the board fixture's name
+   where matched, else Sorare's.
+2. "xS", never "xScore", on Players (filters, sort, badge label).
+3. "Premier League" in mission names too ("English League" in Collect missions).
+4. Crests for the 23 European clubs with none (Napoli, Galatasaray, Milan, Bodø/Glimt…): the board's crest, else the coloured shield,
+   never two letters.
+5. FDR colour and number agree on mixed-league screens: the band from the number, the same cut-offs in every league (Players, Pick teams).
+6. xG with one decimal everywhere (Batch has two).
+
+### F · Layout
+1. Players: the 12 filters become search, position, league and a "More" sheet; default sort by xS of the next game, not by name.
+2. Missions & packs: no second wallet (the hero has it); L5-L40 only when there is a mission; no table of dashes before odds are read
+   (one line and the Read odds button); "How odds are calculated" in plain words.
+3. Teams to build around: count the cards shown, or show three ("3 best likely starters" over four cards).
+4. Batch: one way through the windows (pages, no sideways scroll); "All dates" also resets the game page.
+5. Play now: the first minute of "Planning the climb…" gets a 1:1 skeleton of the move and ladder; find why the plan takes about a minute.
+
+---
+
 ## The overlay, feature by feature (you, 16 Nov 2026)
 
 Reviewed on the canvas "Sofix overlay features" (https://claude.ai/artifact/Kmn3qTNyhPCRwDXgjwvGtC), one board for each of the popup's 14

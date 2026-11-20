@@ -40,12 +40,55 @@ What lies under the 10-day-old board: the age is fine, but beyond each player's 
 - Data already published: `player_games:<slug>` (5,346 players, R2 and `npm run blocks`) holds every past game's played/started/minutes
   and, for up to two coming games, Sofix's own forecast (`sofix_x`) and Futbol Fantasy's start % (`ff_start`). Sorare's status
   (STARTER / REGULAR / NOT_PLAYING, tier DNP) is in Arcade's extras already and is not used by the score.
-- Fix (recommended, waiting for your choice): a card with no start % for a game counts at **his own record**: his share of starts in his
-  last 10 club games, published by the refresh as one small block for Arcade's players (not 693 block reads on the page). Sorare's
-  NOT_PLAYING / DNP with no start in his last 5 means out of the pool. With no record, a dash and out of the pool (rule "No made-up
-  numbers"). Sofix's `sofix_x` replaces the past-score average where published; a past-score average needs at least 3 games. The spread
-  includes the start risk. The captain is never a card on his record alone while one with a real start % is in the lineup. A move built
-  mostly on records says so ("early plan: start % arrive the day before") and is planned again when real % arrive.
+- **What the learning plan delivered** ([arcade-player-choice.md](plans/arcade-player-choice.md), you on 29 Oct: Arcade keeps everything
+  needed to train the choice of players, lineups and step chances): only phase A (official elevens). B (freeze each source's numbers
+  before every Arcade game), C (hindsight audit and strategy replay), D (learned blend, calibration of the printed chance) and E were
+  never built. Arcade's entered lineups and their results live only in the browser; nothing in `backend/` knows Arcade. So no printed
+  chance has ever been checked against what happened.
+- **What the published game history already shows** (`player_games`, 30 Oct to 20 Nov, measured 20 Nov):
+  - Sofix's pre-kick-off score, if he starts, beats Sorare's in every Arcade league, by little: typical miss 16.5-18.3 against
+    16.5-19.2 (Champions League 18.3 v 19.2, the biggest gap), about 400 starts each.
+  - A start record (share of starts in his last 10 games) is honest: 88% of the 90-99% group started, 73% of 80-89%, 3% of 0-9%.
+    Error score 0.142, against 0.624 for "everyone starts" (5,403 games). On LaLiga, Futbol Fantasy's % is better still (0.118 v
+    0.179 for the record, 2,022 games), so a real % always comes first.
+  - Coming off the bench is common and worth points: 10-30% of players with a low or middle record came on, and a substitute averaged
+    38-41 against 49-52 for a starter. Arcade counts a non-starter as 0.
+- **The main app already has the model:** `_split` in `backend/app/sorare/forecast.py` gives, per player and game, the chance to start,
+  the chance to come on, the score in each case and suspensions, from Sorare's odds or his last five league games (cups excluded, your
+  rule of 7 Oct). Arcade uses it only for each player's next game.
+
+**Fix (recommended, waiting for your choice):** the refresh publishes Sofix's start and come-on chances and both scores for **every**
+game of Arcade's players to the set's end (from `_split`, one small block, not 693 block reads on the page); Arcade scores a card as
+start chance × start score + come-on chance × bench score, with the spread drawn from both. Edge cases:
+
+| Case | What happens |
+|---|---|
+| LaLiga next game | FF, then Sorare, then Sofix, as the main app (FF measured best) |
+| PL, Bundesliga, Ligue 1, Europe, next game | Sorare's % when out, else Sofix's own (`_split`); no FF exists there |
+| Any game after the next | Sofix's chances from his record; never 100% |
+| Champions, Europa, Conference League | The record counts only league games (rotation); European record shown apart when it differs |
+| Nations League and friendlies | Sorare's % and projection only (no Sofix numbers there); no record means a dash and out of the pool |
+| Comes off the bench | Counted with his come-on chance and bench score (about 40), not 0 |
+| Long out (Bidwell, Maluze: NOT_PLAYING, 0 starts in 10) | Near 0%, out of the pool; never captain |
+| Injured | Sorare's injured flag (all leagues) and FF's absences (LaLiga): 0 until his return date; a game after the date uses the record, with "back from injury" shown |
+| Suspended | 0 for that game (`banned` in `_split`) |
+| Doubtful (FF "doubt", Sorare "in doubt") | The source's own %, never rounded up |
+| New signing, short record (under 5 games) | Shrunk toward his position's average in that league, marked "short record" |
+| Transferred during the set | Record from his new club's games only; the card follows Sorare's current club |
+| Goalkeeper | Start or nothing: no come-on chance unless his record has one |
+| Official eleven out | 100% / bench / 0%, as now, over everything else |
+| Kick-off not set yet | "Date TBC" (B); planned on its day only |
+| Postponed or cancelled game | Dropped when Sorare or the board drops it; a lineup in it shows "postponed" |
+| Two games for one card in the window | He is used once, in the likelier game |
+| Captain | Only a card with a real %, or a record of 80%+, while one is in the lineup |
+| Board copy older than 6 hours | Numbers from the server (fresh); board, lives and lineups marked "as of" the copy |
+| Missing against zero | A number not known is a dash and out; a known 0% is 0% |
+
+**Then the learning, in this order:** freeze every source's numbers before each Arcade game (phase B, into `player_games` as Play
+does); save each entered Arcade lineup, its printed chance and result through one route write per change (`arcade_log:<set>`); after
+50 settled lineups, show "of lineups given 40-50%, n cleared" on the page, "too few to tell" below that. The strategy replay (phase C)
+comes after.
+
 - Rejected: plan only games with a real start % (the chain would end after one or two days); keep 100% with a penalty (a made-up number).
 - Also: a stale board copy freezes Sorare's game list (kick-off times, finished games) and projections; when the copy is older than
   6 hours, Arcade re-reads the game list from Sofix's boards where it can and says which parts are as of the copy.

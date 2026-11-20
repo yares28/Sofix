@@ -86,6 +86,8 @@ export type ArcadeMission = {
 export type ArcadeGame = {
   id: string;
   kickoff: string;
+  /** Sorare has not set its time and no board fixture gives one: "Date TBC", left out of every timed plan (lib/arcadeFdr.ts). */
+  tbc?: true;
   status: string;
   competition: { slug: string; name: string };
   /** Sorare's crest (extension 0.4.15); null before, when a card of the club gives one instead. */

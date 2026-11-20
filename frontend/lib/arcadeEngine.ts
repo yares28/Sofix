@@ -1,4 +1,5 @@
 import type { ArcadeRecords } from "./arcadeRecords";
+import { settleKickoffs } from "./arcadeFdr";
 import { outlookOf, newerChances, sideIn, type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead } from "./arcade";
 import { climbStart, climbStep, stepInfos } from "./arcadeBoard";
 import { DOCK_MODEL_VERSION, type ArcadeDockModel, type DockElevens, type DockInput } from "./arcadeDock";
@@ -94,7 +95,8 @@ export async function runEngine(deps: EngineDeps, prev: ArcadeDockModel | null, 
     const arcade = read.arcade;
     if (read.unread.length) notes.push(`Not read this time: ${read.unread.join(", ")}`);
     if (!arcade.board) return done(emptyModel(deps.now(), "no-board", prev, arcade));
-    const games = arcade.games ?? [];
+    // A game Sorare has not timed is "Date TBC" and planned by no one (plans/arcade-trust.md step 2); the dock has no board times.
+    const games = settleKickoffs(arcade.games ?? [], []).filter((g) => !g.tbc);
     const myGames = games.filter((g) => arcade.cards.some((c) => sideIn(c, g) !== null));
     const current = climbStep(arcade);
     const step = arcade.board.steps.find((s) => s.number === current) ?? null;

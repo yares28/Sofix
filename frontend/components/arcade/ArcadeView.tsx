@@ -8,7 +8,7 @@ import {
 import { readCopy, shareCopy } from "../../lib/chromeCopy";
 import type { ArcadeRecords } from "../../lib/arcadeRecords";
 import type { Outlook } from "../../lib/arcadePlan";
-import { matchFixture, type FdrFixture } from "../../lib/arcadeFdr";
+import { matchFixture, settleKickoffs, type FdrFixture } from "../../lib/arcadeFdr";
 import ArcadeLive from "./ArcadeLive";
 import ArcadeCards from "./ArcadeCards";
 import ArcadeAction from "./ArcadeAction";
@@ -69,7 +69,10 @@ const WALKED: Record<string, string> = {
   error: "Reading Sorare's page failed; nothing more was saved.",
 };
 
-function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcade; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; onReload: () => void; busy: boolean }) {
+function Loaded({ arcade: board, unread, laliga, fdr, onReload, busy }: { arcade: Arcade; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; onReload: () => void; busy: boolean }) {
+  // Games Sorare has not timed take the board's kick-off, else stay "Date TBC" and out of every timed plan (plans/arcade-trust.md step 2).
+  const allGames = useMemo(() => (board.games ? settleKickoffs(board.games, fdr) : null), [board.games, fdr]);
+  const arcade = useMemo(() => ({ ...board, games: allGames?.filter((g) => !g.tbc) ?? null }), [board, allGames]);
   // Each game of a league with a Sofix board, matched to the board's fixture (kick-off and clubs).
   const boards = useMemo(() => new Map((arcade.games ?? []).flatMap((g) => { const f = matchFixture(g, fdr); return f ? [[g.id, f] as const] : []; })), [arcade.games, fdr]);
   // The same step as the plan everywhere on the page (header, captain bonus, start % read), never Sorare's raw step.
@@ -107,14 +110,16 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
   const [view, setView] = useState<View>(() => { try { return (VIEWS.find((v) => v.value === localStorage.getItem(VIEW_KEY))?.value) ?? "play"; } catch { return "play"; } });
   const pick = (next: View) => { setView(next); try { localStorage.setItem(VIEW_KEY, next); } catch { /* blocked: not remembered */ } };
   // Every card's outlook in each of its club's games, by game.
-  const outlooks = useMemo(() => {
+  const cardOutlooks = useMemo(() => {
     const out = new Map<string, Outlook[]>();
-    for (const game of arcade.games ?? []) {
+    for (const game of allGames ?? []) {
       const list = arcade.cards.filter((c) => sideIn(c, game) !== null).map((c) => outlookOf(c, game, ready, chances, laliga, elevens?.chances, records));
       if (list.length) out.set(game.id, list);
     }
     return out;
-  }, [arcade, ready, chances, laliga, elevens, records]);
+  }, [allGames, arcade.cards, ready, chances, laliga, elevens, records]);
+  // Every plan works from timed games only; a "Date TBC" game shows on its cards, never in a window.
+  const outlooks = useMemo(() => new Map([...cardOutlooks].filter(([id]) => !allGames?.find((g) => g.id === id)?.tbc)), [cardOutlooks, allGames]);
   // The plan and the mission picks are worked out once the start % read is done, not again for every answer on the way.
   const [planOutlooks, setPlanOutlooks] = useState<Map<string, Outlook[]> | null>(null);
   useEffect(() => { if (elevens || (bench !== "reading" && (bench !== null || !benchStep))) setPlanOutlooks(outlooks); }, [outlooks, bench, benchStep, elevens]);
@@ -197,7 +202,7 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
         <ArcadePacks key={`${arcade.owner}:${arcade.set.slug}:${arcade.board?.id}:${arcade.board?.current}`} arcade={arcade} busy={busy} />
       </div>
       <div className="arc-view" hidden={view !== "players"}>
-        <ArcadeCards cards={arcade.cards} games={arcade.games} outlooks={outlooks} status={ready?.status ?? {}} form={ready?.form ?? {}} />
+        <ArcadeCards cards={arcade.cards} games={allGames} outlooks={cardOutlooks} status={ready?.status ?? {}} form={ready?.form ?? {}} />
       </div>
       <div className="arc-view" hidden={view !== "batch"}>
         {view === "batch" && ready && planOutlooks ? <ArcadeBatch key={`${arcade.set.slug}:${arcade.board?.id}`} arcade={arcade} outlooks={planOutlooks} /> : view === "batch" ? <p className="arc-read-state" role="status">Reading batch forecasts.</p> : null}

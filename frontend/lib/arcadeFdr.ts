@@ -74,3 +74,23 @@ export function fdrOf(side: FdrSide | null | undefined): { value: number | null;
 
 /** A Sorare competition's name as Sofix says it where it has a board ("English League Players" is the Premier League), else Sorare's. */
 export const leagueLabel = (c: { slug: string; name: string }) => (BOARD_OF[c.slug] ? COMPETITIONS[BOARD_OF[c.slug]!] : c.name);
+
+/** Sorare lists a game whose time is not set yet at midnight UTC (10 Nov 2026: 40 games, LaLiga's 6 Dec round among them). */
+const PLACEHOLDER = /T00:00(:00(\.0+)?)?(Z|\+00:00)$/;
+const TBC_DAYS = 4;
+
+/**
+ * A game Sorare has not timed takes its board fixture's kick-off (same league, both clubs' names, within four days); with none it is
+ * marked `tbc` ("Date TBC", AGENTS.md), so no plan puts a lineup at a made-up 01:00 (plans/arcade-trust.md step 2).
+ */
+export function settleKickoffs<G extends { kickoff: string; competition: { slug: string }; home: { name: string } | null; away: { name: string } | null }>(games: G[], fixtures: FdrFixture[]): (G & { tbc?: true })[] {
+  return games.map((game) => {
+    if (!PLACEHOLDER.test(game.kickoff)) return game;
+    const league = BOARD_OF[game.competition.slug];
+    const at = Date.parse(game.kickoff);
+    const found = league ? fixtures
+      .filter((f) => f.league === league && !PLACEHOLDER.test(f.kickoff) && Math.abs(Date.parse(f.kickoff) - at) <= TBC_DAYS * 86_400_000)
+      .find((f) => nameMatch(game.home?.name ?? "", f.home.name) > 0 && nameMatch(game.away?.name ?? "", f.away.name) > 0) : undefined;
+    return found ? { ...game, kickoff: found.kickoff } : { ...game, tbc: true as const };
+  });
+}

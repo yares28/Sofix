@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ARCADE_FDR_DAYS, boardFixtures, matchFixture, nameMatch, fdrOf, leagueLabel, type FdrFixture } from "./arcadeFdr";
+import { ARCADE_FDR_DAYS, boardFixtures, matchFixture, nameMatch, fdrOf, leagueLabel, settleKickoffs, type FdrFixture } from "./arcadeFdr";
 import type { FixtureGrid } from "./types";
 
 const side = (code: string, name: string, bucket: 1 | 2 | 3 | 4 | 5) => ({ code, name, bucket, label: "Even", cleanSheet: 0.3, xgFor: 1.4, xgAgainst: 1.1 });
@@ -74,5 +74,26 @@ describe("one name per league", () => {
     expect(leagueLabel({ slug: "premier-league-gb-eng", name: "English League Players" })).toBe("Premier League");
     expect(leagueLabel({ slug: "laliga-es", name: "LALIGA EA Sports" })).toBe("LaLiga");
     expect(leagueLabel({ slug: "uefa-nations-league", name: "UEFA Nations League" })).toBe("UEFA Nations League");
+  });
+});
+
+describe("kick-offs Sorare has not set yet (plans/arcade-trust.md step 2)", () => {
+  // 10 Nov 2026: Sorare listed 40 games at 00:00 UTC, all of LaLiga's 6 Dec round among them; the chain planned "Sun 6 Dec 01:00".
+  const tbc = (home: string, away: string, slug = "laliga-es") => ({ ...game("2026-12-06T00:00:00Z", home, away, slug), id: `${home}-${away}` });
+  it("takes the board's kick-off when its clubs match within four days", () => {
+    const board = [fixture("2026-12-06T15:15:00Z", "Sevilla", "Malaga", "PD"), fixture("2026-12-06T17:30:00Z", "Barcelona", "Celta", "PD")];
+    const [sevilla, barca] = settleKickoffs([tbc("Sevilla FC", "Málaga CF"), tbc("FC Barcelona", "RC Celta")], board);
+    expect(sevilla).toMatchObject({ kickoff: "2026-12-06T15:15:00Z" });
+    expect(sevilla).not.toHaveProperty("tbc");
+    expect(barca).toMatchObject({ kickoff: "2026-12-06T17:30:00Z" });
+  });
+  it("marks it Date TBC when no board fixture of those clubs has a time", () => {
+    const [game] = settleKickoffs([tbc("Sevilla FC", "Málaga CF")], [fixture("2026-12-20T15:15:00Z", "Sevilla", "Malaga", "PD"), fixture("2026-12-06T15:15:00Z", "Sevilla", "Betis", "PD")]);
+    expect(game).toMatchObject({ kickoff: "2026-12-06T00:00:00Z", tbc: true });
+    expect(settleKickoffs([tbc("Napoli", "Como", "uefa-nations-league")], [])[0]).toMatchObject({ tbc: true });
+  });
+  it("leaves a game with a real kick-off as it is", () => {
+    const real = { ...game("2026-12-06T15:15:00Z", "Sevilla FC", "Málaga CF", "laliga-es"), id: "x" };
+    expect(settleKickoffs([real], [])).toEqual([real]);
   });
 });

@@ -51,7 +51,7 @@ export default function ArcadeCards({ cards, games, outlooks, status, form }: { 
     return {
       card, start: outlook?.start ?? null, score: outlook ? predicted(outlook) : null, fdr: difficulty == null ? null : Math.round(difficulty),
       tier: tierChoice(status[card.player]?.tier), l5: played?.l5 ?? null, l10: played?.l10 ?? null, l40: played?.l40 ?? null,
-      day: games === null ? null : next ? madridDate(next.kickoff) : "none",
+      day: games === null ? null : next ? (next.tbc ? "tbc" : madridDate(next.kickoff)) : "none",
     };
   }), [cards, games, indexed, boards, status, form]);
   const days = useMemo(() => [...new Set(rows.flatMap((r) => (r.day && r.day !== "none" ? [r.day] : [])))].sort(), [rows]);
@@ -90,7 +90,7 @@ export default function ArcadeCards({ cards, games, outlooks, status, form }: { 
           const name = key.toUpperCase();
           return <select key={key} aria-label={name} value={windows[key]} onChange={(e) => reset(setWindow[key])(e.target.value)}><option value="">Any {name}</option>{SCORE_CUTS.map((n) => <option key={n} value={n}>{name} ≥{n}</option>)}<option value="unknown">{name} unknown</option></select>;
         })}
-        <select aria-label="Day" value={day} onChange={(e) => reset(setDay)(e.target.value)}><option value="">Any day</option>{days.map((d) => <option key={d} value={d}>{dayLabel(d)}</option>)}<option value="none">No game</option></select>
+        <select aria-label="Day" value={day} onChange={(e) => reset(setDay)(e.target.value)}><option value="">Any day</option>{days.map((d) => <option key={d} value={d}>{d === "tbc" ? "Date TBC" : dayLabel(d)}</option>)}<option value="none">No game</option></select>
         <select aria-label="Start percentage" value={start} onChange={(e) => reset(setStart)(e.target.value)}><option value="">Any start %</option>{[90, 80, 50].map((p) => <option key={p} value={p}>Next start ≥{p}%</option>)}<option value="zero">Next start 0%</option><option value="unknown">Start % unknown</option></select>
         <select aria-label="FDR rating" value={fdr} onChange={(e) => reset(setFdr)(e.target.value)}><option value="">Any FDR</option>{[25, 50, 75].map((n) => <option key={n} value={n}>Next FDR ≤{n}</option>)}<option value="hard">Next FDR ≥75</option><option value="unknown">FDR unknown</option></select>
         <select aria-label="xScore" value={xscore} onChange={(e) => reset(setXscore)(e.target.value)}><option value="">Any xScore</option>{SCORE_CUTS.map((n) => <option key={n} value={n}>xScore ≥{n}</option>)}<option value="unknown">xScore unknown</option></select>

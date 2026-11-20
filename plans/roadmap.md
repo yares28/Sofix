@@ -14,8 +14,10 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
-20 Nov, first: **the Arcade audit** ([TODO.md](../TODO.md) "Arcade audit: every tab against the main app"), in its order: A missing numbers
-score higher than real ones (waiting for your choice of fix), B kick-offs not set yet, C finished games, D the move's heading, G Surest by step, then E the main app's words and F layout.
+20 Nov, first: **Arcade you can trust** ([plans/arcade-trust.md](arcade-trust.md), TODO.md "Arcade audit: every tab against the main
+app"), in its §11 order: 1 honest start and bench chances everywhere (waiting for your choice of rule), 2 Date TBC, 3 finished games,
+4 stale copy, 5 the move's heading, 6 Surest by step, 7-9 learning from real results, 10-12 the Arcade audit, 13 the main app's words,
+14 layout.
 
 16 Nov, first: **the overlay, feature by feature** ([TODO.md](../TODO.md) "The overlay, feature by feature"): delete the odds row and the
 captain pick, then why parts sometimes do not appear, the team gauge and list bar, gallery prices, and the dock in Arcade.
@@ -36,7 +38,7 @@ results, reduce per-page data and cache football views. Keep all current control
 
 **Fri 30 Oct 14:00 Madrid (Divination opens):** **check the Arcade rework on the live board** ([arcade-rework.md](arcade-rework.md) "Not confirmed"): tiers in pack odds, Sorare's starter word, collection missions, the cards read newest first and re-read after packs. **You:** Reload the extension (0.4.19).
 
-**Next Arcade work:** **trustworthy xScore that learns** ([arcade-player-choice.md](arcade-player-choice.md)): finish phase A's timed reads (cold load and the % button now read official elevens: [release evidence](arcade-start-refresh.md)), B pre-kick-off capture, C hindsight audit and strategy replay, D per-league blend and calibration, E re-plan triggers, F upgrades.
+**Next Arcade work:** moved into [arcade-trust.md](arcade-trust.md) (20 Nov 2026): phases B to F of [arcade-player-choice.md](arcade-player-choice.md) are its steps 7 to 12.
 
 27 Oct, first (the account's Vercel CPU stood at 3 h 56 m of 4 h): **cacheable pages** ([cacheable-pages.md](cacheable-pages.md),
 P0 to P5): every page served from Vercel's CDN and built only when its data changes or the week rolls, so a view costs no CPU.

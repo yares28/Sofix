@@ -1,4 +1,4 @@
-# Arcade: trustworthy xScore that learns from real results (plan, revised 29 Oct 2026; not started)
+# Arcade: trustworthy xScore that learns from real results (plan, revised 29 Oct 2026; phase A built, B-F carried into [arcade-trust.md](arcade-trust.md) on 20 Nov 2026)
 
 Owner, 29 Oct: "make xScore trustworthy and let the algorithm learn from real results", with four asks: an Arcade audit page (in
 hindsight, how often each step could have been hit, which teams got there, strategies compared, loopholes found, simulated with the

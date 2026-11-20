@@ -18,120 +18,13 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ## Arcade audit: every tab against the main app (you, 20 Nov 2026)
 
-Audit of Play now, Missions & packs, Players and Batch on 20 Nov (local dev server, the board your Chrome read on 10 Nov). Your answers:
-the board's age is expected (national break) but "don't stop at surface level"; the made-up start % is bad, "find issues like this"; the
-move's heading "has to be concise and small"; "plan the rest". Order: wrong numbers first, then the main app's words, then layout.
-
-### A · Missing numbers score higher than real ones (broken)
-
-What lies under the 10-day-old board: the age is fine, but beyond each player's **next** game Arcade has no real number at all, at any time.
-- Sofix's start % and xS (`loadArcadeLaLiga`) are one row per player, keyed by his next kick-off. Sorare's projections (`readArcadeExtras`)
-  cover the next days only: on 10 Nov, 4 Nations League games and 0 of 377 club games to 6 Jan.
-- So every later game is scored on the average of his past scores (`outlookOf`: `score = xscore ?? projection ?? form`) and counted as a
-  sure start (`start ?? 1` in `predicted`, `baseScore`, `moments`, the simulation; `likely` keeps him in every pool). The spread also
-  leaves out the risk of not starting, so these lineups look steadier than they are.
-- Result: a game with no information beats one with real information. On 20 Nov, Play next proposed Tue 24 Nov (Champions League), 5 of 5
-  cards with no start %, xS 57-71, over tonight's games whose start % is known. The chain to 6 Jan is built the same way, and Batch,
-  Teams to build around, Pick teams, cut losses and the Players sort all inherit it.
-- Proof (you, 20 Nov: "is it true? I am not sure it can"): the chain's Sat 28 Nov step 4 lineup, "42% that one clears" 400. Two of
-  its five have not played for months and Sorare says so: Jake Bidwell (status NOT_PLAYING, tier DNP, 0 minutes in his last 10 club
-  games; his 71 is the average of 2 old games) and Jeremiaha Maluze, the captain (NOT_PLAYING, DNP, last start 19 Sep; his 80 is the
-  average of 2 games). Both counted as sure starters. Without them the other three average about 197; the honest chance is about 0%.
-- Data already published: `player_games:<slug>` (5,346 players, R2 and `npm run blocks`) holds every past game's played/started/minutes
-  and, for up to two coming games, Sofix's own forecast (`sofix_x`) and Futbol Fantasy's start % (`ff_start`). Sorare's status
-  (STARTER / REGULAR / NOT_PLAYING, tier DNP) is in Arcade's extras already and is not used by the score.
-- **What the learning plan delivered** ([arcade-player-choice.md](plans/arcade-player-choice.md), you on 29 Oct: Arcade keeps everything
-  needed to train the choice of players, lineups and step chances): only phase A (official elevens). B (freeze each source's numbers
-  before every Arcade game), C (hindsight audit and strategy replay), D (learned blend, calibration of the printed chance) and E were
-  never built. Arcade's entered lineups and their results live only in the browser; nothing in `backend/` knows Arcade. So no printed
-  chance has ever been checked against what happened.
-- **What the published game history already shows** (`player_games`, 30 Oct to 20 Nov, measured 20 Nov):
-  - Sofix's pre-kick-off score, if he starts, beats Sorare's in every Arcade league, by little: typical miss 16.5-18.3 against
-    16.5-19.2 (Champions League 18.3 v 19.2, the biggest gap), about 400 starts each.
-  - A start record (share of starts in his last 10 games) is honest: 88% of the 90-99% group started, 73% of 80-89%, 3% of 0-9%.
-    Error score 0.142, against 0.624 for "everyone starts" (5,403 games). On LaLiga, Futbol Fantasy's % is better still (0.118 v
-    0.179 for the record, 2,022 games), so a real % always comes first.
-  - Coming off the bench is common and worth points: 10-30% of players with a low or middle record came on, and a substitute averaged
-    38-41 against 49-52 for a starter. Arcade counts a non-starter as 0.
-- **The main app already has the model:** `_split` in `backend/app/sorare/forecast.py` gives, per player and game, the chance to start,
-  the chance to come on, the score in each case and suspensions, from Sorare's odds or his last five league games (cups excluded, your
-  rule of 7 Oct). Arcade uses it only for each player's next game.
-
-**Fix (recommended, waiting for your choice):** the refresh publishes Sofix's start and come-on chances and both scores for **every**
-game of Arcade's players to the set's end (from `_split`, one small block, not 693 block reads on the page); Arcade scores a card as
-start chance × start score + come-on chance × bench score, with the spread drawn from both. Edge cases:
-
-| Case | What happens |
-|---|---|
-| LaLiga next game | FF, then Sorare, then Sofix, as the main app (FF measured best) |
-| PL, Bundesliga, Ligue 1, Europe, next game | Sorare's % when out, else Sofix's own (`_split`); no FF exists there |
-| Any game after the next | Sofix's chances from his record; never 100% |
-| Champions, Europa, Conference League | The record counts only league games (rotation); European record shown apart when it differs |
-| Nations League and friendlies | Sorare's % and projection only (no Sofix numbers there); no record means a dash and out of the pool |
-| Comes off the bench | Counted with his come-on chance and bench score (about 40), not 0 |
-| Long out (Bidwell, Maluze: NOT_PLAYING, 0 starts in 10) | Near 0%, out of the pool; never captain |
-| Injured | Sorare's injured flag (all leagues) and FF's absences (LaLiga): 0 until his return date; a game after the date uses the record, with "back from injury" shown |
-| Suspended | 0 for that game (`banned` in `_split`) |
-| Doubtful (FF "doubt", Sorare "in doubt") | The source's own %, never rounded up |
-| New signing, short record (under 5 games) | Shrunk toward his position's average in that league, marked "short record" |
-| Transferred during the set | Record from his new club's games only; the card follows Sorare's current club |
-| Goalkeeper | Start or nothing: no come-on chance unless his record has one |
-| Official eleven out | 100% / bench / 0%, as now, over everything else |
-| Kick-off not set yet | "Date TBC" (B); planned on its day only |
-| Postponed or cancelled game | Dropped when Sorare or the board drops it; a lineup in it shows "postponed" |
-| Two games for one card in the window | He is used once, in the likelier game |
-| Captain | Only a card with a real %, or a record of 80%+, while one is in the lineup |
-| Board copy older than 6 hours | Numbers from the server (fresh); board, lives and lineups marked "as of" the copy |
-| Missing against zero | A number not known is a dash and out; a known 0% is 0% |
-
-**Then the learning, in this order:** freeze every source's numbers before each Arcade game (phase B, into `player_games` as Play
-does); save each entered Arcade lineup, its printed chance and result through one route write per change (`arcade_log:<set>`); after
-50 settled lineups, show "of lineups given 40-50%, n cleared" on the page, "too few to tell" below that. The strategy replay (phase C)
-comes after.
-
-- Rejected: plan only games with a real start % (the chain would end after one or two days); keep 100% with a penalty (a made-up number).
-- Also: a stale board copy freezes Sorare's game list (kick-off times, finished games) and projections; when the copy is older than
-  6 hours, Arcade re-reads the game list from Sofix's boards where it can and says which parts are as of the copy.
-- Done when: on your board, no Play next, chain step or Batch team is chosen on cards with neither a start % nor a record; a test
-  pins that an unknown-start card never outranks the same card with a known 80%.
-
-### B · Kick-offs not set yet are planned at 01:00 (broken)
-40 games (all of LaLiga's 6 Dec round, among others) come from Sorare at 00:00 UTC, a placeholder. The chain plans "Sun 6 Dec 01:00",
-Batch makes one 40-game window. Fix: a game at 00:00 UTC with no Sofix board fixture at that time is "Date TBC", counted only on its day
-(no settle time, no window); a board fixture's real kick-off wins when they match by clubs. Done when the chain and Batch show no 01:00.
-
-### C · Finished games count as a card's next game (broken)
-`gamesOf` keeps games already played: the Players day filter offers 12-14 Nov, and a card's badges, start % and FDR can point at them.
-Fix: drop games more than 2 h past kick-off everywhere a "next game" is taken (Players, PlayerCard, Missions, Teams). Test.
-
-### D · The move's heading (you: concise and small)
-"Play next" heads a bar that advises Hold (46% / 54%). The heading becomes the verdict itself, one or two words in the small heading
-size: "Play now", "Hold for Tue 21:00", "Nothing to play".
-
-### E · The main app's words and pictures in Arcade
-1. Clubs by Sofix's names (Espanyol, Deportivo, Alavés, Racing Santander, Man City), as leagues already are: the board fixture's name
-   where matched, else Sorare's.
-2. "xS", never "xScore", on Players (filters, sort, badge label).
-3. "Premier League" in mission names too ("English League" in Collect missions).
-4. Crests for the 23 European clubs with none (Napoli, Galatasaray, Milan, Bodø/Glimt…): the board's crest, else the coloured shield,
-   never two letters.
-5. FDR colour and number agree on mixed-league screens: the band from the number, the same cut-offs in every league (Players, Pick teams).
-6. xG with one decimal everywhere (Batch has two).
-
-### G · Surest: pick a step, see its surest lineups (you, 20 Nov 2026)
-"The surest has to let me choose a step and it tells me for that step the surest lineups I can put." Today Surest is a second chain
-(each step waits for a window 15 points better than Fastest), and the ladder's step tap shows five likeliest lineups within 7 days only.
-Fix: Surest becomes a step choice (Step 1-6, default the step you are on) and the five surest lineups for that step from every window to
-the set's end, highest chance first, each with its day and time, chance, cards and "Edit in Pick teams"; cards held by a lineup still
-running are left out. The ladder's tap opens the same view, so there is one place for it. Built after A, so the chances are honest.
-
-### F · Layout
-1. Players: the 12 filters become search, position, league and a "More" sheet; default sort by xS of the next game, not by name.
-2. Missions & packs: no second wallet (the hero has it); L5-L40 only when there is a mission; no table of dashes before odds are read
-   (one line and the Read odds button); "How odds are calculated" in plain words.
-3. Teams to build around: count the cards shown, or show three ("3 best likely starters" over four cards).
-4. Batch: one way through the windows (pages, no sideways scroll); "All dates" also resets the game page.
-5. Play now: the first minute of "Planning the climb…" gets a 1:1 skeleton of the move and ladder; find why the plan takes about a minute.
+Everything from 20 Nov is in one plan: [plans/arcade-trust.md](plans/arcade-trust.md) (your words in its §0, the evidence in §2-3,
+the order in §11). In short: the review of the four tabs; "don't stop at surface level" on the 10-day-old board; "this is bad, find
+issues like this" on lineups built on cards with no start % (the 42% step 4 lineup of 28 Nov is about 0%: two of its five, the captain
+included, have not played for months); "concise and small" for the move's heading; "the surest has to let me choose a step"; every
+edge case of a missing start % (FF only in LaLiga, injuries, the bench…); "where is the info to train the algorithm, what did we learn"
+(only the elevens of the 29 Oct plan were built; nothing has checked a printed chance); and the Arcade audit itself. Waiting for you:
+step 1's rule (Sofix's chances for every game, recommended, or only real start %).
 
 ---
 

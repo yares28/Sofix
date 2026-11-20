@@ -1789,28 +1789,28 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-20",
-        "note": "20 Nov 2026: steps 1-4 of plans/arcade-trust.md. Ranked sources and start records; settleKickoffs gives untimed games the board's kick-off or Date TBC and, on a board copy over six hours old, re-times every game from its board fixture; currentGames and gamesOf(now) drop finished games; the copy's amber line says what is as of its read. Vitest Arcade suite, backend tests and the Arcade e2e spec pass; checked on the 10 Nov board copy, not a live board.",
+        "note": "20 Nov 2026: steps 1-5 of plans/arcade-trust.md. Ranked sources and start records; Date TBC and old-copy re-timing (settleKickoffs); finished games dropped (currentGames, gamesOf with time); the move's heading is the verdict (moveHeading in arcadeClimb.ts, 22-28 px). Vitest Arcade suite, backend tests and the Arcade e2e spec pass; checked on the 10 Nov board copy, not a live board.",
         "files": {
-          "frontend/lib/arcadeClimb.ts": "ddb66d6957892978b1da423c21596e12b86d6c19a6b3ca95ba69e83c6c8f29b0",
+          "frontend/lib/arcadeClimb.ts": "09e4fc800b535e47270e5eb49288182443a1095c98003f5928a88ad173fe3119",
           "frontend/lib/arcadePlan.ts": "18e962d92f41d51be1798f51ba4e9d9e93cac3ade35c7dba5ae4acc589ad1305",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
-          "frontend/components/arcade/ArcadePlanner.tsx": "1c40ce74765599a3f93f91a1ec0629e7b419e39fc0f087944cf953a69604a356",
+          "frontend/components/arcade/ArcadePlanner.tsx": "d93125555ab0a126fdefde06d0aab406049e6c447600018697bfa3862f9d98f7",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
-          "frontend/app/arcade-canvas.css": "5a3438f88e7ae2bc2dbfa8e32b2e51a7f69ddd6b52338877478b4c8a9e8f5312",
+          "frontend/app/arcade-canvas.css": "12274ed0b0e2395bbc7da6936686550c7a5086b8e21a73f35bd99dedce353a01",
           "frontend/lib/arcadeTeams.ts": "a6ee5032672dd5b7fe2187295d99ac40655ca51832f40e4a87d268165848c9c7",
           "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
           "frontend/components/arcade/ArcadeBatch.tsx": "bcf0b26f431552889828ba2590f3efd3e85a5be2c3c0b23383b0d5c7fe466f65",
           "frontend/lib/arcadeRecords.ts": "6b9dda639158489d1a67149341195957382a72b6fa02de81852f479ff48f754a",
           "frontend/lib/arcadeFdr.ts": "92323dc039412ba4cbad00df507e9cd778545c430361e43750ff6f07fde012d9",
           "backend/app/sorare/arcade_outlook.py": "ea92ff1da5b3bee1b93cf4e8505107b23dae3c645c201ad958f0a2c0f38a747f",
-          "plans/arcade-trust.md": "300057a50c0c6ad678d6b98ac5b76ef0fc7f93a283c98a418f19b4b8e37a1cb6",
-          "frontend/lib/arcadeClimb.test.ts": "38dccbadd0f61bdac2f98cd1ba58ae1a17c04a31f30121d2af09e97b35c2bd0e",
+          "plans/arcade-trust.md": "2600d016c1eb86e788cc14c7756cdf2bca7a765dce5742a4b2611b9c735a0d65",
+          "frontend/lib/arcadeClimb.test.ts": "baa394a1676fd1a3f8640f2c7e878a3f3604d7ced6b33715b3c6441981461a68",
           "backend/tests/test_arcade_outlook.py": "7a4cfb2fb6f49e8ba4943973931fbf1d004532445a8f3cdb1ca62177c3f5fd11",
           "frontend/lib/arcadeFdr.test.ts": "dbfa1a0f0ce61bcef15170029091556a95274d205746c209b0b12d196613b1f7",
           "frontend/lib/arcadePlan.test.ts": "4dea711cd45bc654d87969885ec572392c6f322b37b18bc8922a049d398864d6",
           "frontend/lib/arcadeTeams.test.ts": "100dae1da4a23b695e2dd9b0c3a415c6fa5527b100fd0b31b33bcf1733169e3e",
           "frontend/lib/arcadeBatch.test.ts": "57fd49ca2a454f68c16cd0e313858aefaaa42a522ea560141e97c23d183cde7b",
-          "frontend/e2e/arcade.e2e.ts": "47aaa9745dde3f4ed84a78334b4cab9b3c0b627e49f4be3d2fb3199014dcc985"
+          "frontend/e2e/arcade.e2e.ts": "f8d2cdd40679228c5500e5e5daba8449125e23d10d0616eef0c1e7be24e36fa8"
         }
       }
     },

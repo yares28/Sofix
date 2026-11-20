@@ -1,4 +1,4 @@
-import { batchChances, bestLineup, chanceOf, fits, likely, madridDate, multiplier, phi, predicted, simulation, trusted, RUNS, SETTLES_AFTER_MS, SLOTS, type Lineup, type LineupSearchCache, type Outlook, type Slot, type StepInfo } from "./arcadePlan";
+import { batchChances, bestLineup, chanceOf, fits, likely, madridDate, multiplier, phi, predicted, simulation, trusted, whenLabel, RUNS, SETTLES_AFTER_MS, SLOTS, type Lineup, type LineupSearchCache, type Outlook, type Slot, type StepInfo } from "./arcadePlan";
 
 /**
  * The climb, as Sorare's board really runs (plans/arcade-rework.md, read 29 Oct 2026): a lineup is entered on the step you are on,
@@ -412,4 +412,11 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     surest: W ? surestWalk(0, start.step, start.lives, startBest) : [],
     after: (move, cleared, surest) => { const next = outcome(move, cleared); return (surest ? surestWalk : walk)(firstAfter(move.settles, move.from + 1), next.n, next.lives, next.best); },
   };
+}
+
+/** The move's heading: "Play now", "Play Sat 18:30", "Hold for Tue 21:00" or "Nothing to play" (plans/arcade-trust.md step 5). */
+export function moveHeading(kind: string, playAt: number | null, holdAt: number | null, now: number): string {
+  if (kind === "none") return "Nothing to play";
+  if (kind === "wait") return holdAt === null ? "Hold" : `Hold for ${whenLabel(holdAt, now)}`;
+  return playAt === null ? "Play now" : `Play ${whenLabel(playAt, now)}`;
 }

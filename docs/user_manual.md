@@ -862,7 +862,7 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   A lineup's live points are Sorare's card scores as given (each already holds its card's bonus), never multiplied again.
 - The plan is kept in the browser: a refresh with the same reads and no kick-off since shows it at once; only a changed read or a
   game starting works it out again (9 Nov 2026).
-- **Your move**: titled **Play next**, with the step, your lives in words ("2 lives left") and its prize (10 Nov 2026), then
+- **Your move**: headed by the advice itself in a small heading (**Play now**, **Play Sat 18:30**, **Hold for Tue 21:00** or **Nothing to play**; 20 Nov 2026), with the step, your lives in words ("2 lives left") and its prize (10 Nov 2026), then
   a **Play | Hold** bar: two pills that share 100%, each as wide as its share of the chances at the prize the advice decides on (the biggest one
   where they differ; a close split keeps a decimal; 9 Nov 2026), the advised side filled; only Hold carries a date, and the lineup counts and
   each side's chance at this step are read out to a screen reader rather than printed (10 Nov 2026). On step one, using every life is preferred when all misses reset to the same step with four fresh lives before the same next opportunity; a wider batch can still lose an earlier chance to advance. The advice itself weighs every prize to the set's end (the top's

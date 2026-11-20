@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArcadeGame } from "./arcade";
-import { climbWindows, comparePrizes, holdSplit, kickOf, moments, quickChance, quickLineup, windowsOf, type Move } from "./arcadeClimb";
+import { moveHeading, climbWindows, comparePrizes, holdSplit, kickOf, moments, quickChance, quickLineup, windowsOf, type Move } from "./arcadeClimb";
 import { bestLineup, chanceOf, type Outlook } from "./arcadePlan";
 
 const game = (id: string, kickoff: string): ArcadeGame => ({ id, kickoff, status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: `${id}-h`, name: "H", crest: null }, away: { slug: `${id}-a`, name: "A", crest: null } });
@@ -269,5 +269,15 @@ describe("the Play | Hold bar", () => {
   });
   it("gives Play everything when holding wins nothing", () => {
     expect(holdSplit(verdict([0.4, 0.1], [0, 0]))).toMatchObject({ step: 2, play: 1, hold: 0 });
+  });
+});
+
+describe("the move's heading (owner, 20 Nov 2026: concise and small)", () => {
+  const now = Date.parse("2026-11-20T10:00:00Z");
+  it("is the advice itself", () => {
+    expect(moveHeading("play", null, null, now)).toBe("Play now");
+    expect(moveHeading("play", Date.parse("2026-11-21T17:30:00Z"), null, now)).toBe("Play Sat 18:30");
+    expect(moveHeading("wait", null, Date.parse("2026-11-24T20:00:00Z"), now)).toBe("Hold for Tue 21:00");
+    expect(moveHeading("none", null, null, now)).toBe("Nothing to play");
   });
 });

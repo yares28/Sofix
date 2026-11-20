@@ -3,7 +3,7 @@
 import { memo, useCallback, useContext, useDeferredValue, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeStep } from "../../lib/arcade";
-import { holdSplit, kickOf, type Move } from "../../lib/arcadeClimb";
+import { holdSplit, kickOf, moveHeading, type Move } from "../../lib/arcadeClimb";
 import { useClimb, type ClimbPlan } from "../../lib/climbClient";
 import { aimKey, useArcadeAim } from "../../lib/arcadeAim";
 import { climbStart, climbStep, stepInfos } from "../../lib/arcadeBoard";
@@ -347,7 +347,8 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
           <span className="arc-lives" aria-label={`${lives} of 4 lives`}>{lives} {lives === 1 ? "life" : "lives"} left</span>
           {step?.rewards.length ? <span className="arc-move-prize">{step.rewards.join(" + ")}</span> : null}
         </p>
-        <h2 id="arc-move-title" className="arc-move-verdict">Play next</h2>
+        {/* The heading is the advice itself, short and small (owner, 20 Nov 2026: "Play next" sat above a bar advising Hold). */}
+        <h2 id="arc-move-title" className="arc-move-verdict">{moveHeading(v.kind, playsNow ? null : playMove ? kickOf(playMove) : null, holdMove ? kickOf(holdMove) : null, now)}</h2>
         {v.kind === "none" ? <p className="arc-move-why">Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).</p> : null}
         {waitingNote ? <p className="arc-warn">{waitingNote}</p> : null}
         {v.kind !== "none" && split ? (

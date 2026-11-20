@@ -365,7 +365,7 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
   // A short title and a plain bar (owner, 10 Nov 2026): no reason line, no caption, only Hold carries a date.
-  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play next");
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play now");
   await expect(move.locator(".arc-move-why")).toHaveCount(0);
   await expect(move.locator(".arc-split figcaption")).toHaveCount(0);
   // One 100% bar (owner, 9 Nov 2026): no later game, so Play holds all of it.
@@ -446,7 +446,7 @@ test("step one spends four resettable lives and keeps every insurance team ident
   }, "0.4.18");
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
-  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play next");
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play now");
   await expect(move.getByRole("group", { name: "Lineup" }).getByRole("button")).toHaveCount(4); // all four lives at once
   await expect(move.locator(".arc-split [role=img]")).toHaveAttribute("aria-label", /This step: Play \d+% with 4 lineups/);
   // The two shares make 100%, and the larger share has the wider pill.
@@ -473,7 +473,7 @@ test("step one spends four resettable lives and keeps every insurance team ident
   expect(await signature(".arc-detail")).toEqual(second);
   await show(page, "Players");
   await show(page, "Play now");
-  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play next");
+  await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play now");
   await show(page, "Batch");
   const batch = page.getByRole("region", { name: "Batch" });
   for (let i = 0; i < 3; i++) await batch.getByRole("button", { name: "More teams" }).click();

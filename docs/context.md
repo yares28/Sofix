@@ -120,7 +120,7 @@ Use player slug for forecasts, card slug for ownership/allocation, game ID for p
 
 **State transitions:** absent → captured before lock; captured → newer partial capture before lock; at lock → frozen statement; later actual results may enrich actual columns, not reconstruct a missing pre-lock forecast. A game lacking ID, kickoff or competition is skipped. `said_at` is the row’s accepted capture time; partial updates preserve earlier source values and do not provide independent per-source timestamps.
 
-**Exceptions/limits:** this contract freezes forecast evidence, not reward settlement or every historical metadata field. The correction loader relies on this upstream boundary; other Audit consumers add their own filtering. Never turn one consumer’s looser query into permission for late capture.
+**Exceptions/limits:** this contract freezes forecast evidence, not reward settlement or every historical metadata field. The correction loader relies on this upstream boundary; other Audit consumers add their own filtering. Never turn one consumer’s looser query into permission for late capture. Arcade's per-game evidence (frozen at each game's kick-off, not the GW lock) lives in its own `arcade_said:<Game id>` blocks (`backend/app/sorare/arcade_said.py`, written by the Sorare step for games in the next 48 hours), never in these columns: a later capture here would move `said_at` past the lock and drop the row from the Classic Audit.
 
 **Why/examples:** a known FF `0.0` survives a subsequent failed FF read; a new Sofix `70` can update before lock while a missing Sorare value retains its prior `60`. At lock, a proposed `99` is rejected and a newly introduced player is not inserted. `test_statements_update_before_lock_preserve_failed_sources_and_freeze_at_lock` asserts this complete sequence, including delayed older input.
 
@@ -923,14 +923,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-18",
-        "note": "Saved plan inputs replayed on two real weeks; lineup reasons covered by tests; no live week recorded yet",
+        "date": "2026-11-20",
+        "note": "20 Nov 2026: the Sorare step also saves Arcade's per-game statements (arcade_said.save over the published markets, optional step, after the market blocks are put); no Play selection logic changed.",
         "files": {
           "backend/app/sorare/publish.py": "1e28009dd525fa793e6ae150df8a3557ca37b838ec7f28bc000055e73c2ad092",
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "a9765e02793f0e12e3b427f744122fb5ffc3acf8d86856b72a2034e666519013",
+          "backend/app/jobs/sorare.py": "58b28ee76fda1d4669c4927aa7028fd9ffc8766d21040a26dfccfab82522bcbf",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
         }
@@ -1761,6 +1761,9 @@ This block is the single machine-readable index for the sections above. Test ref
           "path": "backend/app/sorare/arcade_outlook.py"
         },
         {
+          "path": "backend/app/sorare/arcade_said.py"
+        },
+        {
           "path": "plans/arcade-trust.md"
         }
       ],
@@ -1770,6 +1773,9 @@ This block is the single machine-readable index for the sections above. Test ref
         },
         {
           "path": "backend/tests/test_arcade_outlook.py"
+        },
+        {
+          "path": "backend/tests/test_arcade_said.py"
         },
         {
           "path": "frontend/lib/arcadeFdr.test.ts"
@@ -1789,7 +1795,7 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-20",
-        "note": "20 Nov 2026: steps 1-6 of plans/arcade-trust.md. Ranked sources and start records; Date TBC and old-copy re-timing; finished games dropped; the move's heading is the verdict; Surest is now each step's five surest lineups to the set's end (bestBy over every window, climb.surest), the old Surest chain and its gain labels removed, the ladder tap opens it (with no chain, only then). Vitest Arcade suite, backend tests and the Arcade e2e spec pass; checked on the 10 Nov board copy, not a live board.",
+        "note": "20 Nov 2026: steps 1-7 of plans/arcade-trust.md. Ranked sources and start records; Date TBC and old-copy re-timing; finished games dropped; verdict heading; Surest by step; arcade_said freezes each source's numbers per Arcade game at kick-off in its own blocks (not player_games). Vitest Arcade suite, backend tests and the Arcade e2e spec pass; checked on the 10 Nov board copy, not a live board.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "2e6f74eb94ef82df401bf55e7ab02e4677ac66559b0fbd65238a739830dace94",
           "frontend/lib/arcadePlan.ts": "18e962d92f41d51be1798f51ba4e9d9e93cac3ade35c7dba5ae4acc589ad1305",
@@ -1803,9 +1809,11 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/arcadeRecords.ts": "6b9dda639158489d1a67149341195957382a72b6fa02de81852f479ff48f754a",
           "frontend/lib/arcadeFdr.ts": "92323dc039412ba4cbad00df507e9cd778545c430361e43750ff6f07fde012d9",
           "backend/app/sorare/arcade_outlook.py": "ea92ff1da5b3bee1b93cf4e8505107b23dae3c645c201ad958f0a2c0f38a747f",
-          "plans/arcade-trust.md": "6d77173e8575cb321da6b03cc5d60012b96503b06158b26b4c086a0e09825b80",
+          "backend/app/sorare/arcade_said.py": "34831b86d65c71bfac43911183f8f75b80ba03ff7ca5aea06f66fd8fa0222eae",
+          "plans/arcade-trust.md": "1b5d4afef0742865045ede317ba03bb272d1bdb8b325321aa9aa79789ca4a71b",
           "frontend/lib/arcadeClimb.test.ts": "92570bc4fa238ccb48f8188521702b2677e3979574290084f6d732086b40ab44",
           "backend/tests/test_arcade_outlook.py": "7a4cfb2fb6f49e8ba4943973931fbf1d004532445a8f3cdb1ca62177c3f5fd11",
+          "backend/tests/test_arcade_said.py": "4525410d988cf664eebf3f37d99fab91e317ecc94b9c056e7abd5976b2985363",
           "frontend/lib/arcadeFdr.test.ts": "dbfa1a0f0ce61bcef15170029091556a95274d205746c209b0b12d196613b1f7",
           "frontend/lib/arcadePlan.test.ts": "4dea711cd45bc654d87969885ec572392c6f322b37b18bc8922a049d398864d6",
           "frontend/lib/arcadeTeams.test.ts": "100dae1da4a23b695e2dd9b0c3a415c6fa5527b100fd0b31b33bcf1733169e3e",

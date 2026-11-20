@@ -38,6 +38,7 @@ from app.services.publish import notify_app, put, put_times
 from app.services.scoring import LABELS, difficulty_label, label_bucket
 from app.services.timeutil import Laps, as_utc
 from app.sorare import (
+    arcade_said,
     audit,
     card_art,
     early,
@@ -910,6 +911,13 @@ def run(
         summary["strategies"] = {s["key"]: len(s["lineups"]) for s in lab["strategies"]}
     for key, block in foreign_coverage.blocks(foreign_markets, foreign_kept.get("player_index")).items():
         put(db, key, block, now)
+    # What each source says about every Arcade game in the next 48 hours, frozen at its kick-off (plans/arcade-trust.md step 7).
+    markets = [payload.get("market") or [], *((m.get("market") or []) for m in foreign_markets.values())]
+    said = optional(
+        db, failed, "arcade statements", lambda: arcade_said.save(db, arcade_said.collect(markets, fetched), now), 0
+    )
+    if said:
+        summary["arcadeSaid"] = said
     put(db, SORARE_KEY, payload, now)
     # the recommended plan's starters with the chance Sorare gave each: a reading that moves one starts a refresh (frontend/lib/planNews.ts)
     watch = sorare_publish.plan_watch(payload)

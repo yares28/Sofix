@@ -1,4 +1,4 @@
-# Arcade you can trust: honest chances, the Arcade audit, and every fix from the 20 Nov review (plan, 20 Nov 2026; steps 1-6 built 20 Nov 2026, the rest not started)
+# Arcade you can trust: honest chances, the Arcade audit, and every fix from the 20 Nov review (plan, 20 Nov 2026; steps 1-7 built 20 Nov 2026, the rest not started)
 
 One plan for everything raised on 20 Nov 2026: the review of the four Arcade tabs, the 42% lineup that cannot be true, what a missing
 start % must mean in every case, the learning Arcade was meant to do since 29 Oct, the Arcade audit, Surest by step, and the
@@ -254,8 +254,11 @@ real % nor a record; the 28 Nov lineup shows about 0%; a test pins that an unkno
 
 - **Step 7 · Freeze every source before each Arcade game** (phase B of 29 Oct). The refresh and the near-lock runs write, for every
   Arcade player with a game in the next 48 hours, Sofix's start chance, come-on chance and score for **that game**, Sorare's projection
-  and %, and FF's %, into `player_games` with `said_at`, refused once the game has kicked off (FORECAST-PRELOCK-001). Start % read in your
-  browser is sent with the same rule by `/api/arcade/chances`. No migration (columns exist). Test: a reading at kick-off is refused.
+  and %, and FF's %, refused once the game has kicked off. **Built 20 Nov 2026 in its own blocks, `arcade_said:<Game id>`
+  (`backend/app/sorare/arcade_said.py`), not in `player_games`:** those columns are frozen at the gameweek lock and the Classic Audit
+  drops a row whose `said_at` passes it, so an Arcade reading there would have erased Classic evidence. Sorare's start % read in your
+  browser are already kept per game with the time each was seen (`sorare_chances:<Game id>`, never deleted). Tests: merge before
+  kick-off, a failed source keeps its number, frozen at kick-off, an older delayed reading never wins.
 - **Step 8 · Keep every Arcade lineup.** Each entered lineup (cards, step, target, captain, the chance Sofix printed, the time), its
   result (score, cleared or missed, life spent) and the board's steps and lives are saved through one route write per change
   (`arcade_log:<set>`, read by jobs from the games mirror, not Neon reads per view).
@@ -321,7 +324,7 @@ Done when each is checked at 1440 px and 390 px on your board in Chrome, and `we
 | 4 | **Built 20 Nov 2026.** Stale copy marked | Copy older than 6 h shows the dot line |
 | 5 | **Built 20 Nov 2026.** The move's heading | Spec; look 1440/390 |
 | 6 | **Built 20 Nov 2026.** Surest by step | Spec; Step 6 lists five lineups to the set's end |
-| 7 | Freeze sources before each game | Test: a reading at kick-off refused |
+| 7 | **Built 20 Nov 2026.** Freeze sources before each game (in `arcade_said:<game>` blocks, not `player_games`: see §7) | Test: a reading at kick-off refused |
 | 8 | Keep every Arcade lineup | Route test; a real lineup saved and settled |
 | 9 | Printed chance checked | Line shows after 50 lineups; too few to tell below |
 | 10 | Audit: hindsight | Job test on a fixed fixture; published block; page spec, look |

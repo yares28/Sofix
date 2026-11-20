@@ -1,4 +1,4 @@
-# Arcade you can trust: honest chances, the Arcade audit, and every fix from the 20 Nov review (plan, 20 Nov 2026; steps 1-5 built 20 Nov 2026, the rest not started)
+# Arcade you can trust: honest chances, the Arcade audit, and every fix from the 20 Nov review (plan, 20 Nov 2026; steps 1-6 built 20 Nov 2026, the rest not started)
 
 One plan for everything raised on 20 Nov 2026: the review of the four Arcade tabs, the 42% lineup that cannot be true, what a missing
 start % must mean in every case, the learning Arcade was meant to do since 29 Oct, the Arcade audit, Surest by step, and the
@@ -320,7 +320,7 @@ Done when each is checked at 1440 px and 390 px on your board in Chrome, and `we
 | 3 | **Built 20 Nov 2026.** Finished games dropped | Test; day filter from today |
 | 4 | **Built 20 Nov 2026.** Stale copy marked | Copy older than 6 h shows the dot line |
 | 5 | **Built 20 Nov 2026.** The move's heading | Spec; look 1440/390 |
-| 6 | Surest by step | Spec; Step 6 lists five lineups to the set's end |
+| 6 | **Built 20 Nov 2026.** Surest by step | Spec; Step 6 lists five lineups to the set's end |
 | 7 | Freeze sources before each game | Test: a reading at kick-off refused |
 | 8 | Keep every Arcade lineup | Route test; a real lineup saved and settled |
 | 9 | Printed chance checked | Line shows after 50 lineups; too few to tell below |

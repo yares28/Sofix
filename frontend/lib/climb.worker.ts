@@ -3,7 +3,7 @@ import { climbWindows, type Climb, type Move } from "./arcadeClimb";
 import type { ClimbRequest, ClimbReply } from "./climbClient";
 
 /**
- * Arcade's climb runs here, off the page: the plan (its Fastest and Surest chains), and each move's outcomes when it is asked for. A move is named by an id the
+ * Arcade's climb runs here, off the page: the plan (its chain and each step's surest lineups), and each move's outcomes when asked for. A move is named by an id the
  * page sends back, so its lineups never have to be matched by value.
  */
 let climb: Climb | null = null;
@@ -19,6 +19,7 @@ const tag = (list: Move[]) => list.map((move) => {
   return { ...move, id, list: [...new Map(move.list.map((o) => [o.game.id, o])).values()] };
 });
 const tagOne = (move: Move | null) => (move ? tag([move])[0]! : null);
+const byStep = (lists: Record<number, Move[]>) => Object.fromEntries(Object.entries(lists).map(([n, list]) => [n, tag(list)]));
 
 self.onmessage = (event: MessageEvent<ClimbRequest>) => {
   const message = event.data;
@@ -26,10 +27,10 @@ self.onmessage = (event: MessageEvent<ClimbRequest>) => {
   if (message.kind === "plan") {
     climb = climbWindows(...message.args);
     moves = new Map();
-    reply = { id: message.id, kind: "plan", plan: { windows: climb.windows, path: tag(climb.path), surest: tag(climb.surest), week: { ...climb.week, best: Object.fromEntries(Object.entries(climb.week.best).map(([n, moves]) => [n, tag(moves)])) }, odds: climb.odds, verdict: { ...climb.verdict, playNow: tagOne(climb.verdict.playNow), hold: tagOne(climb.verdict.hold) } } };
+    reply = { id: message.id, kind: "plan", plan: { windows: climb.windows, path: tag(climb.path), surest: byStep(climb.surest), week: { ...climb.week, best: byStep(climb.week.best) }, odds: climb.odds, verdict: { ...climb.verdict, playNow: tagOne(climb.verdict.playNow), hold: tagOne(climb.verdict.hold) } } };
   } else {
     const move = moves.get(message.move);
-    reply = { id: message.id, kind: "after", moves: climb && move ? tag(climb.after(move, message.cleared, message.surest)) : [] };
+    reply = { id: message.id, kind: "after", moves: climb && move ? tag(climb.after(move, message.cleared)) : [] };
   }
   (self as unknown as DedicatedWorkerGlobalScope).postMessage(reply);
 };

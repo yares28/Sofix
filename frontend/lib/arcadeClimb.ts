@@ -37,11 +37,6 @@ const LEG_TIE = 0.02;
  */
 const LONG_SHOT = 0.5;
 const LONG_SHOT_TIE = 0.03;
-/**
- * The Surest chain (owner, 10 Nov 2026: "the closest best lineups I can actually play for that step to maximise me hitting the step,
- * sacrificing speed"): a step waits for the nearest window whose best lineup beats the Fastest chain's chance by this much (15 points).
- */
-export const SUREST_GAIN = 0.15;
 const WEEK_MS = 7 * 86_400_000;
 
 export type Window = { at: number; list: Outlook[] };
@@ -120,9 +115,7 @@ export const quickChance = (q: Pick<Quick, "mean" | "sd">, target: number) => (q
 export type ClimbStart = { step: number; lives: number; notBefore: number | null; held: { card: string; until: number }[]; /** Highest step already cleared. */ best?: number };
 
 /** One played move: from window `from` to `to`, `play` lineups on `step`, the chance one clears, and when they have all settled. */
-export type Move = { from: number; to: number; at: number; step: number; lives: number; best: number; play: number; clear: number; settles: number; lineups: Lineup[]; list: Outlook[];
-  /** Surest only: its chance above what the Fastest chain would play from the same place, and whether no window beat it by SUREST_GAIN. */
-  gain?: number; same?: boolean };
+export type Move = { from: number; to: number; at: number; step: number; lives: number; best: number; play: number; clear: number; settles: number; lineups: Lineup[]; list: Outlook[] };
 
 /** When a move is played: its lineups' first kick-off, the time to enter by (the window may open earlier with a game it does not use). */
 export const kickOf = (move: Pick<Move, "at" | "lineups">) => (move.lineups.length ? Math.min(...move.lineups.map((l) => Date.parse(l.first))) : move.at);
@@ -154,10 +147,10 @@ export type Climb = {
   verdict: Verdict;
   /** The ladder's numbers: each step's chance within the next 7 days (until), and its five likeliest lineups in them. */
   week: { until: number; odds: Record<number, number>; best: Record<number, Move[]> };
-  /** The Surest chain: step by step from the step you are on, each step's surest nearby window (SUREST_GAIN). */
-  surest: Move[];
-  /** The path after a played move's outcome, by the Fastest rule or, with `surest`, the Surest one. */
-  after: (move: Move, cleared: boolean, surest?: boolean) => Move[];
+  /** Surest (owner, 20 Nov 2026): each step's five likeliest distinct lineups from every window to the set's end. */
+  surest: Record<number, Move[]>;
+  /** The path after a played move's outcome. */
+  after: (move: Move, cleared: boolean) => Move[];
 };
 
 /**
@@ -304,11 +297,11 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
   const until = now + WEEK_MS;
   const weekEnd = firstAfter(until, 0);
   const weekOdds = (W ? solver(weekEnd)(0, start.step, start.lives, startBest).reach : done(startBest));
-  const weekBest: Record<number, Move[]> = {};
-  for (const s of steps) {
+  // Each step's five likeliest distinct lineups from the windows before `end`: the week's for the ladder and the dock, the set's for Surest.
+  const bestBy = (end: number): Record<number, Move[]> => Object.fromEntries(steps.map((s) => {
     const found = new Map<string, Move>();
-    for (let i = 0; i < weekEnd; i++) {
-      for (const leg of legsFrom(i).filter((l) => l.to < weekEnd)) {
+    for (let i = 0; i < end; i++) {
+      for (const leg of legsFrom(i).filter((l) => l.to < end)) {
         for (const lineup of teamsFor(i, leg, s.number)) {
           const id = lineup.picks.map((p) => p.outlook.card.slug).sort().join();
           const clear = chanceOf(lineup.totals, s.target);
@@ -317,8 +310,9 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
         }
       }
     }
-    weekBest[s.number] = [...found.values()].sort((a, b) => b.clear - a.clear || a.at - b.at).slice(0, 5);
-  }
+    return [s.number, [...found.values()].sort((a, b) => b.clear - a.clear || a.at - b.at).slice(0, 5)];
+  }));
+  const weekBest = bestBy(weekEnd);
   const outcome = (m: Pick<Move, "step" | "lives" | "best" | "play">, cleared: boolean) =>
     cleared ? { n: up(m.step), lives: upLives(m.step), best: Math.max(m.best, m.step) }
       : m.lives - m.play > 0 ? { n: m.step, lives: m.lives - m.play, best: m.best } : { n: 1, lives: LIVES, best: m.best };
@@ -330,46 +324,6 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
       out.push({ from: i, to: c.to, at: windows[i]!.at, step: n, lives, best, play: c.play, clear: c.clear, settles: c.settles, lineups: c.lineups, list: c.list });
       ({ n, lives, best } = outcome({ step: n, lives, best, play: c.play }, c.clear >= 0.5));
       i = c.next;
-    }
-    return out;
-  };
-
-  /**
-   * The Surest chain. For each step: what the Fastest rule would play from here (its lineup count too, so lives buy the same), then
-   * the nearest window whose best batch of that size beats it by SUREST_GAIN; else Fastest's own move, marked `same` (10 Nov 2026 on
-   * his board: the best window left was 8 days later for 3 points, and was not the same as fastest); with no Fastest move, the best
-   * window left. Cards stay
-   * held until their own lineup settles (legsFrom), and each step starts once the one before has settled. It goes on as if each step
-   * clears; clearing the top starts again from step 1.
-   */
-  const surestWalk = (from: number, n: number, lives: number, best: number): Move[] => {
-    const out: Move[] = [];
-    for (let i = from; i < W && out.length < 24;) {
-      let fast: Choice | null = null;
-      let fastAt = i;
-      for (let j = i; j < W;) { const c = value(j, n, lives, best); if (c.play) { fast = c; fastAt = j; break; } j = c.next; }
-      const base = fast?.clear ?? 0;
-      const size = fast?.play ?? 1;
-      let pick: Move | null = null;
-      let fallback: Move | null = null;
-      for (let j = i; j < W && !pick; j++) {
-        for (const leg of legsFrom(j)) {
-          const ranked = teamsFor(j, leg, n);
-          const k = Math.min(size, lives, ranked.length);
-          if (!k) continue;
-          const clear = clears.get(ranked)![k - 1]!;
-          const lineups = ranked.slice(0, k);
-          const settles = Math.max(...lineups.map((l) => Date.parse(l.last))) + SETTLES_AFTER_MS;
-          const move: Move = { from: j, to: leg.to, at: windows[j]!.at, step: n, lives, best, play: k, clear, settles, lineups, list: leg.list, gain: clear - base, same: false };
-          if (clear >= base + SUREST_GAIN && (!pick || clear > pick.clear)) pick = move;
-          if (!fast && (!fallback || clear > fallback.clear + 1e-9)) fallback = { ...move, same: true };
-        }
-      }
-      const move = pick ?? (fast ? { from: fastAt, to: fast.to, at: windows[fastAt]!.at, step: n, lives, best, play: fast.play, clear: fast.clear, settles: fast.settles, lineups: fast.lineups, list: fast.list, gain: 0, same: true } : fallback);
-      if (!move) break;
-      out.push(move);
-      ({ n, lives, best } = outcome(move, true));
-      i = firstAfter(move.settles, move.from + 1);
     }
     return out;
   };
@@ -409,8 +363,8 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     odds,
     verdict: { kind, now: nowReach, wait: held?.reach ?? done(startBest), chanceNow, waitFor, skipped, playNow, hold: holdMove },
     week: { until, odds: Object.fromEntries(weekOdds.flatMap((p, k) => (k ? [[k, p]] : []))), best: weekBest },
-    surest: W ? surestWalk(0, start.step, start.lives, startBest) : [],
-    after: (move, cleared, surest) => { const next = outcome(move, cleared); return (surest ? surestWalk : walk)(firstAfter(move.settles, move.from + 1), next.n, next.lives, next.best); },
+    surest: bestBy(W),
+    after: (move, cleared) => { const next = outcome(move, cleared); return walk(firstAfter(move.settles, move.from + 1), next.n, next.lives, next.best); },
   };
 }
 

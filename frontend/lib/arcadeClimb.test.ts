@@ -169,49 +169,33 @@ describe("the window planner", () => {
   });
 });
 
-describe("the Surest chain", () => {
-  // Owner, 10 Nov 2026: "the closest best lineups I can actually play for that step ... sacrificing speed".
-  it("plays the nearest window whose lineup beats the fastest chain's by 15 points, step by step", () => {
-    const list = [
-      ...squad(game("A", "2026-10-31T11:00:00Z"), "a", 60), ...squad(game("B", "2026-10-31T14:30:00Z"), "b", 62),
-      ...squad(game("C", "2026-11-01T17:30:00Z"), "c", 90), ...squad(game("D", "2026-11-02T17:30:00Z"), "d", 95),
-    ];
+describe("Surest, step by step", () => {
+  // Owner, 20 Nov 2026: "the surest has to let me choose a step and it tells me for that step the surest lineups I can put".
+  const DAY = 86_400_000;
+  const list = [
+    ...squad(game("A", "2026-10-31T11:00:00Z"), "a", 60), ...squad(game("B", "2026-11-02T17:30:00Z"), "b", 62),
+    ...squad(game("C", "2026-11-04T17:30:00Z"), "c", 58), ...squad(game("L", "2026-11-09T17:30:00Z"), "l", 95),
+  ];
+  it("lists each step's five surest lineups from every window to the set's end, best first", () => {
     const plan = climbWindows(list, steps, from(2, 4, 1), 0.5, NOW);
-    expect(plan.path[0]!.at).toBe(Date.parse("2026-10-31T11:00:00Z")); // fastest plays at once
-    const [first, second] = plan.surest;
-    expect(first).toMatchObject({ step: 2, at: Date.parse("2026-11-01T17:30:00Z"), same: false }); // C, not the later D
-    expect(first!.gain).toBeGreaterThanOrEqual(0.15);
-    expect(first!.clear - first!.gain!).toBeCloseTo(plan.path[0]!.clear, 5);
-    expect(second).toMatchObject({ step: 3, at: Date.parse("2026-11-02T17:30:00Z") });
-    expect(second!.from).toBeGreaterThan(first!.from);
+    for (const s of steps) {
+      const best = plan.surest[s.number]!;
+      expect(best.length).toBeGreaterThan(0);
+      expect(best.length).toBeLessThanOrEqual(5);
+      expect(best.every((m) => m.step === s.number && m.lineups.length === 1)).toBe(true);
+      expect(best.map((m) => m.clear)).toEqual([...best.map((m) => m.clear)].sort((a, b) => b - a));
+    }
+    expect(plan.surest[3]![0]!.at).toBe(Date.parse("2026-11-09T17:30:00Z")); // beyond the week: the strongest game of the set
+    expect(plan.surest[3]![0]!.at).toBeGreaterThan(NOW + 7 * DAY);
+    const fives = plan.surest[3]!.map((m) => m.lineups[0]!.picks.map((p) => p.outlook.card.slug).sort().join());
+    expect(new Set(fives).size).toBe(fives.length);
   }, 30_000);
 
-  it("plays the fastest chain's own move, marked, when no window beats it by 15 points", () => {
-    // His board, 10 Nov 2026: 42% on Fri 20 Nov, and the best window left was Sat 28 Nov at 45%: a week's wait for 3 points.
-    const list = [...squad(game("A", "2026-10-31T11:00:00Z"), "a", 74), ...squad(game("B", "2026-11-01T17:30:00Z"), "b", 76)];
-    const plan = climbWindows(list, steps, from(2, 4, 1), 0.5, NOW);
-    const first = plan.surest[0]!;
-    expect(first).toMatchObject({ same: true, gain: 0, at: plan.path[0]!.at, clear: plan.path[0]!.clear, play: plan.path[0]!.play });
-    expect(first.lineups).toEqual(plan.path[0]!.lineups);
-  });
-
   it("never uses a card before its running lineup settles", () => {
-    const list = [...squad(game("A", "2026-10-31T11:00:00Z"), "a", 95), ...squad(game("B", "2026-11-01T17:30:00Z"), "b", 60)];
-    const held = squad(game("A", "2026-10-31T11:00:00Z"), "a", 95).map((o) => ({ card: o.card.slug, until: Date.parse("2026-10-31T13:00:00Z") }));
+    const held = squad(game("A", "2026-10-31T11:00:00Z"), "a", 60).map((o) => ({ card: o.card.slug, until: Date.parse("2026-10-31T13:00:00Z") }));
     const plan = climbWindows(list, steps, { ...from(2, 4, 1), held }, 0.5, NOW);
-    expect(plan.surest[0]!.at).toBe(Date.parse("2026-11-01T17:30:00Z"));
-  });
-
-  it("starts again from step 1 after the top step, and its outcomes follow the Surest rule", () => {
-    const easy = [1, 2].map((number) => ({ number, target: 200, lives: 4, big: false }));
-    const hours = ["08", "11", "14", "17", "20"];
-    const list = hours.map((h) => squad(game(`G${h}`, `2026-10-31T${h}:00:00Z`), `g${h}`, 80)).flat();
-    const plan = climbWindows(list, easy, from(1), 0.5, NOW);
-    expect(plan.surest.slice(0, 3).map((m) => m.step)).toEqual([1, 2, 1]);
-    const missed = plan.after(plan.surest[0]!, false, true);
-    expect(missed[0]).toMatchObject({ step: 1 });
-    expect(missed[0]!.gain).toBeDefined();
-  });
+    expect(plan.surest[2]!.every((m) => m.at !== Date.parse("2026-10-31T11:00:00Z"))).toBe(true);
+  }, 30_000);
 });
 
 describe("the ladder's week", () => {

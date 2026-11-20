@@ -483,8 +483,8 @@ test("step one spends four resettable lives and keeps every insurance team ident
   expect(new Set(players).size).toBe(20);
 });
 
-test("the chain's Surest switch waits for the window that clears the step most surely, and says by how much", async ({ page }) => {
-  // Owner, 10 Nov 2026: "the closest best lineups I can actually play for that step ... sacrificing speed".
+test("Surest lets you choose a step and lists its five surest lineups to the set's end; a tap on the ladder opens the same view", async ({ page }) => {
+  // Owner, 20 Nov 2026: "the surest has to let me choose a step and it tells me for that step the surest lineups I can put".
   const later = new Date(Date.parse(KICKOFF) + 26 * 3600000).toISOString();
   const games = [KICKOFF, later].map((date, i) => ({ id: `Game:sure-${i}`, date, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: `club-${i}`, name: `Club ${i}` }, awayTeam: { slug: `rival-${i}`, name: `Rival ${i}` } }));
   const cards = games.flatMap((_, i) => SQUAD.map(([slug, player, name, position]) => ({ slug: `${slug}-${i}`, pictureUrl: null, anyPositions: [position], cardSet: { slug: "glitch" }, skinEdition: { bonus: 1 }, anyPlayer: { slug: `${player}-${i}`, displayName: `${name} ${i}` }, anyTeam: { slug: `club-${i}`, name: `Club ${i}` } })));
@@ -504,12 +504,20 @@ test("the chain's Surest switch waits for the window that clears the step most s
   await expect(modes.getByRole("button", { name: "Fastest" })).toHaveAttribute("aria-pressed", "true");
   const node = chain.locator(".arc-chain-node").first();
   await expect(node.locator(".arc-chain-time")).toHaveText(clock(KICKOFF));
-  await expect(chain.locator(".arc-chain-gain")).toHaveCount(0);
   await modes.getByRole("button", { name: "Surest" }).click();
   await expect(modes.getByRole("button", { name: "Surest" })).toHaveAttribute("aria-pressed", "true");
-  await expect(node.locator(".arc-chain-time")).toHaveText(clock(later));
-  const gain = Number((await node.locator(".arc-chain-gain").textContent())!.match(/^\+(\d+) vs fastest$/)![1]);
-  expect(gain).toBeGreaterThanOrEqual(15);
+  const surest = page.getByRole("region", { name: /five surest lineups$/ });
+  const stepChoice = surest.getByRole("group", { name: "Surest step" });
+  await expect(stepChoice.getByRole("button", { pressed: true })).toHaveCount(1); // the step you are on
+  await stepChoice.getByRole("button", { name: /^Step 2 · 300$/ }).click();
+  await expect(page.getByRole("region", { name: "Step 2: five surest lineups" })).toBeVisible();
+  const options = surest.getByRole("group", { name: "Surest lineups" }).getByRole("button");
+  await expect(options.first()).toBeVisible();
+  expect(await options.count()).toBeGreaterThanOrEqual(2); // each game's own, and a span over both
+  expect(await options.count()).toBeLessThanOrEqual(5);
+  await expect(options.first()).toContainText(clock(later)); // the stronger later game first, beyond the next move
+  const odds = (await options.allTextContents()).map((t) => Number(t.match(/(\d+)%$/)![1]));
+  expect(odds).toEqual([...odds].sort((a, b) => b - a));
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
@@ -517,39 +525,24 @@ test("the chain's Surest switch waits for the window that clears the step most s
     if (process.env.ARCADE_PLAN_SHOT) await chain.screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-surest-${width}.png` });
   }
   await page.setViewportSize({ width: 1440, height: 900 });
-  await node.click();
-  const detail = chain.locator(".arc-chain-detail");
-  await expect(detail).toContainText(`+${gain} points over the fastest chain`);
-  const names = await detail.locator(".arc-lineup li").evaluateAll((items) => items.map((li) => li.getAttribute("aria-label")));
-  expect(names.every((n) => n!.endsWith(" 1"))).toBe(true); // the later game's cards
-  const outcomes = page.getByRole("group", { name: "What comes next" });
-  await expect(outcomes).not.toContainText("working it out", { timeout: 30_000 });
-  await detail.getByRole("button", { name: "Edit in Pick teams" }).click();
-  await page.getByText("Each card's numbers").click();
-  expect(await page.locator(".arc-detail .arc-lineup li").evaluateAll((items) => items.map((li) => li.getAttribute("aria-label")))).toEqual(names);
+  await options.nth(1).click();
+  await expect(options.nth(1)).toHaveAttribute("aria-pressed", "true");
+  const five = await surest.locator(".arc-lineup li").evaluateAll((items) => items.map((li) => li.getAttribute("aria-label")));
+  expect(five).toHaveLength(5);
+  await surest.getByRole("button", { name: "Edit in Pick teams" }).click();
+  await expect(page.locator(".arc-plan .arc-aim select")).toHaveValue("2");
+  expect(await page.locator(".arc-pitch li img, .arc-pitch li .arc-card-blank").evaluateAll((items) => items.map((el) => el.getAttribute("alt") ?? el.textContent))).toEqual(expect.arrayContaining(five));
   await modes.getByRole("button", { name: "Fastest" }).click();
+  await expect(surest).toHaveCount(0);
   await expect(node.locator(".arc-chain-time")).toHaveText(clock(KICKOFF));
-  await expect(chain.locator(".arc-chain-detail")).toHaveCount(0);
-  // The ladder is the next 7 days, and a tapped step lists its likeliest lineups (owner, 10 Nov 2026).
+  // The ladder is the next 7 days; a tapped step opens the same Surest view at that step.
   const ladder = page.locator(".arc-ladder");
   await expect(ladder).toHaveAttribute("data-caption", "Next 7 days");
   await ladder.locator("li").filter({ hasText: "300" }).getByRole("button").click();
-  const best = page.getByRole("region", { name: "Step 2: five likeliest lineups" });
-  const options = best.getByRole("group", { name: "Step lineups" }).getByRole("button");
-  await expect(options.first()).toBeVisible();
-  expect(await options.count()).toBeGreaterThanOrEqual(2); // each game's own, and a span over both
-  expect(await options.count()).toBeLessThanOrEqual(5);
-  const odds = (await options.allTextContents()).map((t) => Number(t.match(/(\d+)%$/)![1]));
-  expect(odds).toEqual([...odds].sort((a, b) => b - a));
-  await options.nth(1).click();
-  await expect(options.nth(1)).toHaveAttribute("aria-pressed", "true");
-  const five = await best.locator(".arc-lineup li").evaluateAll((items) => items.map((li) => li.getAttribute("aria-label")));
-  expect(five).toHaveLength(5);
-  await best.getByRole("button", { name: "Edit in Pick teams" }).click();
-  await expect(page.locator(".arc-plan .arc-aim select")).toHaveValue("2");
-  expect(await page.locator(".arc-pitch li img, .arc-pitch li .arc-card-blank").evaluateAll((items) => items.map((el) => el.getAttribute("alt") ?? el.textContent))).toEqual(expect.arrayContaining(five));
-  await ladder.locator("li").filter({ hasText: "300" }).getByRole("button").click();
-  await expect(best).toHaveCount(0);
+  await expect(modes.getByRole("button", { name: "Surest" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("region", { name: "Step 2: five surest lineups" })).toBeVisible();
+  await expect(ladder.locator("li").filter({ hasText: "300" }).getByRole("button")).toHaveAttribute("aria-pressed", "true");
+  await modes.getByRole("button", { name: "Fastest" }).click();
   // One aim for Pick teams and Batch (9 Nov 2026: two pickers, two saved values).
   const teamsAim = page.locator(".arc-plan .arc-aim select");
   await teamsAim.selectOption("2");

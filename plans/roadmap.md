@@ -15,7 +15,7 @@ and a check, so a session can work through it alone and stop only where you have
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
 20 Nov, first: **the Arcade audit** ([TODO.md](../TODO.md) "Arcade audit: every tab against the main app"), in its order: A missing numbers
-score higher than real ones, B kick-offs not set yet, C finished games, D the move's heading, then E the main app's words and F layout.
+score higher than real ones (waiting for your choice of fix), B kick-offs not set yet, C finished games, D the move's heading, G Surest by step, then E the main app's words and F layout.
 
 16 Nov, first: **the overlay, feature by feature** ([TODO.md](../TODO.md) "The overlay, feature by feature"): delete the odds row and the
 captain pick, then why parts sometimes do not appear, the team gauge and list bar, gallery prices, and the dock in Arcade.

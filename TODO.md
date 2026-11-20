@@ -33,9 +33,20 @@ What lies under the 10-day-old board: the age is fine, but beyond each player's 
 - Result: a game with no information beats one with real information. On 20 Nov, Play next proposed Tue 24 Nov (Champions League), 5 of 5
   cards with no start %, xS 57-71, over tonight's games whose start % is known. The chain to 6 Jan is built the same way, and Batch,
   Teams to build around, Pick teams, cut losses and the Players sort all inherit it.
-- Fix: a card with no start % counts at his own record (his share of starts in recent games of that competition, from the games mirror),
-  never 100%; with no record, a dash and out of the pool (rule "No made-up numbers"). The spread includes the start risk. Past-score
-  averages say "Recent form" on the card, as now, and the move's verdict says how many of its cards are on form, not a forecast.
+- Proof (you, 20 Nov: "is it true? I am not sure it can"): the chain's Sat 28 Nov step 4 lineup, "42% that one clears" 400. Two of
+  its five have not played for months and Sorare says so: Jake Bidwell (status NOT_PLAYING, tier DNP, 0 minutes in his last 10 club
+  games; his 71 is the average of 2 old games) and Jeremiaha Maluze, the captain (NOT_PLAYING, DNP, last start 19 Sep; his 80 is the
+  average of 2 games). Both counted as sure starters. Without them the other three average about 197; the honest chance is about 0%.
+- Data already published: `player_games:<slug>` (5,346 players, R2 and `npm run blocks`) holds every past game's played/started/minutes
+  and, for up to two coming games, Sofix's own forecast (`sofix_x`) and Futbol Fantasy's start % (`ff_start`). Sorare's status
+  (STARTER / REGULAR / NOT_PLAYING, tier DNP) is in Arcade's extras already and is not used by the score.
+- Fix (recommended, waiting for your choice): a card with no start % for a game counts at **his own record**: his share of starts in his
+  last 10 club games, published by the refresh as one small block for Arcade's players (not 693 block reads on the page). Sorare's
+  NOT_PLAYING / DNP with no start in his last 5 means out of the pool. With no record, a dash and out of the pool (rule "No made-up
+  numbers"). Sofix's `sofix_x` replaces the past-score average where published; a past-score average needs at least 3 games. The spread
+  includes the start risk. The captain is never a card on his record alone while one with a real start % is in the lineup. A move built
+  mostly on records says so ("early plan: start % arrive the day before") and is planned again when real % arrive.
+- Rejected: plan only games with a real start % (the chain would end after one or two days); keep 100% with a penalty (a made-up number).
 - Also: a stale board copy freezes Sorare's game list (kick-off times, finished games) and projections; when the copy is older than
   6 hours, Arcade re-reads the game list from Sofix's boards where it can and says which parts are as of the copy.
 - Done when: on your board, no Play next, chain step or Batch team is chosen on cards with neither a start % nor a record; a test
@@ -63,6 +74,13 @@ size: "Play now", "Hold for Tue 21:00", "Nothing to play".
    never two letters.
 5. FDR colour and number agree on mixed-league screens: the band from the number, the same cut-offs in every league (Players, Pick teams).
 6. xG with one decimal everywhere (Batch has two).
+
+### G · Surest: pick a step, see its surest lineups (you, 20 Nov 2026)
+"The surest has to let me choose a step and it tells me for that step the surest lineups I can put." Today Surest is a second chain
+(each step waits for a window 15 points better than Fastest), and the ladder's step tap shows five likeliest lineups within 7 days only.
+Fix: Surest becomes a step choice (Step 1-6, default the step you are on) and the five surest lineups for that step from every window to
+the set's end, highest chance first, each with its day and time, chance, cards and "Edit in Pick teams"; cards held by a lineup still
+running are left out. The ladder's tap opens the same view, so there is one place for it. Built after A, so the chances are honest.
 
 ### F · Layout
 1. Players: the 12 filters become search, position, league and a "More" sheet; default sort by xS of the next game, not by name.

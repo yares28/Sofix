@@ -9,7 +9,9 @@ import type { Outlook } from "./arcadePlan";
 
 const { renderToStaticMarkup } = createRequire(import.meta.url)("react-dom/server") as { renderToStaticMarkup(node: React.ReactNode): string };
 vi.stubGlobal("React", React);
-afterAll(() => vi.unstubAllGlobals());
+// The card's game is ahead of this clock: a game two hours past kick-off is no card's next game (plans/arcade-trust.md step 3).
+vi.useFakeTimers({ now: Date.parse("2026-10-25T09:00:00Z"), toFake: ["Date"] });
+afterAll(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 const card: ArcadeCard = { slug: "card", player: "player", name: "A player", team: "Club", teamSlug: "club", teamPicture: null, league: null, positions: ["Forward"], picture: null, edition: "Holo", bonus: 1.1 };
 const game: ArcadeGame = { id: "game", kickoff: "2026-10-25T12:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "club", name: "Club", crest: null }, away: { slug: "away", name: "Away", crest: null } };
 const outlook: Outlook = { card, game, score: 60, decisive: .65, xd: .02, scoreSource: "sofix", start: 0, startSource: "futbolfantasy", startUrl: "https://www.futbolfantasy.com/partidos/22493", past: [], bonus: .1, club: 0 };

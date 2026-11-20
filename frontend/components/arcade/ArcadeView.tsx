@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_NATION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, sideIn, newerChances, outlookOf, pruneArcadeStorage, readArcade, setEnded, readArcadeBench, readArcadeExtras, usableArcade, walkArcade, loadArcadeSaved,
+  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_NATION_VERSION, ARCADE_PLAN_VERSION, chanceOf, currentGames, gamesOf, keepArcade, lastArcade, sideIn, newerChances, outlookOf, pruneArcadeStorage, readArcade, setEnded, readArcadeBench, readArcadeExtras, usableArcade, walkArcade, loadArcadeSaved,
   type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk, type KeptArcade,
 } from "../../lib/arcade";
 import { readCopy, shareCopy } from "../../lib/chromeCopy";
@@ -71,7 +71,8 @@ const WALKED: Record<string, string> = {
 
 function Loaded({ arcade: board, unread, laliga, fdr, onReload, busy }: { arcade: Arcade; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; onReload: () => void; busy: boolean }) {
   // Games Sorare has not timed take the board's kick-off, else stay "Date TBC" and out of every timed plan (plans/arcade-trust.md step 2).
-  const allGames = useMemo(() => (board.games ? settleKickoffs(board.games, fdr) : null), [board.games, fdr]);
+  // Games of an earlier day leave every view; today's finished ones stay for the missions' picks (step 3). Worked out once per read.
+  const allGames = useMemo(() => (board.games ? currentGames(settleKickoffs(board.games, fdr), Date.now()) : null), [board.games, fdr]);
   const arcade = useMemo(() => ({ ...board, games: allGames?.filter((g) => !g.tbc) ?? null }), [board, allGames]);
   // Each game of a league with a Sofix board, matched to the board's fixture (kick-off and clubs).
   const boards = useMemo(() => new Map((arcade.games ?? []).flatMap((g) => { const f = matchFixture(g, fdr); return f ? [[g.id, f] as const] : []; })), [arcade.games, fdr]);

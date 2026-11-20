@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bonusLabel, chanceOf, gamesOf, keptCards, newerChances, outlookOf, parseArcade, parseGames, pruneArcadeStorage, rewardLabel, setEnded, sideIn, usableArcade, type Arcade, type ArcadeCard, type ArcadeGame } from "./arcade";
+import { bonusLabel, chanceOf, currentGames, gamesOf, keptCards, newerChances, outlookOf, parseArcade, parseGames, pruneArcadeStorage, rewardLabel, setEnded, sideIn, usableArcade, type Arcade, type ArcadeCard, type ArcadeGame } from "./arcade";
 
 const main = {
   cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: "2026-09-08T08:30:00Z", endDate: "2026-10-27T16:00:00Z", availableCompetitions: [{ slug: "laliga-es", displayName: "LALIGA EA Sports" }] } },
@@ -196,5 +196,19 @@ describe("old Arcade data in this browser", () => {
       "sofix-arcade-extras:2:divination", "sofix-arcade-extras:2:glitch", "sofix-arcade-extras:glitch", "sofix-arcade-teams:glitch:b1",
     ]);
     expect([...map.values()].every((v) => v === "keep" || v.includes(String(now - 3_600_000)))).toBe(true);
+  });
+});
+
+describe("finished games (plans/arcade-trust.md step 3)", () => {
+  // 20 Nov 2026: a 10 Nov board still listed 12-14 Nov Nations League games, and the Players day filter offered those days.
+  const now = Date.parse("2026-11-20T20:00:00Z"); // 21:00 in Madrid
+  const at = (id: string, kickoff: string) => ({ id, kickoff, home: { slug: "rma" }, away: { slug: "x" } }) as ArcadeGame;
+  const games = [at("old", "2026-11-14T19:45:00Z"), at("today-done", "2026-11-20T14:00:00Z"), at("live", "2026-11-20T19:30:00Z"), at("next", "2026-11-21T15:00:00Z")];
+  it("leaves out a card's games more than two hours past kick-off as his next game, keeping a game still being played", () => {
+    expect(gamesOf({ teamSlug: "rma" }, games, now).map((g) => g.id)).toEqual(["live", "next"]);
+    expect(gamesOf({ teamSlug: "rma" }, games).map((g) => g.id)).toEqual(["old", "today-done", "live", "next"]);
+  });
+  it("keeps today's finished games for the missions, and drops those of an earlier day", () => {
+    expect(currentGames(games, now).map((g) => g.id)).toEqual(["today-done", "live", "next"]);
   });
 });

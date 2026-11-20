@@ -2,7 +2,7 @@ import { z } from "zod";
 import { readCopy, shareCopy } from "./chromeCopy";
 import { askExtension, extensionAtLeast, pingExtension } from "./extension";
 import { REFRESH_HEADER } from "./refresh";
-import { sideIn, type Outlook, type PackOdds, type StartSource } from "./arcadePlan";
+import { madridDate, SETTLES_AFTER_MS, sideIn, type Outlook, type PackOdds, type StartSource } from "./arcadePlan";
 export { sideIn };
 import { parseTierOdds, type TierOdds } from "./arcadePacks";
 import type { PlayerStatus } from "./arcadeTeams";
@@ -313,8 +313,15 @@ export function parseGames(pages: unknown[]): ArcadeGame[] | null {
 }
 
 /** A card's games on the board: those its club or its national team plays, by kick-off. */
-export function gamesOf(card: Pick<ArcadeCard, "teamSlug" | "nation">, games: ArcadeGame[]): ArcadeGame[] {
-  return games.filter((g) => sideIn(card, g) !== null).sort((a, b) => a.kickoff.localeCompare(b.kickoff));
+/** A card's games, earliest first; with `now`, without those finished (more than two hours past kick-off: plans/arcade-trust.md step 3). */
+export function gamesOf(card: Pick<ArcadeCard, "teamSlug" | "nation">, games: ArcadeGame[], now?: number): ArcadeGame[] {
+  return games.filter((g) => sideIn(card, g) !== null && (now === undefined || Date.parse(g.kickoff) + SETTLES_AFTER_MS > now)).sort((a, b) => a.kickoff.localeCompare(b.kickoff));
+}
+
+/** The board's games without those of an earlier Madrid day: today's finished games stay, for the missions' picks. */
+export function currentGames<G extends Pick<ArcadeGame, "kickoff">>(games: G[], now: number): G[] {
+  const today = madridDate(new Date(now).toISOString());
+  return games.filter((g) => madridDate(g.kickoff) >= today);
 }
 
 const thousands = (value: number) => value.toLocaleString("en-GB");

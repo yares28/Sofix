@@ -11,9 +11,9 @@ import { leagueLabel } from "../../lib/arcadeFdr";
 
 const PAGE_SIZE = 12;
 const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
-function Card({ card, games, outlooks, crests }: { card: ArcadeCard; games: ArcadeGame[] | null; outlooks: Map<string, Map<string, Outlook>>; crests: Map<string, string> }) {
+function Card({ card, games, outlooks, crests, now }: { card: ArcadeCard; games: ArcadeGame[] | null; outlooks: Map<string, Map<string, Outlook>>; crests: Map<string, string>; now: number }) {
   const [chosen, setChosen] = useState<string | null>(null);
-  const mine = gamesOf(card, games ?? []);
+  const mine = gamesOf(card, games ?? [], now);
   const game = mine.find((g) => g.id === chosen) ?? mine[0];
   const outlook = game ? outlooks.get(game.id)?.get(card.slug) : undefined;
   return <PlayerCard card={card} outlook={outlook} game={game} fixtures={mine} crests={crests} onSelect={setChosen} unavailable={games === null ? "Games unavailable" : undefined} />;
@@ -42,9 +42,12 @@ export default function ArcadeCards({ cards, games, outlooks, status, form }: { 
   const leagues = useMemo(() => [...new Map(cards.flatMap((c) => c.league ? [[c.league.slug, leagueLabel(c.league)] as const] : [])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [cards]);
   const editions = useMemo(() => [...new Set(cards.map((c) => c.edition ?? "Standard"))].sort(), [cards]);
   const crests = useMemo(() => new Map(cards.flatMap((c) => c.teamSlug && c.teamPicture ? [[c.teamSlug, c.teamPicture] as const] : [])), [cards]);
+  // Finished games are no card's next game (plans/arcade-trust.md step 3); the clock moves with each read of the board.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refreshed with the games, as Batch does
+  const now = useMemo(() => Date.now(), [games]);
   const indexed = useMemo(() => new Map([...outlooks].map(([id, list]) => [id, new Map(list.map((o) => [o.card.slug, o]))])), [outlooks]);
   const rows = useMemo(() => cards.map((card) => {
-    const next = games ? gamesOf(card, games)[0] : undefined;
+    const next = games ? gamesOf(card, games, now)[0] : undefined;
     const outlook = next ? indexed.get(next.id)?.get(card.slug) : null;
     const difficulty = next ? sideOf(boards.get(next.id), sideIn(card, next) === next.home?.slug)?.mine.difficulty : null;
     const played = form[card.player];
@@ -53,7 +56,7 @@ export default function ArcadeCards({ cards, games, outlooks, status, form }: { 
       tier: tierChoice(status[card.player]?.tier), l5: played?.l5 ?? null, l10: played?.l10 ?? null, l40: played?.l40 ?? null,
       day: games === null ? null : next ? (next.tbc ? "tbc" : madridDate(next.kickoff)) : "none",
     };
-  }), [cards, games, indexed, boards, status, form]);
+  }), [cards, games, now, indexed, boards, status, form]);
   const days = useMemo(() => [...new Set(rows.flatMap((r) => (r.day && r.day !== "none" ? [r.day] : [])))].sort(), [rows]);
   const shown = useMemo(() => {
     const words = query.trim().toLowerCase();
@@ -100,7 +103,7 @@ export default function ArcadeCards({ cards, games, outlooks, status, form }: { 
         <p className="arc-count" role="status">{shown.length ? `${at * PAGE_SIZE + 1}–${at * PAGE_SIZE + slice.length} of ${shown.length.toLocaleString("en-GB")}` : "No card matches"}</p>
         {filtered ? <button type="button" className="arc-clear" onClick={clear}>Clear filters</button> : null}
       </div>
-      <div className="arc-grid">{slice.map(({ card }) => <Card key={card.slug} card={card} games={games} outlooks={indexed} crests={crests} />)}</div>
+      <div className="arc-grid">{slice.map(({ card }) => <Card key={card.slug} card={card} games={games} outlooks={indexed} crests={crests} now={now} />)}</div>
       {pages > 1 ? <nav className="arc-pager" aria-label="Card pages"><button type="button" onClick={() => setPage(at - 1)} disabled={at === 0}>Previous</button><span>Page {at + 1} of {pages}</span><button type="button" onClick={() => setPage(at + 1)} disabled={at >= pages - 1}>Next</button></nav> : null}
     </section>
   );

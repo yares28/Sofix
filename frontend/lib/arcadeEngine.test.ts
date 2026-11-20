@@ -31,7 +31,8 @@ function deps(over: Partial<EngineDeps> = {}) {
   const d: EngineDeps = {
     readArcade: async (): Promise<ArcadeRead> => ({ state: "ok", arcade: arcade(), unread: [] }),
     readExtras: async () => extras,
-    appData: async () => ({ laliga: {}, chances: {} }),
+    // Every card's start record (the job's arcade_outlook): without one, a card with no start % is left out.
+    appData: async () => ({ laliga: {}, chances: {}, records: { ranking: { start: {}, score: {} }, players: Object.fromEntries(cards.map((c) => [c.player, { n: 10, s: 0.9, o: 0.05, x: 55, b: 40 }])) } }),
     readBench: async () => null,
     readElevens: async () => noElevens,
     plan: async (input) => work({ kind: "plan", input }),

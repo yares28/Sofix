@@ -25,6 +25,7 @@ is one read model (`audit`), written by the refresh after the start record and s
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,7 @@ from app.services import kept_blocks
 from app.services.publish import put
 from app.services.timeutil import as_utc
 from app.sorare import (
+    arcade_outlook,
     backtest,
     frozen_scores,
     lineup_audit,
@@ -50,6 +52,8 @@ from app.sorare import (
     versus,
 )
 from app.sorare.publish import ARCHIVE_PREFIX, SETTLE
+
+logger = logging.getLogger(__name__)
 
 AUDIT_KEY = "audit"
 VERSION = 1
@@ -578,6 +582,11 @@ def publish(db: Session, now: datetime) -> dict[str, int]:
     missions.settle_kept(db, now)
     page = from_kept(db, now, write=True)
     put(db, AUDIT_KEY, page, now)
+    try:  # Arcade's ranked sources follow the same settled games (plans/arcade-trust.md §4); the Audit never waits on them
+        arcade_outlook.publish(db, now)
+    except Exception:  # noqa: BLE001 - Arcade keeps the ranking it had
+        logger.exception("arcade outlook failed")
+        db.rollback()
     return {
         "bytes": len(json.dumps(page, separators=(",", ":"))),
         "settled": sum(figures["settled"] for figures in page["starts"]["live"].values()),

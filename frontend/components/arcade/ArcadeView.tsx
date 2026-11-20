@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_NATION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, sideIn, loadArcadeChances, newerChances, outlookOf, pruneArcadeStorage, readArcade, setEnded, readArcadeBench, readArcadeExtras, usableArcade, walkArcade,
+  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_NATION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, sideIn, newerChances, outlookOf, pruneArcadeStorage, readArcade, setEnded, readArcadeBench, readArcadeExtras, usableArcade, walkArcade, loadArcadeSaved,
   type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk, type KeptArcade,
 } from "../../lib/arcade";
 import { readCopy, shareCopy } from "../../lib/chromeCopy";
+import type { ArcadeRecords } from "../../lib/arcadeRecords";
 import type { Outlook } from "../../lib/arcadePlan";
 import { matchFixture, type FdrFixture } from "../../lib/arcadeFdr";
 import ArcadeLive from "./ArcadeLive";
@@ -81,20 +82,22 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
   const gameIds = useMemo(() => {
     return (arcade.games ?? []).filter((g) => arcade.cards.some((c) => sideIn(c, g) !== null)).map((g) => g.id);
   }, [arcade]);
+  const players = useMemo(() => [...new Set(arcade.cards.map((c) => c.player))].sort(), [arcade.cards]);
+  const [records, setRecords] = useState<ArcadeRecords | null>(null);
   const [bench, setBench] = useState<ArcadeBench | "reading" | null>(null);
   const [elevens, setElevens] = useState<ArcadeElevens | null>(null);
   const benchStep = arcade.board?.steps.find((s) => s.number === climbStep(arcade)) ?? null;
   const refresh = useCallback(async (force = false) => {
     setBench("reading");
-    const [saved, read, official] = await Promise.all([
-      loadArcadeChances(gameIds),
+    const [{ chances: saved, records: ranked }, read] = await Promise.all([
+      loadArcadeSaved(gameIds, players),
       benchStep ? readArcadeBench(benchStep.id, arcade.set.end, force) : null,
-      readArcadeElevens(arcade.games ?? [], arcade.cards, force).then((official) => { setElevens(official); return official; }),
+      readArcadeElevens(arcade.games ?? [], arcade.cards, force).then(setElevens),
     ]);
     setChances(read && Object.keys(read.chances).length ? newerChances(saved, read.chances) : saved);
-    setElevens(official);
+    if (ranked) setRecords(ranked);
     setBench(read);
-  }, [gameIds, benchStep, arcade.set.end, arcade.games, arcade.cards]);
+  }, [gameIds, players, benchStep, arcade.set.end, arcade.games, arcade.cards]);
   useEffect(() => { void refresh(); }, [refresh]); // once per read; never on a timer
   const [extras, setExtras] = useState<ArcadeExtras | null | "reading">("reading");
   useEffect(() => { void readArcadeExtras(arcade).then(setExtras); }, [arcade]); // once per read
@@ -107,11 +110,11 @@ function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcad
   const outlooks = useMemo(() => {
     const out = new Map<string, Outlook[]>();
     for (const game of arcade.games ?? []) {
-      const list = arcade.cards.filter((c) => sideIn(c, game) !== null).map((c) => outlookOf(c, game, ready, chances, laliga, elevens?.chances));
+      const list = arcade.cards.filter((c) => sideIn(c, game) !== null).map((c) => outlookOf(c, game, ready, chances, laliga, elevens?.chances, records));
       if (list.length) out.set(game.id, list);
     }
     return out;
-  }, [arcade, ready, chances, laliga, elevens]);
+  }, [arcade, ready, chances, laliga, elevens, records]);
   // The plan and the mission picks are worked out once the start % read is done, not again for every answer on the way.
   const [planOutlooks, setPlanOutlooks] = useState<Map<string, Outlook[]> | null>(null);
   useEffect(() => { if (elevens || (bench !== "reading" && (bench !== null || !benchStep))) setPlanOutlooks(outlooks); }, [outlooks, bench, benchStep, elevens]);

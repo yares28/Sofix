@@ -177,9 +177,10 @@ describe("teams to build around", () => {
     expect(signalOf(o("a", "lille", 60, 0.9), { tier: null, playing: "STARTER", injured: true, back: null })).toBe("out");
   });
   it("ranks clubs by what up to three likely starters add, including a single owned starter", () => {
-    const list = [o("a", "lille", 60, 0.9), o("b", "lille", 50, null), o("c", "lille", 90, 0.2), o("d", "lens", 80, 0.9)];
-    const picks = clubsToBuildAround(new Map([["G", list]]), [g], { b: { tier: null, playing: "STARTER", injured: false, back: null } }, 0, Infinity);
-    expect(picks.map((p) => [p.club, p.value, p.likely])).toEqual([["lille", 104, 2], ["lens", 72, 1]]);
+    const list = [o("a", "lille", 60, 0.9), o("b", "lille", 50, 0.8), o("c", "lille", 90, 0.2), o("d", "lens", 80, 0.9), o("e", "lille", 99, null)];
+    const picks = clubsToBuildAround(new Map([["G", list]]), [g], { e: { tier: null, playing: "STARTER", injured: false, back: null } }, 0, Infinity);
+    // e has no start chance from any source: left out, not counted as a starter on Sorare's word (plans/arcade-trust.md §4).
+    expect(picks.map((p) => [p.club, p.value, p.likely])).toEqual([["lille", 94, 2], ["lens", 72, 1]]);
     expect(picks[0]!.cards.map((c) => c.outlook.card.player)).toEqual(["a", "b", "c"]);
   });
 });

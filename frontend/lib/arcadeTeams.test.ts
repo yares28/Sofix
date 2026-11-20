@@ -16,8 +16,9 @@ describe("clubs with one owned likely starter", () => {
     expect(result[0]).toMatchObject({ club: "barcelona", likely: 1, value: 75 * 0.9 * 1.05 });
     expect(result[0]?.cards).toHaveLength(1);
   });
-  it("keeps source fallback for missing chances but excludes known zero, injured and out-of-horizon players", () => {
-    expect(picks([{ ...raphinha, start: null, startSource: null }])).toHaveLength(1);
+  it("leaves out a card no source gives a start chance (never counted as starting), a known zero, injured and out-of-horizon players", () => {
+    expect(picks([{ ...raphinha, start: null, startSource: null }])).toEqual([]);
+    expect(picks([{ ...raphinha, start: 0.8, startSource: "record" }])).toHaveLength(1);
     expect(picks([{ ...raphinha, start: 0 }])).toEqual([]);
     expect(picks([raphinha], 0, Infinity, true)).toEqual([]);
     expect(picks([raphinha], Date.parse(game.kickoff) + 1)).toEqual([]);

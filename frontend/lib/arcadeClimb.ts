@@ -1,4 +1,4 @@
-import { batchChances, bestLineup, chanceOf, fits, likely, madridDate, multiplier, phi, predicted, simulation, RUNS, SETTLES_AFTER_MS, SLOTS, type Lineup, type LineupSearchCache, type Outlook, type Slot, type StepInfo } from "./arcadePlan";
+import { batchChances, bestLineup, chanceOf, fits, likely, madridDate, multiplier, phi, predicted, simulation, trusted, RUNS, SETTLES_AFTER_MS, SLOTS, type Lineup, type LineupSearchCache, type Outlook, type Slot, type StepInfo } from "./arcadePlan";
 
 /**
  * The climb, as Sorare's board really runs (plans/arcade-rework.md, read 29 Oct 2026): a lineup is entered on the step you are on,
@@ -67,13 +67,14 @@ export function spread(o: Pick<Outlook, "score" | "past">): number {
   return mean > 0 ? (sd * o.score) / mean : THIN_SPREAD * o.score;
 }
 
-/** A card's expected points and their variance: he starts with his chance (none known: he starts), then scores around his number. */
+/** A card's expected points and their variance: he starts, comes on or stays out by his chances, then scores around that number. */
 export function moments(o: Outlook, captain: boolean, captainBonus: number): [number, number] {
-  const mu = o.score ?? 0;
-  const p = o.start ?? 1;
+  const mu = o.score ?? 0, p = o.start ?? 0;
+  const bench = o.benchScore ?? 0, q = o.on ?? 0;
   const m = multiplier(o, captain, captainBonus);
-  const sd = spread(o);
-  return [p * mu * m, m * m * (p * (sd * sd + mu * mu) - (p * mu) ** 2)];
+  const sd = spread(o), sdBench = THIN_SPREAD * bench;
+  const mean = p * mu + q * bench;
+  return [mean * m, m * m * (p * (sd * sd + mu * mu) + q * (sdBench * sdBench + bench * bench) - mean * mean)];
 }
 
 export type Quick = { picks: { slot: Slot; outlook: Outlook; captain: boolean }[]; mean: number; sd: number; first: number; last: number };
@@ -100,7 +101,7 @@ export function quickLineup(list: Outlook[], captainBonus: number): Quick | null
     chosen.push({ slot, outlook: o });
   }
   const gain = (o: Outlook) => predicted(o, true, captainBonus)! - predicted(o)!;
-  const pool = chosen.some((c) => c.outlook.start !== null) ? chosen.filter((c) => c.outlook.start !== null) : chosen;
+  const pool = chosen.some((c) => trusted(c.outlook)) ? chosen.filter((c) => trusted(c.outlook)) : chosen;
   const captain = pool.reduce((a, b) => (gain(b.outlook) > gain(a.outlook) ? b : a)).outlook;
   const picks = chosen.map((c) => ({ ...c, captain: c.outlook === captain }));
   let mean = 0, variance = 0;

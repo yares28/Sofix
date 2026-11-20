@@ -3,6 +3,7 @@ import { readArcade, readArcadeBench, readArcadeExtras, type ArcadeChances, type
 import type { ArcadeDockModel, DockInput } from "./arcadeDock";
 import type { DockJob, DockReply } from "./arcadeDock.worker";
 import { readArcadeElevens } from "./arcadeElevens";
+import { ArcadeRecordsSchema } from "./arcadeRecords";
 import { runEngine, type EngineReport } from "./arcadeEngine";
 
 /**
@@ -24,7 +25,7 @@ const ask = (message: unknown, ms = 30_000) => new Promise<unknown>((resolve) =>
   runtime.sendMessage(message, (answer) => { clearTimeout(timer); void runtime.lastError; resolve(answer ?? null); });
 });
 
-const App = z.object({ ok: z.literal(true), laliga: z.record(z.string(), z.unknown()), chances: z.record(z.string(), z.record(z.string(), z.tuple([z.number(), z.number()]))) });
+const App = z.object({ ok: z.literal(true), laliga: z.record(z.string(), z.unknown()), chances: z.record(z.string(), z.record(z.string(), z.tuple([z.number(), z.number()]))), records: ArcadeRecordsSchema.nullish() });
 
 /** One job in a fresh worker, ended when it answers or its time is up. */
 function inWorker(job: DockJob, ms: number): Promise<ArcadeDockModel> {
@@ -51,7 +52,7 @@ async function run(prev: ArcadeDockModel | null, force: boolean) {
     readExtras: (arcade) => readArcadeExtras(arcade),
     appData: async (games, players) => {
       const parsed = App.safeParse(await ask({ type: "arcade-app", games: games.slice(0, 300), players: players.slice(0, 3000) }));
-      return parsed.success ? { laliga: parsed.data.laliga as ArcadeLaLiga, chances: parsed.data.chances as ArcadeChances } : null;
+      return parsed.success ? { laliga: parsed.data.laliga as ArcadeLaLiga, chances: parsed.data.chances as ArcadeChances, records: parsed.data.records ?? null } : null;
     },
     readBench: (stepId, until, again) => readArcadeBench(stepId, until, again),
     readElevens: (arcade, again) => readArcadeElevens(arcade.games ?? [], arcade.cards, again),

@@ -102,7 +102,7 @@ describe("arcade read", () => {
 describe("arcade games and start %", () => {
   it("uses an announced starter instead of the cached 83% model forecast", () => {
     const card = { player: "diouf", teamSlug: "nice" } as ArcadeCard;
-    const game = { id: "nice-rennes", kickoff: "2026-10-30T18:00:00Z" } as ArcadeGame;
+    const game = { id: "nice-rennes", kickoff: "2026-10-30T18:00:00Z", competition: { slug: "ligue-1-fr", name: "Ligue 1" } } as ArcadeGame;
     expect(outlookOf(card, game, null, null, { diouf: { kickoff: game.kickoff, p: 0.83, source: "sofix", sources: { sofix: 0.83 } } }, { [game.id]: { diouf: [10000, 1] } })).toMatchObject({ start: 1, startSource: "sorare", confirmed: true });
   });
   const game = (id: string, date: string, home: string, away: string) => ({ game: { id, date, statusTyped: "scheduled", competition: { slug: "c", displayName: "C" }, homeTeam: { slug: home, name: home }, awayTeam: { slug: away, name: away } } });

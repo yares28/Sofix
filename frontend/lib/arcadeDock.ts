@@ -14,7 +14,7 @@ export const WATCH_BEFORE_MS = 75 * 60_000;
 export const WATCH_EVERY_MS = 5 * 60_000;
 
 /** Whose start % a card shows: the announced eleven, else Futbol Fantasy, Sorare or Sofix. */
-export type DockSource = "lineup" | "futbolfantasy" | "sorare" | "sofix" | null;
+export type DockSource = "lineup" | "futbolfantasy" | "sorare" | "sofix" | "record" | null;
 /** Where an announced eleven puts him: starting, on the bench, or on neither list (not in the squad). */
 export type DockSheet = "starter" | "bench" | "out" | null;
 
@@ -193,7 +193,8 @@ export function buildDock(input: DockInput, climb: Pick<Climb, "path" | "week"> 
     next = climb.path[0] ? fromMove(climb.path[0], input, pool) : null;
     // The week's likeliest can miss the lineup the climb plays next (14 Nov 2026: next 41%, best 14% on his board): it joins them.
     const week = (climb.week.best[aim] ?? []).map((m) => fromMove(m, input, pool)).filter((l): l is DockLineup => !!l);
-    const all = next && next.step === aim ? [next, ...week] : week;
+    // Last in, so when the week lists the same lineup its own (lower) figure does not replace the climb's.
+    const all = next && next.step === aim ? [...week, next] : week;
     best = [...new Map(all.map((l) => [l.key, l])).values()].sort((a, b) => b.p - a.p).slice(0, 5);
   } else if (rough) {
     next = dockLineup(rough, totalsChance(rough.totals, target(input.current)), input.current, target(input.current), 1, pool, input.captainBonus, input.elevens);

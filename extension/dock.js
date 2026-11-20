@@ -766,7 +766,7 @@
   const GRACE_MS = 15 * 1000; // lib/arcadeEngine.ts: a run this far past its stage's deadline has stopped
   const STAGE_WORDS = { board: "Reading your board", forecasts: "Reading forecasts", lineups: "Checking lineups", plan: "Working out the climb" };
   const STAGE_ORDER = ["board", "forecasts", "lineups", "plan"];
-  const SOURCE = { lineup: ["XI", "Announced lineup"], futbolfantasy: ["FF", "Futbol Fantasy"], sorare: ["SO", "Sorare"], sofix: ["SX", "Sofix"] };
+  const SOURCE = { lineup: ["XI", "Announced lineup"], futbolfantasy: ["FF", "Futbol Fantasy"], sorare: ["SO", "Sorare"], sofix: ["SX", "Sofix"], record: ["RC", "His start record"] };
   const EMPTY = {
     "no-set": "No Arcade set is running on Sorare right now.",
     "no-board": "Sorare has no set board for this account yet.",

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { loadArcadeLaLiga } from "../../../../lib/arcadeLaLiga";
+import { loadArcadeLaLiga, loadArcadeRecords } from "../../../../lib/arcadeLaLiga";
 import { authorised } from "../../../../lib/extAuth";
 import { loadSavedChances } from "../../../../lib/sorareChances";
 
@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
   const body = Body.safeParse(await request.json().catch(() => null));
   if (!body.success) return NextResponse.json({ ok: false, error: "Not a list of games and players." }, { status: 400 });
   const wanted = new Set(body.data.players);
-  const [all, chances] = await Promise.all([loadArcadeLaLiga(), loadSavedChances(body.data.games)]);
+  const [all, chances, records] = await Promise.all([loadArcadeLaLiga(), loadSavedChances(body.data.games), loadArcadeRecords(body.data.players)]);
   // Only your cards' players: the whole table is every player of seven competitions.
   const laliga = Object.fromEntries(Object.entries(all).filter(([key]) => wanted.has(key.slice(0, key.lastIndexOf(":")))));
-  return NextResponse.json({ ok: true, laliga, chances }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ ok: true, laliga, chances, records }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -116,12 +116,12 @@ describe("the window planner", () => {
     expect(plan.verdict.chanceNow!).toBeGreaterThan(0.4);
   }, 30_000);
 
-  it("never captains a card with no start % while another has one", () => {
+  it("never captains a card on his record alone while another has a source's own %", () => {
     const g = game("A", "2026-10-31T11:00:00Z");
     const list = squad(g, "a", 60);
-    list[3] = { ...list[3]!, score: 90, start: null, startSource: null };
+    list[3] = { ...list[3]!, score: 90, start: 0.7, startSource: "record" };
     const q = quickLineup(list, 0.5)!;
-    expect(q.picks.find((p) => p.captain)!.outlook.start).not.toBeNull();
+    expect(q.picks.find((p) => p.captain)!.outlook.startSource).not.toBe("record");
   });
 
   it("gives a card with under 3 played games a spread, so a thin record is not counted as a sure score", () => {

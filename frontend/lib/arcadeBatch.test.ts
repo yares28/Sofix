@@ -33,7 +33,9 @@ describe("Arcade batches", () => {
     expect(teamsInBatch(list, 300, 0.5, 4)).toHaveLength(1);
     expect(teamsInBatch(list, 300, 0.5, 1, new Set(["card-0"]))).toEqual([]);
     expect(teamsInBatch(list.map((o) => o.card.slug === "card-0" ? { ...o, score: null } : o), 300, 0.5, 1)).toEqual([]);
-    expect(teamsInBatch(list.map((o) => o.card.slug === "card-0" ? { ...o, score: 0, start: null } : o), 300, 0.5, 1)).toHaveLength(1);
+    expect(teamsInBatch(list.map((o) => o.card.slug === "card-0" ? { ...o, score: 0 } : o), 300, 0.5, 1)).toHaveLength(1);
+    // No start chance from any source: left out, never counted as a starter (plans/arcade-trust.md §4).
+    expect(teamsInBatch(list.map((o) => o.card.slug === "card-0" ? { ...o, start: null } : o), 300, 0.5, 1)).toEqual([]);
   });
   it("never reuses another edition of a player and retains a known zero start chance", () => {
     const list = squad(game("a", 5));

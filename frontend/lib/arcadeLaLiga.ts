@@ -1,5 +1,11 @@
 import type { ArcadeLaLiga } from "./arcade";
+import { ArcadeRecordsSchema, type ArcadeRecords } from "./arcadeRecords";
+import { cache } from "./cache";
+import { published, readModel } from "./db";
+import { SORARE_TAG } from "./play";
 import { loadLeagueMarket, loadSorare } from "./playData";
+
+const KEY = "arcade_outlook";
 
 /**
  * Sofix's start % and xScore for each LaLiga, Premier League, Bundesliga, Ligue 1, Champions, Europa and Conference League player's
@@ -10,4 +16,29 @@ export async function loadArcadeLaLiga(): Promise<ArcadeLaLiga> {
   return Object.fromEntries([...(sorare?.market ?? []), ...leagues.flat()].filter((p) => p.fixture?.kickoff).map((p) => [`${p.slug}:${Date.parse(p.fixture!.kickoff!)}`, {
     kickoff: p.fixture?.kickoff ?? null, p: p.pStart ?? null, source: p.startSource ?? null, sources: p.sources ?? {}, ffMatch: p.ffMatch, mu: p.mu ?? null, decisive: p.decisive ?? null, xd: p.xd ?? null,
   }]));
+}
+
+/**
+ * Your cards' players' start records and the sources' ranking (read model `arcade_outlook`, about 0.4 MB for every player, read once
+ * per write): only the players asked for go to the browser (plans/arcade-trust.md §4). Null before the job has written it.
+ */
+export async function loadArcadeRecords(players: string[]): Promise<ArcadeRecords | null> {
+  if (!published() || !players.length) return null;
+  const read = cache(
+    async (): Promise<ArcadeRecords | null> => {
+      const parsed = ArcadeRecordsSchema.safeParse((await readModel<unknown>(KEY))?.payload);
+      return parsed.success ? parsed.data : null;
+    },
+    ["arcade-records-v1"],
+    { tags: [SORARE_TAG], revalidate: 3600 },
+  );
+  try {
+    const all = await read();
+    if (!all) return null;
+    const wanted = new Set(players);
+    return { ranking: all.ranking, players: Object.fromEntries(Object.entries(all.players).filter(([slug]) => wanted.has(slug))) };
+  } catch (error) {
+    console.error(`[arcade] records could not be read: ${error instanceof Error ? error.message : "unknown"}`);
+    return null;
+  }
 }

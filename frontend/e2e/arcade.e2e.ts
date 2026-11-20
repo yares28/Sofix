@@ -2,6 +2,18 @@ import { expect, test, type Page } from "@playwright/test";
 import { offline, resetBackend, smallText } from "./helpers";
 
 const GAME = "Game:11111111-2222-3333-4444-555555555555";
+/**
+ * The start records the job publishes (arcade_outlook): every card asked for starts in 10 of his last 10 here, so a card no source has
+ * a % for plays as these specs were written; a spec about the record itself passes its own.
+ */
+const recordsFor = (route: { request: () => { postDataJSON: () => unknown } }, { s = 1, skip = [] as string[] } = {}) => {
+  const players = ((route.request().postDataJSON() as { players?: string[] } | null)?.players ?? []).filter((p) => !skip.includes(p));
+  return { ranking: { start: {}, score: {} }, players: Object.fromEntries(players.map((p) => [p, { n: 10, s, o: 0, x: null, b: 40 }])) };
+};
+// Every spec gets them unless it routes the call itself (a later route wins).
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
+});
 const KICKOFF = new Date(Date.now() + 86_400_000).toISOString(); // tomorrow, inside the days Sorare projects
 /** A kick-off's Madrid time, as a chain node shows it. */
 const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
@@ -158,7 +170,8 @@ test("without the extension Arcade says so instead of showing empty numbers", as
 });
 
 test("collection cards keep their evidence compact and all reads in the hero toolbar", async ({ page }) => {
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { [GAME]: { p: [0, 1792579200], gk: [9000, 1792579200] } } } }));
+  // The others go on a 60% record, so only Keeper Two (Sorare's 90%) passes "Next start ≥80%".
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route, { s: 0.6 }), chances: { [GAME]: { p: [0, 1792579200], gk: [9000, 1792579200] } } } }));
   await withExtension(page, { ...ANSWERS, "arcade-past": { players: SQUAD.map(([, player], i) => ({ slug: player, gameplayTier: i === 0 ? "GOAT" : i === 1 ? "STAR_PLUS" : "IMPACT", playingStatus: "STARTER", activeInjuries: [], l5: i === 0 ? 62 : i === 1 ? 39.6 : null, l10: 55, l40: 41, playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })) } }, "0.4.17");
   await page.goto("/arcade");
   const toolbar = page.getByRole("group", { name: "Refresh Arcade data" });
@@ -186,7 +199,8 @@ test("collection cards keep their evidence compact and all reads in the hero too
   await page.getByRole("combobox", { name: "Start percentage" }).selectOption("zero");
   await expect(page.locator(".arc-grid .arc-card")).toHaveAttribute("aria-label", "Player One");
   await page.getByRole("combobox", { name: "Start percentage" }).selectOption("unknown");
-  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(4);
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(0); // every other card has his record: none is unknown
+  await expect(page.locator(".arc-count")).toHaveText("No card matches");
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page.locator(".arc-grid .arc-card")).toHaveCount(6);
   await expect(page.locator(".arc-again")).toHaveCount(0);
@@ -207,7 +221,7 @@ test("collection cards keep their evidence compact and all reads in the hero too
   await expect(page.locator(".arc-count")).toHaveText("No card matches");
   await page.getByRole("button", { name: "Clear filters" }).click();
   await page.getByRole("combobox", { name: "xScore", exact: true }).selectOption("60");
-  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(4);
+  await expect(page.locator(".arc-count")).toHaveText("No card matches"); // a 60% start record keeps every expected score under 60
   await page.getByRole("combobox", { name: "xScore", exact: true }).selectOption("unknown");
   await expect(page.locator(".arc-count")).toHaveText("No card matches");
   for (const [width, floor] of [[1440, 11], [390, 10]] as const) {
@@ -222,7 +236,7 @@ test("collection fixture buttons align scores and starts, filters reset paginati
   const second = "Game:11111111-2222-3333-4444-555555555556";
   const games = [GAME, second].map((id, i) => ({ id, date: new Date(Date.parse(KICKOFF) + i * 86400000).toISOString(), statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: `rival-${i}`, name: `Rival ${i}` } }));
   const cards = Array.from({ length: 25 }, (_, i) => ({ slug: `extra-${i}`, anyPositions: ["Forward"], cardSet: { slug: "glitch" }, anyPlayer: { slug: "p", displayName: `Player ${String(i).padStart(2, "0")}` }, anyTeam: { slug: i === 24 ? "unmatched" : "club", name: i === 24 ? "Unmatched" : "Club" } }));
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { [GAME]: { p: [5000, 1792579200] }, [second]: { p: [9000, 1792579200] } } } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: { [GAME]: { p: [5000, 1792579200] }, [second]: { p: [9000, 1792579200] } } } }));
   await withExtension(page, { ...ANSWERS,
     "arcade-cards": { currentUser: { cards: { nodes: cards, pageInfo: { hasNextPage: false } } } },
     "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: games.map((game) => ({ game })), pageInfo: { hasNextPage: false } } } } },
@@ -295,7 +309,8 @@ test("on a phone Arcade fits the width and keeps text readable", async ({ page }
 
 test("each card shows Sorare's start % for its next game, and the read button reports what Sorare's page gave", async ({ page }) => {
   let saved = false;
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: saved ? { [GAME]: { p: [9000, 1792579200] } } : {} } }));
+  // Player One has no record either: no start % from anyone until Sorare's is read.
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route, { skip: ["p"] }), chances: saved ? { [GAME]: { p: [9000, 1792579200] } } : {} } }));
   await withExtension(page);
   await page.goto("/arcade");
   await show(page, "Players");
@@ -310,7 +325,7 @@ test("each card shows Sorare's start % for its next game, and the read button re
 });
 
 test("each card shows its predicted score, and Pick teams builds the best lineup from the games picked with its chance at every step", async ({ page }) => {
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { [GAME]: { p: [5000, 1792579200] } } } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: { [GAME]: { p: [5000, 1792579200] } } } }));
   await withExtension(page);
   await page.goto("/arcade");
   // Player One: no projection, so his played average (60) × 50% start = 30 on the card; the +14% bonus (10% Holo + 4% club) is printed apart.
@@ -330,7 +345,8 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   await expect(lineup).toHaveCount(5);
   await expect(page.locator(".arc-detail .arc-lineup .arc-slot")).toHaveText([/^Goalkeeper/, /^Defender/, /^Midfielder/, /^Forward/, /^Extra/]);
   await expect(page.locator(".arc-detail .arc-lineup .arc-captain")).toHaveCount(1);
-  await expect(lineup.filter({ hasText: "Keeper Two" }).getByLabel("Start chance —", { exact: true })).toHaveAttribute("title", /no start % yet/);
+  // No source has a % for Keeper Two: he goes on his start record, and says so (plans/arcade-trust.md §4).
+  await expect(lineup.filter({ hasText: "Keeper Two" }).getByLabel("Start chance 100%", { exact: true })).toHaveAttribute("title", /His record's start chance/);
   await expect(page.locator(".arc-chances li.is-aim")).toContainText("Step 2 · 300");
   if (process.env.ARCADE_PLAN_SHOT) {
     await page.emulateMedia({ reducedMotion: "reduce" }); // still pictures, not mid-animation
@@ -344,7 +360,7 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
 });
 
 test("Your move says to play now, why, and the lineup to enter, beside the board's chance at every step; teams to build around feed Pick teams", async ({ page }) => {
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { [GAME]: { gk: [10000, Math.floor(Date.now() / 1000)] } } } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: { [GAME]: { gk: [10000, Math.floor(Date.now() / 1000)] } } } }));
   await withExtension(page, ANSWERS, "0.4.18");
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
@@ -389,10 +405,10 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await expect(move).not.toContainText("Settles about");
   await expect(page.locator(".arc-ladder li")).toHaveCount(2);
   await expect(page.locator(".arc-chain")).toHaveCount(0); // one game: no chain to show
-  // Club plays tomorrow with six of your cards, every one a starter on Sorare's word: the team to build around, already in Pick teams.
+  // Club plays tomorrow with six of your cards, every one a starter on his record: the team to build around, already in Pick teams.
   const club = page.locator(".arc-club").first();
   await expect(club).toContainText("Club");
-  await expect(club).toContainText("Sorare: starter");
+  await expect(club).toContainText("100% start");
   await expect(club.getByRole("button")).toHaveText("In Pick teams");
   await club.getByRole("button").click();
   await expect(page.locator(".arc-plan")).toContainText("Pick at least one game.");
@@ -421,7 +437,7 @@ test("step one spends four resettable lives and keeps every insurance team ident
   const board = structuredClone(ANSWERS.arcade) as { currentUser: { setBoard: { myCurrentStep: { id: string; level: number }; steps: Record<string, unknown>[] } } };
   board.currentUser.setBoard.myCurrentStep = { id: "s1", level: 1 };
   board.currentUser.setBoard.steps[0] = { ...board.currentUser.setBoard.steps[0], state: "PLAYABLE", engineConfiguration: { captain: 0.5 }, remainingLineupsCount: 4, maxLineupsCount: 4 };
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(page, { ...ANSWERS, arcade: board,
     "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: games.map((game) => ({ game })), pageInfo: { hasNextPage: false } } } } },
     "arcade-cards": { currentUser: { cards: { nodes: cards, pageInfo: { hasNextPage: false } } } },
@@ -475,7 +491,7 @@ test("the chain's Surest switch waits for the window that clears the step most s
   const board = structuredClone(ANSWERS.arcade) as { currentUser: { setBoard: { myCurrentStep: { id: string; level: number }; steps: Record<string, unknown>[] } } };
   board.currentUser.setBoard.myCurrentStep = { id: "s1", level: 1 };
   board.currentUser.setBoard.steps[0] = { ...board.currentUser.setBoard.steps[0], state: "PLAYABLE", engineConfiguration: { captain: 0.5 }, remainingLineupsCount: 4, maxLineupsCount: 4 };
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(page, { ...ANSWERS, arcade: board,
     "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: games.map((game) => ({ game })), pageInfo: { hasNextPage: false } } } } },
     "arcade-cards": { currentUser: { cards: { nodes: cards, pageInfo: { hasNextPage: false } } } },
@@ -565,7 +581,7 @@ function pickerAnswers() {
 
 test("Pick teams starts empty, every pick shows across pages, and a tap that leaves the five as they were says so", async ({ page }) => {
   // 9 Nov 2026: the plan's 25 games were picked on pages out of sight, so the owner's taps never changed the team.
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(page, pickerAnswers(), "0.4.18");
   await page.goto("/arcade");
   const picker = page.locator(".arc-plan");
@@ -589,7 +605,7 @@ test("Pick teams starts empty, every pick shows across pages, and a tap that lea
 
 test("games that cannot fill five put the cards they can on the pitch and keep the other slots empty", async ({ page }) => {
   // Owner, 10 Nov 2026: "just fill and keep empty where you can't fill".
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(page, pickerAnswers(), "0.4.18");
   await page.goto("/arcade");
   const picker = page.locator(".arc-plan");
@@ -605,7 +621,7 @@ test("games that cannot fill five put the cards they can on the pitch and keep t
 
 test("the club row flanks all teams with arrows while the bigger pitch, compact chances and game matrix remember selections", async ({ page }) => {
   const answers = pickerAnswers();
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(page, answers, "0.4.18");
   await page.goto("/arcade");
   const clubs = page.locator(".arc-clubs");
@@ -670,7 +686,7 @@ test("the club row flanks all teams with arrows while the bigger pitch, compact 
   await expect(picker.locator(".arc-pitch")).toContainText("Best five from your 2 games");
   await expect(picker.locator(".arc-pitch li").filter({ hasText: "FWD" }).locator(".arc-card-blank")).toHaveText("Raphinha");
   await page.unroute("**/api/arcade/chances");
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { "Game:picker-1": { "single-0": [0, Math.floor(Date.now() / 1000)] } } } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: { "Game:picker-1": { "single-0": [0, Math.floor(Date.now() / 1000)] } } } }));
   await page.getByRole("button", { name: "Refresh board and cards", exact: true }).click();
   await expect(picker.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(2);
   await expect(picker.locator(".arc-pitch")).not.toContainText("Raphinha");
@@ -679,7 +695,7 @@ test("the club row flanks all teams with arrows while the bigger pitch, compact 
   await expect(picker.locator(".arc-ticket[aria-pressed=true]")).toHaveCount(2);
   const reopened = await page.context().newPage();
   await offline(reopened);
-  await reopened.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await reopened.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(reopened, answers, "0.4.18");
   await reopened.goto("/arcade");
   await expect(reopened.locator(".arc-plan .arc-ticket[aria-pressed=true]")).toHaveCount(2);
@@ -692,7 +708,7 @@ test("the club row flanks all teams with arrows while the bigger pitch, compact 
 test("Today filters the game matrix by Madrid midnight without losing selected later games", async ({ page }) => {
   await page.clock.setFixedTime(new Date("2026-10-31T10:00:00Z"));
   const games = ["2026-10-31T14:00:00Z", "2026-10-31T23:30:00Z", "2026-10-31T22:30:00Z"].map((date, i) => ({ id: i === 0 ? GAME : `Game:date-${i}`, date, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: `rival-${i}`, name: `Rival ${i}` } }));
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(page, { ...ANSWERS, "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: games.map((game) => ({ game })), pageInfo: { hasNextPage: false } } } } } }, "0.4.18");
   await page.goto("/arcade");
   const picker = page.locator(".arc-plan");
@@ -723,7 +739,7 @@ test("saved team choices discard expired games and cleared targets, and another 
   const otherGame = "Game:expired";
   await page.addInitScript(({ game, otherGame }) => localStorage.setItem("sofix-arcade-teams:glitch:b", JSON.stringify({ games: [game, otherGame], aim: 1 })), { game: GAME, otherGame });
   const oldGame = { id: otherGame, date: new Date(Date.now() - 3600000).toISOString(), statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: "rival", name: "Rival" } };
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(page, { ...ANSWERS, "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: [{ game: oldGame }, { game: { ...oldGame, id: GAME, date: KICKOFF } }], pageInfo: { hasNextPage: false } } } } } }, "0.4.18");
   await page.goto("/arcade");
   const picker = page.locator(".arc-plan");
@@ -895,7 +911,7 @@ test("Gems and packs refreshes explicitly, retains odds after a failure and isol
 });
 
 test("a lineup on Sorare that cannot reach its target says it is dead, and cut losses when its cards help the next lineup more", async ({ page }) => {
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   const yesterday = new Date(Date.now() - 86_400_000).toISOString();
   const appearance = (slug: string, player: string, name: string, score: number, date: string) => ({ captain: false, score, locked: date === yesterday, bonus: 1, anyCard: { slug }, player: { slug: player, displayName: name }, game: { id: date === yesterday ? "Game:00000000-0000-0000-0000-000000000000" : GAME, date } });
   const cards = ANSWERS["arcade-cards"] as { currentUser: { cards: { nodes: Record<string, unknown>[] } } };
@@ -918,7 +934,7 @@ test("a lineup on Sorare that cannot reach its target says it is dead, and cut l
 });
 
 test("with extension 0.4.15 Sorare's start % come from the open Sorare tab, every day, without opening a page", async ({ page }) => {
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(page, { ...ANSWERS, "arcade-bench": { cards: 1, after: null, rows: [{ game: GAME, player: "p", basisPoints: 8500 }] } }, "0.4.15");
   await page.goto("/arcade");
   await page.getByRole("button", { name: "Start percentage read details" }).click();
@@ -936,7 +952,7 @@ test("% refresh replaces a cached forecast with the exact game's announced eleve
   const person = (slug: string, position = "Defender") => ({ slug, displayName: slug, position });
   const formation = { startingLineupAvailable: true, startingLineup: [[person("gk", "Goalkeeper")], [person("d"), person("a"), person("b"), person("c")], [person("m", "Midfielder"), person("e"), person("f"), person("h")], [person("p", "Forward"), person("j")]], bench: [person("m2", "Midfielder")] };
   const official = { anyGame: { id: GAME, date: kickoff, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: "rival", name: "Rival" }, homeFormation: formation, awayFormation: { startingLineupAvailable: false, startingLineup: [], bench: [] } } };
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(page, { ...ANSWERS, "arcade-games": games, "arcade-bench": { cards: 1, after: null, rows: [{ game: GAME, player: "p", basisPoints: 8500 }] }, "arcade-elevens": { anyGame: { ...official.anyGame, homeFormation: { startingLineupAvailable: false, startingLineup: [], bench: [] } } } }, "0.4.21");
   await page.goto("/arcade");
   await show(page, "Players");
@@ -956,7 +972,7 @@ test("% refresh replaces a cached forecast with the exact game's announced eleve
 });
 
 test("a LaLiga streak mission gets Sofix's best five for its target, and a Decisive Picker your cards by their own record", async ({ page }) => {
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   const g = (mins: number, goals: number) => ({ anyGame: { date: "2026-10-01T12:00:00Z" }, anyPlayerGameStats: { minsPlayed: mins, gameStarted: true }, detailedScore: goals ? [{ stat: "goals", statValue: goals }] : [] });
   await withExtension(page, {
     ...ANSWERS,
@@ -986,7 +1002,7 @@ test("a LaLiga streak mission gets Sofix's best five for its target, and a Decis
 });
 
 test("a Decisive Player Picker already filled shows your pick's chance, and five separate alternatives", async ({ page }, testInfo) => {
-  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   const g = (mins: number, goals: number) => ({ anyGame: { date: "2026-10-01T12:00:00Z" }, anyPlayerGameStats: { minsPlayed: mins, gameStarted: true }, detailedScore: goals ? [{ stat: "goals", statValue: goals }] : [] });
   await withExtension(page, {
     ...ANSWERS,

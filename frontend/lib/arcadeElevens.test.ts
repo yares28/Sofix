@@ -6,7 +6,7 @@ import recorded from "./fixtures/arcade-elevens-response.json";
 const extension = vi.hoisted(() => ({ ask: vi.fn(), ping: vi.fn() }));
 vi.mock("./extension", () => ({ askExtension: extension.ask, pingExtension: extension.ping, extensionAtLeast: (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true }) >= 0 }));
 const NOW = Date.parse("2026-10-30T17:10:00Z");
-const game = { id: "Game:11111111-2222-3333-4444-555555555555", kickoff: "2026-10-30T18:00:00Z", home: { slug: "nice", name: "Nice" }, away: { slug: "rennes", name: "Rennes" } } as ArcadeGame;
+const game = { id: "Game:11111111-2222-3333-4444-555555555555", kickoff: "2026-10-30T18:00:00Z", competition: { slug: "ligue-1-fr", name: "Ligue 1" }, home: { slug: "nice", name: "Nice" }, away: { slug: "rennes", name: "Rennes" } } as ArcadeGame;
 const card = (player: string, teamSlug = "nice") => ({ slug: player, player, teamSlug } as ArcadeCard);
 const players = Array.from({ length: 11 }, (_, i) => ({ slug: `p-${i}`, displayName: `P ${i}`, position: i === 0 ? "Goalkeeper" : i < 5 ? "Defender" : i < 9 ? "Midfielder" : "Forward" }));
 const formation = { startingLineupAvailable: true, startingLineup: [players.slice(0, 1), players.slice(1, 5), players.slice(5, 9), players.slice(9)], bench: [{ slug: "bench", displayName: "Bench", position: "Forward" }] };

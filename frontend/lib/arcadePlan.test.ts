@@ -25,9 +25,19 @@ describe("a card's predicted score", () => {
     expect(bonusPercent(o, true, 0.5)).toBe("+59%");
     expect(bonusPercent(outlook("a", ["Forward"], 60, 1))).toBeNull();
   });
-  it("counts a card with no start % as starting, and gives none without a projection or a past game", () => {
-    expect(predicted(outlook("a", ["Forward"], 50, null))).toBe(50);
+  it("leaves out a card no source gives a start chance, never counting him as starting (owner, 20 Nov 2026)", () => {
+    expect(predicted(outlook("a", ["Forward"], 50, null))).toBeNull();
     expect(predicted(outlook("a", ["Forward"], null, 0.9))).toBeNull();
+  });
+  it("adds what he scores coming off the bench: start × start score + come-on × bench score", () => {
+    const sub = { ...outlook("a", ["Forward"], 60, 0.5), on: 0.3, benchScore: 40 };
+    expect(predicted(sub)).toBeCloseTo(60 * 0.5 + 0.3 * 40);
+    expect(baseScore(sub)).toBeCloseTo(42);
+    const draws = simulate([{ outlook: sub, captain: false }], 0, 4000);
+    const mean = draws.reduce((a, b) => a + b, 0) / draws.length;
+    expect(mean).toBeGreaterThan(38);
+    expect(mean).toBeLessThan(46);
+    expect(draws.filter((d) => d === 0).length / draws.length).toBeCloseTo(0.2, 1); // out in 1 game in 5
   });
   it("has a likely range from his own played games only when he has 3 or more", () => {
     expect(likelyRange(outlook("a", ["Forward"], 50, 1, [40, 60]))).toBeNull();
@@ -155,7 +165,7 @@ describe("Sorare's step-3 answers", () => {
 });
 
 describe("a card's outlook", () => {
-  const extras = { club: { home: 0.04 }, past: { a: [40, 60] }, projections: { "Game:1": { a: 55 } }, unread: [] };
+  const extras = { club: { home: 0.04 }, past: { a: [40, 60, 50] }, projections: { "Game:1": { a: 55 } }, unread: [] };
   it("takes Sorare's projection, else his played average, and adds edition and club bonus", () => {
     const o = outlookOf({ ...card("a", ["Forward"], 1.05) }, GAME, extras, null, {});
     expect(o.score).toBe(55);
@@ -173,6 +183,41 @@ describe("a card's outlook", () => {
     expect(outlookOf(card("a", ["Forward"]), GAME, extras, null, sofix)).toMatchObject({ score: 62, scoreSource: "sofix" });
     const otherGame = { a: { ...sofix.a, kickoff: "2026-10-28T20:00:00Z" } };
     expect(outlookOf(card("a", ["Forward"]), GAME, extras, null, otherGame)).toMatchObject({ score: 55, scoreSource: "sorare" });
+  });
+});
+
+describe("ranked sources (owner, 20 Nov 2026: the best accuracy first, then the next)", () => {
+  const extras = { club: {}, past: { a: [40, 60, 50] }, projections: { "Game:1": { a: 55 } }, unread: [], status: {} };
+  const ranking = (start: string[], score: string[]) => ({ start: { "laliga-es": start.map((source, i) => ({ source, error: 0.1 + i / 100, n: 500 })) }, score: { "laliga-es": score.map((source, i) => ({ source, error: 17 + i, n: 500 })) } });
+  const record = { n: 10, s: 0.9, o: 0.05, x: 61, b: 40 };
+  const ff = { a: { kickoff: GAME.kickoff, p: 0.7, source: "futbolfantasy" as const, sources: { futbolfantasy: 0.7, sofix: 0.6 }, mu: 58 } };
+  it("takes the best-ranked source that has a number for this game", () => {
+    const records = { ranking: ranking(["sorare", "futbolfantasy", "sofix", "record"], ["sofix", "sorare", "form"]), players: { a: record } };
+    expect(outlookOf(card("a", ["Forward"]), GAME, extras, { "Game:1": { a: [8000, 0] } }, ff, null, records)).toMatchObject({ start: 0.8, startSource: "sorare", score: 58, scoreSource: "sofix" });
+    expect(outlookOf(card("a", ["Forward"]), GAME, extras, null, ff, null, records)).toMatchObject({ start: 0.7, startSource: "futbolfantasy" });
+    const formFirst = { ranking: ranking(["record", "sofix"], ["form", "sofix"]), players: { a: record } };
+    expect(outlookOf(card("a", ["Forward"]), GAME, extras, null, ff, null, formFirst)).toMatchObject({ start: 0.9, startSource: "record", score: 61, scoreSource: "form" });
+  });
+  it("falls to his record for a game no source has reached, with his chance to come on and bench score", () => {
+    const records = { ranking: ranking(["sorare", "record"], ["sofix", "sorare", "form"]), players: { a: record } };
+    const later = { ...GAME, id: "Game:9", kickoff: "2026-12-06T15:00:00Z" };
+    expect(outlookOf(card("a", ["Forward"]), later, extras, null, ff, null, records)).toMatchObject({ start: 0.9, startSource: "record", on: 0.05, benchScore: 40, score: 61, scoreSource: "form" });
+    const unknown = outlookOf(card("b", ["Forward"]), later, extras, null, {}, null, records);
+    expect(unknown).toMatchObject({ start: null, startSource: null });
+    expect(predicted(unknown)).toBeNull();
+  });
+  it("counts an injured player out until his return date, and only then on his record", () => {
+    const records = { ranking: ranking(["record"], ["form"]), players: { a: record } };
+    const hurt = { ...extras, status: { a: { tier: null, playing: "STARTER", injured: true, back: "2026-11-01T00:00:00Z" } } };
+    expect(outlookOf(card("a", ["Forward"]), GAME, hurt, null, {}, null, records)).toMatchObject({ start: 0, on: 0, injured: true });
+    const back = { ...GAME, id: "Game:8", kickoff: "2026-11-02T15:00:00Z" };
+    expect(outlookOf(card("a", ["Forward"]), back, hurt, null, {}, null, records)).toMatchObject({ start: 0.9, startSource: "record" });
+  });
+  it("prices the 28 Nov step 4 lineup at about 0%, not 42%: two of its five have not played for months", () => {
+    const sure = (player: string, score: number) => ({ ...outlook(player, ["Midfielder"], score, 0.9), on: 0.03, benchScore: 42 });
+    const gone = (player: string, score: number) => ({ ...outlook(player, ["Defender"], score, 0.067), startSource: "record" as const, on: 0.033, benchScore: 42 });
+    const picks = [sure("konate", 64), gone("bidwell", 71), sure("valverde", 62), sure("mbappe", 71), gone("maluze", 80)];
+    expect(chanceOf(simulate(picks.map((o, i) => ({ outlook: o, captain: i === 3 })), 0.5), 400)).toBeLessThan(0.03);
   });
 });
 
@@ -330,11 +375,11 @@ describe("Pick teams' aim", () => {
 describe("the note for cards without a start %", () => {
   // 9 Nov 2026: "5 of 5 have no start % yet" eleven days out read as an error.
   const now = Date.parse("2026-11-10T12:00:00Z");
-  it("says when Sorare gives start % for a game more than 2 days out", () => {
-    expect(noStartNote(5, Date.parse("2026-11-20T19:45:00Z"), now)).toBe("5 of 5 have no start % yet: Sorare gives it from the day before its game week starts. Until then they count as starting.");
+  it("calls a plan on start records more than 2 days out an early plan", () => {
+    expect(noStartNote(5, Date.parse("2026-11-20T19:45:00Z"), now)).toBe("Early plan: 5 of 5 go on their start record. Start % arrive the day before the game week.");
   });
-  it("asks for a fresh read closer to kick-off, and says nothing when every card has one", () => {
-    expect(noStartNote(2, Date.parse("2026-11-11T19:45:00Z"), now)).toBe("2 of 5 have no start % yet and count as starting: read start % again closer to kick-off.");
+  it("asks for a fresh read closer to kick-off, and says nothing when every card has a source's %", () => {
+    expect(noStartNote(2, Date.parse("2026-11-11T19:45:00Z"), now)).toBe("2 of 5 go on their start record: read start % again closer to kick-off.");
     expect(noStartNote(0, Date.parse("2026-11-11T19:45:00Z"), now)).toBeNull();
   });
 });

@@ -6,6 +6,7 @@ import { sideIn, type Outlook, type PackOdds, type StartSource } from "./arcadeP
 export { sideIn };
 import { parseTierOdds, type TierOdds } from "./arcadePacks";
 import type { PlayerStatus } from "./arcadeTeams";
+import { ArcadeRecordsSchema, firstOf, scoreOrder, startOrder, type ArcadeRecords, type ScoreRank, type StartRank } from "./arcadeRecords";
 
 /**
  * Arcade, step 1 (plans/set.md): your set board, common cards, gems, essence and common missions, read from your signed-in
@@ -585,13 +586,23 @@ const Saved = z.object({ chances: z.record(s, z.record(s, z.tuple([n, n]))) });
 
 /** The saved readings of the board's games (one small read; `null` when the app could not answer). */
 export async function loadArcadeChances(games: string[]): Promise<ArcadeChances | null> {
-  if (!games.length) return {};
+  return (await loadArcadeSaved(games, [])).chances;
+}
+
+/**
+ * Sorare's saved start % for the board's games and, for your cards' players, their start records and the sources' ranking
+ * (lib/arcadeRecords.ts): one call when the page opens and after each start % read; never polled.
+ */
+export async function loadArcadeSaved(games: string[], players: string[]): Promise<{ chances: ArcadeChances | null; records: ArcadeRecords | null }> {
+  if (!games.length && !players.length) return { chances: {}, records: null };
   try {
-    const response = await fetch("/api/arcade/chances", { method: "POST", headers: { "content-type": "application/json", [REFRESH_HEADER]: "1" }, body: JSON.stringify({ games: games.slice(0, 300) }) });
-    const parsed = Saved.safeParse(await response.json());
-    return response.ok && parsed.success ? parsed.data.chances : null;
+    const response = await fetch("/api/arcade/chances", { method: "POST", headers: { "content-type": "application/json", [REFRESH_HEADER]: "1" }, body: JSON.stringify({ games: games.slice(0, 300), ...(players.length ? { players: players.slice(0, 3000) } : {}) }) });
+    const body: unknown = await response.json();
+    const parsed = Saved.safeParse(body);
+    const records = ArcadeRecordsSchema.safeParse((body as { records?: unknown } | null)?.records);
+    return { chances: response.ok && parsed.success ? parsed.data.chances : null, records: response.ok && records.success ? records.data : null };
   } catch {
-    return null;
+    return { chances: null, records: null };
   }
 }
 
@@ -802,28 +813,43 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
  * else Sorare's as saved. Score if he plays: Sofix's xScore for that game (each league's model passed its own check), else Sorare's
  * projection, else his own average of the games he played. Nothing is filled in where no source has a number.
  */
-export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtras | null, chances: ArcadeChances | null, laliga: ArcadeLaLiga, elevens: ArcadeChances | null = null): Outlook {
+export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtras | null, chances: ArcadeChances | null, laliga: ArcadeLaLiga, elevens: ArcadeChances | null = null, records: ArcadeRecords | null = null): Outlook {
   const past = extras?.past[card.player] ?? [];
   const projection = extras?.projections[game.id]?.[card.player];
-  const form = past.length ? past.reduce((a, b) => a + b, 0) / past.length : null;
-  const sofix = laliga[`${card.player}:${Date.parse(game.kickoff)}`] ?? laliga[card.player];
-  const sameGame = sofix && sofix.kickoff && Date.parse(sofix.kickoff) === Date.parse(game.kickoff);
+  const kickoff = Date.parse(game.kickoff);
+  const sofix = laliga[`${card.player}:${kickoff}`] ?? laliga[card.player];
+  const sameGame = !!sofix && !!sofix.kickoff && Date.parse(sofix.kickoff) === kickoff;
+  const record = records?.players[card.player] ?? null;
   const saved = chanceOf(chances, game.id, card.player);
   const confirmed = chanceOf(elevens, game.id, card.player);
-  const [start, startSource]: [number | null, StartSource | null] = confirmed ? [confirmed.percent / 100, "sorare"] : sameGame && sofix.p !== null && sofix.source
-    ? [sofix.p, sofix.source]
-    : saved ? [saved.percent / 100, "sorare"] : [null, null];
+  const status = extras?.status?.[card.player];
+  const injured = !confirmed && !!status?.injured && (!status.back || Date.parse(status.back) > kickoff);
+  // Each source's start % for this exact game; the best-ranked one with a number wins (owner, 20 Nov 2026), the record last.
+  const said: Partial<Record<StartRank, number | null>> = { ...(sameGame && sofix.source ? { [sofix.source]: sofix.p } : {}), ...(sameGame ? sofix.sources : {}) };
+  if (saved) said.sorare = saved.percent / 100;
+  said.record = record?.s ?? null;
+  const ranked = confirmed ? ([confirmed.percent / 100, "sorare"] as const) : injured ? null : firstOf(startOrder(records, game.competition.slug), said);
+  const [start, startSource]: [number | null, StartSource | null] = injured ? [0, null] : ranked ? [ranked[0], ranked[1]] : [null, null];
+  // Coming on: his record's chance to come on when he does not start, applied to this game's chance of not starting.
+  const benchRate = record && record.s < 1 ? record.o / (1 - record.s) : 0;
+  const on = injured || start === null || !record ? 0 : startSource === "record" ? record.o : Math.min(1 - start, (1 - start) * benchRate);
+  const form = record?.x ?? (past.length >= 3 ? past.reduce((a, b) => a + b, 0) / past.length : null);
+  const scores: Partial<Record<ScoreRank, number | null>> = { sofix: sameGame ? sofix.mu ?? null : null, sorare: projection ?? null, form };
+  const score = firstOf(scoreOrder(records, game.competition.slug), scores);
   const club = card.teamSlug ? extras?.club[card.teamSlug] ?? null : null;
-  const xscore = sameGame && sofix.mu != null ? sofix.mu : null;
   return {
     card,
     game,
-    score: xscore ?? projection ?? form,
+    score: score?.[0] ?? null,
     decisive: sameGame ? sofix.decisive ?? null : null,
     xd: sameGame ? sofix.xd ?? null : null,
-    scoreSource: xscore !== null ? "sofix" : projection !== undefined ? "sorare" : form !== null ? "form" : null,
+    scoreSource: score?.[1] ?? null,
     start,
     startSource,
+    on,
+    benchScore: record?.b ?? null,
+    ...(injured ? { injured } : {}),
+    ...(record?.short ? { short: true } : {}),
     confirmed: confirmed !== null,
     startUrl: sameGame && startSource === "futbolfantasy" ? sofix.ffMatch?.url ?? null : null,
     past,

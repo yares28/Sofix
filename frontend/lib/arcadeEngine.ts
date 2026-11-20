@@ -1,3 +1,4 @@
+import type { ArcadeRecords } from "./arcadeRecords";
 import { outlookOf, newerChances, sideIn, type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead } from "./arcade";
 import { climbStart, climbStep, stepInfos } from "./arcadeBoard";
 import { DOCK_MODEL_VERSION, type ArcadeDockModel, type DockElevens, type DockInput } from "./arcadeDock";
@@ -33,7 +34,7 @@ export type EngineReport = { run: RunState; model?: ArcadeDockModel };
 export type EngineDeps = {
   readArcade: () => Promise<ArcadeRead>;
   readExtras: (arcade: Arcade) => Promise<ArcadeExtras | null>;
-  appData: (games: string[], players: string[]) => Promise<{ laliga: ArcadeLaLiga; chances: ArcadeChances } | null>;
+  appData: (games: string[], players: string[]) => Promise<{ laliga: ArcadeLaLiga; chances: ArcadeChances; records?: ArcadeRecords | null } | null>;
   readBench: (stepId: string, until: string | null, force: boolean) => Promise<ArcadeBench | null>;
   readElevens: (arcade: Arcade, force: boolean) => Promise<ArcadeElevens>;
   plan: (input: DockInput, ms: number) => Promise<ArcadeDockModel>;
@@ -117,7 +118,7 @@ export async function runEngine(deps: EngineDeps, prev: ArcadeDockModel | null, 
     const saved = app?.chances ?? null;
     const chances = bench && bench.state === "ok" && Object.keys(bench.chances).length ? newerChances(saved, bench.chances) : saved;
     const laliga = app?.laliga ?? {};
-    const outlooks: Outlook[] = myGames.flatMap((g) => arcade.cards.filter((c) => sideIn(c, g) !== null).map((c) => outlookOf(c, g, extras, chances, laliga, elevens.chances)));
+    const outlooks: Outlook[] = myGames.flatMap((g) => arcade.cards.filter((c) => sideIn(c, g) !== null).map((c) => outlookOf(c, g, extras, chances, laliga, elevens.chances, app?.records ?? null)));
     const windowed = myGames.filter((g) => Math.abs(Date.parse(g.kickoff) - elevens.at) <= 3 * 3_600_000).map((g) => g.id);
     const dockElevens: DockElevens = {
       games: elevens.games, unread: [...new Set(elevens.unread)], checked: windowed, bench: elevens.bench ?? {}, chances: elevens.chances,

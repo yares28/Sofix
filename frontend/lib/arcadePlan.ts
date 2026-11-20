@@ -3,9 +3,10 @@ import type { ArcadeCard, ArcadeGame, DecisiveGame } from "./arcade";
 /**
  * Arcade planner (plans/set.md, steps 3 to 6). Pure: the page hands it what Sorare and Sofix said, it never reads anything.
  *
- * A card's score in a game = his score if he plays (Sorare's projection, else his own average of the games he played) × his chance
- * to start × Sorare's bonus. Sorare adds its bonuses (read 21 Oct: a captain with a 2% club bonus showed 1.52), so the bonus is
- * 1 + edition + club + captain. A card with no start % is kept and counted as playing (owner's answer 10), and marked.
+ * A card's score in a game = (his chance to start × his score if he starts + his chance to come on × his score as a substitute) ×
+ * Sorare's bonus. Each number comes from the best-ranked source that has one (lib/arcadeRecords.ts, owner 20 Nov 2026), down to his own
+ * record; a card no source knows anything about is left out, never counted as starting (plans/arcade-trust.md §4). Sorare adds its
+ * bonuses (read 21 Oct: a captain with a 2% club bonus showed 1.52), so the bonus is 1 + edition + club + captain.
  */
 
 /** The side a card plays for in a game: its club's, else its national team's, else null (not his game). */
@@ -14,7 +15,7 @@ export function sideIn(card: Pick<ArcadeCard, "teamSlug" | "nation">, game: Pick
   return card.teamSlug && sides.includes(card.teamSlug) ? card.teamSlug : card.nation && sides.includes(card.nation) ? card.nation : null;
 }
 
-export type StartSource = "sorare" | "futbolfantasy" | "sofix";
+export type StartSource = "sorare" | "futbolfantasy" | "sofix" | "record";
 export type Outlook = {
   /** This game's official eleven, distinct from a forecast that happens to be 100%. */
   confirmed?: boolean;
@@ -27,8 +28,15 @@ export type Outlook = {
   /** The fixture's expected decisive contribution as published, separately from conditional mission odds. */
   xd?: number | null;
   scoreSource: "sofix" | "sorare" | "form" | null;
-  /** His chance to start, 0 to 1, and whose; null when no source has one yet. */
+  /** His chance to start, 0 to 1, and whose; null when no source has one (he is then left out). */
   start: number | null;
+  /** His chance to come on from the bench (not to start and still play), and his score when he does. */
+  on?: number;
+  benchScore?: number | null;
+  /** Out injured for this game (Sorare's word, until his return date). */
+  injured?: boolean;
+  /** His record holds fewer than five games. */
+  short?: boolean;
   startSource: StartSource | null;
   startUrl?: string | null;
   /** His last scores in games he played (minutes > 0), newest first. */
@@ -57,11 +65,18 @@ export type Lineup = {
 /** Sorare's multiplier for one card: 1 + its bonuses, plus the captain's when it is captain. */
 export const multiplier = (o: Pick<Outlook, "bonus">, captain = false, captainBonus = 0) => 1 + o.bonus + (captain ? captainBonus : 0);
 
-/** His expected score: if he plays × his chance to start (a card with no start % counts as starting) × Sorare's bonus. */
+/** His expected points before bonuses: his start chance × his start score + his come-on chance × his bench score. */
+const expectedOf = (o: Outlook): number | null =>
+  o.score === null || o.start === null ? null : o.score * o.start + (o.on ?? 0) * (o.benchScore ?? 0);
+
+/** His expected score with Sorare's bonus; null (left out) when no source gives him a start chance or a score. */
 export function predicted(o: Outlook, captain = false, captainBonus = 0): number | null {
-  if (o.score === null) return null;
-  return o.score * (o.start ?? 1) * multiplier(o, captain, captainBonus);
+  const base = expectedOf(o);
+  return base === null ? null : base * multiplier(o, captain, captainBonus);
 }
+
+/** A start chance worth trusting for the captaincy: any source's own number, or a record of 80% or more (plans/arcade-trust.md §4). */
+export const trusted = (o: Pick<Outlook, "start" | "startSource">) => o.start !== null && (o.startSource !== "record" || o.start >= 0.8);
 
 /**
  * When no full five can be built from the games picked (owner, 10 Nov 2026): each slot in turn takes the best card that fits, likely
@@ -78,7 +93,7 @@ export function partialFive(outlooks: Outlook[]): { slot: Slot; outlook: Outlook
 }
 
 /** What a card shows (owner, 10 Nov 2026): his projection × start chance, no bonus; the bonus is printed apart by bonusPercent. */
-export const baseScore = (o: Outlook): number | null => (o.score === null ? null : o.score * (o.start ?? 1));
+export const baseScore = (o: Outlook): number | null => expectedOf(o);
 
 /** Edition, club and captain bonuses added, as "+59%"; null when there is none. */
 export function bonusPercent(o: Pick<Outlook, "bonus">, captain = false, captainBonus = 0): string | null {
@@ -154,9 +169,11 @@ export function simulation(captainBonus: number, runs = RUNS, seed = 7, link = T
     const scale = o.score !== null && mean > 0 ? o.score / mean : 1;
     const past = o.past.length >= 3 ? o.past.map((v) => v * scale).sort((a, b) => a - b) : null;
     const values = Array.from({ length: runs }, (_, r) => {
-      const starts = next() < (o.start ?? 1);
+      // He starts, comes on or stays out, by his chances; a substitute scores around his bench score.
+      const u = next(), start = o.start ?? 0;
       const z = Math.sqrt(link) * day![r]! + Math.sqrt(1 - link) * normal(next);
-      return !starts ? 0 : past ? past[Math.min(past.length - 1, Math.floor(phi(z) * past.length))]! : Math.max(0, (o.score ?? 0) * (1 + 0.33 * z));
+      if (u < start) return past ? past[Math.min(past.length - 1, Math.floor(phi(z) * past.length))]! : Math.max(0, (o.score ?? 0) * (1 + 0.33 * z));
+      return u < start + (o.on ?? 0) ? Math.max(0, (o.benchScore ?? 0) * (1 + 0.33 * z)) : 0;
     });
     cards.set(o, values);
     return values;
@@ -255,9 +272,9 @@ export function bestLineup(outlooks: Outlook[], target: number, captainBonus: nu
   const bestAt = new Map<number, Candidate>();
   const aims = [...new Set([target, ...targets])];
   for (const combo of combos.slice(0, shortlist)) {
-    // The captain worth trying: the two who add the most, among cards with a known start % while any has one (owner, 29 Oct).
-    const known = combo.picks.some((o) => o.start !== null);
-    const gains = combo.picks.map((o, i) => ({ i, gain: predicted(o, true, captainBonus)! - predicted(o)! })).filter(({ i }) => !known || combo.picks[i]!.start !== null).sort((a, b) => b.gain - a.gain).slice(0, 2);
+    // The captain worth trying: the two who add the most, among cards with a trusted start % while any has one (owner, 29 Oct and 20 Nov).
+    const known = combo.picks.some(trusted);
+    const gains = combo.picks.map((o, i) => ({ i, gain: predicted(o, true, captainBonus)! - predicted(o)! })).filter(({ i }) => !known || trusted(combo.picks[i]!)).sort((a, b) => b.gain - a.gain).slice(0, 2);
     for (const { i } of gains) {
       const picks = combo.picks.map((outlook, j) => ({ slot: SLOTS[j]!, outlook, captain: i === j }));
       const totals = draw(picks);
@@ -282,12 +299,12 @@ export function bestLineup(outlooks: Outlook[], target: number, captainBonus: nu
 }
 
 /**
- * A card worth a slot: one whose start % is unknown yet (it counts as starting until read) or at least MIN_START. Below it he is likely
- * on the bench or out, so a slot takes him only when no likely starter can fill it; a card read at 0% (benched in the announced lineup)
- * drops out the same way and the next one of his position takes his place.
+ * A card worth a slot: one at least MIN_START to start. Below it he is likely on the bench or out, so a slot takes him only when no
+ * likely starter can fill it; a card read at 0% (benched in the announced lineup) drops out the same way and the next one of his
+ * position takes his place. A card with no start chance from any source is not counted at all (predicted is null).
  */
 export const MIN_START = 0.5;
-export const likely = (o: Pick<Outlook, "start">) => o.start === null || o.start >= MIN_START;
+export const likely = (o: Pick<Outlook, "start">) => o.start !== null && o.start >= MIN_START;
 
 /** A game ends about 115 minutes after kick-off, and Sorare counts the score 5 minutes later. */
 export const SETTLES_AFTER_MS = 120 * 60_000;
@@ -480,13 +497,13 @@ export function xdTitle(o: Pick<Outlook, "xd" | "scoreSource"> | undefined): str
 }
 
 /**
- * The note under a lineup with cards that have no start % yet. Sorare gives start % "the day before the start of each Game Week"
- * (help.sorare.com, "How does lineup prediction work?", read 10 Nov 2026), so a game more than 2 days out says so instead of reading as
- * an error (9 Nov 2026: "5 of 5 have no start % yet" eleven days out).
+ * The note under a lineup with cards counted on their start record (no source has a % for that game yet). Sorare gives start % "the
+ * day before the start of each Game Week" (help.sorare.com, "How does lineup prediction work?", read 10 Nov 2026), so a game more than
+ * 2 days out says it is an early plan instead of reading as an error.
  */
-export function noStartNote(missing: number, firstKickoff: number, now: number): string | null {
-  if (!missing) return null;
+export function noStartNote(onRecord: number, firstKickoff: number, now: number): string | null {
+  if (!onRecord) return null;
   return firstKickoff - now > 2 * 86_400_000
-    ? `${missing} of 5 have no start % yet: Sorare gives it from the day before its game week starts. Until then they count as starting.`
-    : `${missing} of 5 have no start % yet and count as starting: read start % again closer to kick-off.`;
+    ? `Early plan: ${onRecord} of 5 go on their start record. Start % arrive the day before the game week.`
+    : `${onRecord} of 5 go on their start record: read start % again closer to kick-off.`;
 }

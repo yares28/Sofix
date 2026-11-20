@@ -14,7 +14,7 @@ import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
 import { aimStep, noStartNote, partialFive, SLOTS, bestLineup, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Slot, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
-const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
+const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix", record: "His record" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
 const SavedTeams = z.object({ games: z.array(z.string()).max(500), aim: z.number().int().positive() });
 export const madridDay = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short" });
@@ -29,7 +29,9 @@ const settleLabel = (settles: number, at: number) => whenLabel(settles, at);
 
 /** A card's start % with whose it is, or "no start % yet". */
 export function StartLabel({ outlook }: { outlook: Outlook }) {
-  return outlook.start === null
+  return outlook.injured
+    ? <i className="arc-nostart">injured</i>
+    : outlook.start === null
     ? <i className="arc-nostart">no start % yet</i>
     : outlook.startUrl
       ? <a href={outlook.startUrl} target="_blank" rel="noreferrer" title={`${SOURCE[outlook.startSource!]}’s start %`}>{pct(outlook.start)} start</a>
@@ -320,7 +322,7 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
   const holdChance = holdMove?.clear ?? null;
   const holdWins = v.kind === "wait";
   // Whether the lineup's start % will all be known before it is entered: its games kick off together (within the 75-minute window).
-  const noStart = lineup ? noStartNote(lineup.picks.filter((p) => p.outlook.start === null).length, Date.parse(lineup.first), now) : null;
+  const noStart = lineup ? noStartNote(lineup.picks.filter((p) => p.outlook.startSource === "record").length, Date.parse(lineup.first), now) : null;
   // One bar sharing 100% between Play and Hold by the prize the advice decides on (owner, 9 Nov 2026).
   const split = holdSplit(v);
   const prizeOf = (n: number) => boardSteps.find((s) => s.number === n)?.rewards.join(" + ") || `step ${n}`;

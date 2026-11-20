@@ -1,4 +1,4 @@
-# Arcade you can trust: honest chances, the Arcade audit, and every fix from the 20 Nov review (plan, 20 Nov 2026; not started)
+# Arcade you can trust: honest chances, the Arcade audit, and every fix from the 20 Nov review (plan, 20 Nov 2026; step 1 built 20 Nov 2026, the rest not started)
 
 One plan for everything raised on 20 Nov 2026: the review of the four Arcade tabs, the 42% lineup that cannot be true, what a missing
 start % must mean in every case, the learning Arcade was meant to do since 29 Oct, the Arcade audit, Surest by step, and the
@@ -315,7 +315,7 @@ Done when each is checked at 1440 px and 390 px on your board in Chrome, and `we
 
 | Step | Delivers | Proof |
 |---|---|---|
-| 1 | Ranked sources with fallbacks for start, bench and score, everywhere (§4), dock included | Tests of §4; the 28 Nov lineup ≈ 0%; your board in Chrome |
+| 1 | **Built 20 Nov 2026.** Ranked sources with fallbacks for start, bench and score, everywhere (§4), dock included | Tests of §4; the 28 Nov lineup ≈ 0%; your board in Chrome |
 | 2 | Date TBC | Test; chain and Batch with no 01:00 |
 | 3 | Finished games dropped | Test; day filter from today |
 | 4 | Stale copy marked | Copy older than 6 h shows the dot line |

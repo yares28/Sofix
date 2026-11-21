@@ -1169,11 +1169,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-02",
-        "note": "2 Nov 2026: restoreFrozenPlan also restores the Pro boards' groups' card art; week identity and forecasts unchanged.",
+        "date": "2026-11-21",
+        "note": "21 Nov 2026: loadLeagueMarket joins a league's 16 shard blocks when its block names them (players:CL passed 1.6 MB); week identity untouched.",
         "files": {
           "frontend/lib/playerForecasts.ts": "f49dbdf83c84b0630d251cb153e027d935eb92f628e426edbed77e4fa8566a8e",
-          "frontend/lib/playData.ts": "e3e017956f561c653718a73c77fbf90fa1dbfdf18a2d0bfb8bed8006b4dbea33",
+          "frontend/lib/playData.ts": "b99963c46ba2fb504326f015a6e3f1b966364706b56008934b0717d85289b0e5",
           "frontend/lib/frozenPlan.ts": "52a9225f98f98f04a0bd6ca3518219c8c260b16214d58c11925d97fdd5f2af8a",
           "frontend/lib/playerForecasts.test.ts": "f54ad0aeb5f3ddb87caea2f8a91456341156fb4f5dc07be75536f65eee67a38e"
         }
@@ -1343,13 +1343,13 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-14",
-        "note": "db.ts now caps every Neon HTTP call at 20 s via neonConfig.fetchFunction; read path unchanged; unit test lib/db.test.ts",
+        "date": "2026-11-21",
+        "note": "21 Nov 2026: a league block over 1.6 MB is published as a header naming its 16 shards (foreign_coverage.blocks); loadLeagueMarket and loadLeaguePlayers read the shards, each its own cached R2 block under 2 MB.",
         "files": {
           "backend/app/services/publish.py": "ad9fd1e73e97612ac993e50ef8989d26e6670f3950c0ed160db04fe3ec662f4c",
           "backend/app/services/r2.py": "82b91dea1f8d9e021b9a0276a4f93b488f8f9b02eed41fcee3eef8f91b065911",
           "frontend/lib/r2.ts": "76b01a34a5961032f76df91b3f68dce1db2c2e21462001387a50d754ef94f147",
-          "frontend/lib/playData.ts": "e3e017956f561c653718a73c77fbf90fa1dbfdf18a2d0bfb8bed8006b4dbea33",
+          "frontend/lib/playData.ts": "b99963c46ba2fb504326f015a6e3f1b966364706b56008934b0717d85289b0e5",
           "frontend/lib/db.ts": "e0c13b9c1033d87fa114b2ce04322cc9a17a6c38296ff223eb60b2d4c7cfcca3",
           "backend/tests/test_publish.py": "5f85c01621794988aa5262a31d69678e15b738a038b4ac3fbd1b0600c6942dad",
           "frontend/lib/r2.test.ts": "22c4e3ceec84a69c1df22c0014f1197d9281620da3df3d08f8fd861d32cf99f4"
@@ -1490,12 +1490,12 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "local-isolation-001",
       "status": "implemented",
       "review": {
-        "date": "2026-11-02",
-        "note": "test_r2_sync additions are mocked; no production access.",
+        "date": "2026-11-21",
+        "note": "21 Nov 2026: next and eslint-config-next 15.5.28 -> 15.5.29 (security advisories GHSA-7qx7-33qx-rqx2, GHSA-f3mh-rxg3-f5g2, GHSA-pc58-hwjq-p385; CI's npm audit failed); no local setting changed.",
         "files": {
           "backend/app/db.py": "c873193fd1af1704c4a839ae0772594c9d37544458a7308bc9a73016cefc097a",
           "frontend/lib/r2.ts": "76b01a34a5961032f76df91b3f68dce1db2c2e21462001387a50d754ef94f147",
-          "frontend/package.json": "fd9cc0aae255d031077aabab94606e3ff1c59acbf6b2b044c825ac9291d8951e",
+          "frontend/package.json": "e5bc9bf4ba44199d2df6508ebf06752404261f4a1dbe3371a2854aed4aa842f9",
           "backend/tests/test_r2_sync.py": "ea643078606d9b1daa57cff509fa5bf3838acf6f216cbdfad17a9936ac435633",
           "frontend/lib/r2.test.ts": "22c4e3ceec84a69c1df22c0014f1197d9281620da3df3d08f8fd861d32cf99f4"
         }

@@ -105,6 +105,69 @@ def _rank(errors: dict[str, dict[str, list[float]]], kind: str) -> dict[str, Any
     return ranked
 
 
+CALIBRATE_MIN = 200  # settled cases before a source's chances are corrected (FORECAST-RAW-001's floor)
+HELD_OUT_MIN = 30  # newest games kept apart to check the correction, at least this many
+HELD_OUT_SHARE = 1 / 3
+GAIN_MIN = 0.01  # the held-out error must fall by at least 1%, or the raw chance stays (Ligue 1's record, 21 Nov: 0.2%)
+SURE = 0.98  # no forecast is ever certain: a corrected chance stays between 2% and 98%
+
+Pair = tuple[float, float, datetime]  # (what the source said, whether he started, the game's date)
+
+
+def _isotonic(pairs: list[tuple[float, float]]) -> list[list[float]]:
+    """Pool-adjacent-violators: the share who started, never falling as the source's chance rises. Points [said, started]."""
+    same: dict[
+        float, list[float]
+    ] = {}  # games with the same chance said are one point first, so no two points share a chance
+    for said, started in pairs:
+        group = same.setdefault(said, [0.0, 0.0])
+        group[0] += started
+        group[1] += 1
+    blocks: list[list[float]] = []  # [sum of said, sum of started, count]
+    for said, (started, count) in sorted(same.items()):
+        blocks.append([said * count, started, count])
+        while len(blocks) > 1 and blocks[-2][1] / blocks[-2][2] > blocks[-1][1] / blocks[-1][2]:
+            last = blocks.pop()
+            blocks[-1] = [blocks[-1][0] + last[0], blocks[-1][1] + last[1], blocks[-1][2] + last[2]]
+    return [[round(s / n, 4), round(min(SURE, max(1 - SURE, y / n)), 4)] for s, y, n in blocks]
+
+
+def apply(points: list[list[float]], said: float) -> float:
+    """A source's chance corrected by its points, straight lines between them, flat beyond the ends."""
+    if not points:
+        return said
+    if said <= points[0][0]:
+        return points[0][1] if said > 0 else 0.0
+    for (x0, y0), (x1, y1) in zip(points, points[1:], strict=False):
+        if said <= x1:
+            return round(y0 + (y1 - y0) * (said - x0) / (x1 - x0), 4) if x1 > x0 else y1
+    return points[-1][1]
+
+
+def calibrate(pairs: list[Pair]) -> dict[str, Any] | None:
+    """A correction for one source in one competition, or None when it is not earned: under 200 cases, under 30 held-out games,
+    or no better than the raw chance on the newest third of the games (fitted on the older two thirds). Shipped fitted on all."""
+    if len(pairs) < CALIBRATE_MIN:
+        return None
+    ordered = sorted(pairs, key=lambda p: p[2])
+    cut = len(ordered) - max(HELD_OUT_MIN, round(len(ordered) * HELD_OUT_SHARE))
+    train, test = ordered[:cut], ordered[cut:]
+    if len(test) < HELD_OUT_MIN or len(train) < HELD_OUT_MIN:
+        return None
+    fit = _isotonic([(s, y) for s, y, _ in train])
+    raw = sum((s - y) ** 2 for s, y, _ in test) / len(test)
+    corrected = sum((apply(fit, s) - y) ** 2 for s, y, _ in test) / len(test)
+    if corrected >= raw * (1 - GAIN_MIN):
+        return None
+    return {
+        "points": _isotonic([(s, y) for s, y, _ in ordered]),
+        "n": len(ordered),
+        "heldOut": len(test),
+        "brierRaw": round(raw, 4),
+        "brierCalibrated": round(corrected, 4),
+    }
+
+
 def build(rows: Iterable[tuple[Any, ...]], now: datetime) -> dict[str, Any]:
     """`rows`: (player, date, competition, status, played, started, score, sorare_start, ff_start, sofix_start, sofix_x,
     sorare_x), newest first per player. The record of every player, and the ranking measured over the last 90 days."""
@@ -122,6 +185,7 @@ def build(rows: Iterable[tuple[Any, ...]], now: datetime) -> dict[str, Any]:
         }
         by_player[player].append((when, competition, (when, competition, status, played, started, score, said)))
     start_errors: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+    start_pairs: dict[str, dict[str, list[Pair]]] = defaultdict(lambda: defaultdict(list))
     score_errors: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     since = now - timedelta(days=MEASURE_DAYS)
     players: dict[str, Any] = {}
@@ -140,9 +204,11 @@ def build(rows: Iterable[tuple[Any, ...]], now: datetime) -> dict[str, Any]:
             before = record(history[i + 1 :])
             if before and before["n"] >= SHORT:
                 start_errors[competition]["record"].append((before["s"] - truth) ** 2)
+                start_pairs[competition]["record"].append((before["s"], truth, when))
             for source, column in START_SOURCES.items():
                 if (value := said[column]) is not None:
                     start_errors[competition][source].append((float(value) - truth) ** 2)
+                    start_pairs[competition][source].append((float(value), truth, when))
             if truth and score is not None:
                 if before and before["x"] is not None:
                     score_errors[competition]["form"].append((score - before["x"]) ** 2)
@@ -151,6 +217,12 @@ def build(rows: Iterable[tuple[Any, ...]], now: datetime) -> dict[str, Any]:
                         score_errors[competition][source].append((score - float(value)) ** 2)
     return {
         "ranking": {"start": _rank(start_errors, "start"), "score": _rank(score_errors, "score")},
+        # Each start source's chances corrected to what happened, per competition, only where the correction earned it (step 9).
+        "calibration": {
+            competition: fits
+            for competition, by_source in sorted(start_pairs.items())
+            if (fits := {s: fit for s, pairs in by_source.items() if (fit := calibrate(pairs))})
+        },
         "priors": {"start": PRIOR_START_SCORE, "bench": PRIOR_SUB_SCORE},
         "players": players,
     }

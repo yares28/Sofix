@@ -4,6 +4,7 @@ import { memo, useCallback, useContext, useDeferredValue, useEffect, useMemo, us
 import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeStep } from "../../lib/arcade";
 import { holdSplit, kickOf, moveHeading, type Move } from "../../lib/arcadeClimb";
+import { checkLine, type ChanceCheck } from "../../lib/arcadeLog";
 import { useClimb, type ClimbPlan } from "../../lib/climbClient";
 import { aimKey, useArcadeAim } from "../../lib/arcadeAim";
 import { climbStart, climbStep, stepInfos } from "../../lib/arcadeBoard";
@@ -295,9 +296,9 @@ export { climbStart, climbStep, stepInfos } from "../../lib/arcadeBoard";
 
 
 /** Your move: play, wait or spend your lives, why, and the lineup to enter. */
-const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote, updating, surestStep, onPickStep }: {
+const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote, updating, surestStep, onPickStep, check }: {
   plan: ClimbPlan; steps: StepInfo[]; boardSteps: ArcadeStep[]; current: number; lives: number; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void; waitingNote: string | null; updating: boolean;
-  surestStep: number | null; onPickStep: (step: number) => void;
+  surestStep: number | null; onPickStep: (step: number) => void; check: ChanceCheck | null;
 }) {
   const move = plan.path[0] ?? null;
   const target = (n: number) => steps.find((s) => s.number === n)?.target ?? 0;
@@ -314,6 +315,7 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
   const holdChance = holdMove?.clear ?? null;
   const holdWins = v.kind === "wait";
   // Whether the lineup's start % will all be known before it is entered: its games kick off together (within the 75-minute window).
+  const checked = move ? checkLine(check, lineup ? chanceOf(lineup.totals, target(move.step)) : move.clear) : null;
   const noStart = lineup ? noStartNote(lineup.picks.filter((p) => p.outlook.startSource === "record").length, Date.parse(lineup.first), now) : null;
   // One bar sharing 100% between Play and Hold by the prize the advice decides on (owner, 9 Nov 2026).
   const split = holdSplit(v);
@@ -364,6 +366,8 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
             ) : null}
             {lineup ? <LineupCards lineup={lineup} captainBonus={captainBonus} /> : null}
             {noStart ? <p className="arc-sub">{noStart}</p> : null}
+            {/* How lineups given the same chance have fared, from your own settled lineups (plans/arcade-trust.md step 9). */}
+            {checked ? <p className="arc-sub arc-check">{checked}</p> : null}
           </div>
         ) : null}
       </div>
@@ -513,7 +517,7 @@ const Chain = memo(function Chain({ plan, steps, current, captainBonus, now, onB
   );
 });
 
-export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; status: Record<string, PlayerStatus> }) {
+export default function ArcadePlanner({ arcade, outlooks, captainBonus, status, check = null }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; status: Record<string, PlayerStatus>; check?: ChanceCheck | null }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- Advance the planning clock on fresh board/forecast inputs, without rebuilding it when a picker control changes.
   const now = useMemo(() => Date.now(), [arcade, outlooks]);
   const steps = useMemo(() => stepInfos(arcade), [arcade]);
@@ -567,7 +571,7 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
   return (
     <>
       {plan ? <>
-        <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} updating={updating} surestStep={surestStep} onPickStep={pickSurest} />
+        <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} updating={updating} surestStep={surestStep} onPickStep={pickSurest} check={check} />
         <Chain plan={plan} steps={steps} current={current} captainBonus={captainBonus} now={now} onBuild={build} surestStep={surestStep} setSurestStep={setSurestStep} />
       </> : <p className="arc-read-state" role="status">Planning the climb…</p>}
       <ArcadeTeams arcade={arcade} outlooks={outlooks} status={status} chosen={chosen} onToggle={(id) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); }} now={now} />

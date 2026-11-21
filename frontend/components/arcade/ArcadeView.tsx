@@ -7,6 +7,7 @@ import {
 } from "../../lib/arcade";
 import { readCopy, shareCopy } from "../../lib/chromeCopy";
 import type { ArcadeRecords } from "../../lib/arcadeRecords";
+import type { ChanceCheck } from "../../lib/arcadeLog";
 import type { Outlook } from "../../lib/arcadePlan";
 import { matchFixture, settleKickoffs, type FdrFixture } from "../../lib/arcadeFdr";
 import ArcadeLive from "./ArcadeLive";
@@ -90,20 +91,22 @@ function Loaded({ arcade: board, old, fresh, unread, laliga, fdr, onReload, busy
   }, [arcade]);
   const players = useMemo(() => [...new Set(arcade.cards.map((c) => c.player))].sort(), [arcade.cards]);
   const [records, setRecords] = useState<ArcadeRecords | null>(null);
+  const [check, setCheck] = useState<ChanceCheck | null>(null);
   const [bench, setBench] = useState<ArcadeBench | "reading" | null>(null);
   const [elevens, setElevens] = useState<ArcadeElevens | null>(null);
   const benchStep = arcade.board?.steps.find((s) => s.number === climbStep(arcade)) ?? null;
   const refresh = useCallback(async (force = false) => {
     setBench("reading");
-    const [{ chances: saved, records: ranked }, read] = await Promise.all([
-      loadArcadeSaved(gameIds, players),
+    const [{ chances: saved, records: ranked, check: checked }, read] = await Promise.all([
+      loadArcadeSaved(gameIds, players, arcade.set.slug),
       benchStep ? readArcadeBench(benchStep.id, arcade.set.end, force) : null,
       readArcadeElevens(arcade.games ?? [], arcade.cards, force).then(setElevens),
     ]);
     setChances(read && Object.keys(read.chances).length ? newerChances(saved, read.chances) : saved);
     if (ranked) setRecords(ranked);
+    if (checked) setCheck(checked);
     setBench(read);
-  }, [gameIds, players, benchStep, arcade.set.end, arcade.games, arcade.cards]);
+  }, [gameIds, players, benchStep, arcade.set.end, arcade.set.slug, arcade.games, arcade.cards]);
   useEffect(() => { void refresh(); }, [refresh]); // once per read; never on a timer
   const [extras, setExtras] = useState<ArcadeExtras | null | "reading">("reading");
   useEffect(() => { void readArcadeExtras(arcade).then(setExtras); }, [arcade]); // once per read
@@ -198,7 +201,7 @@ function Loaded({ arcade: board, old, fresh, unread, laliga, fdr, onReload, busy
       {/* Every view stays mounted (hidden, not removed), so a switch keeps its reads, picks and page. */}
       <div className="arc-view" hidden={view !== "play"}>
         {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} actions={actions} fresh={fresh} /> : null}
-        {ready && planOutlooks ? <ArcadePlanner key={`${arcade.set.slug}:${arcade.board?.id}`} arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} status={ready.status ?? {}} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
+        {ready && planOutlooks ? <ArcadePlanner key={`${arcade.set.slug}:${arcade.board?.id}`} arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} status={ready.status ?? {}} check={check} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
       </div>
       <div className="arc-view" hidden={view !== "packs"}>
         <ArcadeMissions arcade={arcade} outlooks={outlooks} />

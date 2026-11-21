@@ -33,6 +33,8 @@ export type Outlook = {
   /** His chance to come on from the bench (not to start and still play), and his score when he does. */
   on?: number;
   benchScore?: number | null;
+  /** What the start source said before its competition's calibration corrected it (step 9); absent when uncorrected. */
+  startSaid?: number;
   /** Out injured for this game (Sorare's word, until his return date). */
   injured?: boolean;
   /** His record holds fewer than five games. */

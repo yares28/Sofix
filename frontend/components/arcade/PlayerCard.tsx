@@ -16,7 +16,7 @@ export default function PlayerCard({ card, outlook, game, fixtures, crests, onSe
   const bonus = outlook ? bonusPercent(outlook, captain, captainBonus) : bonusLabel(card.bonus);
   const detail = game ? fixtureName(game) : unavailable;
   const percent = outlook?.start == null ? "—" : `${Math.round(outlook.start * 100)}%`;
-  const startProps = { className: "arc-card-start", "aria-label": `Start chance ${percent}`, title: `${detail} · ${outlook?.confirmed ? `Sorare announced eleven: ${outlook.start === 1 ? "in the eleven" : "not starting"}` : `${outlook?.injured ? "Injured" : `${outlook?.startSource ? SOURCES[outlook.startSource] : "No"} start chance`}${outlook?.short ? " (short record)" : ""}`}${outlook?.start == null ? "; no source has one, so he is left out" : ""}` };
+  const startProps = { className: "arc-card-start", "aria-label": `Start chance ${percent}`, title: `${detail} · ${outlook?.confirmed ? `Sorare announced eleven: ${outlook.start === 1 ? "in the eleven" : "not starting"}` : `${outlook?.injured ? "Injured" : `${outlook?.startSource ? SOURCES[outlook.startSource] : "No"} start chance`}${outlook?.short ? " (short record)" : ""}${outlook?.startSaid != null ? `, said ${Math.round(outlook.startSaid * 100)}%, corrected to how often that came true here` : ""}`}${outlook?.start == null ? "; no source has one, so he is left out" : ""}` };
   const badges = (g: ArcadeGame) => [g.home, g.away].map((team, i) => {
     const src = team?.crest ?? (team ? crests.get(team.slug) : null);
     // eslint-disable-next-line @next/next/no-img-element -- Sorare club crests

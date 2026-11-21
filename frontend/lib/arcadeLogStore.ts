@@ -1,5 +1,5 @@
-import { mergeLog, LOG_PREFIX, type ArcadeLog, type LogBatch } from "./arcadeLog";
-import { database } from "./db";
+import { chanceCheck, mergeLog, LOG_PREFIX, type ArcadeLog, type ChanceCheck, type LogBatch } from "./arcadeLog";
+import { database, published, readModel } from "./db";
 import { putBlock } from "./r2";
 
 /** Merge one read into the set's block and copy it to R2 for the jobs. Returns how many lineups the block holds. */
@@ -14,4 +14,11 @@ export async function saveLog(batch: LogBatch, now = new Date()): Promise<number
     ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload, updated_at = EXCLUDED.updated_at`;
   await putBlock(key, merged, now);
   return Object.keys(merged.lineups).length;
+}
+
+/** How the chances Sofix printed have fared for a set (lib/arcadeLog.ts chanceCheck), from its block as R2 holds it. */
+export async function loadChanceCheck(set: string): Promise<ChanceCheck | null> {
+  if (!published()) return null;
+  const row = await readModel<ArcadeLog>(LOG_PREFIX + set).catch(() => null);
+  return row ? chanceCheck(row.payload) : null;
 }

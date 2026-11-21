@@ -21,6 +21,8 @@ const PlayerRecord = z.object({
 export const ArcadeRecordsSchema = z.object({
   ranking: z.object({ start: z.record(z.string(), z.array(Ranked)), score: z.record(z.string(), z.array(Ranked)) }),
   players: z.record(z.string(), PlayerRecord),
+  /** Per competition and start source: its chances corrected to what happened, where the correction earned it (step 9). */
+  calibration: z.record(z.string(), z.record(z.string(), z.object({ points: z.array(z.tuple([z.number(), z.number()])) }).passthrough())).optional(),
 });
 export type ArcadeRecords = z.infer<typeof ArcadeRecordsSchema>;
 export type PlayerRecord = z.infer<typeof PlayerRecord>;
@@ -39,6 +41,17 @@ function order<T extends string>(ranked: Record<string, z.infer<typeof Ranked>[]
 
 export const startOrder = (records: ArcadeRecords | null, competition: string) => order(records?.ranking.start, competition, START_ORDER);
 export const scoreOrder = (records: ArcadeRecords | null, competition: string) => order(records?.ranking.score, competition, SCORE_ORDER);
+
+/** A source's chance corrected by its calibration points: straight lines between them, flat beyond the ends (arcade_outlook.apply). */
+export function calibrated(points: [number, number][] | undefined, said: number): number {
+  if (!points?.length) return said;
+  if (said <= points[0]![0]) return said > 0 ? points[0]![1] : 0;
+  for (let i = 1; i < points.length; i++) {
+    const [x0, y0] = points[i - 1]!, [x1, y1] = points[i]!;
+    if (said <= x1) return x1 > x0 ? Math.round((y0 + ((y1 - y0) * (said - x0)) / (x1 - x0)) * 10_000) / 10_000 : y1;
+  }
+  return points.at(-1)![1];
+}
 
 /** The first source in `ranked` with a number, and which one it was. */
 export function firstOf<T extends string>(ranked: T[], values: Partial<Record<T, number | null>>): [number, T] | null {

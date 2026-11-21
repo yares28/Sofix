@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { logBatch, mergeLog, type LogBatch } from "./arcadeLog";
+import { chanceCheck, checkLine, logBatch, mergeLog, type LogBatch } from "./arcadeLog";
 
 const KICK = Date.parse("2026-11-28T17:30:00Z");
 const lineup = (over: Partial<LogBatch["lineups"][number]> = {}): LogBatch["lineups"][number] => ({
@@ -61,5 +61,26 @@ describe("a read of the board for the log", () => {
     expect(read.lineups).toHaveLength(1);
     expect(read.lineups[0]).toMatchObject({ id: "L1", step: 4, target: 400, chance: 0.39, firstKickoff: "2026-11-28T17:30:00Z", lastKickoff: "2026-11-28T20:00:00Z" });
     expect(read.steps).toEqual([{ number: 4, target: 400, state: "PLAYABLE", remaining: 2, max: 4 }]);
+  });
+});
+
+describe("checking the chances Sofix printed (plans/arcade-trust.md step 9)", () => {
+  const settled = (i: number, chance: number, cleared: boolean) => [`L${i}`, { chance, result: cleared ? "cleared" : "missed" }] as const;
+  it("counts settled lineups by bands of 10 points, cancelled and unpriced ones left out", () => {
+    const lineups = Object.fromEntries([
+      ...Array.from({ length: 26 }, (_, i) => settled(i, 0.35, i < 11)),
+      ...Array.from({ length: 30 }, (_, i) => settled(100 + i, 0.72, i < 20)),
+      ["X1", { chance: 0.5, result: "cancelled" }], ["X2", { chance: null, result: "cleared" }], ["X3", { chance: 0.5, result: null }],
+    ]);
+    const check = chanceCheck({ lineups } as never);
+    expect(check.settled).toBe(56);
+    expect(check.bands.find((b) => b.lo === 30)).toEqual({ lo: 30, n: 26, cleared: 11 });
+    expect(check.bands.find((b) => b.lo === 70)).toEqual({ lo: 70, n: 30, cleared: 20 });
+    expect(checkLine(check, 0.38)).toBe("Lineups Sofix gave 30–40%: 11 of 26 cleared · too few to tell");
+    expect(checkLine(check, 0.05)).toBe("Lineups Sofix gave 0–10%: none settled yet");
+  });
+  it("says nothing before 50 lineups have settled", () => {
+    const lineups = Object.fromEntries(Array.from({ length: 49 }, (_, i) => settled(i, 0.35, true)));
+    expect(checkLine(chanceCheck({ lineups } as never), 0.35)).toBeNull();
   });
 });

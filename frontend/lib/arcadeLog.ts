@@ -90,3 +90,36 @@ export async function sendArcadeLog(batch: LogBatch): Promise<boolean> {
     return false;
   }
 }
+
+/** The Audit's floor: under 100 lineups in a band, its share is "too few to tell" (AUDIT-EVIDENCE-001). */
+const FLOOR = 100;
+/** Nothing is said before this many priced lineups have settled (plans/arcade-trust.md step 9). */
+const SHOW_FROM = 50;
+
+export type ChanceCheck = { settled: number; bands: { lo: number; n: number; cleared: number }[] };
+
+/** Settled, priced lineups by the chance Sofix gave them, in bands of 10 points: how many there were and how many cleared. */
+export function chanceCheck(log: Pick<ArcadeLog, "lineups"> | null): ChanceCheck {
+  const bands = new Map<number, { lo: number; n: number; cleared: number }>();
+  let settled = 0;
+  for (const l of Object.values(log?.lineups ?? {})) {
+    if (l.chance === null || (l.result !== "cleared" && l.result !== "missed")) continue;
+    const lo = Math.min(90, Math.floor(l.chance * 10) * 10);
+    const band = bands.get(lo) ?? { lo, n: 0, cleared: 0 };
+    band.n++;
+    if (l.result === "cleared") band.cleared++;
+    bands.set(lo, band);
+    settled++;
+  }
+  return { settled, bands: [...bands.values()].sort((a, b) => a.lo - b.lo) };
+}
+
+/** The line beside a chance: how often lineups given the same band cleared. Null before 50 settled lineups. */
+export function checkLine(check: ChanceCheck | null, chance: number): string | null {
+  if (!check || check.settled < SHOW_FROM) return null;
+  const lo = Math.min(90, Math.floor(chance * 10) * 10);
+  const band = check.bands.find((b) => b.lo === lo);
+  const label = `Lineups Sofix gave ${lo}–${lo + 10}%`;
+  if (!band) return `${label}: none settled yet`;
+  return `${label}: ${band.cleared} of ${band.n} cleared${band.n < FLOOR ? " · too few to tell" : ""}`;
+}

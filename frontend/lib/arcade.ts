@@ -6,7 +6,8 @@ import { madridDate, SETTLES_AFTER_MS, sideIn, type Outlook, type PackOdds, type
 export { sideIn };
 import { parseTierOdds, type TierOdds } from "./arcadePacks";
 import type { PlayerStatus } from "./arcadeTeams";
-import { ArcadeRecordsSchema, firstOf, scoreOrder, startOrder, type ArcadeRecords, type ScoreRank, type StartRank } from "./arcadeRecords";
+import type { ChanceCheck } from "./arcadeLog";
+import { ArcadeRecordsSchema, calibrated, firstOf, scoreOrder, startOrder, type ArcadeRecords, type ScoreRank, type StartRank } from "./arcadeRecords";
 
 /**
  * Arcade, step 1 (plans/set.md): your set board, common cards, gems, essence and common missions, read from your signed-in
@@ -598,20 +599,23 @@ export async function loadArcadeChances(games: string[]): Promise<ArcadeChances 
   return (await loadArcadeSaved(games, [])).chances;
 }
 
+const CheckSchema = z.object({ settled: z.number(), bands: z.array(z.object({ lo: z.number(), n: z.number(), cleared: z.number() })) });
+
 /**
  * Sorare's saved start % for the board's games and, for your cards' players, their start records and the sources' ranking
  * (lib/arcadeRecords.ts): one call when the page opens and after each start % read; never polled.
  */
-export async function loadArcadeSaved(games: string[], players: string[]): Promise<{ chances: ArcadeChances | null; records: ArcadeRecords | null }> {
-  if (!games.length && !players.length) return { chances: {}, records: null };
+export async function loadArcadeSaved(games: string[], players: string[], set?: string): Promise<{ chances: ArcadeChances | null; records: ArcadeRecords | null; check: ChanceCheck | null }> {
+  if (!games.length && !players.length) return { chances: {}, records: null, check: null };
   try {
-    const response = await fetch("/api/arcade/chances", { method: "POST", headers: { "content-type": "application/json", [REFRESH_HEADER]: "1" }, body: JSON.stringify({ games: games.slice(0, 300), ...(players.length ? { players: players.slice(0, 3000) } : {}) }) });
+    const response = await fetch("/api/arcade/chances", { method: "POST", headers: { "content-type": "application/json", [REFRESH_HEADER]: "1" }, body: JSON.stringify({ games: games.slice(0, 300), ...(players.length ? { players: players.slice(0, 3000) } : {}), ...(set ? { set } : {}) }) });
     const body: unknown = await response.json();
     const parsed = Saved.safeParse(body);
     const records = ArcadeRecordsSchema.safeParse((body as { records?: unknown } | null)?.records);
-    return { chances: response.ok && parsed.success ? parsed.data.chances : null, records: response.ok && records.success ? records.data : null };
+    const check = CheckSchema.safeParse((body as { check?: unknown } | null)?.check);
+    return { chances: response.ok && parsed.success ? parsed.data.chances : null, records: response.ok && records.success ? records.data : null, check: response.ok && check.success ? check.data : null };
   } catch {
-    return { chances: null, records: null };
+    return { chances: null, records: null, check: null };
   }
 }
 
@@ -838,7 +842,11 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
   if (saved) said.sorare = saved.percent / 100;
   said.record = record?.s ?? null;
   const ranked = confirmed ? ([confirmed.percent / 100, "sorare"] as const) : injured ? null : firstOf(startOrder(records, game.competition.slug), said);
-  const [start, startSource]: [number | null, StartSource | null] = injured ? [0, null] : ranked ? [ranked[0], ranked[1]] : [null, null];
+  const [said_, startSource]: [number | null, StartSource | null] = injured ? [0, null] : ranked ? [ranked[0], ranked[1]] : [null, null];
+  // A source's chance corrected to what happened in this competition, where the job found the correction earned (step 9); the
+  // announced eleven and an injury are facts, never corrected.
+  const fix = !confirmed && !injured && startSource ? records?.calibration?.[game.competition.slug]?.[startSource]?.points : undefined;
+  const start = said_ !== null && fix ? calibrated(fix, said_) : said_;
   // Coming on: his record's chance to come on when he does not start, applied to this game's chance of not starting.
   const benchRate = record && record.s < 1 ? record.o / (1 - record.s) : 0;
   const on = injured || start === null || !record ? 0 : startSource === "record" ? record.o : Math.min(1 - start, (1 - start) * benchRate);
@@ -855,6 +863,7 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
     scoreSource: score?.[1] ?? null,
     start,
     startSource,
+    ...(fix && said_ !== null ? { startSaid: said_ } : {}),
     on,
     benchScore: record?.b ?? null,
     ...(injured ? { injured } : {}),

@@ -206,6 +206,13 @@ describe("ranked sources (owner, 20 Nov 2026: the best accuracy first, then the 
     expect(unknown).toMatchObject({ start: null, startSource: null });
     expect(predicted(unknown)).toBeNull();
   });
+  it("corrects a source's chance by its competition's calibration, keeping what the source said (step 9)", () => {
+    const records = { ranking: ranking(["record"], ["form"]), players: { a: record }, calibration: { "laliga-es": { record: { points: [[0.1, 0.05], [0.9, 0.79]] as [number, number][] } } } };
+    const o = outlookOf(card("a", ["Forward"]), GAME, extras, null, {}, null, records);
+    expect(o).toMatchObject({ start: 0.79, startSaid: 0.9, startSource: "record" });
+    const confirmed = outlookOf(card("a", ["Forward"]), GAME, extras, null, {}, { "Game:1": { a: [10000, 1] } }, records);
+    expect(confirmed).toMatchObject({ start: 1, confirmed: true }); // the announced eleven is never corrected
+  });
   it("counts an injured player out until his return date, and only then on his record", () => {
     const records = { ranking: ranking(["record"], ["form"]), players: { a: record } };
     const hurt = { ...extras, status: { a: { tier: null, playing: "STARTER", injured: true, back: "2026-11-01T00:00:00Z" } } };

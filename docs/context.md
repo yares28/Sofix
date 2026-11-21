@@ -1821,14 +1821,14 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-21",
-        "note": "21 Nov 2026: steps 1-10 of plans/arcade-trust.md; step 10 adds the Audit tab (ArcadeAudit.tsx) drawing arcade_audit:<set> from arcade_audit.py (best five per 75-minute window, exact climb replay by most tops then clears, settling two hours after the last kick-off), with cards sent by the page. Backend replay tests, vitest and the Arcade e2e spec pass; not yet run on a live refresh.",
+        "note": "21 Nov 2026: steps 1-10 of plans/arcade-trust.md; step 10 adds the Audit tab (ArcadeAudit.tsx, .arc-audit styles: club names truncate, balanced heading) drawing arcade_audit:<set> from arcade_audit.py (best five per 75-minute window, exact climb replay by most tops then clears, settling two hours after the last kick-off), with cards sent by the page. Backend replay tests, vitest and the Arcade e2e spec pass; not yet run on a live refresh.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "2e6f74eb94ef82df401bf55e7ab02e4677ac66559b0fbd65238a739830dace94",
           "frontend/lib/arcadePlan.ts": "3a63e2f7a728150069cdfe273032cb8a1f573930e19be9794914834918bcaf99",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
           "frontend/components/arcade/ArcadePlanner.tsx": "7bc269c794462b7b31224fa7574252d3e198001da771eecb283e420641d1f22c",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
-          "frontend/app/arcade-canvas.css": "f4d37c5a1c7f00ea821a18a0b541956e37b599afd2406245459ab29084443148",
+          "frontend/app/arcade-canvas.css": "33ee75ab39fb1720da040199a3242c18f8a8186c93f1232ab92701c7fc0e6713",
           "frontend/lib/arcadeTeams.ts": "a6ee5032672dd5b7fe2187295d99ac40655ca51832f40e4a87d268165848c9c7",
           "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
           "frontend/components/arcade/ArcadeBatch.tsx": "bcf0b26f431552889828ba2590f3efd3e85a5be2c3c0b23383b0d5c7fe466f65",

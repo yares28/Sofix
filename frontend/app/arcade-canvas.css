@@ -589,3 +589,11 @@
 .arc-audit .arc-skeleton { background: var(--line); animation: arc-audit-wait 1.4s ease-in-out infinite alternate; }
 @keyframes arc-audit-wait { from { opacity: .55; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .arc-audit .arc-skeleton { animation: none; } }
+.arc-audit-rules h3 { margin: 0 0 10px; font-size: 15px; }
+.arc-audit-rules h3 small { font-weight: 500; color: var(--ink-2); }
+.arc-audit-rules ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.arc-audit-rules li { display: grid; gap: 4px; padding: 12px 14px; border-radius: 14px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.arc-audit-rules li:first-child { box-shadow: inset 0 0 0 2px var(--ink); }
+.arc-audit-rule-name { font-size: 13px; color: var(--ink-2); }
+.arc-audit-rules b { font-size: 22px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.arc-audit-rules small { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }

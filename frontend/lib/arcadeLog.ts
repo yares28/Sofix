@@ -156,5 +156,10 @@ export const ArcadeAuditSchema = z.object({
   clubs: z.array(z.object({ slug: z.string(), name: z.string(), crest: z.string().nullable(), count: z.number() })),
   players: z.array(z.object({ card: z.string(), name: z.string(), picture: z.string().nullable(), count: z.number() })),
   actual: z.object({ lineups: z.number(), clears: z.record(z.string(), z.number()), misses: z.record(z.string(), z.number()), tops: z.number(), since: z.string().nullable() }),
+  /** Each rule replayed on what was known before kick-off (step 11), best first; `enough` is false under 100 windows. */
+  strategies: z.array(z.object({
+    key: z.string(), name: z.string(), played: z.number(), clears: z.record(z.string(), z.number()), lives: z.number(), tops: z.number(),
+    firstTop: z.string().nullable(), band: z.object({ tops: z.tuple([z.number(), z.number()]), clears: z.tuple([z.number(), z.number()]) }), enough: z.boolean(),
+  })).optional(),
 });
 export type ArcadeAudit = z.infer<typeof ArcadeAuditSchema>;

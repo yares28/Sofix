@@ -186,7 +186,7 @@ def build(
 def publish(db: Session, now: datetime) -> dict[str, int]:
     """Written with the Audit, for every set whose cards the page sent and that ended less than 30 days ago."""
     from app.services.publish import put
-    from app.sorare import games_mirror
+    from app.sorare import arcade_strategies, games_mirror
 
     if db.get_bind().dialect.name == "postgresql" and not os.environ.get("PLAYER_GAMES_MIRROR"):
         return {}
@@ -200,20 +200,36 @@ def publish(db: Session, now: datetime) -> dict[str, int]:
         cards = payload.get("cards") or []
         log_row = kept_blocks.read(db, LOG_PREFIX + set_slug)
         players = sorted({c["player"] for c in cards})
-        query = select(PlayerGame.player, PlayerGame.game_id, PlayerGame.date, PlayerGame.score).where(
-            PlayerGame.player.in_(players),
-            PlayerGame.date >= datetime.fromisoformat(start),
-            PlayerGame.date <= now,
-            PlayerGame.status == "FINAL",
-            PlayerGame.score.isnot(None),
-        )
-        games = [
-            (p, g, when, float(s))
-            for p, g, d, s in games_mirror.view(db).execute(query).tuples()
-            if s is not None and (when := as_utc(d)) is not None
+        # Every game of your cards' players (their records before a game need the earlier ones), with what was said before it.
+        query = select(
+            PlayerGame.player,
+            PlayerGame.game_id,
+            PlayerGame.date,
+            PlayerGame.competition,
+            PlayerGame.status,
+            PlayerGame.played,
+            PlayerGame.started,
+            PlayerGame.score,
+            PlayerGame.sorare_start,
+            PlayerGame.ff_start,
+            PlayerGame.sofix_start,
+            PlayerGame.sofix_x,
+            PlayerGame.sorare_x,
+        ).where(PlayerGame.player.in_(players), PlayerGame.date <= now)
+        rows = [
+            (r[0], r[1], when, *r[3:]) for r in games_mirror.view(db).execute(query).tuples() if (when := as_utc(r[2]))
         ]
-        audit = build(cards, games, log_row.payload if log_row else None)
+        since = as_utc(datetime.fromisoformat(start)) or now
+        games = [
+            (r[0], r[1], r[2], float(r[7])) for r in rows if r[4] == "FINAL" and r[7] is not None and r[2] >= since
+        ]
+        log = log_row.payload if log_row else None
+        audit = build(cards, games, log)
         if audit:
+            steps = sorted((log or {}).get("steps") or [], key=lambda s: s["number"])
+            captain = float(steps[0].get("captain") or CAPTAIN) if steps else CAPTAIN
+            seen = arcade_strategies.seen_windows(cards, rows, since, now)
+            audit["strategies"] = arcade_strategies.replay_all(seen, audit["targets"], captain)
             put(db, KEY_PREFIX + set_slug, {"set": set_slug, "at": now.isoformat(), **audit}, now)
             written += 1
     return {"sets": written}

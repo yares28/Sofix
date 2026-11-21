@@ -17,7 +17,7 @@ and a check, so a session can work through it alone and stop only where you have
 20 Nov, first: **Arcade you can trust** ([plans/arcade-trust.md](arcade-trust.md), TODO.md "Arcade audit: every tab against the main
 app"), in its §11 order: 1 every source ranked by accuracy with fallbacks (*built 20 Nov 2026, not pushed: the extension's dock needs
 `configure.mjs` with it*), 2 Date TBC (*built 20 Nov 2026*), 3 finished games (*built 20 Nov 2026*),
-4 stale copy (*built 20 Nov 2026*), 5 the move's heading (*built 20 Nov 2026*), 6 Surest by step (*built 20 Nov 2026*), 7-9 learning from real results (*7 built 20 Nov 2026, 8 and 9 on 21 Nov*), 10-12 the Arcade audit (*10 built 21 Nov 2026*), 13 the main app's words,
+4 stale copy (*built 20 Nov 2026*), 5 the move's heading (*built 20 Nov 2026*), 6 Surest by step (*built 20 Nov 2026*), 7-9 learning from real results (*7 built 20 Nov 2026, 8 and 9 on 21 Nov*), 10-12 the Arcade audit (*10 and 11 built 21 Nov 2026*), 13 the main app's words,
 14 layout.
 
 16 Nov, first: **the overlay, feature by feature** ([TODO.md](../TODO.md) "The overlay, feature by feature"): delete the odds row and the

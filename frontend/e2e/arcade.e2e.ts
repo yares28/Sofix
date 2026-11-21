@@ -97,6 +97,10 @@ test("the Audit shows the climb your cards could have made with every score know
     clubs: [{ slug: "club", name: "Club", crest: null, count: 15 }],
     players: [{ card: SQUAD[0]![0], name: SQUAD[0]![2], picture: null, count: 3 }],
     actual: { lineups: 2, clears: { 1: 1 }, misses: { 2: 1 }, tops: 0, since: null },
+    strategies: [
+      { key: "daily", name: "The day's best window", played: 12, clears: { 1: 2, 2: 2 }, lives: 8, tops: 0, firstTop: null, band: { tops: [0, 0], clears: [2, 4] }, enough: false },
+      { key: "steady", name: "Only at 60%+", played: 1, clears: { 1: 1 }, lives: 0, tops: 0, firstTop: null, band: { tops: [0, 0], clears: [0, 1] }, enough: false },
+    ],
   };
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {}, audit } }));
   await withExtension(page);
@@ -108,6 +112,10 @@ test("the Audit shows the climb your cards could have made with every score know
   await expect(page.getByRole("list", { name: "The climb with every score known" }).getByRole("listitem")).toHaveCount(3);
   await expect(page.locator(".arc-audit-clubs li")).toHaveText([/Club.*×15/]);
   await expect(page.locator(".arc-audit-players li")).toHaveCount(1);
+  // Ways to play, replayed on what was known before kick-off (step 11): best first, too few windows to tell under 100.
+  const rules = page.getByRole("region", { name: /Ways to play, replayed/ });
+  await expect(rules.getByRole("heading")).toContainText("too few windows to tell");
+  await expect(rules.getByRole("listitem")).toHaveText([/The day's best window.*4 clears.*12 lineups · 8 lost · 2-4 clears in most replays/, /Only at 60%\+.*1 clear.*1 lineup · 0 lost · 0-1 clears/]);
   for (const [width, floor] of [[1440, 11], [390, 10]] as const) {
     await page.setViewportSize({ width, height: 900 });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

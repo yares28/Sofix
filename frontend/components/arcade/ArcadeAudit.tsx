@@ -106,6 +106,24 @@ export default function ArcadeAudit({ audit, arcade }: { audit: Audit | null | "
           </section>
         </div>
       </> : <p className="arc-note">No window of your cards would have cleared step 1 yet.</p>}
+      {audit.strategies?.length ? (
+        <section className="arc-audit-rules" aria-labelledby="arc-audit-rules-title">
+          {/* Each rule played on what was known before kick-off and scored on what happened (plans/arcade-trust.md step 11). */}
+          <h3 id="arc-audit-rules-title">Ways to play, replayed{audit.strategies[0]!.enough ? "" : <small> · too few windows to tell</small>}</h3>
+          <ol>
+            {audit.strategies.map((r) => {
+              const clears = sum(r.clears);
+              return (
+                <li key={r.key}>
+                  <span className="arc-audit-rule-name">{r.name}</span>
+                  <b aria-label={`${r.tops} tops`}>{r.tops ? `${r.tops} × top` : `${clears} clear${clears === 1 ? "" : "s"}`}</b>
+                  <small>{r.played} lineup{r.played === 1 ? "" : "s"} · {r.lives} lost{r.band.clears[0] !== r.band.clears[1] ? ` · ${r.band.clears[0]}-${r.band.clears[1]} clears in most replays` : ""}</small>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ) : null}
     </section>
   );
 }

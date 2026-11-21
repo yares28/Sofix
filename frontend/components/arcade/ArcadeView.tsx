@@ -71,7 +71,7 @@ const WALKED: Record<string, string> = {
   error: "Reading Sorare's page failed; nothing more was saved.",
 };
 
-function Loaded({ arcade: board, old, unread, laliga, fdr, onReload, busy }: { arcade: Arcade; old: boolean; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; onReload: () => void; busy: boolean }) {
+function Loaded({ arcade: board, old, fresh, unread, laliga, fdr, onReload, busy }: { arcade: Arcade; old: boolean; fresh: boolean; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; onReload: () => void; busy: boolean }) {
   // Games Sorare has not timed take the board's kick-off, else stay "Date TBC" and out of every timed plan (plans/arcade-trust.md step 2).
   // Games of an earlier day leave every view; today's finished ones stay for the missions' picks (step 3). Worked out once per read.
   const allGames = useMemo(() => (board.games ? currentGames(settleKickoffs(board.games, fdr, old), Date.now()) : null), [board.games, fdr, old]);
@@ -197,7 +197,7 @@ function Loaded({ arcade: board, old, unread, laliga, fdr, onReload, busy }: { a
       <div className="arc-views"><SegmentedControl<View> label="Arcade view" size="lg" value={view} onChange={pick} options={VIEWS} /></div>
       {/* Every view stays mounted (hidden, not removed), so a switch keeps its reads, picks and page. */}
       <div className="arc-view" hidden={view !== "play"}>
-        {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} actions={actions} /> : null}
+        {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} actions={actions} fresh={fresh} /> : null}
         {ready && planOutlooks ? <ArcadePlanner key={`${arcade.set.slug}:${arcade.board?.id}`} arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} status={ready.status ?? {}} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
       </div>
       <div className="arc-view" hidden={view !== "packs"}>
@@ -275,7 +275,7 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
           {!ended && old && read?.state === "chrome-copy" ? (
             <p className="arc-note is-warn" role="status">Board, lives and lineups as read {at} in your Chrome; start %, forecasts and kick-offs are today&apos;s. Open Arcade there to read it again.</p>
           ) : null}
-          <Loaded arcade={board.arcade} old={old} unread={board.unread} laliga={laliga} fdr={fdr} onReload={() => void load()} busy={busy} />
+          <Loaded arcade={board.arcade} old={old} fresh={board.at === null} unread={board.unread} laliga={laliga} fdr={fdr} onReload={() => void load()} busy={busy} />
         </>
       ) : (
         <section className="arc-empty" role="status">

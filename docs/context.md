@@ -34,7 +34,7 @@ The lookup returns complete contract sections, the reason for each match, transi
 
 ## API lookup and coverage
 
-All 19 current Next route files have contracts for their explicit handler methods below. Framework-provided HEAD/OPTIONS behavior is not inferred by this registry. Use `node scripts/docs.mjs lookup "/api/refresh"` or the handler path. The local gate rejects new undocumented methods, removed handlers and contracts that do not reference their handler. Generated FastAPI OpenAPI describes a different runtime and is not this API registry. Response shapes intentionally differ; do not normalize undocumented errors by assumption. Guard checks are not equivalent to signed-in owner identity. Existing route tests are attached where present; missing tests remain explicit empty references, not inferred passes.
+All 21 current Next route files have contracts for their explicit handler methods below. Framework-provided HEAD/OPTIONS behavior is not inferred by this registry. Use `node scripts/docs.mjs lookup "/api/refresh"` or the handler path. The local gate rejects new undocumented methods, removed handlers and contracts that do not reference their handler. Generated FastAPI OpenAPI describes a different runtime and is not this API registry. Response shapes intentionally differ; do not normalize undocumented errors by assumption. Guard checks are not equivalent to signed-in owner identity. Existing route tests are attached where present; missing tests remain explicit empty references, not inferred passes.
 
 ## Contract format and evidence limits
 
@@ -456,6 +456,19 @@ Coverage is all 36 main-stage clubs and their current players/calendar; qualifie
 
 **Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
 
+<a id="api-arcade-log-001"></a>
+## API-ARCADE-LOG-001 - POST /api/arcade/log
+
+**Guard:** SAME: x-fdr-refresh:1 plus Sec-Fetch-Site=same-origin, or Origin/Host comparison when that header is absent. This is a browser-origin guard, not independent user authentication.
+
+**Input:** one read of the Arcade board (`LogBatch`, lib/arcadeLog.ts): set slug, board id, read time, up to 20 steps (number, target, state, lineups remaining and max) and up to 80 entered lineups (id, step, target, state, score, cancelled, up to 7 cards, first and last kick-off, the chance Sofix gives it or null).
+
+**Response/cache:** 200 {ok, lineups}; 400 not a lineup read, 403 guard, 503 no database or the write failed; success no-store.
+
+**Effects and failure boundaries:** merges into `read_models` key `arcade_log:<set>` (`saveLog`, lib/arcadeLogStore.ts: one SELECT and one upsert) and copies it to R2. A lineup's chance is kept only when the server's clock is before its first kick-off, and is never changed once kept; results (score, state, cleared, missed or cancelled after settlement) come from the newest read only; a board id change starts the lineups afresh. The Arcade page sends a read only after a fresh board read in your Chrome (never a copy) and only when it changed (signature kept in the browser); never polled. Owner plan: plans/arcade-trust.md step 8.
+
+**Evidence limit:** inspected handler behavior and its route test, not live endpoint proof. Do not invoke a write merely because this reference documents it.
+
 <a id="api-ext-arcade-001"></a>
 ## API-EXT-ARCADE-001 - POST /api/ext/arcade
 
@@ -702,6 +715,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | page | `/season` | `frontend/app/(board)/season/page.tsx` |
 | page | `/table` | `frontend/app/(board)/table/page.tsx` |
 | API | `/api/arcade/chances` | `frontend/app/api/arcade/chances/route.ts` |
+| API | `/api/arcade/log` | `frontend/app/api/arcade/log/route.ts` |
 | API | `/api/dev/chrome-copy` | `frontend/app/api/dev/chrome-copy/route.ts` |
 | API | `/api/ext/arcade` | `frontend/app/api/ext/arcade/route.ts` |
 | API | `/api/ext/chances` | `frontend/app/api/ext/chances/route.ts` |
@@ -1794,8 +1808,8 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-20",
-        "note": "20 Nov 2026: steps 1-7 of plans/arcade-trust.md. Ranked sources and start records; Date TBC and old-copy re-timing; finished games dropped; verdict heading; Surest by step; arcade_said freezes each source's numbers per Arcade game at kick-off in its own blocks (not player_games). Vitest Arcade suite, backend tests and the Arcade e2e spec pass; checked on the 10 Nov board copy, not a live board.",
+        "date": "2026-11-21",
+        "note": "21 Nov 2026: steps 1-8 of plans/arcade-trust.md; step 8 adds ArcadeLive's lineup log (logBatch, sendArcadeLog) after fresh board reads only, priced with the plan's simulate and chanceOf. Vitest Arcade suite and the Arcade e2e spec pass; checked on the 10 Nov board copy, not a live board.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "2e6f74eb94ef82df401bf55e7ab02e4677ac66559b0fbd65238a739830dace94",
           "frontend/lib/arcadePlan.ts": "18e962d92f41d51be1798f51ba4e9d9e93cac3ade35c7dba5ae4acc589ad1305",
@@ -1810,7 +1824,7 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/arcadeFdr.ts": "92323dc039412ba4cbad00df507e9cd778545c430361e43750ff6f07fde012d9",
           "backend/app/sorare/arcade_outlook.py": "ea92ff1da5b3bee1b93cf4e8505107b23dae3c645c201ad958f0a2c0f38a747f",
           "backend/app/sorare/arcade_said.py": "34831b86d65c71bfac43911183f8f75b80ba03ff7ca5aea06f66fd8fa0222eae",
-          "plans/arcade-trust.md": "1b5d4afef0742865045ede317ba03bb272d1bdb8b325321aa9aa79789ca4a71b",
+          "plans/arcade-trust.md": "6304fb84925c62cdc7a796185995df9e55029c5d722085263dfbba76a4aa3c91",
           "frontend/lib/arcadeClimb.test.ts": "92570bc4fa238ccb48f8188521702b2677e3979574290084f6d732086b40ab44",
           "backend/tests/test_arcade_outlook.py": "7a4cfb2fb6f49e8ba4943973931fbf1d004532445a8f3cdb1ca62177c3f5fd11",
           "backend/tests/test_arcade_said.py": "4525410d988cf664eebf3f37d99fab91e317ecc94b9c056e7abd5976b2985363",
@@ -1818,7 +1832,7 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/arcadePlan.test.ts": "4dea711cd45bc654d87969885ec572392c6f322b37b18bc8922a049d398864d6",
           "frontend/lib/arcadeTeams.test.ts": "100dae1da4a23b695e2dd9b0c3a415c6fa5527b100fd0b31b33bcf1733169e3e",
           "frontend/lib/arcadeBatch.test.ts": "57fd49ca2a454f68c16cd0e313858aefaaa42a522ea560141e97c23d183cde7b",
-          "frontend/e2e/arcade.e2e.ts": "b805fab5bdb9c30249fcddf78ba9080521cd1d330b5b838e06bc8c01055fb1d9"
+          "frontend/e2e/arcade.e2e.ts": "f4dc419d3954c91c044fa3798c179c4de27e9b29d731699194ab75bc6d2f8a75"
         }
       }
     },
@@ -2075,6 +2089,53 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/app/api/dev/chrome-copy/route.ts": "6cfa77b44c0945c4f405ed550ea4ffb86905404b5c0cdc8e821b10c43ba91cdf",
           "frontend/lib/chromeCopy.ts": "b234126a3c82d6e2ac5bac3bfa78bbf0ba5df9c11c5cf8202dc82a645f471183",
           "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d"
+        }
+      }
+    },
+    {
+      "id": "API-ARCADE-LOG-001",
+      "anchor": "api-arcade-log-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/arcade/log"
+      ],
+      "paths": [
+        "frontend/app/api/arcade/log/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/arcade/log/route.ts"
+        },
+        {
+          "path": "frontend/lib/arcadeLog.ts"
+        },
+        {
+          "path": "frontend/lib/arcadeLogStore.ts"
+        },
+        {
+          "path": "frontend/lib/refresh.ts",
+          "symbol": "isSameOriginRequest"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/app/api/arcade/log/route.test.ts"
+        },
+        {
+          "path": "frontend/lib/arcadeLog.test.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-11-21",
+        "note": "21 Nov 2026: new same-origin route; LogBatch validation, mergeLog (chance kept only before first kick-off by the server clock, never changed; results from the newest read; settled after two hours), saveLog one SELECT and one upsert then R2. Route test and merge tests pass; no live write yet.",
+        "files": {
+          "frontend/app/api/arcade/log/route.ts": "3f18dd590f4759ede17a273141ee3d38de924cb396981e3feae713288d89e8f6",
+          "frontend/lib/arcadeLog.ts": "9c4a1a5b2e17ef95e38af5583414f75325cbc39fbe8b64491d341124c7f90713",
+          "frontend/lib/arcadeLogStore.ts": "6024bde402f66f0da3806106f371971bab87adfc8d2da03c9a17aea2017f31ab",
+          "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d",
+          "frontend/app/api/arcade/log/route.test.ts": "48af649c22d54b4822b7c93fef21962c2babb75fce9dd3957df022da01c7f7b4",
+          "frontend/lib/arcadeLog.test.ts": "e109f486ebff41a667fe6a3b614026b524a8523394ab6b248de7f28dbe510e77"
         }
       }
     },
@@ -2794,6 +2855,13 @@ This block is the single machine-readable index for the sections above. Test ref
         "GET"
       ],
       "contract": "API-PLAYERS-001"
+    },
+    {
+      "path": "frontend/app/api/arcade/log/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "contract": "API-ARCADE-LOG-001"
     },
     {
       "path": "frontend/app/api/arcade/chances/route.ts",

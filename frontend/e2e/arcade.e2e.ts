@@ -13,6 +13,7 @@ const recordsFor = (route: { request: () => { postDataJSON: () => unknown } }, {
 // Every spec gets them unless it routes the call itself (a later route wins).
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
+  await page.route("**/api/arcade/log", (route) => route.fulfill({ json: { ok: true, lineups: 0 } })); // the lineup log (step 8)
 });
 const KICKOFF = new Date(Date.now() + 86_400_000).toISOString(); // tomorrow, inside the days Sorare projects
 /** A kick-off's Madrid time, as a chain node shows it. */

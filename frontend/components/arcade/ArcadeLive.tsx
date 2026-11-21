@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { readArcadeLineups, type Arcade, type ArcadeLineup } from "../../lib/arcade";
-import { bigReward, cutLosses, liveLineup, madridDate, planDay, whenLabel, type Outlook } from "../../lib/arcadePlan";
+import { bigReward, chanceOf, cutLosses, liveLineup, madridDate, planDay, simulate, whenLabel, type Outlook } from "../../lib/arcadePlan";
+import { logBatch, sendArcadeLog } from "../../lib/arcadeLog";
 import { climbStep, pct, pts } from "./ArcadePlanner";
 import ArcadeAction from "./ArcadeAction";
 
@@ -15,7 +16,7 @@ const LIVE_EVERY_MS = 2 * 60_000; // only while a game of yours is live and the 
  * "cut losses" (cancel on Sorare, which costs the life a miss would) only when the cards still to play add more to the next planned
  * lineup than this one has left. Shown here only; nothing is entered or cancelled from Sofix.
  */
-export default function ArcadeLive({ arcade, outlooks, captainBonus, actions }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; actions: HTMLElement | null }) {
+export default function ArcadeLive({ arcade, outlooks, captainBonus, actions, fresh }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; actions: HTMLElement | null; fresh: boolean }) {
   const [entered, setEntered] = useState(() => new Map((arcade.board?.steps ?? []).map((s) => [s.id, s.entered])));
   const [now, setNow] = useState(() => Date.now());
   const [state, setState] = useState<"idle" | "reading" | "failed">("idle");
@@ -46,6 +47,17 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus, actions }: 
     const card = lineup.cards.find((c) => c.slug === slug);
     return card?.game ? outlooks.get(card.game)?.find((o) => o.card.slug === slug) ?? null : null;
   }, [outlooks]);
+  // Every lineup you entered and what became of it, kept so Sofix can check its chances (plans/arcade-trust.md step 8). Only a board
+  // read just now in your Chrome is sent (never a copy), and only when it changed; a lineup is priced as the plan prices one.
+  useEffect(() => {
+    if (!fresh || !arcade.board) return;
+    const price = (lineup: ArcadeLineup, step: (typeof steps)[number]) => {
+      const picks = lineup.cards.map((c) => { const o = find(lineup)(c.slug); return o ? { outlook: o, captain: c.captain } : null; });
+      if (picks.length !== 5 || picks.some((p) => !p)) return null;
+      return chanceOf(simulate(picks as { outlook: Outlook; captain: boolean }[], step.captain ?? captainBonus), step.target);
+    };
+    void sendArcadeLog(logBatch(arcade.set.slug, arcade.board.id, steps, entered, price, Date.now()));
+  }, [fresh, arcade, steps, entered, find, captainBonus]);
   const pictures = useMemo(() => new Map(arcade.cards.flatMap((c) => (c.picture ? [[c.slug, c.picture] as const] : []))), [arcade.cards]);
   const busy = useMemo(() => new Set(open.flatMap(({ lineup }) => lineup.cards.flatMap((c) => (c.slug ? [c.slug] : [])))), [open]);
   const infos = useMemo(() => steps.map((s) => ({ number: s.number, target: s.target, lives: s.lineups?.remaining ?? 4, big: bigReward(s.rewards) })), [steps]);

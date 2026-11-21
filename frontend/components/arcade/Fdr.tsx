@@ -26,7 +26,7 @@ export function FdrChip({ game, home, position }: { game: string; home: boolean;
   const fdr = fdrOf(mine);
   const detail = back ? (pctOf(mine.cleanSheet) ? `${pctOf(mine.cleanSheet)} clean sheet` : null) : mine.xgFor !== null ? `${mine.xgFor.toFixed(1)} xG` : null;
   return (
-    <span className={`arc-fdr f${mine.bucket}`} title={`${mine.name} v ${theirs.name}: ${fdr.title}${mine.cleanSheet !== null ? ` · clean sheet ${pctOf(mine.cleanSheet)}` : ""}${mine.xgFor !== null ? ` · ${mine.xgFor.toFixed(1)} expected goals for, ${mine.xgAgainst?.toFixed(1) ?? "?"} against` : ""}`}>
+    <span className={`arc-fdr f${fdr.band}`} title={`${mine.name} v ${theirs.name}: ${fdr.title}${mine.cleanSheet !== null ? ` · clean sheet ${pctOf(mine.cleanSheet)}` : ""}${mine.xgFor !== null ? ` · ${mine.xgFor.toFixed(1)} expected goals for, ${mine.xgAgainst?.toFixed(1) ?? "?"} against` : ""}`}>
       <b>{fdr.value ?? "—"}</b>{detail ? <small>{detail}</small> : null}
     </span>
   );

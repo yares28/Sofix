@@ -605,3 +605,6 @@
 .arc-audit-loopholes dd b { font-size: 18px; font-variant-numeric: tabular-nums; }
 .arc-audit-loopholes dd small { font-size: 12px; color: var(--ink-2); }
 .arc-post-mortem { margin: 0; }
+/* The shield that stands in for a crest neither Sorare nor the boards have: a club colour, never initials (step 13). */
+.arc-shield { display: inline-block; width: 16px; height: 19px; border-radius: 4px 4px 8px 8px; vertical-align: middle; }
+.arc-crest.arc-shield { width: 26px; height: 30px; margin: 1px 3px; border-radius: 6px 6px 13px 13px; }

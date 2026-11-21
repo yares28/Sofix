@@ -4,6 +4,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import type { Arcade } from "../../lib/arcade";
 import type { ArcadeAudit as Audit } from "../../lib/arcadeLog";
 import { madridDay, madridTime, pts } from "./ArcadePlanner";
+import { shieldColor } from "../../lib/arcadeFdr";
 
 const PAGE = 12;
 const ANSWER = { yes: "Yes", no: "No" } as const;
@@ -104,7 +105,7 @@ export default function ArcadeAudit({ audit, arcade }: { audit: Audit | null | "
                   {c.crest
                     // eslint-disable-next-line @next/next/no-img-element -- the club's crest
                     ? <img src={c.crest} alt="" width={32} height={32} loading="lazy" />
-                    : <span className="arc-audit-shield" aria-hidden="true" />}
+                    : <span className="arc-audit-shield" aria-hidden="true" style={{ background: shieldColor(c.slug) }} />}
                   <span>{c.name}</span>
                   <b aria-label={`${c.count} cards in those lineups`}>×{c.count}</b>
                 </li>

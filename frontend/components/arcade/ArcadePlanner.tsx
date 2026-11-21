@@ -10,7 +10,7 @@ import { aimKey, useArcadeAim } from "../../lib/arcadeAim";
 import { climbStart, climbStep, stepInfos } from "../../lib/arcadeBoard";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrContext } from "./Fdr";
-import { fdrOf, leagueLabel } from "../../lib/arcadeFdr";
+import { fdrOf, shieldColor, leagueLabel } from "../../lib/arcadeFdr";
 import ArcadeTeams from "./ArcadeTeams";
 import PlayerCard from "./PlayerCard";
 import { aimStep, noStartNote, partialFive, SLOTS, bestLineup, chanceOf, madridDate, predicted, sideIn, whenLabel, SETTLES_AFTER_MS, type Lineup, type Slot, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
@@ -81,7 +81,7 @@ export function Chances({ lineup, steps, aim }: { lineup: Lineup; steps: ArcadeS
 export function Crest({ team, crests }: { team: ArcadeGame["home"]; crests: Map<string, string> }) {
   const src = team?.crest ?? (team ? crests.get(team.slug) : undefined);
   // eslint-disable-next-line @next/next/no-img-element -- Sorare's crest, as on the other pages
-  return src ? <img className="arc-crest" src={src} alt={team?.name ?? ""} width={32} height={32} loading="lazy" /> : <span className="arc-crest is-blank" aria-hidden="true">{(team?.name ?? "?").slice(0, 2)}</span>;
+  return src ? <img className="arc-crest" src={src} alt={team?.name ?? ""} width={32} height={32} loading="lazy" /> : <span className="arc-crest is-blank arc-shield" role="img" aria-label={team?.name ?? "Unknown club"} style={{ background: shieldColor(team?.slug ?? "") }} />;
 }
 export const crestsOf = (arcade: Arcade) => new Map(arcade.cards.flatMap((c) => (c.teamSlug && c.teamPicture ? [[c.teamSlug, c.teamPicture] as const] : [])));
 
@@ -214,7 +214,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
     const f = boards.get(g.id);
     if (!f) return false;
     const mine = new Set((outlooks.get(g.id) ?? []).map((o) => sideIn(o.card, g)));
-    return (mine.has(g.home?.slug ?? null) && f.home.bucket <= 2) || (mine.has(g.away?.slug ?? null) && f.away.bucket <= 2);
+    return (mine.has(g.home?.slug ?? null) && (fdrOf(f.home).band ?? 5) <= 2) || (mine.has(g.away?.slug ?? null) && (fdrOf(f.away).band ?? 5) <= 2);
   });
   // One lineup plays one day: the easy games of the first day that has any (9 Nov 2026: 239 games over two months went in one team).
   const easyDay = easyAll[0] ? madridDate(easyAll[0].kickoff) : null;
@@ -258,7 +258,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
                 <span>{(outlooks.get(g.id) ?? []).length} of your cards</span>
               </span>
               {/* A dot per side, in its FDR band's colour; the number out of 100 is on the cards (one FDR form, 10 Nov 2026). */}
-              {f ? <span className="arc-ticket-fdr">{([["Home", f.home], ["Away", f.away]] as const).map(([where, s]) => <span key={where} className={`f${s.bucket}`} title={`${where} (${s.name}): ${fdrOf(s).title}`} />)}</span> : null}
+              {f ? <span className="arc-ticket-fdr">{([["Home", f.home], ["Away", f.away]] as const).map(([where, s]) => <span key={where} className={`f${fdrOf(s).band}`} title={`${where} (${s.name}): ${fdrOf(s).title}`} />)}</span> : null}
               {on ? <span className="arc-stamp" aria-hidden="true">IN</span> : null}
             </button>
           );

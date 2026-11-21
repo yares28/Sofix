@@ -4,9 +4,9 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import SegmentedControl from "../SegmentedControl";
 import { ARCADE_TIERS_VERSION, readArcadeCollection, readPackOdds, type Arcade, type ArcadeCollection, type ArcadePack } from "../../lib/arcade";
-import { completePackOdds, ICON, missionGoal, openBundle, openMany, packRow, packsToFinish, spendGems, TIER_GOALS, type Goal, type TierOdds } from "../../lib/arcadePacks";
+import { completePackOdds, ICON, missionGoal, openBundle, openMany, packName, packRow, packsToFinish, spendGems, TIER_GOALS, type Goal, type TierOdds } from "../../lib/arcadePacks";
 import { loadPackSnapshot, savePackSnapshot, type PackSnapshot } from "../../lib/arcadePackStore";
-import { leagueLabel } from "../../lib/arcadeFdr";
+import { sofixWords } from "../../lib/arcadeFdr";
 
 const TIERS = ["All", "Bronze", "Silver", "Gold", "Special"] as const;
 export const tierOf = (title: string) => (["Bronze", "Silver", "Gold"].includes(title.trim()) ? title.trim() : "Special");
@@ -81,8 +81,8 @@ export default function ArcadePacks({ arcade, busy = false }: { arcade: Arcade; 
   const goalFor = useCallback((pack: ArcadePack): Goal => mission ? missionGoal(mission, pack.league, owned, leagueOf)
     : goal === "new" ? { label: "New players", need: 1, distinct: true, owned }
     : { label: tierGoal?.label ?? "Icon", need: 1, distinct: false, tiers: tierGoal?.tiers ?? ICON, owned }, [mission, owned, leagueOf, goal, tierGoal]);
-  const label = mission?.title ?? (goal === "new" ? "New players" : tierGoal?.label ?? "Icon");
-  const name = (p: { title: string; league: string | null }) => `${p.title}${p.league ? ` · ${leagueLabel(arcade.set.leagues.find(l => l.slug === p.league) ?? { slug: p.league, name: p.league })}` : ""}`;
+  const label = (mission?.title ? sofixWords(mission.title) : null) ?? (goal === "new" ? "New players" : tierGoal?.label ?? "Icon");
+  const name = (p: { title: string; league: string | null }) => packName(p, arcade.set.leagues);
   const usable = useCallback((p: ArcadePack) => completePackOdds(snapshot?.odds[p.slug], p.cards), [snapshot]);
   const rows = useMemo(() => packs.filter(usable).map(p => packRow(p, snapshot!.odds[p.slug]!, goalFor(p))).sort((a, b) => (a.perHit ?? Infinity) - (b.perHit ?? Infinity)), [packs, usable, snapshot, goalFor]);
   const pack = packs.find(p => p.slug === selected) ?? packs.find(p => p.currency === "COMMON_GEM") ?? packs[0];
@@ -131,7 +131,7 @@ export default function ArcadePacks({ arcade, busy = false }: { arcade: Arcade; 
       {message ? <p className="arc-pack-status" role="status">{message}</p> : null}
       {readDetails.length ? <details className="arc-gems-maths"><summary>Read details</summary><p>{readDetails.join(" ")}</p></details> : null}
       <div className={`arc-pack-toolbar${mode === "compare" ? " is-comparing" : ""}`}>
-        <label>Goal<select name="pack-goal" autoComplete="off" aria-label="Goal" value={goal} onChange={e => { setGoal(e.target.value); setPage(0); }}><optgroup label="Players">{TIER_GOALS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}<option value="new">New players</option></optgroup>{open.length ? <optgroup label="Collections">{open.map(m => <option key={m.id} value={`mission:${m.id}`}>{m.title} · {m.progress}/{m.target}</option>)}</optgroup> : null}</select></label>
+        <label>Goal<select name="pack-goal" autoComplete="off" aria-label="Goal" value={goal} onChange={e => { setGoal(e.target.value); setPage(0); }}><optgroup label="Players">{TIER_GOALS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}<option value="new">New players</option></optgroup>{open.length ? <optgroup label="Collections">{open.map(m => <option key={m.id} value={`mission:${m.id}`}>{sofixWords(m.title ?? "")} · {m.progress}/{m.target}</option>)}</optgroup> : null}</select></label>
         {mode === "single" ? <label>Pack type<select name="pack-type" autoComplete="off" aria-label="Pack type" value={tier} onChange={e => { setTier(e.target.value); setPage(0); }}>{TIERS.map(t => <option key={t} value={t}>{t} ({packs.filter(p => t === "All" || tierOf(p.title) === t).length})</option>)}</select></label> : null}
         <SegmentedControl<CalculatorMode> label="Pack calculator mode" value={mode} onChange={changeMode} options={[{ value: "single", label: "Single pack" }, { value: "compare", label: "Compare options" }]} />
       </div>

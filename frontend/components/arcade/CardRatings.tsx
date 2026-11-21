@@ -19,10 +19,10 @@ export default function CardRatings({ outlook, game, competition, home, detail }
   const look = scoreColour(score);
   return (
     <div className="arc-card-ratings">
-      <span className="arc-card-score" aria-label={score === null ? "xScore unavailable" : `xScore ${Math.round(score)}`} style={{ background: look.fill, color: look.ink }} title={`${detail} · ${outlook?.scoreSource === "sofix" ? "Sofix" : outlook?.scoreSource === "sorare" ? "Sorare" : outlook?.scoreSource === "form" ? "Recent form" : "No"} projection × start chance, before bonuses${outlook?.start === null ? "; start chance unknown, assumed starting" : ""}`}>
+      <span className="arc-card-score" aria-label={score === null ? "xS unavailable" : `xS ${Math.round(score)}`} style={{ background: look.fill, color: look.ink }} title={`${detail} · ${outlook?.scoreSource === "sofix" ? "Sofix" : outlook?.scoreSource === "sorare" ? "Sorare" : outlook?.scoreSource === "form" ? "Recent form" : "No"} projection × start chance, before bonuses${outlook?.start === null ? "; start chance unknown, assumed starting" : ""}`}>
         <b>{score === null ? "—" : Math.round(score)}</b>
       </span>
-      <span className={`arc-card-fdr${side ? ` f${side.bucket}` : ""}`} title={`${detail} · ${side ? fdr.title : missing}`}>
+      <span className={`arc-card-fdr${side ? ` f${fdr.band}` : ""}`} title={`${detail} · ${side ? fdr.title : missing}`}>
         <small>FDR</small><b>{fdr.value ?? "—"}</b>
       </span>
     </div>

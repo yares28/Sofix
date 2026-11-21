@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArcadeGame } from "./arcade";
-import { completePackOdds, ICON, missionGoal, openBundle, openMany, packRow, packsToFinish, parseTierOdds, spendGems, STAR_OR_BETTER, TIER_GOALS, type Goal, type SlotOdds } from "./arcadePacks";
+import { packName, completePackOdds, ICON, missionGoal, openBundle, openMany, packRow, packsToFinish, parseTierOdds, spendGems, STAR_OR_BETTER, TIER_GOALS, type Goal, type SlotOdds } from "./arcadePacks";
 import type { Outlook } from "./arcadePlan";
 import { clubsToBuildAround, signalOf } from "./arcadeTeams";
 
@@ -182,5 +182,15 @@ describe("teams to build around", () => {
     // e has no start chance from any source: left out, not counted as a starter on Sorare's word (plans/arcade-trust.md §4).
     expect(picks.map((p) => [p.club, p.value, p.likely])).toEqual([["lille", 94, 2], ["lens", 72, 1]]);
     expect(picks[0]!.cards.map((c) => c.outlook.card.player)).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("pack names in one form (plans/arcade-trust.md step 13)", () => {
+  it("says the tier, then the league or All leagues", () => {
+    const leagues = [{ slug: "premier-league-gb-eng", name: "English League Players" }, { slug: "laliga-es", name: "LALIGA EA Sports" }];
+    expect(packName({ title: "Platinum Pack", league: null }, leagues)).toBe("Platinum · All leagues");
+    expect(packName({ title: "England Platinum", league: null }, leagues)).toBe("Platinum · Premier League");
+    expect(packName({ title: "Gold", league: "laliga-es" }, leagues)).toBe("Gold · LaLiga");
+    expect(packName({ title: "Mystery Box", league: null }, leagues)).toBe("Mystery Box · All leagues");
   });
 });

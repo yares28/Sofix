@@ -10,7 +10,7 @@ import type { ArcadeRecords } from "../../lib/arcadeRecords";
 import type { ArcadeAudit as AuditData, ChanceCheck } from "../../lib/arcadeLog";
 import ArcadeAudit from "./ArcadeAudit";
 import type { Outlook } from "../../lib/arcadePlan";
-import { matchFixture, settleKickoffs, type FdrFixture } from "../../lib/arcadeFdr";
+import { matchFixture, settleKickoffs, withClubs, type Club, type FdrFixture } from "../../lib/arcadeFdr";
 import ArcadeLive from "./ArcadeLive";
 import ArcadeCards from "./ArcadeCards";
 import ArcadeAction from "./ArcadeAction";
@@ -73,11 +73,16 @@ const WALKED: Record<string, string> = {
   error: "Reading Sorare's page failed; nothing more was saved.",
 };
 
-function Loaded({ arcade: board, old, fresh, unread, laliga, fdr, onReload, busy }: { arcade: Arcade; old: boolean; fresh: boolean; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; onReload: () => void; busy: boolean }) {
+function Loaded({ arcade: board, old, fresh, unread, laliga, fdr, clubs, onReload, busy }: { arcade: Arcade; old: boolean; fresh: boolean; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; clubs: Map<string, Club>; onReload: () => void; busy: boolean }) {
   // Games Sorare has not timed take the board's kick-off, else stay "Date TBC" and out of every timed plan (plans/arcade-trust.md step 2).
   // Games of an earlier day leave every view; today's finished ones stay for the missions' picks (step 3). Worked out once per read.
-  const allGames = useMemo(() => (board.games ? currentGames(settleKickoffs(board.games, fdr, old), Date.now()) : null), [board.games, fdr, old]);
-  const arcade = useMemo(() => ({ ...board, games: allGames?.filter((g) => !g.tbc) ?? null }), [board, allGames]);
+  const allGames = useMemo(() => (board.games ? currentGames(withClubs(settleKickoffs(board.games, fdr, old), clubs), Date.now()) : null), [board.games, fdr, old, clubs]);
+  // Clubs as Sofix names them, with their crest where Sorare has none (step 13: "RCD Espanyol de Barcelona" is Espanyol).
+  const cards = useMemo(() => board.cards.map((c) => {
+    const club = c.teamSlug ? clubs.get(c.teamSlug) : undefined;
+    return club ? { ...c, team: club.name, teamPicture: c.teamPicture ?? club.crest } : c;
+  }), [board.cards, clubs]);
+  const arcade = useMemo(() => ({ ...board, cards, games: allGames?.filter((g) => !g.tbc) ?? null }), [board, cards, allGames]);
   // Each game of a league with a Sofix board, matched to the board's fixture (kick-off and clubs).
   const boards = useMemo(() => new Map((arcade.games ?? []).flatMap((g) => { const f = matchFixture(g, fdr); return f ? [[g.id, f] as const] : []; })), [arcade.games, fdr]);
   // The same step as the plan everywhere on the page (header, captain bonus, start % read), never Sorare's raw step.
@@ -229,7 +234,8 @@ const whyNot = (read: Exclude<ArcadeRead, { state: "ok" }>) =>
     : read.state === "failed" ? `Sorare refused part of the read (${read.detail}).`
     : WHY[read.state];
 
-export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga; fdr?: FdrFixture[] }) {
+export default function ArcadeView({ laliga, fdr = [], clubs: clubList = [] }: { laliga: ArcadeLaLiga; fdr?: FdrFixture[]; clubs?: [string, Club][] }) {
+  const clubs = useMemo(() => new Map(clubList), [clubList]);
   const [read, setRead] = useState<ArcadeRead | null>(null);
   // What is shown: the fresh read, or until then (or when Sorare cannot be read) the last one kept in this browser, with its time.
   const [board, setBoard] = useState<{ arcade: Arcade; unread: string[]; at: number | null } | null>(null);
@@ -284,7 +290,7 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
           {!ended && old && read?.state === "chrome-copy" ? (
             <p className="arc-note is-warn" role="status">Board, lives and lineups as read {at} in your Chrome; start %, forecasts and kick-offs are today&apos;s. Open Arcade there to read it again.</p>
           ) : null}
-          <Loaded arcade={board.arcade} old={old} fresh={board.at === null} unread={board.unread} laliga={laliga} fdr={fdr} onReload={() => void load()} busy={busy} />
+          <Loaded arcade={board.arcade} old={old} fresh={board.at === null} unread={board.unread} laliga={laliga} fdr={fdr} clubs={clubs} onReload={() => void load()} busy={busy} />
         </>
       ) : (
         <section className="arc-empty" role="status">

@@ -69,8 +69,38 @@ export function matchFixture(game: { kickoff: string; competition: { slug: strin
 export function fdrOf(side: FdrSide | null | undefined): { value: number | null; band: FdrSide["bucket"] | null; title: string } {
   if (!side) return { value: null, band: null, title: "FDR unavailable" };
   const value = side.difficulty == null ? null : Math.round(side.difficulty);
-  return { value, band: side.bucket, title: `${side.label} · difficulty ${value === null ? "unknown" : `${value} of 100 (lower is easier)`}` };
+  // Arcade mixes leagues on one screen, so the colour follows the number with the same cut-offs everywhere (owner, 20 Nov 2026:
+  // Nice v PSG at 29 was "Favourite" beside Man City's "Very favourite" 30); the board's own band stands only without a number.
+  const band = value === null ? side.bucket : bandOf(value);
+  return { value, band, title: `${value === null ? side.label : LABELS[band - 1]} · difficulty ${value === null ? "unknown" : `${value} of 100 (lower is easier)`}` };
 }
+
+/** The difficulty's band, the same in every league: up to 35, 45, 55, 65, then above (plans/arcade-trust.md step 13). */
+const CUTS = [35, 45, 55, 65];
+const LABELS = ["Very favourite", "Favourite", "Even", "Underdog", "Big underdog"];
+export const bandOf = (difficulty: number): FdrSide["bucket"] => (CUTS.findIndex((c) => difficulty <= c) + 1 || 5) as FdrSide["bucket"];
+
+/** Each club Sofix rates, by its Sorare slug: Sofix's name, crest and colour (from the boards' `sorare_slug`, `crest_url`, `color`). */
+export type Club = { name: string; crest: string | null; color: string | null };
+export function clubsOf(grids: ({ teams?: { sorare_slug?: string | null; name: string; crest_url?: string | null; color?: string | null }[] } | null | undefined)[]): Map<string, Club> {
+  const out = new Map<string, Club>();
+  for (const grid of grids) for (const team of grid?.teams ?? []) {
+    if (team.sorare_slug && !out.has(team.sorare_slug)) out.set(team.sorare_slug, { name: team.name, crest: team.crest_url ?? null, color: team.color ?? null });
+  }
+  return out;
+}
+
+/** Games with each club named as Sofix names it and its crest where Sorare has none; a club no board knows keeps Sorare's. */
+export function withClubs<G extends { home: { slug: string; name: string; crest?: string | null } | null; away: { slug: string; name: string; crest?: string | null } | null }>(games: G[], clubs: Map<string, Club>): G[] {
+  const side = <S extends { slug: string; name: string; crest?: string | null } | null>(s: S): S => {
+    const club = s ? clubs.get(s.slug) : undefined;
+    return s && club ? { ...s, name: club.name, crest: s.crest ?? club.crest } : s;
+  };
+  return games.map((g) => ({ ...g, home: side(g.home), away: side(g.away) }));
+}
+
+/** Sorare's words where Sofix has its own: "English League (Players)" is the Premier League. */
+export const sofixWords = (text: string) => text.replace(/English League( Players)?/g, "Premier League");
 
 /** A Sorare competition's name as Sofix says it where it has a board ("English League Players" is the Premier League), else Sorare's. */
 export const leagueLabel = (c: { slug: string; name: string }) => (BOARD_OF[c.slug] ? COMPETITIONS[BOARD_OF[c.slug]!] : c.name);
@@ -95,4 +125,11 @@ export function settleKickoffs<G extends { kickoff: string; competition: { slug:
       .find((f) => nameMatch(game.home?.name ?? "", f.home.name) > 0 && nameMatch(game.away?.name ?? "", f.away.name) > 0) : undefined;
     return found ? { ...game, kickoff: found.kickoff } : placeholder ? { ...game, tbc: true as const } : game;
   });
+}
+
+/** The colour of the shield that stands in for a crest Sorare and the boards do not have: steady per club, never initials. */
+export function shieldColor(slug: string): string {
+  let h = 0;
+  for (let i = 0; i < slug.length; i++) h = (h * 31 + slug.charCodeAt(i)) % 360;
+  return `hsl(${h} 38% 52%)`;
 }

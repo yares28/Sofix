@@ -1,3 +1,4 @@
+import { leagueLabel } from "./arcadeFdr";
 import { z } from "zod";
 
 /**
@@ -238,4 +239,16 @@ export function packsToFinish(slots: SlotOdds[], goal: Goal, budget: number, run
   finished.sort((a, b) => a - b);
   const at = (q: number) => { const v = finished[Math.ceil(q * runs) - 1]!; return Number.isFinite(v) ? v : null; };
   return { withinBudget: finished.filter((p) => p <= budget).length / runs, half: at(0.5), nine: at(0.9) };
+}
+
+
+/** Sorare's country words in pack titles, as Sofix names the league. */
+const COUNTRIES: Record<string, string> = { England: "Premier League", Spain: "LaLiga", Germany: "Bundesliga", France: "Ligue 1" };
+/** A pack's name in one form, "Gold · LaLiga" or "Platinum · All leagues" (plans/arcade-trust.md step 13). */
+export function packName(pack: { title: string; league: string | null }, leagues: { slug: string; name: string }[]): string {
+  const tier = /Bronze|Silver|Gold|Platinum/.exec(pack.title)?.[0] ?? pack.title.replace(/Pack/, "").trim();
+  const country = Object.keys(COUNTRIES).find((c) => pack.title.includes(c));
+  const set = pack.league ? leagues.find((l) => l.slug === pack.league) : undefined;
+  const league = pack.league ? leagueLabel(set ?? { slug: pack.league, name: pack.league }) : country ? COUNTRIES[country] : "All leagues";
+  return `${tier} · ${league}`;
 }

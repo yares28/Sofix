@@ -11,7 +11,7 @@ import { fdrOf, leagueLabel, type FdrSide } from "../../lib/arcadeFdr";
 import { aimKey, useArcadeAim } from "../../lib/arcadeAim";
 
 const Saved = z.object({ day: z.string(), selected: z.string(), counts: z.record(z.string(), z.number().int().min(1).max(4)), empty: z.boolean().default(false) });
-const number = (value: number | null | undefined, percent = false) => value == null ? "—" : percent ? pct(value) : value.toFixed(2);
+const number = (value: number | null | undefined, percent = false) => value == null ? "—" : percent ? pct(value) : value.toFixed(1); // one decimal, as elsewhere
 
 function Match({ game, crests }: { game: ArcadeGame; crests: Map<string, string> }) {
   const f = useContext(FdrContext).get(game.id);
@@ -19,7 +19,7 @@ function Match({ game, crests }: { game: ArcadeGame; crests: Map<string, string>
     <div className="arc-batch-side">
       <div><Crest team={team} crests={crests} /><b>{team?.name ?? "Unknown team"}</b></div>
       <dl>
-        <div><dt>FDR</dt><dd className={evidence ? `f${evidence.bucket}` : undefined} title={fdrOf(evidence).title}>{fdrOf(evidence).value ?? "—"}</dd></div>
+        <div><dt>FDR</dt><dd className={evidence ? `f${fdrOf(evidence).band}` : undefined} title={fdrOf(evidence).title}>{fdrOf(evidence).value ?? "—"}</dd></div>
         <div><dt>CS</dt><dd>{number(evidence?.cleanSheet, true)}</dd></div>
         <div><dt>xG</dt><dd>{number(evidence?.xgFor)}</dd></div>
         <div><dt>xGA</dt><dd>{number(evidence?.xgAgainst)}</dd></div>

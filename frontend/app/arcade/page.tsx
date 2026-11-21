@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import ArcadeView from "../../components/arcade/ArcadeView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
-import { ARCADE_FDR_DAYS, boardFixtures, type FdrFixture } from "../../lib/arcadeFdr";
+import { ARCADE_FDR_DAYS, boardFixtures, clubsOf, type FdrFixture } from "../../lib/arcadeFdr";
 import { loadArcadeLaLiga } from "../../lib/arcadeLaLiga";
 import { loadSystem } from "../../lib/system";
 
@@ -19,10 +19,12 @@ export default async function ArcadePage() {
   const now = Date.now();
   const fdr: FdrFixture[] = ([["PD", grid], ["PL", pl.grid], ["BL1", bl.grid], ["FL1", fl.grid], ["CL", cl.grid], ["EL", el.grid], ["CONF", conf.grid]] as const)
     .flatMap(([league, board]) => (board ? boardFixtures(board, league, now - 3 * 3_600_000, now + ARCADE_FDR_DAYS * 86_400_000) : []));
+  // Each club Sofix rates by its Sorare slug: Sofix's name, crest and colour (step 13), about 190 clubs.
+  const clubs = [...clubsOf([grid, pl.grid, bl.grid, fl.grid, cl.grid, el.grid, conf.grid] as unknown as Parameters<typeof clubsOf>[0])];
   return (
     <>
       <SiteNav meta={meta} system={system} />
-      <ArcadeView laliga={laliga} fdr={fdr} />
+      <ArcadeView laliga={laliga} fdr={fdr} clubs={clubs} />
     </>
   );
 }

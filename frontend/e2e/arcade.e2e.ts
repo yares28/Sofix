@@ -273,9 +273,9 @@ test("collection cards keep their evidence compact and all reads in the hero too
   await page.getByRole("combobox", { name: "Day", exact: true }).selectOption("none");
   await expect(page.locator(".arc-count")).toHaveText("No card matches");
   await page.getByRole("button", { name: "Clear filters" }).click();
-  await page.getByRole("combobox", { name: "xScore", exact: true }).selectOption("60");
+  await page.getByRole("combobox", { name: "xS", exact: true }).selectOption("60");
   await expect(page.locator(".arc-count")).toHaveText("No card matches"); // a 60% start record keeps every expected score under 60
-  await page.getByRole("combobox", { name: "xScore", exact: true }).selectOption("unknown");
+  await page.getByRole("combobox", { name: "xS", exact: true }).selectOption("unknown");
   await expect(page.locator(".arc-count")).toHaveText("No card matches");
   for (const [width, floor] of [[1440, 11], [390, 10]] as const) {
     await page.setViewportSize({ width, height: 900 });

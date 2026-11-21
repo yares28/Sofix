@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { readDecisive, type Arcade, type ArcadeMission, type DecisiveGame } from "../../lib/arcade";
 import { bestLineup, chanceOf, decisiveRate, missionHistory, madridDate, rankDecisive, RUNS, streakTarget, type Outlook } from "../../lib/arcadePlan";
 import Dots from "../missions/Dots";
+import { sofixWords } from "../../lib/arcadeFdr";
 import { missionChance, missionDay } from "../../lib/missions";
 import { LineupCards, pct, StartLabel } from "./ArcadePlanner";
 
@@ -124,8 +125,8 @@ export default function ArcadeMissions({ arcade, outlooks }: { arcade: Arcade; o
                   <span><b>{done !== null && of ? of - done : "–"}</b><small>{done !== null ? "to go" : ""}</small></span>
                 </div>
                 <div className="arc-mission-text">
-                  <strong>{m.title ?? m.kind}</strong>
-                  {m.description ? <span>{m.description}</span> : null}
+                  <strong>{sofixWords(m.title ?? m.kind)}</strong>
+                  {m.description ? <span>{sofixWords(m.description)}</span> : null}
                   <span><b>{m.rewards.filter((r) => !r.endsWith(" gems")).join(" + ") || "—"}</b> · gems: {gems ? gems.replace(" gems", "") : "—"}{done !== null ? ` · ${done} of ${of}${m.picks !== null ? " picked" : ""}` : ""}</span>
                 </div>
               </div>

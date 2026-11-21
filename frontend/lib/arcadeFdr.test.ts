@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ARCADE_FDR_DAYS, boardFixtures, matchFixture, nameMatch, fdrOf, leagueLabel, settleKickoffs, type FdrFixture } from "./arcadeFdr";
+import { ARCADE_FDR_DAYS, boardFixtures, clubsOf, matchFixture, nameMatch, fdrOf, leagueLabel, settleKickoffs, sofixWords, withClubs, type FdrFixture } from "./arcadeFdr";
 import type { FixtureGrid } from "./types";
 
 const side = (code: string, name: string, bucket: 1 | 2 | 3 | 4 | 5) => ({ code, name, bucket, label: "Even", cleanSheet: 0.3, xgFor: 1.4, xgAgainst: 1.1 });
@@ -106,5 +106,29 @@ describe("an old board copy's kick-offs (plans/arcade-trust.md step 4)", () => {
   });
   it("keeps Sorare's own time on a fresh read", () => {
     expect(settleKickoffs([copied], board)[0]).toMatchObject({ kickoff: "2026-12-06T15:15:00Z" });
+  });
+});
+
+describe("the main app's words and pictures in Arcade (plans/arcade-trust.md step 13)", () => {
+  it("colours FDR by its number with the same cut-offs in every league, never the league's own band", () => {
+    // 20 Nov 2026: Nice v PSG at 29 was "Favourite" while Man City at 30 was "Very favourite".
+    const psg = { ...side("PSG", "Paris SG", 2), difficulty: 29 }, city = { ...side("MCI", "Man City", 1), difficulty: 30 };
+    expect(fdrOf(psg)).toMatchObject({ value: 29, band: 1 });
+    expect(fdrOf(city)).toMatchObject({ value: 30, band: 1 });
+    expect([35, 36, 46, 56, 66].map((d) => fdrOf({ ...side("X", "X", 3), difficulty: d }).band)).toEqual([1, 2, 3, 4, 5]);
+    expect(fdrOf({ ...side("X", "X", 4), difficulty: undefined }).band).toBe(4); // no number: the board's band stands
+    expect(fdrOf(psg).title).toMatch(/^Very favourite · difficulty 29 of 100/);
+  });
+  it("names each club as Sofix does, with its crest and colour, by its Sorare slug", () => {
+    const clubs = clubsOf([{ teams: [{ sorare_slug: "espanyol-barcelona", name: "Espanyol", crest_url: "https://c/esp.png", color: "#1f6fb2" }] }] as never);
+    expect(clubs.get("espanyol-barcelona")).toEqual({ name: "Espanyol", crest: "https://c/esp.png", color: "#1f6fb2" });
+    const game = { id: "G", kickoff: "", status: "", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "espanyol-barcelona", name: "RCD Espanyol de Barcelona", crest: null }, away: { slug: "other", name: "Other FC", crest: "x" } };
+    const [named] = withClubs([game], clubs);
+    expect(named!.home).toEqual({ slug: "espanyol-barcelona", name: "Espanyol", crest: "https://c/esp.png" });
+    expect(named!.away).toEqual(game.away); // a club no board knows keeps Sorare's name
+  });
+  it("says Premier League where Sorare says English League", () => {
+    expect(sofixWords("Collect English players in English League")).toBe("Collect English players in Premier League");
+    expect(sofixWords("Big 5 English League Players")).toBe("Big 5 Premier League");
   });
 });

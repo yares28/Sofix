@@ -3,7 +3,7 @@
 import { bonusLabel, type ArcadeCard, type ArcadeGame } from "../../lib/arcade";
 import { bonusPercent, sideIn, xdTitle, type Outlook } from "../../lib/arcadePlan";
 import CardRatings from "./CardRatings";
-import { leagueLabel } from "../../lib/arcadeFdr";
+import { leagueLabel, shieldColor } from "../../lib/arcadeFdr";
 
 const SOURCES = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix", record: "His record's" };
 export const fixtureName = (game: ArcadeGame) => `${game.home?.name ?? "?"} v ${game.away?.name ?? "?"} · ${game.tbc ? "Date TBC" : new Date(game.kickoff).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${leagueLabel(game.competition)}`;
@@ -20,7 +20,7 @@ export default function PlayerCard({ card, outlook, game, fixtures, crests, onSe
   const badges = (g: ArcadeGame) => [g.home, g.away].map((team, i) => {
     const src = team?.crest ?? (team ? crests.get(team.slug) : null);
     // eslint-disable-next-line @next/next/no-img-element -- Sorare club crests
-    return src ? <img key={i} src={src} alt={team?.name ?? ""} width={20} height={20} loading="lazy" /> : <span key={i} aria-hidden="true">{(team?.name ?? "?").slice(0, 2)}</span>;
+    return src ? <img key={i} src={src} alt={team?.name ?? ""} width={20} height={20} loading="lazy" /> : <span key={i} className="arc-shield" aria-hidden="true" style={{ background: shieldColor(team?.slug ?? "") }} />;
   });
   return (
     <figure className="arc-card" aria-label={card.name}>

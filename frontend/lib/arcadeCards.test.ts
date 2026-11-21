@@ -29,8 +29,8 @@ it("renders published xD as a decimal without recomputing it, while xScore shows
   expect(zero).toContain('>xD 0.02</span>');
   expect(full).toContain('>xD 0.02</span>');
   expect(zero).not.toContain('<small>xScore</small>');
-  expect(zero).toContain('aria-label="xScore 0"');
-  expect(full).toContain('aria-label="xScore 60"');
+  expect(zero).toContain('aria-label="xS 0"');
+  expect(full).toContain('aria-label="xS 60"');
   expect(full).toContain('>+10%</span>');
   expect(zero).toContain('background:#c0433f;color:#ffffff');
   expect(full).toContain('background:#9bd227;color:#22300a'); // 60's band, not 66's
@@ -45,20 +45,20 @@ it("shows genuine zero separately from missing evidence and keeps source identit
   expect(zero).toContain('href="https://www.futbolfantasy.com/partidos/22493"');
   expect(missing).toContain('>xD —</span>');
   expect(missing).toContain('aria-label="Start chance —"');
-  expect(missing).toContain('aria-label="xScore unavailable"');
+  expect(missing).toContain('aria-label="xS unavailable"');
 });
 
-it("offers tier, form, the next game's day and xScore beside the existing menus", () => {
+it("offers tier, form, the next game's day and xS beside the existing menus", () => {
   const html = draw();
-  for (const label of ["Tier", "L5", "L10", "L40", "Day", "xScore"]) expect(html).toContain(`aria-label="${label}"`);
+  for (const label of ["Tier", "L5", "L10", "L40", "Day", "xS"]) expect(html).toContain(`aria-label="${label}"`);
   for (const tier of ["Icon", "Star+", "Star", "Impact", "Roster", "Reserve"]) expect(html).toContain(`>${tier}</option>`);
   expect(html).toContain(">L5 ≥40</option>");
   expect(html).toContain(">L5 ≥60</option>");
   expect(html).toContain(">L5 unknown</option>");
   expect(html).toContain(">L40 ≥50</option>");
   expect(html).toContain(">No game</option>");
-  expect(html).toContain(">xScore ≥40</option>");
-  expect(html).toContain(">xScore unknown</option>");
+  expect(html).toContain(">xS ≥40</option>");
+  expect(html).toContain(">xS unknown</option>");
 });
 
 const open: CardFilters = { tier: "", l5: "", l10: "", l40: "", day: "", score: "" };

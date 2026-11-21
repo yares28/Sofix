@@ -56,7 +56,9 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus, actions, fr
       if (picks.length !== 5 || picks.some((p) => !p)) return null;
       return chanceOf(simulate(picks as { outlook: Outlook; captain: boolean }[], step.captain ?? captainBonus), step.target);
     };
-    void sendArcadeLog(logBatch(arcade.set.slug, arcade.board.id, steps, entered, price, Date.now()));
+    // The set's commons go with it (sent only when they changed): the Audit's hindsight is worked out from them (step 10).
+    const cards = { start: arcade.set.start, end: arcade.set.end, list: arcade.cards.map(({ slug, player, name, team, teamSlug, teamPicture, picture, positions, bonus }) => ({ slug, player, name, team, teamSlug, teamPicture, picture, positions, bonus })) };
+    void sendArcadeLog({ ...logBatch(arcade.set.slug, arcade.board.id, steps, entered, price, Date.now()), cards });
   }, [fresh, arcade, steps, entered, find, captainBonus]);
   const pictures = useMemo(() => new Map(arcade.cards.flatMap((c) => (c.picture ? [[c.slug, c.picture] as const] : []))), [arcade.cards]);
   const busy = useMemo(() => new Set(open.flatMap(({ lineup }) => lineup.cards.flatMap((c) => (c.slug ? [c.slug] : [])))), [open]);

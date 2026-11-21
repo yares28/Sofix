@@ -7,7 +7,8 @@ import {
 } from "../../lib/arcade";
 import { readCopy, shareCopy } from "../../lib/chromeCopy";
 import type { ArcadeRecords } from "../../lib/arcadeRecords";
-import type { ChanceCheck } from "../../lib/arcadeLog";
+import type { ArcadeAudit as AuditData, ChanceCheck } from "../../lib/arcadeLog";
+import ArcadeAudit from "./ArcadeAudit";
 import type { Outlook } from "../../lib/arcadePlan";
 import { matchFixture, settleKickoffs, type FdrFixture } from "../../lib/arcadeFdr";
 import ArcadeLive from "./ArcadeLive";
@@ -22,8 +23,8 @@ import SegmentedControl from "../SegmentedControl";
 import { ARCADE_ELEVENS_VERSION, readArcadeElevens, type ArcadeElevens } from "../../lib/arcadeElevens";
 
 /** Arcade views share their board readings; the last view chosen is remembered in this browser. */
-type View = "play" | "packs" | "players" | "batch";
-const VIEWS: { value: View; label: string }[] = [{ value: "play", label: "Play now" }, { value: "packs", label: "Missions & packs" }, { value: "players", label: "Players" }, { value: "batch", label: "Batch" }];
+type View = "play" | "packs" | "players" | "batch" | "audit";
+const VIEWS: { value: View; label: string }[] = [{ value: "play", label: "Play now" }, { value: "packs", label: "Missions & packs" }, { value: "players", label: "Players" }, { value: "batch", label: "Batch" }, { value: "audit", label: "Audit" }];
 const VIEW_KEY = "sofix-arcade-view";
 
 /** A board copy older than this is marked as of its read time, and its games take Sofix's board times (step 4). */
@@ -92,12 +93,13 @@ function Loaded({ arcade: board, old, fresh, unread, laliga, fdr, onReload, busy
   const players = useMemo(() => [...new Set(arcade.cards.map((c) => c.player))].sort(), [arcade.cards]);
   const [records, setRecords] = useState<ArcadeRecords | null>(null);
   const [check, setCheck] = useState<ChanceCheck | null>(null);
+  const [audit, setAudit] = useState<AuditData | null | "reading">("reading");
   const [bench, setBench] = useState<ArcadeBench | "reading" | null>(null);
   const [elevens, setElevens] = useState<ArcadeElevens | null>(null);
   const benchStep = arcade.board?.steps.find((s) => s.number === climbStep(arcade)) ?? null;
   const refresh = useCallback(async (force = false) => {
     setBench("reading");
-    const [{ chances: saved, records: ranked, check: checked }, read] = await Promise.all([
+    const [{ chances: saved, records: ranked, check: checked, audit: audited }, read] = await Promise.all([
       loadArcadeSaved(gameIds, players, arcade.set.slug),
       benchStep ? readArcadeBench(benchStep.id, arcade.set.end, force) : null,
       readArcadeElevens(arcade.games ?? [], arcade.cards, force).then(setElevens),
@@ -105,6 +107,7 @@ function Loaded({ arcade: board, old, fresh, unread, laliga, fdr, onReload, busy
     setChances(read && Object.keys(read.chances).length ? newerChances(saved, read.chances) : saved);
     if (ranked) setRecords(ranked);
     if (checked) setCheck(checked);
+    setAudit((was) => audited ?? (was === "reading" ? null : was));
     setBench(read);
   }, [gameIds, players, benchStep, arcade.set.end, arcade.set.slug, arcade.games, arcade.cards]);
   useEffect(() => { void refresh(); }, [refresh]); // once per read; never on a timer
@@ -209,6 +212,9 @@ function Loaded({ arcade: board, old, fresh, unread, laliga, fdr, onReload, busy
       </div>
       <div className="arc-view" hidden={view !== "players"}>
         <ArcadeCards cards={arcade.cards} games={allGames} outlooks={cardOutlooks} status={ready?.status ?? {}} form={ready?.form ?? {}} />
+      </div>
+      <div className="arc-view" hidden={view !== "audit"}>
+        <ArcadeAudit audit={audit} arcade={arcade} />
       </div>
       <div className="arc-view" hidden={view !== "batch"}>
         {view === "batch" && ready && planOutlooks ? <ArcadeBatch key={`${arcade.set.slug}:${arcade.board?.id}`} arcade={arcade} outlooks={planOutlooks} /> : view === "batch" ? <p className="arc-read-state" role="status">Reading batch forecasts.</p> : null}

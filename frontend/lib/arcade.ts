@@ -6,7 +6,7 @@ import { madridDate, SETTLES_AFTER_MS, sideIn, type Outlook, type PackOdds, type
 export { sideIn };
 import { parseTierOdds, type TierOdds } from "./arcadePacks";
 import type { PlayerStatus } from "./arcadeTeams";
-import type { ChanceCheck } from "./arcadeLog";
+import { ArcadeAuditSchema, type ArcadeAudit, type ChanceCheck } from "./arcadeLog";
 import { ArcadeRecordsSchema, calibrated, firstOf, scoreOrder, startOrder, type ArcadeRecords, type ScoreRank, type StartRank } from "./arcadeRecords";
 
 /**
@@ -605,17 +605,18 @@ const CheckSchema = z.object({ settled: z.number(), bands: z.array(z.object({ lo
  * Sorare's saved start % for the board's games and, for your cards' players, their start records and the sources' ranking
  * (lib/arcadeRecords.ts): one call when the page opens and after each start % read; never polled.
  */
-export async function loadArcadeSaved(games: string[], players: string[], set?: string): Promise<{ chances: ArcadeChances | null; records: ArcadeRecords | null; check: ChanceCheck | null }> {
-  if (!games.length && !players.length) return { chances: {}, records: null, check: null };
+export async function loadArcadeSaved(games: string[], players: string[], set?: string): Promise<{ chances: ArcadeChances | null; records: ArcadeRecords | null; check: ChanceCheck | null; audit: ArcadeAudit | null }> {
+  if (!games.length && !players.length) return { chances: {}, records: null, check: null, audit: null };
   try {
     const response = await fetch("/api/arcade/chances", { method: "POST", headers: { "content-type": "application/json", [REFRESH_HEADER]: "1" }, body: JSON.stringify({ games: games.slice(0, 300), ...(players.length ? { players: players.slice(0, 3000) } : {}), ...(set ? { set } : {}) }) });
     const body: unknown = await response.json();
     const parsed = Saved.safeParse(body);
     const records = ArcadeRecordsSchema.safeParse((body as { records?: unknown } | null)?.records);
     const check = CheckSchema.safeParse((body as { check?: unknown } | null)?.check);
-    return { chances: response.ok && parsed.success ? parsed.data.chances : null, records: response.ok && records.success ? records.data : null, check: response.ok && check.success ? check.data : null };
+    const audit = ArcadeAuditSchema.safeParse((body as { audit?: unknown } | null)?.audit);
+    return { chances: response.ok && parsed.success ? parsed.data.chances : null, records: response.ok && records.success ? records.data : null, check: response.ok && check.success ? check.data : null, audit: response.ok && audit.success ? audit.data : null };
   } catch {
-    return { chances: null, records: null, check: null };
+    return { chances: null, records: null, check: null, audit: null };
   }
 }
 

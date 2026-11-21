@@ -560,3 +560,32 @@
   .arc-views .segmented .thumb { display: none; }
   .arc-views .segmented.ready button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
 }
+
+/* The Audit tab: hindsight (plans/arcade-trust.md step 10). */
+.arc-audit { display: grid; gap: 18px; }
+.arc-audit-hero { display: grid; gap: 6px; }
+.arc-audit-hero h2 { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; font-size: clamp(24px, 2.6vw, 32px); line-height: 1.1; letter-spacing: -0.02em; text-wrap: balance; }
+.arc-audit-hero h2 small { font-size: 15px; font-weight: 500; color: var(--ink-2); letter-spacing: 0; }
+.arc-audit-hero p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.arc-audit .arc-chain-node { cursor: default; }
+.arc-audit .arc-chain-rail { grid-auto-columns: 168px; justify-content: start; }
+.arc-audit-evidence { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 24px; }
+.arc-audit-evidence h3 { margin: 0 0 10px; font-size: 15px; }
+.arc-audit-clubs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.arc-audit-clubs li { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: 13px; }
+.arc-audit-clubs img { width: 32px; height: 32px; object-fit: contain; }
+.arc-audit-clubs span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arc-audit-shield { width: 26px; height: 30px; margin: 0 3px; border-radius: 6px 6px 13px 13px; background: var(--line); }
+.arc-audit-players { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.arc-audit-players li { position: relative; display: grid; justify-items: center; }
+.arc-audit-players img { width: 100%; max-width: 120px; height: auto; border-radius: 8px; }
+.arc-audit-players b, .arc-audit-clubs b { font-variant-numeric: tabular-nums; }
+.arc-audit-players b { position: absolute; top: 6px; right: 6px; padding: 2px 7px; border-radius: 999px; background: var(--ink); color: var(--on-ink); font-size: 12px; }
+.arc-audit.is-loading .arc-skeleton-title { display: block; width: 260px; height: 32px; border-radius: 8px; }
+.arc-audit.is-loading .arc-skeleton-line { display: block; width: 420px; max-width: 100%; height: 16px; border-radius: 6px; }
+.arc-audit.is-loading .arc-skeleton-node { display: block; height: 128px; border-radius: 16px; }
+@container (max-width: 760px) { .arc-audit-evidence { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .arc-audit-evidence { grid-template-columns: 1fr; } }
+.arc-audit .arc-skeleton { background: var(--line); animation: arc-audit-wait 1.4s ease-in-out infinite alternate; }
+@keyframes arc-audit-wait { from { opacity: .55; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .arc-audit .arc-skeleton { animation: none; } }

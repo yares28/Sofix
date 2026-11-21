@@ -39,6 +39,7 @@ from app.services import kept_blocks
 from app.services.publish import put
 from app.services.timeutil import as_utc
 from app.sorare import (
+    arcade_audit,
     arcade_outlook,
     backtest,
     frozen_scores,
@@ -586,6 +587,11 @@ def publish(db: Session, now: datetime) -> dict[str, int]:
         arcade_outlook.publish(db, now)
     except Exception:  # noqa: BLE001 - Arcade keeps the ranking it had
         logger.exception("arcade outlook failed")
+        db.rollback()
+    try:  # Arcade's hindsight audit, from the same settled games (plans/arcade-trust.md step 10)
+        arcade_audit.publish(db, now)
+    except Exception:  # noqa: BLE001 - Arcade keeps the audit it had
+        logger.exception("arcade audit failed")
         db.rollback()
     return {
         "bytes": len(json.dumps(page, separators=(",", ":"))),

@@ -248,7 +248,7 @@ Scope: window-based Arcade recommendations. The current source treats a lineup a
 
 A game Sorare lists at midnight UTC (a time not set yet) takes its board fixture's kick-off when both clubs match within four days, else is "Date TBC" (`settleKickoffs`, lib/arcadeFdr.ts): shown on its cards and the Players day filter, never in a window, the chain, Batch, Teams to build around, Pick teams or the dock (owner, 20 Nov 2026; plans/arcade-trust.md step 2). Games of an earlier Madrid day leave every view (`currentGames`); a game more than two hours past kick-off is no card's next game (`gamesOf` with the time), while today's finished games stay for the missions' picks (step 3). A board copy read more than six hours ago re-times every game from its board fixture by clubs (`settleKickoffs` with `old`) and, shown from your Chrome's copy, says in one amber line that board, lives and lineups are as of that read while start %, forecasts and kick-offs are today's (step 4). windowsOf groups kickoffs within 75 minutes of the first game in each window. The climb, chain and builder use bestLineup's same simulated selection and captain; insurance batches share player outcomes and teammates' day. Each card's start chance and score-if-he-starts come from the best-ranked source with a number for that exact game, then the next (owner, 20 Nov 2026), ranked per competition by measured error in the read model `arcade_outlook` (`backend/app/sorare/arcade_outlook.py`, written with the Audit; a source under 100 settled games there ranks by its figure over all competitions) and applied by `outlookOf` with `lib/arcadeRecords.ts`; the player's start record (last ten settled club games, smoothed as `forecast._split`) is always last. An announced eleven overrides every source; Sorare's injured flag is 0 until the return date. A card with a start chance also counts his chance to come on and bench score. No source and no record means null: the card is left out, never counted as starting, while a known zero remains zero. The captain is never a card on his record alone (under 80%) while one with a source's own % is in the lineup. Step 9 (21 Nov 2026): a source's start chance is corrected by its competition's calibration (`calibration` in `arcade_outlook`, isotonic on settled games; shipped only with 200+ cases, 30+ held-out newest games and a held-out error at least 1% lower; corrected chances stay within 2-98%); the source's own number stays as `startSaid`, and an announced eleven or an injury is never corrected. Under the move, once 50 priced lineups have settled in `arcade_log`, one line says how lineups given the same 10-point band fared (`checkLine`), too few to tell under 100. See [arcade-trust.md](../plans/arcade-trust.md) §4. With fewer than three played games, spread is 0.33 times score rather than zero. On step one, spending every remaining life is preferred over fewer entries settling before the same next window when it does not lower prize chances: all misses reset to step one with four lives. Wider spans still have to justify their delay. The Play/Hold comparison is computed from the actual recommended batches, their lineup counts and joint chance; on screen it shows only the two shares and Hold's date, the counts and chances going to its accessible label (owner, 10 Nov 2026); changing the displayed insurance team does not change that batch probability. The chain's Surest view (owner, 20 Nov 2026, replacing the 10 Nov Surest chain) is a step choice, the current step first: that step's five likeliest distinct lineups from every window to the set's end (own games, wider spans, insurance teams; held cards out until settlement), best first, each with its time, chance, cards and Edit in Pick teams, worked out in the climb worker beside the plan (`surest`, the same `bestBy` as the ladder's week) and saved with it. A tapped ladder step opens this view at that step. Editing a move in Pick teams retains its exact lineup until games, target or planning inputs change. A move's step remains the Pick teams aim while its games are edited, including a step claimed before the climb restarted. Explicit game/target choices persist in this browser for the same set and board, including an empty choice; refreshed inputs rebuild the five without discarding those games, and expired games leave the active pool. Teams to build around accepts one owned likely starter. It covers the first four days ahead that have a qualifying club, however far. A card without Sofix xD keeps "xD —" and names its number's source (Sorare projection or recent form) on hover. Teams to build around keeps all qualifying clubs in one draggable row, flanked by two-team arrows without a page footer (owner-directed exception to list pagination). Pick teams uses a twelve-game paginated matrix with an optional Madrid-date Today filter that preserves selections hidden by it; the enlarged pitch and compact score/range and per-step chance summary occupy the left column. See the [climb evidence](../plans/arcade-consistency.md) and [team-picker acceptance](../plans/arcade-team-picker.md).
 
-Batch is the fourth Arcade tab. It groups every future set game, including games without owned cards, into inclusive 75-minute windows anchored at their first kickoff; the Madrid date filter uses that anchor without splitting a window at midnight. Windows with no owned card are skipped unless the saved "Without your cards" toggle is on, and are marked when shown. A set/board-scoped saved count requests one to four sequential bestLineup teams, excluding held cards until their settlement and excluding a player's other editions across teams. Only complete teams render; a shortfall is explicit. Exact-fixture FDR/CS/xG/xGA and card xD retain missing versus zero. A league with a Sofix board is named as Sofix names it (`leagueLabel`), others as Sorare does. Every Arcade view shows FDR in one form (`fdrOf`): difficulty out of 100 in its band colour, the band alone as a ticket dot; never the 1-5 band number. The ladder shows each step's chance within the next 7 days (the climb solved over that week's windows alone), and a tapped step opens the chain's Surest view at that step (its five surest lineups to the set's end); the week's five likeliest per step stay in `week.best` for the dock. Pick teams and Batch share one saved aim per set and board (`useArcadeAim`); Batch offers only open steps. Count/date/target edits add no source reads or Sorare writes. See [Batch acceptance and delivery inventory](../plans/arcade-batch.md).
+The fifth tab, Audit (step 10, 21 Nov 2026), draws `arcade_audit:<set>` (backend/app/sorare/arcade_audit.py, written with the Audit from your set's commons in `arcade_cards:<set>`, sent by the page with the lineup log, and every FINAL `player_games` score since the set opened): each 75-minute window's best five (one per slot, each player once, the captain where he adds most, edition bonus counted, club bonus left out), the climb with every score known on your board's targets (most tops, then most clears; a lineup settles two hours after its last kick-off before the next; ties play the earlier window), the clubs and players in it, and your own clears and misses from `arcade_log`. Batch is the fourth Arcade tab. It groups every future set game, including games without owned cards, into inclusive 75-minute windows anchored at their first kickoff; the Madrid date filter uses that anchor without splitting a window at midnight. Windows with no owned card are skipped unless the saved "Without your cards" toggle is on, and are marked when shown. A set/board-scoped saved count requests one to four sequential bestLineup teams, excluding held cards until their settlement and excluding a player's other editions across teams. Only complete teams render; a shortfall is explicit. Exact-fixture FDR/CS/xG/xGA and card xD retain missing versus zero. A league with a Sofix board is named as Sofix names it (`leagueLabel`), others as Sorare does. Every Arcade view shows FDR in one form (`fdrOf`): difficulty out of 100 in its band colour, the band alone as a ticket dot; never the 1-5 band number. The ladder shows each step's chance within the next 7 days (the climb solved over that week's windows alone), and a tapped step opens the chain's Surest view at that step (its five surest lineups to the set's end); the week's five likeliest per step stay in `week.best` for the dock. Pick teams and Batch share one saved aim per set and board (`useArcadeAim`); Batch offers only open steps. Count/date/target edits add no source reads or Sorare writes. See [Batch acceptance and delivery inventory](../plans/arcade-batch.md).
 
 Counterexample: several lineups on step two cannot be presented as one automatically reserved lineup for each later step. No recommendation spends lives or gems automatically. Pack odds and inventory assumptions require their own source evidence; these climb contracts do not certify pack values or authorize purchases.
 
@@ -333,7 +333,7 @@ Coverage is all 36 main-stage clubs and their current players/calendar; qualifie
 
 **Input:** Body.games: at most 300 strings matching Game: plus a 36-character hex/hyphen identifier; optional Body.players: at most 3,000 Sorare player slugs; optional Body.set: a set slug.
 
-**Response/cache:** 200 {chances, records?}: records (`loadArcadeRecords`, read model `arcade_outlook`) holds the sources' ranking and the listed players' start records, absent before the job has written it, and with a set the chance check of its lineup log (`check`, `loadChanceCheck`); 400 invalid games, 403 guard; success no-store.
+**Response/cache:** 200 {chances, records?}: records (`loadArcadeRecords`, read model `arcade_outlook`) holds the sources' ranking and the listed players' start records, absent before the job has written it, and with a set the chance check of its lineup log (`check`, `loadChanceCheck`) and its hindsight audit (`audit`, `loadArcadeAudit`); 400 invalid games, 403 guard; success no-store.
 
 **Effects and failure boundaries:** Reads saved start chances through loadSavedChances; request is POST but does not itself capture a new source reading. Never poll this route.
 
@@ -461,7 +461,7 @@ Coverage is all 36 main-stage clubs and their current players/calendar; qualifie
 
 **Guard:** SAME: x-fdr-refresh:1 plus Sec-Fetch-Site=same-origin, or Origin/Host comparison when that header is absent. This is a browser-origin guard, not independent user authentication.
 
-**Input:** one read of the Arcade board (`LogBatch`, lib/arcadeLog.ts): set slug, board id, read time, up to 20 steps (number, target, state, lineups remaining and max) and up to 80 entered lineups (id, step, target, state, score, cancelled, up to 7 cards, first and last kick-off, the chance Sofix gives it or null).
+**Input:** one read of the Arcade board (`LogBatch`, lib/arcadeLog.ts): set slug, board id, read time, up to 20 steps (number, target, state, lineups remaining and max) and up to 80 entered lineups (id, step, target, state, score, cancelled, up to 7 cards, first and last kick-off, the chance Sofix gives it or null), each step's captain bonus, and optionally the set's commons (up to 3,000, with the set's dates), sent only when they changed and stored whole as `arcade_cards:<set>` for the Audit.
 
 **Response/cache:** 200 {ok, lineups}; 400 not a lineup read, 403 guard, 503 no database or the write failed; success no-store.
 
@@ -1602,11 +1602,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-20",
-        "note": "20 Nov 2026: audit.publish also writes arcade_outlook after the audit page, its failure logged and rolled back without touching the audit.",
+        "date": "2026-11-21",
+        "note": "21 Nov 2026: audit.publish also writes arcade_audit after arcade_outlook, each in its own try, rolled back on failure without touching the audit.",
         "files": {
           "backend/app/sorare/player_audit.py": "3436b64cf197d937aefbd51a213af0e28c396ebab23ff8b883e52091bea89427",
-          "backend/app/sorare/audit.py": "b1979881f8fda707df5e5b7823d56a93bfabaa334281bb38b866ae31181a579b",
+          "backend/app/sorare/audit.py": "bc144f790b3b24f3b99356f100acf2ba4dc12e45f6e3281a78d874eaaf6398cc",
           "backend/app/sorare/versus.py": "ccbb0ca8f680bef6a82e9671fce559678ec1cf3d984aebb4cf30bd5e682c6879",
           "backend/tests/test_player_audit.py": "2712237e9be35154a26790e59acceaeeb6c921ca0fd1b5990f0f47f7e42f2a63",
           "backend/tests/test_sofix_v1.py": "9a058692e85a1e68e80fe6e3e9498b9d63a0244427cc393d4cdc0d6bbca71d46"
@@ -1778,6 +1778,12 @@ This block is the single machine-readable index for the sections above. Test ref
           "path": "backend/app/sorare/arcade_said.py"
         },
         {
+          "path": "backend/app/sorare/arcade_audit.py"
+        },
+        {
+          "path": "frontend/components/arcade/ArcadeAudit.tsx"
+        },
+        {
           "path": "plans/arcade-trust.md"
         }
       ],
@@ -1793,6 +1799,9 @@ This block is the single machine-readable index for the sections above. Test ref
         },
         {
           "path": "backend/tests/test_arcade_calibration.py"
+        },
+        {
+          "path": "backend/tests/test_arcade_audit.py"
         },
         {
           "path": "frontend/lib/arcadeFdr.test.ts"
@@ -1812,14 +1821,14 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-21",
-        "note": "21 Nov 2026: steps 1-9 of plans/arcade-trust.md; step 9 adds isotonic start calibration per competition and source (arcade_outlook.calibrate/apply, gated: 200 cases, 30 held out, 1% gain, 2-98%) applied in outlookOf with startSaid kept, and the chance check line under the move. Vitest Arcade suite, backend tests and the Arcade e2e spec pass; not yet on a live board.",
+        "note": "21 Nov 2026: steps 1-10 of plans/arcade-trust.md; step 10 adds the Audit tab (ArcadeAudit.tsx) drawing arcade_audit:<set> from arcade_audit.py (best five per 75-minute window, exact climb replay by most tops then clears, settling two hours after the last kick-off), with cards sent by the page. Backend replay tests, vitest and the Arcade e2e spec pass; not yet run on a live refresh.",
         "files": {
           "frontend/lib/arcadeClimb.ts": "2e6f74eb94ef82df401bf55e7ab02e4677ac66559b0fbd65238a739830dace94",
           "frontend/lib/arcadePlan.ts": "3a63e2f7a728150069cdfe273032cb8a1f573930e19be9794914834918bcaf99",
           "plans/arcade-rework.md": "e6da35626da50191af9bb635360700ed27ec5d3fc5b210681cb3315925e8caca",
           "frontend/components/arcade/ArcadePlanner.tsx": "7bc269c794462b7b31224fa7574252d3e198001da771eecb283e420641d1f22c",
           "frontend/components/arcade/TeamRail.tsx": "b7ee203707c94d64f6f66040f7a29adee340ca93cd4f3b6e84aad97824728288",
-          "frontend/app/arcade-canvas.css": "880f0227165538fd56a5182d3a5b8e46d31ffde9c575b04cb19752be9f33b861",
+          "frontend/app/arcade-canvas.css": "f4d37c5a1c7f00ea821a18a0b541956e37b599afd2406245459ab29084443148",
           "frontend/lib/arcadeTeams.ts": "a6ee5032672dd5b7fe2187295d99ac40655ca51832f40e4a87d268165848c9c7",
           "frontend/lib/arcadeBatch.ts": "046a10f84bff389094572f03f2dbadb0449e26e2a1a7b6727f5af0b80a4257cb",
           "frontend/components/arcade/ArcadeBatch.tsx": "bcf0b26f431552889828ba2590f3efd3e85a5be2c3c0b23383b0d5c7fe466f65",
@@ -1827,16 +1836,19 @@ This block is the single machine-readable index for the sections above. Test ref
           "frontend/lib/arcadeFdr.ts": "92323dc039412ba4cbad00df507e9cd778545c430361e43750ff6f07fde012d9",
           "backend/app/sorare/arcade_outlook.py": "25d786618126f71490fe1dd58fc762f14b377dc8a00b9bc110fb2c4a48cc6fb2",
           "backend/app/sorare/arcade_said.py": "34831b86d65c71bfac43911183f8f75b80ba03ff7ca5aea06f66fd8fa0222eae",
-          "plans/arcade-trust.md": "29b5794331ef9682f0b26a2d2b97ea198ed05038229f5bf03ea3daa384d5c2a8",
+          "backend/app/sorare/arcade_audit.py": "ba6cd6a3ddc68dd767a8347625ce2d4029280051d308786efea4c04899a77de1",
+          "frontend/components/arcade/ArcadeAudit.tsx": "d599e3633872fc97ad295b0eae5b1ac8d3caa5a4494511284e299f0b8f1d1015",
+          "plans/arcade-trust.md": "7cf13b72ba1133e280654999081603208a0bd33f3fe7ac3e772da599f2d62098",
           "frontend/lib/arcadeClimb.test.ts": "92570bc4fa238ccb48f8188521702b2677e3979574290084f6d732086b40ab44",
           "backend/tests/test_arcade_outlook.py": "7a4cfb2fb6f49e8ba4943973931fbf1d004532445a8f3cdb1ca62177c3f5fd11",
           "backend/tests/test_arcade_said.py": "4525410d988cf664eebf3f37d99fab91e317ecc94b9c056e7abd5976b2985363",
           "backend/tests/test_arcade_calibration.py": "f77521ba3b15d903a76ecf4e579cc45a1b013af7458afef8b4f4bab51d3f3d00",
+          "backend/tests/test_arcade_audit.py": "aca3c0147753f4510146be4f5407408427c645712c9c0243b1eb3313ecd10db3",
           "frontend/lib/arcadeFdr.test.ts": "dbfa1a0f0ce61bcef15170029091556a95274d205746c209b0b12d196613b1f7",
           "frontend/lib/arcadePlan.test.ts": "9f80015abc1c4ab873606dcf857727326ed972b36d8a3def43c85ce90a12b35b",
           "frontend/lib/arcadeTeams.test.ts": "100dae1da4a23b695e2dd9b0c3a415c6fa5527b100fd0b31b33bcf1733169e3e",
           "frontend/lib/arcadeBatch.test.ts": "57fd49ca2a454f68c16cd0e313858aefaaa42a522ea560141e97c23d183cde7b",
-          "frontend/e2e/arcade.e2e.ts": "f4dc419d3954c91c044fa3798c179c4de27e9b29d731699194ab75bc6d2f8a75"
+          "frontend/e2e/arcade.e2e.ts": "8c0d46267f4b8fe5d4a241cece3f16d90c4adf95ac54093dc8bb32d5c097c46b"
         }
       }
     },
@@ -2132,14 +2144,14 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-21",
-        "note": "21 Nov 2026: arcadeLog.ts adds chanceCheck/checkLine (bands of 10 points, shown from 50 settled, too few to tell under 100) and arcadeLogStore.ts loadChanceCheck; merge and route unchanged. Tests pass.",
+        "note": "21 Nov 2026: the read may carry each step's captain bonus and the set's commons, stored whole as arcade_cards:<set> when sent (only when they changed).",
         "files": {
           "frontend/app/api/arcade/log/route.ts": "3f18dd590f4759ede17a273141ee3d38de924cb396981e3feae713288d89e8f6",
-          "frontend/lib/arcadeLog.ts": "2a98a92dfe23b6b4357a7d8074b271f8b9b69a89431abd7fb69866dbf9e5433c",
-          "frontend/lib/arcadeLogStore.ts": "9a75e80763d69a1d04776bc7f138dd25116c1551f8bbe8fd645299bb559f6814",
+          "frontend/lib/arcadeLog.ts": "c085fac969ffb876b32424bce63cad7623562e136d3cd3f7e35cbacb5b927060",
+          "frontend/lib/arcadeLogStore.ts": "7f00ee0422071257c63a74b80bcd8cc80c21919ba9d91c8220c3e0ce52f965f3",
           "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d",
           "frontend/app/api/arcade/log/route.test.ts": "48af649c22d54b4822b7c93fef21962c2babb75fce9dd3957df022da01c7f7b4",
-          "frontend/lib/arcadeLog.test.ts": "6499180740a5ebaf31a37424ab390201356a02a42b21c294396308abca010afb"
+          "frontend/lib/arcadeLog.test.ts": "c7ae2b608f893cd3800edee5b4dad938e8016a954d70e3bab243e8d186feef8c"
         }
       }
     },
@@ -2166,9 +2178,9 @@ This block is the single machine-readable index for the sections above. Test ref
       "tests": [],
       "review": {
         "date": "2026-11-21",
-        "note": "21 Nov 2026: optional set slug returns its lineup log's chance check (loadChanceCheck); games and players unchanged.",
+        "note": "21 Nov 2026: with a set, also returns the hindsight audit (loadArcadeAudit).",
         "files": {
-          "frontend/app/api/arcade/chances/route.ts": "b8ee30bfe716d0d0195ae2269794b817dd25cd56dce83cd0f4feb65152c50d30",
+          "frontend/app/api/arcade/chances/route.ts": "ea2ea6a7604400dc789664d678db7a257be54955282045769717f0cee161f46d",
           "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d"
         }
       }

@@ -87,6 +87,35 @@ const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS, v
   } } } });
 }, [answers, version, holdPast] as const);
 
+test("the Audit shows the climb your cards could have made with every score known, and the clubs and players that made it", async ({ page }) => {
+  // Owner, 29 Oct 2026: "how much could this set have paid with my cards, and what would have got me there?" (step 10).
+  const picks = SQUAD.slice(0, 5).map(([slug], i) => ({ slot: ["GK", "DEF", "MID", "FWD", "EXTRA"][i]!, card: slug, score: 60, captain: i === 3 }));
+  const moves = [1, 2, 3].map((step, i) => ({ window: i, step, total: 300 + step * 40, target: 250 + step * 50, at: new Date(Date.parse(KICKOFF) - (3 - i) * 86_400_000).toISOString(), picks }));
+  const audit = {
+    set: "glitch", at: new Date().toISOString(), windows: 14, targets: [300, 350, 400],
+    hindsight: { tops: 1, clears: { 1: 1, 2: 1, 3: 1 }, moves }, best: [],
+    clubs: [{ slug: "club", name: "Club", crest: null, count: 15 }],
+    players: [{ card: SQUAD[0]![0], name: SQUAD[0]![2], picture: null, count: 3 }],
+    actual: { lineups: 2, clears: { 1: 1 }, misses: { 2: 1 }, tops: 0, since: null },
+  };
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {}, audit } }));
+  await withExtension(page);
+  await page.goto("/arcade");
+  await show(page, "Audit");
+  const tab = page.locator(".arc-audit");
+  await expect(page.getByRole("heading", { level: 2, name: /1 × the top step/ })).toBeVisible();
+  await expect(tab).toContainText("3 clears with every score known, from 14 kick-off windows · You: 1 clear from 2 lineups");
+  await expect(page.getByRole("list", { name: "The climb with every score known" }).getByRole("listitem")).toHaveCount(3);
+  await expect(page.locator(".arc-audit-clubs li")).toHaveText([/Club.*×15/]);
+  await expect(page.locator(".arc-audit-players li")).toHaveCount(1);
+  for (const [width, floor] of [[1440, 11], [390, 10]] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await smallText(page, floor)).toEqual([]);
+    if (process.env.ARCADE_PLAN_SHOT) await page.locator(".arc-audit").screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-audit-${width}.png` });
+  }
+});
+
 test("Batch covers all games, bounds and remembers the team count, and never draws a partial team", async ({ page }) => {
   const later = new Date(Date.parse(KICKOFF) + 3 * 3_600_000).toISOString();
   const games = [{ id: GAME, date: KICKOFF, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: "rival", name: "Rival" } }, { id: "no-owned-cards", date: later, statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: "other", name: "Other" }, awayTeam: { slug: "another", name: "Another" } }];

@@ -60,7 +60,7 @@ describe("a read of the board for the log", () => {
     const read = logBatch("divination", "b1", steps, entered, () => 0.39, 1);
     expect(read.lineups).toHaveLength(1);
     expect(read.lineups[0]).toMatchObject({ id: "L1", step: 4, target: 400, chance: 0.39, firstKickoff: "2026-11-28T17:30:00Z", lastKickoff: "2026-11-28T20:00:00Z" });
-    expect(read.steps).toEqual([{ number: 4, target: 400, state: "PLAYABLE", remaining: 2, max: 4 }]);
+    expect(read.steps).toEqual([{ number: 4, target: 400, state: "PLAYABLE", remaining: 2, max: 4, captain: null }]);
   });
 });
 

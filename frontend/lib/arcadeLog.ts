@@ -29,8 +29,17 @@ export const LogBatch = z.object({
   set: slug,
   board: z.string().min(1).max(120),
   readAt: z.number().int().positive(),
-  steps: z.array(z.object({ number: z.number().int(), target: z.number(), state: z.string().max(40), remaining: z.number().int().nullable(), max: z.number().int().nullable() })).max(20),
+  steps: z.array(z.object({ number: z.number().int(), target: z.number(), state: z.string().max(40), remaining: z.number().int().nullable(), max: z.number().int().nullable(), captain: z.number().nullable().optional() })).max(20),
   lineups: z.array(Lineup).max(80),
+  /** The set's commons, sent only when they changed: the Arcade audit's hindsight is worked out from them (step 10). */
+  cards: z.object({
+    start: iso.nullable(),
+    end: iso.nullable(),
+    list: z.array(z.object({
+      slug: z.string().max(200), player: z.string().max(160), name: z.string().max(160), team: z.string().max(160).nullable(), teamSlug: z.string().max(160).nullable(),
+      teamPicture: z.string().url().max(500).nullable(), picture: z.string().url().max(500).nullable(), positions: z.array(z.string().max(40)).max(4), bonus: z.number().nullable(),
+    })).max(3000),
+  }).optional(),
 });
 export type LogBatch = z.infer<typeof LogBatch>;
 
@@ -58,7 +67,7 @@ export function mergeLog(old: ArcadeLog | null, batch: LogBatch, now: number): A
 }
 
 type LineupRead = { id: string; state: string; score: number | null; cancelled: boolean; draft: boolean; cards: { slug: string | null; player: string | null; game: string | null; captain: boolean; score: number | null; kickoff: string | null }[] };
-type StepRead = { id: string; number: number; target: number; state: string; lineups: { remaining: number; max: number } | null };
+type StepRead = { id: string; number: number; target: number; state: string; lineups: { remaining: number; max: number } | null; captain?: number | null };
 
 /** One read of the board for the log: every entered lineup (drafts left out), with the chance `price` gives it. */
 export function logBatch<L extends LineupRead, S extends StepRead>(set: string, board: string, steps: S[], entered: Map<string, L[]>, price: (lineup: L, step: S) => number | null, readAt: number): LogBatch {
@@ -70,7 +79,7 @@ export function logBatch<L extends LineupRead, S extends StepRead>(set: string, 
       firstKickoff: kickoffs[0] ?? null, lastKickoff: kickoffs.at(-1) ?? null, chance: price(l, step),
     };
   }));
-  return { set, board, readAt, steps: steps.map((s) => ({ number: s.number, target: s.target, state: s.state, remaining: s.lineups?.remaining ?? null, max: s.lineups?.max ?? null })), lineups };
+  return { set, board, readAt, steps: steps.map((s) => ({ number: s.number, target: s.target, state: s.state, remaining: s.lineups?.remaining ?? null, max: s.lineups?.max ?? null, captain: s.captain ?? null })), lineups };
 }
 
 /**
@@ -79,12 +88,18 @@ export function logBatch<L extends LineupRead, S extends StepRead>(set: string, 
  */
 export async function sendArcadeLog(batch: LogBatch): Promise<boolean> {
   const key = `sofix-arcade-log-sent:${batch.set}`;
-  const signature = JSON.stringify({ ...batch, readAt: 0, lineups: batch.lineups.map((l) => ({ ...l, chance: l.chance === null ? null : 1 })) });
-  try { if (localStorage.getItem(key) === signature) return false; } catch { /* storage blocked: send */ }
+  const cardsKey = `sofix-arcade-cards-sent:${batch.set}`;
+  const { cards, ...read } = batch;
+  const signature = JSON.stringify({ ...read, readAt: 0, lineups: read.lineups.map((l) => ({ ...l, chance: l.chance === null ? null : 1 })) });
+  const cardsSignature = cards ? JSON.stringify(cards) : null;
+  let sentRead = false, sentCards = false;
+  try { sentRead = localStorage.getItem(key) === signature; sentCards = !cardsSignature || localStorage.getItem(cardsKey) === cardsSignature; } catch { /* storage blocked: send */ }
+  if (sentRead && sentCards) return false;
   try {
-    const response = await fetch("/api/arcade/log", { method: "POST", headers: { "content-type": "application/json", [REFRESH_HEADER]: "1" }, body: JSON.stringify(batch) });
+    const body: LogBatch = sentCards ? read : { ...read, cards };
+    const response = await fetch("/api/arcade/log", { method: "POST", headers: { "content-type": "application/json", [REFRESH_HEADER]: "1" }, body: JSON.stringify(body) });
     if (!response.ok) return false;
-    try { localStorage.setItem(key, signature); } catch { /* not remembered: sent again next read */ }
+    try { localStorage.setItem(key, signature); if (cardsSignature) localStorage.setItem(cardsKey, cardsSignature); } catch { /* not remembered: sent again next read */ }
     return true;
   } catch {
     return false;
@@ -123,3 +138,23 @@ export function checkLine(check: ChanceCheck | null, chance: number): string | n
   if (!band) return `${label}: none settled yet`;
   return `${label}: ${band.cleared} of ${band.n} cleared${band.n < FLOOR ? " · too few to tell" : ""}`;
 }
+
+
+const Pick5 = z.object({ slot: z.string(), card: z.string(), score: z.number(), captain: z.boolean() });
+/** The Arcade audit, hindsight (`arcade_audit:<set>`, backend/app/sorare/arcade_audit.py; plans/arcade-trust.md step 10). */
+export const ArcadeAuditSchema = z.object({
+  set: z.string(),
+  at: z.string(),
+  windows: z.number(),
+  targets: z.array(z.number()),
+  hindsight: z.object({
+    tops: z.number(),
+    clears: z.record(z.string(), z.number()),
+    moves: z.array(z.object({ window: z.number(), step: z.number(), total: z.number(), target: z.number(), at: z.string(), picks: z.array(Pick5) })),
+  }),
+  best: z.array(z.object({ at: z.string(), total: z.number(), picks: z.array(Pick5) })),
+  clubs: z.array(z.object({ slug: z.string(), name: z.string(), crest: z.string().nullable(), count: z.number() })),
+  players: z.array(z.object({ card: z.string(), name: z.string(), picture: z.string().nullable(), count: z.number() })),
+  actual: z.object({ lineups: z.number(), clears: z.record(z.string(), z.number()), misses: z.record(z.string(), z.number()), tops: z.number(), since: z.string().nullable() }),
+});
+export type ArcadeAudit = z.infer<typeof ArcadeAuditSchema>;

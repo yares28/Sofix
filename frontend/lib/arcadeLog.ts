@@ -24,6 +24,8 @@ const Lineup = z.object({
   firstKickoff: iso.nullable(),
   lastKickoff: iso.nullable(),
   chance: z.number().min(0).max(1).nullable(),
+  /** Whether Sorare still lets it be edited (step 12: until when can a lineup be changed?). */
+  updatable: z.boolean().optional(),
 });
 export const LogBatch = z.object({
   set: slug,
@@ -43,8 +45,15 @@ export const LogBatch = z.object({
 });
 export type LogBatch = z.infer<typeof LogBatch>;
 
-type Kept = Omit<LogBatch["lineups"][number], "chance"> & { chance: number | null; chanceAt: string | null; readAt: number; result: "cleared" | "missed" | "cancelled" | null };
-export type ArcadeLog = { set: string; board: string; readAt: number; steps: LogBatch["steps"]; lineups: Record<string, Kept> };
+type Kept = Omit<LogBatch["lineups"][number], "chance"> & {
+  chance: number | null; chanceAt: string | null; readAt: number; result: "cleared" | "missed" | "cancelled" | null;
+  /** Step 12's evidence: the last read it was editable, the first it was not, and when its result first came. */
+  editableAt?: number; lockedAt?: number; resultAt?: number;
+};
+/** One change of a step's lineups left, as read (step 12: does a cancelled insurance lineup cost one?). */
+export type StepCount = { at: number; step: number; remaining: number };
+export type ArcadeLog = { set: string; board: string; readAt: number; steps: LogBatch["steps"]; lineups: Record<string, Kept>; history?: StepCount[] };
+const HISTORY = 400;
 
 /** What is kept after a read: the chance frozen at its first sighting before kick-off, everything else from the newest read. */
 export function mergeLog(old: ArcadeLog | null, batch: LogBatch, now: number): ArcadeLog {
@@ -60,13 +69,23 @@ export function mergeLog(old: ArcadeLog | null, batch: LogBatch, now: number): A
     const last = read.lastKickoff ? Date.parse(read.lastKickoff) : null;
     const settled = last !== null && now >= last + SETTLED_MS;
     const result = read.cancelled ? "cancelled" : settled && read.score !== null ? (read.score >= read.target ? "cleared" : "missed") : null;
-    lineups[read.id] = { ...read, chance, chanceAt, readAt: batch.readAt, result };
+    const editableAt = read.updatable ? Math.max(before?.editableAt ?? 0, batch.readAt) : before?.editableAt;
+    const lockedAt = read.updatable === false ? Math.min(before?.lockedAt ?? Infinity, batch.readAt) : before?.lockedAt;
+    const resultAt = before?.result ? before.resultAt : result ? batch.readAt : undefined;
+    lineups[read.id] = { ...read, chance, chanceAt, readAt: batch.readAt, result, ...(editableAt ? { editableAt } : {}), ...(lockedAt !== undefined ? { lockedAt } : {}), ...(resultAt ? { resultAt } : {}) };
   }
   const newer = !old || old.board !== batch.board || batch.readAt >= old.readAt;
-  return { set: batch.set, board: batch.board, readAt: newer ? batch.readAt : old!.readAt, steps: newer ? batch.steps : old!.steps, lineups };
+  // Each step's lineups left, one entry each time a newer read changes it.
+  const history = [...(old?.board === batch.board ? old.history ?? [] : [])];
+  if (newer) for (const s of batch.steps) {
+    if (s.remaining === null) continue;
+    const last = [...history].reverse().find((h) => h.step === s.number);
+    if (!last || last.remaining !== s.remaining) history.push({ at: batch.readAt, step: s.number, remaining: s.remaining });
+  }
+  return { set: batch.set, board: batch.board, readAt: newer ? batch.readAt : old!.readAt, steps: newer ? batch.steps : old!.steps, lineups, history: history.slice(-HISTORY) };
 }
 
-type LineupRead = { id: string; state: string; score: number | null; cancelled: boolean; draft: boolean; cards: { slug: string | null; player: string | null; game: string | null; captain: boolean; score: number | null; kickoff: string | null }[] };
+type LineupRead = { id: string; state: string; score: number | null; cancelled: boolean; draft: boolean; updatable?: boolean; cards: { slug: string | null; player: string | null; game: string | null; captain: boolean; score: number | null; kickoff: string | null }[] };
 type StepRead = { id: string; number: number; target: number; state: string; lineups: { remaining: number; max: number } | null; captain?: number | null };
 
 /** One read of the board for the log: every entered lineup (drafts left out), with the chance `price` gives it. */
@@ -74,7 +93,7 @@ export function logBatch<L extends LineupRead, S extends StepRead>(set: string, 
   const lineups = steps.flatMap((step) => (entered.get(step.id) ?? []).filter((l) => !l.draft).map((l) => {
     const kickoffs = l.cards.flatMap((c) => (c.kickoff ? [c.kickoff] : [])).sort();
     return {
-      id: l.id, step: step.number, target: step.target, state: l.state, score: l.score, cancelled: l.cancelled,
+      id: l.id, step: step.number, target: step.target, state: l.state, score: l.score, cancelled: l.cancelled, ...(l.updatable !== undefined ? { updatable: l.updatable } : {}),
       cards: l.cards.map(({ slug, player, game, captain, score }) => ({ slug, player, game, captain, score })),
       firstKickoff: kickoffs[0] ?? null, lastKickoff: kickoffs.at(-1) ?? null, chance: price(l, step),
     };
@@ -161,5 +180,27 @@ export const ArcadeAuditSchema = z.object({
     key: z.string(), name: z.string(), played: z.number(), clears: z.record(z.string(), z.number()), lives: z.number(), tops: z.number(),
     firstTop: z.string().nullable(), band: z.object({ tops: z.tuple([z.number(), z.number()]), clears: z.tuple([z.number(), z.number()]) }), enough: z.boolean(),
   })).optional(),
+  /** Step 12: yes or no with evidence, or null when not seen yet. */
+  loopholes: z.object({
+    secondWindow: z.object({ clears: z.number(), withLater: z.number() }),
+    slots: z.array(z.object({ slot: z.string(), windows: z.number(), clears: z.record(z.string(), z.number()) })),
+    bonuses: z.object({ windows: z.number(), changed: z.number() }),
+    insurance: z.object({ answer: z.enum(["yes", "no"]).nullable(), seen: z.number(), cost: z.number() }).optional(),
+    editing: z.object({ answer: z.enum(["yes", "no"]).nullable(), lastEditableMinutes: z.number().nullable(), lockedAfterMinutes: z.number().nullable().optional(), seen: z.number() }).optional(),
+    captain: z.object({ windows: z.number(), byScore: z.number().optional(), byStart: z.number().optional(), scoreBetter: z.number().optional(), startBetter: z.number().optional() }).optional(),
+  }).optional(),
+  /** Your latest settled lineup: the card that cost most and why (step 12). */
+  postMortem: z.object({
+    step: z.number(), target: z.number(), total: z.number().nullable(), result: z.enum(["cleared", "missed"]), at: z.number(),
+    card: z.string().nullable().optional(), name: z.string().nullable().optional(), reason: z.string().optional(), captain: z.boolean().optional(),
+  }).nullable().optional(),
 });
+
+/** The post-mortem as one line under the move: "Step 4 missed by 88: Bidwell (captain) did not play." */
+export function postMortemLine(p: ArcadeAudit["postMortem"]): string | null {
+  if (!p || p.total === null) return null;
+  const gap = Math.round(Math.abs(p.total - p.target));
+  if (p.result === "cleared") return `Last lineup: step ${p.step} cleared with ${gap} to spare.`;
+  return `Last lineup: step ${p.step} missed by ${gap}${p.name && p.reason ? `: ${p.name}${p.captain ? " (captain)" : ""} ${p.reason}` : ""}.`;
+}
 export type ArcadeAudit = z.infer<typeof ArcadeAuditSchema>;

@@ -204,7 +204,7 @@ function Loaded({ arcade: board, old, fresh, unread, laliga, fdr, onReload, busy
       {/* Every view stays mounted (hidden, not removed), so a switch keeps its reads, picks and page. */}
       <div className="arc-view" hidden={view !== "play"}>
         {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} actions={actions} fresh={fresh} /> : null}
-        {ready && planOutlooks ? <ArcadePlanner key={`${arcade.set.slug}:${arcade.board?.id}`} arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} status={ready.status ?? {}} check={check} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
+        {ready && planOutlooks ? <ArcadePlanner key={`${arcade.set.slug}:${arcade.board?.id}`} arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} status={ready.status ?? {}} check={check} lastLineup={audit && audit !== "reading" ? audit.postMortem ?? null : null} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
       </div>
       <div className="arc-view" hidden={view !== "packs"}>
         <ArcadeMissions arcade={arcade} outlooks={outlooks} />

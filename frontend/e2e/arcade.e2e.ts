@@ -101,6 +101,11 @@ test("the Audit shows the climb your cards could have made with every score know
       { key: "daily", name: "The day's best window", played: 12, clears: { 1: 2, 2: 2 }, lives: 8, tops: 0, firstTop: null, band: { tops: [0, 0], clears: [2, 4] }, enough: false },
       { key: "steady", name: "Only at 60%+", played: 1, clears: { 1: 1 }, lives: 0, tops: 0, firstTop: null, band: { tops: [0, 0], clears: [0, 1] }, enough: false },
     ],
+    loopholes: {
+      secondWindow: { clears: 5, withLater: 3 }, slots: [{ slot: "21:00", windows: 4, clears: { 1: 3, 2: 2, 3: 1 } }], bonuses: { windows: 22, changed: 7 },
+      insurance: { answer: null, seen: 0, cost: 0 }, editing: { answer: "yes", lastEditableMinutes: 8, lockedAfterMinutes: 2, seen: 3 },
+      captain: { windows: 20, byScore: 251.4, byStart: 246.9, scoreBetter: 9, startBetter: 6 },
+    },
   };
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {}, audit } }));
   await withExtension(page);
@@ -112,6 +117,16 @@ test("the Audit shows the climb your cards could have made with every score know
   await expect(page.getByRole("list", { name: "The climb with every score known" }).getByRole("listitem")).toHaveCount(3);
   await expect(page.locator(".arc-audit-clubs li")).toHaveText([/Club.*×15/]);
   await expect(page.locator(".arc-audit-players li")).toHaveCount(1);
+  // Loopholes as a yes or no with their evidence, or not seen yet (step 12).
+  const loopholes = page.getByRole("region", { name: "Loopholes" });
+  await expect(loopholes.locator("dl > div")).toHaveText([
+    /A cancelled insurance lineup costs one\s*Not seen yet\s*No cancellation logged/,
+    /changed until kick-off\s*Yes\s*Seen editable 8 min before kick-off/,
+    /second window the same day after a clear\s*3 of 5/,
+    /Edition bonuses change the best five\s*7 of 22/,
+    /Captain the top scorer or the surest starter\s*Top scorer\s*251 against 247 a window, over 20/,
+    /Kick-off slots that reach furthest\s*21:00\s*Reaches step 3 \(4 windows\)/,
+  ]);
   // Ways to play, replayed on what was known before kick-off (step 11): best first, too few windows to tell under 100.
   const rules = page.getByRole("region", { name: /Ways to play, replayed/ });
   await expect(rules.getByRole("heading")).toContainText("too few windows to tell");

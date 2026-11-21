@@ -6,6 +6,30 @@ import type { ArcadeAudit as Audit } from "../../lib/arcadeLog";
 import { madridDay, madridTime, pts } from "./ArcadePlanner";
 
 const PAGE = 12;
+const ANSWER = { yes: "Yes", no: "No" } as const;
+
+/** Each loophole as a yes or no with its evidence, or "not seen yet" (plans/arcade-trust.md step 12). */
+function Loopholes({ loopholes: l }: { loopholes: NonNullable<Audit["loopholes"]> }) {
+  const reach = (s: (typeof l.slots)[number]) => Math.max(0, ...Object.keys(s.clears).map(Number));
+  const lead = l.slots[0];
+  const best = lead ? `Reaches step ${reach(lead)} (${lead.windows} window${lead.windows === 1 ? "" : "s"})${l.slots.length > 1 ? ` · then ${l.slots.slice(1, 3).map((s) => s.slot).join(", ")}` : ""}` : "";
+  const rows: { q: string; a: string; why: string }[] = [
+    { q: "A cancelled insurance lineup costs one", a: l.insurance?.answer ? ANSWER[l.insurance.answer] : "Not seen yet", why: l.insurance?.seen ? `${l.insurance.cost} of ${l.insurance.seen} cancellations` : "No cancellation logged" },
+    { q: "Lineups can be changed until kick-off", a: l.editing?.answer ? ANSWER[l.editing.answer] : "Not seen yet", why: l.editing?.lastEditableMinutes != null ? `Seen editable ${l.editing.lastEditableMinutes} min before kick-off` : "No lineup read near kick-off" },
+    { q: "A second window the same day after a clear", a: `${l.secondWindow.withLater} of ${l.secondWindow.clears}`, why: "Clears in the climb with every score known" },
+    { q: "Edition bonuses change the best five", a: `${l.bonuses.changed} of ${l.bonuses.windows}`, why: "Windows, club bonuses aside" },
+    ...(l.captain?.windows ? [{ q: "Captain the top scorer or the surest starter", a: (l.captain.byScore ?? 0) >= (l.captain.byStart ?? 0) ? "Top scorer" : "Surest starter", why: `${pts(l.captain.byScore ?? 0)} against ${pts(l.captain.byStart ?? 0)} a window, over ${l.captain.windows}` }] : []),
+    ...(best ? [{ q: "Kick-off slots that reach furthest", a: l.slots[0]!.slot, why: best }] : []),
+  ];
+  return (
+    <section className="arc-audit-loopholes" aria-labelledby="arc-audit-loopholes-title">
+      <h3 id="arc-audit-loopholes-title">Loopholes</h3>
+      <dl>
+        {rows.map((r) => <div key={r.q}><dt>{r.q}</dt><dd><b>{r.a}</b><small>{r.why}</small></dd></div>)}
+      </dl>
+    </section>
+  );
+}
 const sum = (counts: Record<string, number>) => Object.values(counts).reduce((a, b) => a + b, 0);
 
 /**
@@ -106,6 +130,7 @@ export default function ArcadeAudit({ audit, arcade }: { audit: Audit | null | "
           </section>
         </div>
       </> : <p className="arc-note">No window of your cards would have cleared step 1 yet.</p>}
+      {audit.loopholes ? <Loopholes loopholes={audit.loopholes} /> : null}
       {audit.strategies?.length ? (
         <section className="arc-audit-rules" aria-labelledby="arc-audit-rules-title">
           {/* Each rule played on what was known before kick-off and scored on what happened (plans/arcade-trust.md step 11). */}

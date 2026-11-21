@@ -1,4 +1,4 @@
-# Arcade you can trust: honest chances, the Arcade audit, and every fix from the 20 Nov review (plan, 20 Nov 2026; steps 1-11 built 20-21 Nov 2026, the rest not started)
+# Arcade you can trust: honest chances, the Arcade audit, and every fix from the 20 Nov review (plan, 20 Nov 2026; steps 1-12 built 20-21 Nov 2026, 13 and 14 not started)
 
 One plan for everything raised on 20 Nov 2026: the review of the four Arcade tabs, the 42% lineup that cannot be true, what a missing
 start % must mean in every case, the learning Arcade was meant to do since 29 Oct, the Arcade audit, Surest by step, and the
@@ -329,7 +329,7 @@ Done when each is checked at 1440 px and 390 px on your board in Chrome, and `we
 | 9 | **Built 21 Nov 2026.** Printed chance checked, start % calibrated per league | Line shows after 50 lineups; too few to tell below |
 | 10 | **Built 21 Nov 2026.** Audit: hindsight (cards sent by the page as `arcade_cards:<set>`, not read from Sorare by the job) | Job test on a fixed fixture; published block; page spec, look |
 | 11 | **Built 21 Nov 2026.** Audit: strategy replay (seven rules; the browser planner and favourites only not replayed, see docs/context.md) | Job tests; bands; too few to tell |
-| 12 | Audit: loopholes, post-mortems | Each yes/no with its evidence |
+| 12 | **Built 21 Nov 2026.** Audit: loopholes, post-mortems | Each yes/no with its evidence |
 | 13 | Main app's words and pictures | Spec; search of the old forms |
 | 14 | Layout and small faults | Look 1440/390; `web-design-guidelines` |
 

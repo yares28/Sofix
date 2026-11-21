@@ -4,7 +4,7 @@ import { memo, useCallback, useContext, useDeferredValue, useEffect, useMemo, us
 import { z } from "zod";
 import type { Arcade, ArcadeGame, ArcadeStep } from "../../lib/arcade";
 import { holdSplit, kickOf, moveHeading, type Move } from "../../lib/arcadeClimb";
-import { checkLine, type ChanceCheck } from "../../lib/arcadeLog";
+import { checkLine, postMortemLine, type ArcadeAudit, type ChanceCheck } from "../../lib/arcadeLog";
 import { useClimb, type ClimbPlan } from "../../lib/climbClient";
 import { aimKey, useArcadeAim } from "../../lib/arcadeAim";
 import { climbStart, climbStep, stepInfos } from "../../lib/arcadeBoard";
@@ -296,9 +296,9 @@ export { climbStart, climbStep, stepInfos } from "../../lib/arcadeBoard";
 
 
 /** Your move: play, wait or spend your lives, why, and the lineup to enter. */
-const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote, updating, surestStep, onPickStep, check }: {
+const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote, updating, surestStep, onPickStep, check, lastLineup }: {
   plan: ClimbPlan; steps: StepInfo[]; boardSteps: ArcadeStep[]; current: number; lives: number; captainBonus: number; now: number; onBuild: (move: Move, lineup: Lineup | null) => void; waitingNote: string | null; updating: boolean;
-  surestStep: number | null; onPickStep: (step: number) => void; check: ChanceCheck | null;
+  surestStep: number | null; onPickStep: (step: number) => void; check: ChanceCheck | null; lastLineup: ArcadeAudit["postMortem"];
 }) {
   const move = plan.path[0] ?? null;
   const target = (n: number) => steps.find((s) => s.number === n)?.target ?? 0;
@@ -345,6 +345,8 @@ const YourMove = memo(function YourMove({ plan, steps, boardSteps, current, live
         <h2 id="arc-move-title" className="arc-move-verdict">{moveHeading(v.kind, playsNow ? null : playMove ? kickOf(playMove) : null, holdMove ? kickOf(holdMove) : null, now)}</h2>
         {v.kind === "none" ? <p className="arc-move-why">Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).</p> : null}
         {waitingNote ? <p className="arc-warn">{waitingNote}</p> : null}
+        {/* What became of your last settled lineup and why, until the next settles (plans/arcade-trust.md step 12). */}
+        {postMortemLine(lastLineup) ? <p className="arc-sub arc-post-mortem">{postMortemLine(lastLineup)}</p> : null}
         {v.kind !== "none" && split ? (
           <figure className="arc-split">
             <div role="img" aria-label={`${holdWins ? "Hold" : "Play"} advised. Play ${sharePct(split.play)}, Hold ${sharePct(split.hold)}${split.tie ? ", a near tie" : ` of the chances to win step ${split.step} (${prizeOf(split.step)})`}. This step: Play ${playMove ? `${pct(playChance)} with ${lineupsOf(playMove)} at ${when(kickOf(playMove), now)}` : "no lineup"}, Hold ${holdChance === null ? "no later lineup" : `${pct(holdChance)} with ${lineupsOf(holdMove)} from ${when(kickOf(holdMove!), now)}`}.`}>
@@ -517,7 +519,7 @@ const Chain = memo(function Chain({ plan, steps, current, captainBonus, now, onB
   );
 });
 
-export default function ArcadePlanner({ arcade, outlooks, captainBonus, status, check = null }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; status: Record<string, PlayerStatus>; check?: ChanceCheck | null }) {
+export default function ArcadePlanner({ arcade, outlooks, captainBonus, status, check = null, lastLineup = null }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; status: Record<string, PlayerStatus>; check?: ChanceCheck | null; lastLineup?: ArcadeAudit["postMortem"] }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- Advance the planning clock on fresh board/forecast inputs, without rebuilding it when a picker control changes.
   const now = useMemo(() => Date.now(), [arcade, outlooks]);
   const steps = useMemo(() => stepInfos(arcade), [arcade]);
@@ -571,7 +573,7 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status, 
   return (
     <>
       {plan ? <>
-        <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} updating={updating} surestStep={surestStep} onPickStep={pickSurest} check={check} />
+        <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} updating={updating} surestStep={surestStep} onPickStep={pickSurest} check={check} lastLineup={lastLineup} />
         <Chain plan={plan} steps={steps} current={current} captainBonus={captainBonus} now={now} onBuild={build} surestStep={surestStep} setSurestStep={setSurestStep} />
       </> : <p className="arc-read-state" role="status">Planning the climb…</p>}
       <ArcadeTeams arcade={arcade} outlooks={outlooks} status={status} chosen={chosen} onToggle={(id) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); }} now={now} />

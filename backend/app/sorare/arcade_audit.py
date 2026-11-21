@@ -131,6 +131,8 @@ def build(
     cards: list[dict[str, Any]], games: Iterable[tuple[str, str, datetime, float]], log: dict[str, Any] | None
 ) -> dict[str, Any] | None:
     """`games`: (player, game id, kick-off, score) for your cards' players. None when the board's targets are not known yet."""
+    from app.sorare import arcade_loopholes  # it reads this module's best five and settle time
+
     steps = sorted((log or {}).get("steps") or [], key=lambda s: s["number"])
     targets = [float(s["target"]) for s in steps]
     if not targets:
@@ -142,7 +144,7 @@ def build(
         kickoff[game] = when
     ids = list(kickoff)
     by_card = {c["slug"]: c for c in cards}
-    wins, fives = [], []
+    wins, fives, window_scores = [], [], []
     for group in windows([kickoff[g] for g in ids]):
         played = [ids[i] for i in group]
         scores: dict[str, float] = {}
@@ -151,6 +153,7 @@ def build(
                 if c["player"] in by_game[g]:
                     scores[c["slug"]] = max(scores.get(c["slug"], 0.0), by_game[g][c["player"]])
         five = best_five(cards, scores, float(steps[0].get("captain") or CAPTAIN))
+        window_scores.append(scores)
         if not five:
             continue
         at, last = min(kickoff[g] for g in played), max(kickoff[g] for g in played)
@@ -180,13 +183,21 @@ def build(
             for slug, n in players.most_common(6)
         ],
         "actual": actual(log),
+        # Step 12's loopholes that hindsight answers; the rest are added from the log and the frozen numbers in publish.
+        "loopholes": {
+            "secondWindow": arcade_loopholes.second_window(wins, plan["moves"]),
+            "slots": arcade_loopholes.slots(fives, targets),
+            "bonuses": arcade_loopholes.bonuses_changed(
+                cards, window_scores, float(steps[0].get("captain") or CAPTAIN)
+            ),
+        },
     }
 
 
 def publish(db: Session, now: datetime) -> dict[str, int]:
     """Written with the Audit, for every set whose cards the page sent and that ended less than 30 days ago."""
     from app.services.publish import put
-    from app.sorare import arcade_strategies, games_mirror
+    from app.sorare import arcade_loopholes, arcade_strategies, games_mirror
 
     if db.get_bind().dialect.name == "postgresql" and not os.environ.get("PLAYER_GAMES_MIRROR"):
         return {}
@@ -230,6 +241,17 @@ def publish(db: Session, now: datetime) -> dict[str, int]:
             captain = float(steps[0].get("captain") or CAPTAIN) if steps else CAPTAIN
             seen = arcade_strategies.seen_windows(cards, rows, since, now)
             audit["strategies"] = arcade_strategies.replay_all(seen, audit["targets"], captain)
+            audit["loopholes"].update(
+                insurance=arcade_loopholes.insurance_cost(log),
+                editing=arcade_loopholes.edit_until(log),
+                captain=arcade_loopholes.captain_choice(seen, captain),
+            )
+            # What was said of each card's game before kick-off, for the post-mortem of your latest settled lineup.
+            said = {
+                (r[0], r[1]): {"started": r[6], "played": r[5], "expected": r[11] if r[11] is not None else r[12]}
+                for r in rows
+            }
+            audit["postMortem"] = arcade_loopholes.post_mortem(log, said, {c["slug"]: c["name"] for c in cards})
             put(db, KEY_PREFIX + set_slug, {"set": set_slug, "at": now.isoformat(), **audit}, now)
             written += 1
     return {"sets": written}

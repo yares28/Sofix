@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chanceCheck, checkLine, logBatch, mergeLog, type LogBatch } from "./arcadeLog";
+import { chanceCheck, checkLine, logBatch, mergeLog, postMortemLine, type LogBatch } from "./arcadeLog";
 
 const KICK = Date.parse("2026-11-28T17:30:00Z");
 const lineup = (over: Partial<LogBatch["lineups"][number]> = {}): LogBatch["lineups"][number] => ({
@@ -82,5 +82,31 @@ describe("checking the chances Sofix printed (plans/arcade-trust.md step 9)", ()
   it("says nothing before 50 lineups have settled", () => {
     const lineups = Object.fromEntries(Array.from({ length: 49 }, (_, i) => settled(i, 0.35, true)));
     expect(checkLine(chanceCheck({ lineups } as never), 0.35)).toBeNull();
+  });
+});
+
+describe("evidence for the loopholes (plans/arcade-trust.md step 12)", () => {
+  it("keeps when a lineup was last seen editable and first seen locked, and when its result first came", () => {
+    const one = mergeLog(null, batch({ readAt: KICK - 600_000, lineups: [lineup({ updatable: true })] }), KICK - 600_000);
+    const two = mergeLog(one, batch({ readAt: KICK + 60_000, lineups: [lineup({ updatable: false })] }), KICK + 60_000);
+    expect(two.lineups.L1).toMatchObject({ editableAt: KICK - 600_000, lockedAt: KICK + 60_000 });
+    const settled = KICK + 3 * 3_600_000;
+    const three = mergeLog(two, batch({ readAt: settled, lineups: [lineup({ updatable: false, cancelled: true })] }), settled);
+    expect(three.lineups.L1).toMatchObject({ result: "cancelled", resultAt: settled, lockedAt: KICK + 60_000 });
+  });
+  it("keeps a short history of each step's lineups left, one entry each time it changes", () => {
+    const steps = (remaining: number) => [{ number: 4, target: 400, state: "PLAYABLE", remaining, max: 4 }];
+    let log = mergeLog(null, batch({ readAt: 1, steps: steps(3) }), 1);
+    log = mergeLog(log, batch({ readAt: 2, steps: steps(3) }), 2);
+    log = mergeLog(log, batch({ readAt: 3, steps: steps(2) }), 3);
+    expect(log.history).toEqual([{ at: 1, step: 4, remaining: 3 }, { at: 3, step: 4, remaining: 2 }]);
+  });
+});
+
+describe("the post-mortem line (step 12)", () => {
+  it("names the card that cost a miss and why, or the margin of a clear", () => {
+    expect(postMortemLine({ step: 4, target: 400, total: 312, result: "missed", at: 1, name: "Jake Bidwell", reason: "did not play", captain: true })).toBe("Last lineup: step 4 missed by 88: Jake Bidwell (captain) did not play.");
+    expect(postMortemLine({ step: 2, target: 300, total: 341.6, result: "cleared", at: 1 })).toBe("Last lineup: step 2 cleared with 42 to spare.");
+    expect(postMortemLine(null)).toBeNull();
   });
 });

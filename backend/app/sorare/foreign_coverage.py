@@ -174,6 +174,10 @@ def compact_index(index: dict[str, Any]) -> dict[str, Any]:
     return kept
 
 
+BLOCK_BUDGET = 1_600_000  # Next will not cache an item over 2 MB (AGENTS.md, Neon Free)
+SHARDS = "0123456789abcdef"
+
+
 def shard(slug: str) -> str:
     return f"{sum(ord(c) for c in slug) % 16:x}"
 
@@ -182,8 +186,11 @@ def blocks(markets: dict[str, dict[str, Any]], previous: dict[str, Any] | None =
     out = {}
     directory = {p["slug"]: p for p in (previous or {}).get("players") or [] if p.get("league") not in markets}
     for code, market in markets.items():
-        out[f"players:{code}"] = market
-        for bucket in "0123456789abcdef":
+        # A league too big for one cached block (the Champions League passed 1.6 MB on 21 Nov 2026) is read from its 16 shards:
+        # its own key keeps the rest and names them (frontend/lib/playData.ts loadLeagueMarket, foreignPlayersData.ts).
+        whole = len(json.dumps(market, separators=(",", ":")).encode()) < BLOCK_BUDGET
+        out[f"players:{code}"] = market if whole else {**market, "market": [], "shards": SHARDS}
+        for bucket in SHARDS:
             out[f"players:{code}:{bucket}"] = {
                 **market,
                 "market": [p for p in market["market"] if shard(p["slug"]) == bucket],
@@ -195,7 +202,7 @@ def blocks(markets: dict[str, dict[str, Any]], previous: dict[str, Any] | None =
     if markets:
         out["player_index"] = {"players": sorted(directory.values(), key=lambda p: p["slug"])}
     for key, block in out.items():
-        if len(json.dumps(block, separators=(",", ":")).encode()) >= 1_600_000:
+        if len(json.dumps(block, separators=(",", ":")).encode()) >= BLOCK_BUDGET:
             raise ValueError(f"{key} exceeds its cache budget")
     return out
 

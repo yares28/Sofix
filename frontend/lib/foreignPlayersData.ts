@@ -27,7 +27,13 @@ export async function loadForeignDirectory(): Promise<ForeignDirectory | null> {
   const allowed = new Map<ForeignLeague, Set<string>>(indexed.filter(([, value]) => value).map(([code, value]) => [code, new Set(value!.market.filter(p => ["GK", "DEF", "MID", "FWD"].includes(p.pos)).map(p => p.slug))]));
   return { players: directory.players.filter(p => p.pos === undefined ? !allowed.has(p.league) || allowed.get(p.league)!.has(p.slug) : p.pos !== null) };
 }
-export const loadLeaguePlayers = (code: ForeignLeague) => block<ForeignBlock>(`players:${code}`, `players/${code}`);
+/** A league's block; one too big for a single block (the Champions League, 21 Nov 2026) is joined from its 16 shards. */
+export async function loadLeaguePlayers(code: ForeignLeague): Promise<ForeignBlock | null> {
+  const head = await block<ForeignBlock & { shards?: string }>(`players:${code}`, `players/${code}`);
+  if (!head?.shards) return head;
+  const parts = await Promise.all([...head.shards].map((bucket) => block<ForeignBlock>(`players:${code}:${bucket}`, `players/${code}/${bucket}`)));
+  return { ...head, market: parts.flatMap((part) => part?.market ?? []) };
+}
 
 /** A small directory resolves identity before reading one bounded detail shard. */
 export async function loadForeignPlayer(slug: string): Promise<ForeignBlock | null> {

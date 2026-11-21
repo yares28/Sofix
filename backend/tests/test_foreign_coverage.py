@@ -176,3 +176,15 @@ def test_a_squad_asks_for_the_week_after_too_and_the_kept_index_leaves_it_out():
     kept = f.stored(index)
     assert kept["clubs"]["club"][0]["player"] == {"slug": "one", "plan": [1]}
     assert index["clubs"]["club"][0]["player"]["a0"] == [2]  # the run itself still has it
+
+
+def test_a_league_too_big_for_one_block_is_read_from_its_16_shards():
+    # 21 Nov 2026: the Champions League block passed 1.6 MB and every refresh's Sorare step failed on it.
+    big = {"competition": "CL", "market": [{"slug": f"p{i}", "pad": "x" * 2_000} for i in range(1_000)]}
+    out = f.blocks({"CL": big})
+    head = out["players:CL"]
+    assert head["market"] == [] and head["shards"] == "0123456789abcdef" and head["competition"] == "CL"
+    pieces = [p["slug"] for b in "0123456789abcdef" for p in out[f"players:CL:{b}"]["market"]]
+    assert sorted(pieces) == sorted(p["slug"] for p in big["market"])
+    small = f.blocks({"PL": {"competition": "PL", "market": [{"slug": "a"}]}})
+    assert small["players:PL"]["market"] == [{"slug": "a"}] and "shards" not in small["players:PL"]

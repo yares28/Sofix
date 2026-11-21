@@ -56,14 +56,21 @@ async function readSorare(includeMarket = true): Promise<Sorare | null> {
  */
 export async function loadLeagueMarket(code: "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF"): Promise<MarketPlayer[]> {
   if (!published()) return [];
-  // Cached until the job publishes again (the overlay asks many times a minute while a Sorare page scrolls).
-  const read = cache(
-    async (): Promise<MarketPlayer[]> => (await readModel<{ market?: MarketPlayer[] }>(`players:${code}`))?.payload.market ?? [],
-    ["league-market-v1", code],
+  // Cached until the job publishes again (the overlay asks many times a minute while a Sorare page scrolls). A league too big for one
+  // block (the Champions League, 21 Nov 2026) names its 16 shards instead, each cached on its own: together they pass Next's 2 MB.
+  const part = (key: string, keys: string[]) => cache(
+    async (): Promise<{ market: MarketPlayer[]; shards: string | null }> => {
+      const payload = (await readModel<{ market?: MarketPlayer[]; shards?: string }>(key))?.payload;
+      return { market: payload?.market ?? [], shards: payload?.shards ?? null };
+    },
+    keys,
     { tags: [SORARE_TAG], revalidate: 3600 },
-  );
+  )();
   try {
-    return await read();
+    const head = await part(`players:${code}`, ["league-market-v2", code]);
+    if (!head.shards) return head.market;
+    const pieces = await Promise.all([...head.shards].map((bucket) => part(`players:${code}:${bucket}`, ["league-market-shard-v1", code, bucket])));
+    return pieces.flatMap((piece) => piece.market);
   } catch (error) {
     console.error(`[sorare] ${code} players could not be read: ${error instanceof Error ? error.message : "unknown"}`);
     return [];

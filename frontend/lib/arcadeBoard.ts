@@ -21,7 +21,9 @@ const settlesOf = (l: ArcadeLineup) => Math.max(0, ...l.cards.map((c) => (c.kick
 export function climbStart(arcade: Arcade, steps: StepInfo[], current: number) {
   const step = arcade.board?.steps.find((s) => s.number === current);
   const waiting = (step?.entered ?? []).filter(running);
-  const held = (arcade.board?.steps ?? []).flatMap((s) => s.entered.filter(running).flatMap((l) => l.cards.flatMap((c) => (c.slug ? [{ card: c.slug, until: settlesOf(l) }] : []))));
+  // Locked: Sorare will not let it leave its lineup any more (its card is locked, or the lineup cannot be edited: on 23 Nov 2026 both
+  // step 4 lineups locked whole at their first kick-off); otherwise it can still be taken out, and Pick teams offers it.
+  const held = (arcade.board?.steps ?? []).flatMap((s) => s.entered.filter(running).flatMap((l) => l.cards.flatMap((c) => (c.slug ? [{ card: c.slug, until: settlesOf(l), locked: c.locked || !l.updatable, step: s.number }] : []))));
   const lives = steps.find((s) => s.number === current)?.lives ?? 4;
   if (lives > 0 || !waiting.length || current >= (steps.at(-1)?.number ?? 1)) return { start: { step: current, lives, notBefore: null, held }, waiting, after: null };
   const first = waiting.reduce((a, b) => (settlesOf(a) <= settlesOf(b) ? a : b));

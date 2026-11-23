@@ -979,6 +979,25 @@ test("a lineup on Sorare that cannot reach its target says it is dead, and cut l
   await expect(page.locator(".arc-move")).toContainText("Your free cards cannot fill a lineup"); // his cards in that lineup are not planned again
 });
 
+test("Pick teams offers a card from a lineup Sorare still lets you edit, marked with its step, and never one from a locked lineup", async ({ page }) => {
+  // Owner, 23 Nov 2026: "Pick teams should always give me all the players, even the players I have in a team that I can take out from it".
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
+  const appearance = (slug: string, player: string, name: string) => ({ captain: false, score: 0, locked: false, bonus: 1, anyCard: { slug }, player: { slug: player, displayName: name }, game: { id: GAME, date: KICKOFF } });
+  const lineup = (id: string, updatable: boolean, cards: ReturnType<typeof appearance>[]) => ({ __typename: "TaskLineup", id, draft: false, aasmState: "READY", score: 0, forfeitable: true, hasLiveGames: false, updatable, taskAppearances: cards });
+  await withExtension(page, {
+    ...ANSWERS,
+    "arcade-lineups": { currentUser: { setBoard: { steps: [{ id: "Tasks::Task:bf7e7356-70a2-4ff6-864f-112fa18e2bef", myLineups: [
+      lineup("open", true, [appearance("c3", "d", "Defender Three"), appearance("c4", "m", "Midfielder Four")]),
+      lineup("shut", false, [appearance("c5", "m2", "Midfielder Five")]),
+    ] }] } } },
+  });
+  await page.goto("/arcade");
+  await page.locator(".arc-tickets .arc-ticket").first().click();
+  const pitch = page.locator(".arc-pitch");
+  await expect(pitch.getByText(/^In step \d lineup$/).first()).toBeVisible();
+  await expect(pitch.getByRole("img", { name: "Midfielder Five" })).toHaveCount(0);
+});
+
 test("with extension 0.4.15 Sorare's start % come from the open Sorare tab, every day, without opening a page", async ({ page }) => {
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { records: recordsFor(route), chances: {} } }));
   await withExtension(page, { ...ANSWERS, "arcade-bench": { cards: 1, after: null, rows: [{ game: GAME, player: "p", basisPoints: 8500 }] } }, "0.4.15");

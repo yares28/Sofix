@@ -850,7 +850,10 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
   const start = said_ !== null && fix ? calibrated(fix, said_) : said_;
   // Coming on: his record's chance to come on when he does not start, applied to this game's chance of not starting.
   const benchRate = record && record.s < 1 ? record.o / (1 - record.s) : 0;
-  const on = injured || start === null || !record ? 0 : startSource === "record" ? record.o : Math.min(1 - start, (1 - start) * benchRate);
+  // A forecast's 0% means he is out of the game (owner, 23 Nov 2026: an injured Kvaratskhelia had xS 14 from coming on); an announced
+  // eleven without him still leaves him on the bench.
+  const out = !confirmed && start === 0;
+  const on = injured || out || start === null || !record ? 0 : startSource === "record" ? record.o : Math.min(1 - start, (1 - start) * benchRate);
   const form = record?.x ?? (past.length >= 3 ? past.reduce((a, b) => a + b, 0) / past.length : null);
   const scores: Partial<Record<ScoreRank, number | null>> = { sofix: sameGame ? sofix.mu ?? null : null, sorare: projection ?? null, form };
   const score = firstOf(scoreOrder(records, game.competition.slug), scores);

@@ -213,6 +213,17 @@ describe("ranked sources (owner, 20 Nov 2026: the best accuracy first, then the 
     const confirmed = outlookOf(card("a", ["Forward"]), GAME, extras, null, {}, { "Game:1": { a: [10000, 1] } }, records);
     expect(confirmed).toMatchObject({ start: 1, confirmed: true }); // the announced eleven is never corrected
   });
+  it("scores 0 when a source says 0% to start: out of the game, so no chance to come on either (owner, 23 Nov 2026)", () => {
+    // Kvaratskhelia on 23 Nov 2026: Sorare 0% (injured), yet xS 14 from his record's 29% chance to come on × 47.
+    const records = { ranking: ranking(["sorare", "record"], ["sofix", "form"]), players: { a: { ...record, s: 0.317, o: 0.2 } } };
+    const out = outlookOf(card("a", ["Forward"]), GAME, extras, { "Game:1": { a: [0, 0] } }, {}, null, records);
+    expect(out).toMatchObject({ start: 0, startSource: "sorare", on: 0 });
+    expect(baseScore(out)).toBe(0);
+    // An announced eleven without him still leaves him on the bench: his chance to come on stays.
+    const benched = outlookOf(card("a", ["Forward"]), GAME, extras, null, {}, { "Game:1": { a: [0, 1] } }, records);
+    expect(benched.start).toBe(0);
+    expect(benched.on).toBeGreaterThan(0);
+  });
   it("counts an injured player out until his return date, and only then on his record", () => {
     const records = { ranking: ranking(["record"], ["form"]), players: { a: record } };
     const hurt = { ...extras, status: { a: { tier: null, playing: "STARTER", injured: true, back: "2026-11-01T00:00:00Z" } } };

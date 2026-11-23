@@ -864,6 +864,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   game starting works it out again (9 Nov 2026).
 - Until the plan is in, Play now shows Your move's own shape in grey, headed **Planning your climb**, with a three-part track (Sorare's
   projections → Start % → Your climb) that ticks off each read; the chain, teams and Pick teams wait and appear with it (23 Nov 2026).
+- Games after a player's next are scored on his last five starts pulled toward his last twenty, as such streaks really went on
+  (a hot five of 64 scored 54 next), so later games and the Surest chances are as honest as the next one; a player any source
+  gives 0% to start scores 0; Pick teams offers cards from a lineup you can still edit on Sorare, marked "In step N lineup" (23 Nov 2026).
 - **Your move**: headed by the advice itself in a small heading (**Play now**, **Play Sat 18:30**, **Hold for Tue 21:00** or **Nothing to play**; 20 Nov 2026), with the step, your lives in words ("2 lives left") and its prize (10 Nov 2026), then
   a **Play | Hold** bar: two pills that share 100%, each as wide as its share of the chances at the prize the advice decides on (the biggest one
   where they differ; a close split keeps a decimal; 9 Nov 2026), the advised side filled; only Hold carries a date, and the lineup counts and

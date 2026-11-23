@@ -35,6 +35,7 @@ RECORD_GAMES = (
 )
 SHORT = 5  # fewer settled games than this: "short record"
 LAST_STARTS = 5  # his score if he starts, from his last five starts
+LONG_STARTS = 20  # his long run, which a hot or cold five is pulled toward (formFit)
 MIN_STARTS = 3  # fewer starts than this: no score of his own
 FLOOR = 100  # the Audit's floor: fewer settled games in a competition ranks a source by its figure over all of them
 MEASURE_DAYS = 90
@@ -51,10 +52,14 @@ def record(games: Iterable[Row]) -> dict[str, Any] | None:
     starts in ten say 90% and none in ten 7%, close to what happened (90-99% → 88% started, 0-9% → 3%; 20 Nov 2026).
     """
     last: list[Row] = []
+    long_run: list[float] = []  # his scores in his last twenty starts, however far back
     for g in games:
         if g[1] not in NATIONAL and g[2] in SETTLED and (g[2] == "DID_NOT_PLAY" or g[4] is not None):
-            last.append(g)
-            if len(last) == RECORD_GAMES:
+            if len(last) < RECORD_GAMES:
+                last.append(g)
+            if g[2] == "FINAL" and g[4] and g[5] is not None:
+                long_run.append(g[5])
+            if len(last) == RECORD_GAMES and len(long_run) >= LONG_STARTS:
                 break
     n = len(last)
     if not n:
@@ -63,11 +68,14 @@ def record(games: Iterable[Row]) -> dict[str, Any] | None:
     came_on = [g for g in last if g[2] == "FINAL" and g[3] and not g[4]]
     start_scores = [g[5] for g in started if g[5] is not None][:LAST_STARTS]
     bench_scores = [g[5] for g in came_on if g[5] is not None]
+    has_x = len(start_scores) >= MIN_STARTS
+    long_run = long_run[:LONG_STARTS]
     out: dict[str, Any] = {
         "n": n,
         "s": round((len(started) + 0.8) / (n + 2), 3),
         "o": round((len(came_on) + 0.4) / (n + 2), 3),
-        "x": round(sum(start_scores) / len(start_scores), 1) if len(start_scores) >= MIN_STARTS else None,
+        "x": round(sum(start_scores) / len(start_scores), 1) if has_x else None,
+        "l": round(sum(long_run) / len(long_run), 1) if has_x else None,
         "b": round((sum(bench_scores) + 2 * PRIOR_SUB_SCORE) / (len(bench_scores) + 2), 1),
     }
     if n < SHORT:
@@ -168,6 +176,67 @@ def calibrate(pairs: list[Pair]) -> dict[str, Any] | None:
     }
 
 
+FormPair = tuple[
+    float, float, float, datetime
+]  # (last five starts, last twenty starts, what he scored, the game's date)
+
+
+def _solve(m: list[list[float]], v: list[float]) -> list[float] | None:
+    """Gaussian elimination for a small square system; None when it has no single answer."""
+    a = [row[:] + [v[i]] for i, row in enumerate(m)]
+    size = len(a)
+    for col in range(size):
+        pivot = max(range(col, size), key=lambda r: abs(a[r][col]))
+        if abs(a[pivot][col]) < 1e-9:
+            return None
+        a[col], a[pivot] = a[pivot], a[col]
+        for r in range(size):
+            if r != col:
+                f = a[r][col] / a[col][col]
+                a[r] = [x - f * y for x, y in zip(a[r], a[col], strict=True)]
+    return [a[i][size] / a[i][i] for i in range(size)]
+
+
+def _least_squares(pairs: list[FormPair]) -> list[float] | None:
+    """score ≈ a + b × last five + c × last twenty, by least squares."""
+    xs = [(1.0, x5, l20) for x5, l20, _, _ in pairs]
+    m = [[sum(r[i] * r[j] for r in xs) for j in range(3)] for i in range(3)]
+    v = [sum(r[i] * p[2] for r, p in zip(xs, pairs, strict=True)) for i in range(3)]
+    return _solve(m, v)
+
+
+def form_fit(pairs: list[FormPair]) -> dict[str, Any] | None:
+    """His score if he starts, for a game no source has a number for (owner, 23 Nov 2026: the climb's later games were scored on the last
+    five starts, and a hot five scored 10 points under it next time: 64 → 54 on 3,291 held-out starts). Fitted on the older two thirds,
+    kept only when it misses less than the last five on the newest third (as `calibrate`), then fitted on all."""
+    if len(pairs) < CALIBRATE_MIN:
+        return None
+    ordered = sorted(pairs, key=lambda p: p[3])
+    cut = len(ordered) - max(HELD_OUT_MIN, round(len(ordered) * HELD_OUT_SHARE))
+    train, test = ordered[:cut], ordered[cut:]
+    trained = _least_squares(train)
+    if trained is None or len(test) < HELD_OUT_MIN:
+        return None
+    a, b, c = trained
+    raw = sum((x5 - y) ** 2 for x5, _, y, _ in test) / len(test)
+    fitted = sum((a + b * x5 + c * l20 - y) ** 2 for x5, l20, y, _ in test) / len(test)
+    if fitted >= raw * (1 - GAIN_MIN) or (final := _least_squares(ordered)) is None:
+        return None
+    return {
+        "a": round(final[0], 3),
+        "b": round(final[1], 4),
+        "c": round(final[2], 4),
+        "n": len(ordered),
+        "heldOut": len(test),
+        "rmseRaw": round(math.sqrt(raw), 2),
+        "rmseFitted": round(math.sqrt(fitted), 2),
+    }
+
+
+def form_score(fit: dict[str, Any] | None, x5: float, l20: float) -> float:
+    return x5 if fit is None else round(max(0.0, fit["a"] + fit["b"] * x5 + fit["c"] * l20), 1)
+
+
 def build(rows: Iterable[tuple[Any, ...]], now: datetime) -> dict[str, Any]:
     """`rows`: (player, date, competition, status, played, started, score, sorare_start, ff_start, sofix_start, sofix_x,
     sorare_x), newest first per player. The record of every player, and the ranking measured over the last 90 days."""
@@ -187,6 +256,7 @@ def build(rows: Iterable[tuple[Any, ...]], now: datetime) -> dict[str, Any]:
     start_errors: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     start_pairs: dict[str, dict[str, list[Pair]]] = defaultdict(lambda: defaultdict(list))
     score_errors: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+    form_pairs: dict[str, list[FormPair]] = defaultdict(list)
     since = now - timedelta(days=MEASURE_DAYS)
     players: dict[str, Any] = {}
     for player, games in by_player.items():
@@ -211,11 +281,21 @@ def build(rows: Iterable[tuple[Any, ...]], now: datetime) -> dict[str, Any]:
                     start_pairs[competition][source].append((float(value), truth, when))
             if truth and score is not None:
                 if before and before["x"] is not None:
-                    score_errors[competition]["form"].append((score - before["x"]) ** 2)
+                    form_pairs[competition].append((before["x"], before["l"], float(score), when))
                 for source, column in SCORE_SOURCES.items():
                     if (value := said[column]) is not None:
                         score_errors[competition][source].append((score - float(value)) ** 2)
+    # One fit over every club competition (a competition apart moved its bias under 2 points on 23 Nov 2026), ranked and published as
+    # the form source: each player's x is the fitted score, his own last five kept as x5.
+    fit = form_fit([p for pairs in form_pairs.values() for p in pairs])
+    for competition, pairs in form_pairs.items():
+        score_errors[competition]["form"].extend((form_score(fit, x5, l20) - y) ** 2 for x5, l20, y, _ in pairs)
+    for mine in players.values():
+        if mine["x"] is not None:
+            mine["x5"] = mine["x"]
+            mine["x"] = form_score(fit, mine["x"], mine["l"])
     return {
+        **({"formFit": fit} if fit else {}),
         "ranking": {"start": _rank(start_errors, "start"), "score": _rank(score_errors, "score")},
         # Each start source's chances corrected to what happened, per competition, only where the correction earned it (step 9).
         "calibration": {

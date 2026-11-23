@@ -120,7 +120,7 @@ const SPOT: Record<string, [number, number]> = { FWD: [32, 17], EXTRA: [72, 22],
 
 /** The lineup on a pitch: the card art where each slot stands, its points and start %. With no lineup, the same pitch keeps its five
  * empty slots and says why no team is built (owner, 10 Nov 2026), so nothing moves when the cards arrive. */
-function Pitch({ lineup, partial = [], captainBonus, title }: { lineup: Lineup | null; partial?: { slot: Slot; outlook: Outlook | null }[]; captainBonus: number; title: string }) {
+function Pitch({ lineup, partial = [], captainBonus, title, entered = new Map() }: { lineup: Lineup | null; partial?: { slot: Slot; outlook: Outlook | null }[]; captainBonus: number; title: string; entered?: Map<string, number> }) {
   if (!lineup) return (
     <div className="arc-pitch is-empty">
       <div className="arc-pitch-lines" aria-hidden="true" />
@@ -162,6 +162,7 @@ function Pitch({ lineup, partial = [], captainBonus, title }: { lineup: Lineup |
                 ? <img src={outlook.card.picture} alt={outlook.card.name} width={96} height={155} loading="lazy" />
                 : <div className="arc-card-blank">{outlook.card.name}</div>}
               <span><b>{captain && captainBonus > 0 ? "C · " : ""}{SLOT[slot] === "Extra" ? "+1" : slot}</b> ~{pts(predicted(outlook, captain, captainBonus) ?? 0)} <small>{outlook.start === null ? "no %" : pct(outlook.start)}</small></span>
+              {entered.has(outlook.card.slug) ? <span className="arc-pitch-in" title={`Take ${outlook.card.name} out of your step ${entered.get(outlook.card.slug)} lineup on Sorare to use him here`}>In step {entered.get(outlook.card.slug)} lineup</span> : null}
             </li>
           );
         })}
@@ -173,10 +174,11 @@ function Pitch({ lineup, partial = [], captainBonus, title }: { lineup: Lineup |
 /**
  * "Pick teams": choose games as tickets, Sofix builds the lineup with the best chance at the step you aim at and shows where it lands.
  * The tickets are the owner's (29 Oct: "leave it as is"); the games picked and the aim live in ArcadePlanner, so Your move and the teams
- * to build around can hand games over. Cards already in a lineup of yours on Sorare are left out until it settles.
+ * to build around can hand games over. Cards locked in a lineup of yours on Sorare are left out until it settles; a card in a lineup it
+ * can still leave is offered, marked with that lineup's step (owner, 23 Nov 2026).
  */
-function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, setAim, busy, now, preset }: {
-  arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; chosen: Set<string>; setChosen: (next: Set<string>) => void; aim: number; setAim: (n: number) => void; busy: Set<string>; now: number; preset: Lineup | null;
+function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, setAim, busy, entered, now, preset }: {
+  arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; chosen: Set<string>; setChosen: (next: Set<string>) => void; aim: number; setAim: (n: number) => void; busy: Set<string>; entered: Map<string, number>; now: number; preset: Lineup | null;
 }) {
   const steps = arcade.board?.steps ?? [];
   const boards = useContext(FdrContext);
@@ -274,7 +276,7 @@ function PickTeams({ arcade, outlooks, captainBonus, chosen, setChosen, aim, set
       {stayed ? <p className="arc-sub arc-pick-note" role="status">{stayed}</p> : null}
       {lineup ? (
         <div className="arc-pitch-wrap" aria-busy={pending !== chosen}>
-          <Pitch lineup={lineup} captainBonus={captainBonus} title={`Best five from your ${pending.size} game${pending.size === 1 ? "" : "s"} · settles about ${when(settles!, now)}`} />
+          <Pitch lineup={lineup} captainBonus={captainBonus} entered={entered} title={`Best five from your ${pending.size} game${pending.size === 1 ? "" : "s"} · settles about ${when(settles!, now)}`} />
           <Scale lineup={lineup} steps={steps} aim={aim} />
           <details className="arc-detail">
             <summary>Each card&apos;s numbers</summary>
@@ -575,7 +577,9 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status, 
   const { start, waiting, after } = useMemo(() => climbStart(arcade, steps, current), [arcade, steps, current]);
   const all = useMemo(() => [...outlooks.values()].flat(), [outlooks]);
   const { plan, updating } = useClimb(all, steps, start, captainBonus, now);
-  const busy = useMemo(() => new Set(start.held.filter((h) => h.until > now).map((h) => h.card)), [start.held, now]);
+  // Pick teams offers every card a lineup can still give up (owner, 23 Nov 2026): only locked ones stay out; the rest name their lineup.
+  const locked = useMemo(() => new Set(start.held.filter((h) => h.until > now && h.locked).map((h) => h.card)), [start.held, now]);
+  const entered = useMemo(() => new Map(start.held.filter((h) => h.until > now && !h.locked).map((h) => [h.card, h.step])), [start.held, now]);
   const games = useMemo(() => (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now && (outlooks.get(g.id) ?? []).length), [arcade.games, outlooks, now]);
   const storageKey = `sofix-arcade-teams:${arcade.set.slug}:${arcade.board?.id ?? ""}`;
   const [selection, setSelection] = useState<{ chosen: Set<string>; aim: number; preset: { plan: ClimbPlan; lineup: Lineup } | null; fromMove?: boolean } | null>(() => {
@@ -627,7 +631,7 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status, 
       <ArcadeTeams arcade={arcade} outlooks={outlooks} status={status} chosen={chosen} onToggle={(id) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); }} now={now} />
       <section className="arc-plan" aria-labelledby="arc-teams-title">
         <div className="arc-plan-head"><h2 id="arc-teams-title">Pick teams</h2></div>
-        <PickTeams arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} chosen={chosen} setChosen={setChosen} aim={aim} setAim={setAim} busy={busy} now={now} preset={preset} />
+        <PickTeams arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} chosen={chosen} setChosen={setChosen} aim={aim} setAim={setAim} busy={locked} entered={entered} now={now} preset={preset} />
       </section>
     </>
   );

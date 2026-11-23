@@ -376,6 +376,8 @@
 .arc-pitch li.is-captain img { box-shadow: 0 0 0 2px var(--accent), 0 16px 30px rgba(0, 0, 0, .22); }
 .arc-pitch li > span { display: flex; gap: 6px; align-items: baseline; padding: 2px 8px; border-radius: 999px; background: var(--surface); font-size: 12px; font-variant-numeric: tabular-nums; box-shadow: var(--shadow-card); white-space: nowrap; }
 .arc-pitch li small { color: var(--ink-2); font-size: 11px; }
+/* A card still in one of your lineups on Sorare: amber, as Sofix marks what you have to do first (23 Nov 2026). */
+.arc-pitch li > .arc-pitch-in { background: var(--fdr3-bg); color: var(--fdr3-fg); font-size: 11px; font-weight: 600; box-shadow: none; }
 /* No team yet (owner, 10 Nov 2026): the same pitch, five card-shaped spaces where the cards will stand, and why it is empty. */
 .arc-pitch-head .arc-pitch-why { display: block; max-width: 34ch; font-size: var(--text-base); font-weight: 600; line-height: 1.4; letter-spacing: 0; color: var(--ink); }
 .arc-slot-empty { display: block; width: 132px; aspect-ratio: 120 / 194; border-radius: 12px; border: 1.5px dashed color-mix(in srgb, var(--win) 38%, transparent); background: color-mix(in srgb, var(--surface) 55%, transparent); }

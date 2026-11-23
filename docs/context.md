@@ -832,6 +832,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/strategies-decision-board.md` | [open](../plans/strategies-decision-board.md) |
 | document (check authority) | `plans/strategies-podium-charts.md` | [open](../plans/strategies-podium-charts.md) |
 | document (check authority) | `plans/unshipped-commit-review.md` | [open](../plans/unshipped-commit-review.md) |
+| document (check authority) | `plans/xs-ahead.md` | [open](../plans/xs-ahead.md) |
 | document (check authority) | `plans/xscore-versions.md` | [open](../plans/xscore-versions.md) |
 | document (check authority) | `plans/xscore.md` | [open](../plans/xscore.md) |
 | table | `competitions` | `backend/app/models.py` |
@@ -937,14 +938,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-20",
-        "note": "20 Nov 2026: the Sorare step also saves Arcade's per-game statements (arcade_said.save over the published markets, optional step, after the market blocks are put); no Play selection logic changed.",
+        "date": "2026-11-23",
+        "note": "24 Nov 2026: the Sorare job adds the xs ahead step after game scores (plans/xs-ahead.md); plan selection unchanged",
         "files": {
           "backend/app/sorare/publish.py": "1e28009dd525fa793e6ae150df8a3557ca37b838ec7f28bc000055e73c2ad092",
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "58b28ee76fda1d4669c4927aa7028fd9ffc8766d21040a26dfccfab82522bcbf",
+          "backend/app/jobs/sorare.py": "d632b1ddbb76fb9af0817bafeff04bb0f78c909d9d9c0d9cbc01d33c01bda7ec",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
         }
@@ -2456,12 +2457,12 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-20",
-        "note": "20 Nov 2026: response adds records (ranking and the listed players' start records) for the dock engine; route test updated.",
+        "date": "2026-11-23",
+        "note": "24 Nov 2026: loadArcadeRecords now also returns the start calibration and Sofix's xS ahead for the players asked; route shape unchanged",
         "files": {
           "frontend/app/api/ext/arcade/route.ts": "969cc70429922695f4bd8f7700ab9d9b5de116e15eaccfbfd52dac5d8e80770c",
           "frontend/lib/extAuth.ts": "1e2d54d7bbf2495f7d64e7bb7174fa96a39eecbcd3ece614be9b9cd0ee06cd9c",
-          "frontend/lib/arcadeLaLiga.ts": "94e6290738d3ef60150bf901919abf71f5a0f9540754860419b297153ffb5b10",
+          "frontend/lib/arcadeLaLiga.ts": "43517823c045297a193ebee7394fde67e9066e669a2aecdba1e38cada20f3313",
           "frontend/app/api/ext/arcade/route.test.ts": "73e1a8e66c6be77f881aafd159282896c693708cf991787db2dc16c74a4cb65c"
         }
       }

@@ -519,6 +519,54 @@ const Chain = memo(function Chain({ plan, steps, current, captainBonus, now, onB
   );
 });
 
+const WAIT_STAGES = ["Sorare's projections", "Start %", "Your climb"] as const;
+
+/**
+ * While the climb is worked out (owner, 23 Nov 2026: "a more in depth waiting to load thing pausing the whole page"): Your move's own
+ * shape, bone for bone, with the three reads it waits on as a track in the split's place. Nothing below it shows until the plan is in.
+ */
+export function ClimbWaiting({ stage, steps }: { stage: 0 | 1 | 2; steps: number }) {
+  return (
+    <section className="arc-move arc-move-wait" aria-busy="true" aria-labelledby="arc-wait-title">
+      <div className="arc-move-main">
+        <p className="arc-move-kicker"><span className="skeleton arc-bone" style={{ width: 210 }} /></p>
+        <h2 id="arc-wait-title" className="arc-move-verdict">Planning your climb</h2>
+        <ol className="arc-wait-track" aria-label={`Step ${stage + 1} of ${WAIT_STAGES.length}: ${WAIT_STAGES[stage]}`}>
+          {WAIT_STAGES.map((name, i) => (
+            <li key={name} className={i < stage ? "is-done" : i === stage ? "is-now" : undefined} aria-current={i === stage ? "step" : undefined}>
+              <small>{i < stage ? "✓" : i + 1}</small><b>{name}</b>
+            </li>
+          ))}
+        </ol>
+        <div className="arc-move-entry" aria-hidden="true">
+          <div className="arc-move-entry-head">
+            <span className="arc-move-chance"><span className="skeleton arc-bone" style={{ width: 96, height: 44 }} /><span className="skeleton arc-bone" style={{ width: 120, height: 12, marginTop: 4 }} /></span>
+            <span className="skeleton arc-bone" style={{ width: 132, height: 36, marginLeft: "auto", borderRadius: 999 }} />
+          </div>
+          <ol className="arc-lineup">
+            {SLOTS.map((slot, i) => (
+              <li key={slot} style={{ "--i": i } as CSSProperties}>
+                <span className="skeleton arc-bone" style={{ width: "50%", height: 14, margin: "1px auto" }} />
+                <span className="skeleton arc-bone" style={{ height: "auto", aspectRatio: "120 / 194", borderRadius: 10 }} />
+                <span className="arc-wait-caption"><span className="skeleton arc-bone" style={{ width: "44%", height: 30 }} /><span className="skeleton arc-bone" style={{ width: 30, height: 30, borderRadius: 8 }} /></span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+      <ol className="arc-ladder" data-caption="Next 7 days" aria-hidden="true">
+        {Array.from({ length: steps }, (_, i) => (
+          <li key={i} style={{ "--i": i } as CSSProperties}>
+            <span className="skeleton arc-bone" style={{ width: 16, height: 16, justifySelf: "center" }} />
+            <span className="arc-ladder-t"><span className="skeleton arc-bone" style={{ width: 44, height: 17 }} /><span className="skeleton arc-bone" style={{ width: "70%", height: 11, marginTop: 4 }} /></span>
+            <span className="skeleton arc-bone" style={{ width: 48, height: 48, borderRadius: "50%", justifySelf: "end" }} />
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 export default function ArcadePlanner({ arcade, outlooks, captainBonus, status, check = null, lastLineup = null }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; status: Record<string, PlayerStatus>; check?: ChanceCheck | null; lastLineup?: ArcadeAudit["postMortem"] }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- Advance the planning clock on fresh board/forecast inputs, without rebuilding it when a picker control changes.
   const now = useMemo(() => Date.now(), [arcade, outlooks]);
@@ -570,12 +618,12 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status, 
     requestAnimationFrame(() => document.getElementById("arc-chain-title")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" }));
   }, []);
   if (!games.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;
+  // The page waits for the plan as a whole: nothing below it shows, then moves, while the climb is still worked out.
+  if (!plan) return <ClimbWaiting stage={2} steps={arcade.board?.steps.length ?? 0} />;
   return (
     <>
-      {plan ? <>
-        <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} updating={updating} surestStep={surestStep} onPickStep={pickSurest} check={check} lastLineup={lastLineup} />
-        <Chain plan={plan} steps={steps} current={current} captainBonus={captainBonus} now={now} onBuild={build} surestStep={surestStep} setSurestStep={setSurestStep} />
-      </> : <p className="arc-read-state" role="status">Planning the climb…</p>}
+      <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} updating={updating} surestStep={surestStep} onPickStep={pickSurest} check={check} lastLineup={lastLineup} />
+      <Chain plan={plan} steps={steps} current={current} captainBonus={captainBonus} now={now} onBuild={build} surestStep={surestStep} setSurestStep={setSurestStep} />
       <ArcadeTeams arcade={arcade} outlooks={outlooks} status={status} chosen={chosen} onToggle={(id) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); }} now={now} />
       <section className="arc-plan" aria-labelledby="arc-teams-title">
         <div className="arc-plan-head"><h2 id="arc-teams-title">Pick teams</h2></div>

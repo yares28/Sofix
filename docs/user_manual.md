@@ -862,6 +862,8 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   A lineup's live points are Sorare's card scores as given (each already holds its card's bonus), never multiplied again.
 - The plan is kept in the browser: a refresh with the same reads and no kick-off since shows it at once; only a changed read or a
   game starting works it out again (9 Nov 2026).
+- Until the plan is in, Play now shows Your move's own shape in grey, headed **Planning your climb**, with a three-part track (Sorare's
+  projections → Start % → Your climb) that ticks off each read; the chain, teams and Pick teams wait and appear with it (23 Nov 2026).
 - **Your move**: headed by the advice itself in a small heading (**Play now**, **Play Sat 18:30**, **Hold for Tue 21:00** or **Nothing to play**; 20 Nov 2026), with the step, your lives in words ("2 lives left") and its prize (10 Nov 2026), then
   a **Play | Hold** bar: two pills that share 100%, each as wide as its share of the chances at the prize the advice decides on (the biggest one
   where they differ; a close split keeps a decimal; 9 Nov 2026), the advised side filled; only Hold carries a date, and the lineup counts and

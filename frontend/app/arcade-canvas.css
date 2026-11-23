@@ -46,6 +46,26 @@
 .arc-move-chance small { font-size: var(--text-xs); color: var(--ink-2); }
 .arc-move-entry-head .arc-small { margin-left: auto; }
 
+/* Waiting for the plan (23 Nov 2026): Your move's bones, and the three reads as a track the size of the split it stands in for. */
+.arc-bone { display: block; height: 19px; border-radius: 6px; }
+.arc-move-wait { --move: var(--line); }
+.arc-move-wait .arc-move-verdict { color: var(--ink-2); }
+.arc-wait-caption { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-top: 10px; min-height: 60px; }
+.arc-wait-track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; min-height: 80px; }
+.arc-wait-track li { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; background: var(--hover); color: var(--ink-2); transition: background-color 400ms, color 400ms; }
+.arc-wait-track li:first-child { border-radius: 999px 12px 12px 999px; }
+.arc-wait-track li:last-child { border-radius: 12px 999px 999px 12px; }
+.arc-wait-track small { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; font-size: 12px; font-weight: 700; box-shadow: inset 0 0 0 1.5px currentColor; }
+.arc-wait-track b { font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arc-wait-track li.is-done { background: var(--ink); color: var(--on-ink); }
+.arc-wait-track li.is-done small { box-shadow: none; background: var(--win); color: var(--on-ink); }
+.arc-wait-track li.is-now { color: var(--ink); }
+/* The read under way sweeps left to right, so the track says which part is being waited on. */
+.arc-wait-track li.is-now::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--win) 22%, transparent), transparent); transform: translateX(-100%); animation: arc-wait-sweep 1.6s cubic-bezier(.4, 0, .2, 1) infinite; }
+@keyframes arc-wait-sweep { to { transform: translateX(100%); } }
+@media (max-width: 600px) { .arc-wait-track li { padding: 10px; gap: 6px; flex-direction: column; justify-content: center; text-align: center; } .arc-wait-track b { font-size: 11px; white-space: normal; } }
+@media (prefers-reduced-motion: reduce) { .arc-wait-track li.is-now::after { animation: none; transform: none; } .arc-wait-track li { transition: none; } }
+
 .arc-ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; align-content: start; }
 .arc-ladder li { display: grid; grid-template-columns: 30px minmax(0, 1fr) 56px; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--hover); font-size: var(--text-sm); }
 .arc-ladder li.is-current { background: var(--ink); color: var(--on-ink); }

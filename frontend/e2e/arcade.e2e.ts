@@ -234,8 +234,9 @@ test("collection cards keep their evidence compact and all reads in the hero too
   await show(page, "Players");
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
   const card = page.locator(".arc-grid .arc-card");
-  await expect(card.locator(".arc-art .arc-card-score")).toContainText("0");
-  await expect(card.locator(".arc-card-score")).toHaveText("0");
+  // Sorare's 0% to start: only the 6% such players came on (ZERO_START_ON, 24 Nov 2026), 6% of his ~42 off the bench
+  await expect(card.locator(".arc-art .arc-card-score")).toContainText("2");
+  await expect(card.locator(".arc-card-score")).toHaveText("2");
   await expect(card.locator(".arc-card-score")).toHaveCSS("background-color", "rgb(192, 67, 63)");
   await expect(card.locator(".arc-art .arc-card-bonus")).toHaveText("+14%"); // edition + club, one number
   await expect(card.locator("figcaption .arc-card-start")).toHaveText("0%");

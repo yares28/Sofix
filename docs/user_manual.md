@@ -864,7 +864,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   game starting works it out again (9 Nov 2026).
 - Until the plan is in, Play now shows Your move's own shape in grey, headed **Planning your climb**, with a three-part track (Sorare's
   projections → Start % → Your climb) that ticks off each read; the chain, teams and Pick teams wait and appear with it (23 Nov 2026).
-- Games after a player's next are scored on his last five starts pulled toward his last twenty, as such streaks really went on
+- Every game in the next 45 days that a board has (LaLiga, Premier League, Bundesliga, Ligue 1, Champions, Europa and Conference
+  League) is scored by Sofix's own model, as the next game is (24 Nov 2026); a national-team or cup game falls back on the line below.
+- Games no board has are scored on his last five starts pulled toward his last twenty, as such streaks really went on
   (a hot five of 64 scored 54 next), so later games and the Surest chances are as honest as the next one; a player any source
   gives 0% to start comes on only the 6% such players did (Play, Pro and Arena too); Pick teams offers cards from a lineup you can still edit on Sorare, marked "In step N lineup" (23 Nov 2026).
 - **Your move**: headed by the advice itself in a small heading (**Play now**, **Play Sat 18:30**, **Hold for Tue 21:00** or **Nothing to play**; 20 Nov 2026), with the step, your lives in words ("2 lives left") and its prize (10 Nov 2026), then

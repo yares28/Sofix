@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { XsAheadSchema } from "./xsAheadGames";
 
 /**
  * Arcade's sources ranked by measured accuracy, and each player's start record (read model `arcade_outlook`, written with the Audit by
@@ -23,6 +24,8 @@ export const ArcadeRecordsSchema = z.object({
   players: z.record(z.string(), PlayerRecord),
   /** Per competition and start source: its chances corrected to what happened, where the correction earned it (step 9). */
   calibration: z.record(z.string(), z.record(z.string(), z.object({ points: z.array(z.tuple([z.number(), z.number()])) }).passthrough())).optional(),
+  /** Sofix's xS for each player's games of the next 45 days (plans/xs-ahead.md): his score for a game after his next one. */
+  ahead: XsAheadSchema.optional(),
 });
 export type ArcadeRecords = z.infer<typeof ArcadeRecordsSchema>;
 export type PlayerRecord = z.infer<typeof PlayerRecord>;

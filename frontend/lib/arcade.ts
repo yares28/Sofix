@@ -8,6 +8,7 @@ import { parseTierOdds, type TierOdds } from "./arcadePacks";
 import type { PlayerStatus } from "./arcadeTeams";
 import { ArcadeAuditSchema, type ArcadeAudit, type ChanceCheck } from "./arcadeLog";
 import { ArcadeRecordsSchema, calibrated, firstOf, scoreOrder, startOrder, type ArcadeRecords, type ScoreRank, type StartRank } from "./arcadeRecords";
+import { aheadGame } from "./xsAheadGames";
 
 /**
  * Arcade, step 1 (plans/set.md): your set board, common cards, gems, essence and common missions, read from your signed-in
@@ -861,7 +862,9 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
   const zero = !confirmed && start === 0;
   const on = injured || start === null || !record ? 0 : zero ? ZERO_START_ON : startSource === "record" ? record.o : Math.min(1 - start, (1 - start) * benchRate);
   const form = record?.x ?? (past.length >= 3 ? past.reduce((a, b) => a + b, 0) / past.length : null);
-  const scores: Partial<Record<ScoreRank, number | null>> = { sofix: sameGame ? sofix.mu ?? null : null, sorare: projection ?? null, form };
+  // Sofix's own xS: the next game's from the market, any later one's from xs_ahead (plans/xs-ahead.md), the same model either way.
+  const later = sameGame ? null : aheadGame(records?.ahead?.[card.player], game.competition.slug, kickoff);
+  const scores: Partial<Record<ScoreRank, number | null>> = { sofix: sameGame ? sofix.mu ?? null : later?.[4] ?? null, sorare: projection ?? null, form };
   const score = firstOf(scoreOrder(records, game.competition.slug), scores);
   const club = card.teamSlug ? extras?.club[card.teamSlug] ?? null : null;
   return {

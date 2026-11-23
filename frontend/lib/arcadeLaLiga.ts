@@ -4,6 +4,7 @@ import { cache } from "./cache";
 import { published, readModel } from "./db";
 import { SORARE_TAG } from "./play";
 import { loadLeagueMarket, loadSorare } from "./playData";
+import { loadXsAhead } from "./xsAhead";
 
 const KEY = "arcade_outlook";
 
@@ -33,10 +34,17 @@ export async function loadArcadeRecords(players: string[]): Promise<ArcadeRecord
     { tags: [SORARE_TAG], revalidate: 3600 },
   );
   try {
-    const all = await read();
+    const [all, ahead] = await Promise.all([read(), loadXsAhead(players)]);
     if (!all) return null;
     const wanted = new Set(players);
-    return { ranking: all.ranking, players: Object.fromEntries(Object.entries(all.players).filter(([slug]) => wanted.has(slug))) };
+    // The calibration goes too (it was left out until 24 Nov 2026, so step 9's corrections never reached a card), and Sofix's xS for
+    // each player's games ahead (plans/xs-ahead.md).
+    return {
+      ranking: all.ranking,
+      players: Object.fromEntries(Object.entries(all.players).filter(([slug]) => wanted.has(slug))),
+      ...(all.calibration ? { calibration: all.calibration } : {}),
+      ...(ahead ? { ahead } : {}),
+    };
   } catch (error) {
     console.error(`[arcade] records could not be read: ${error instanceof Error ? error.message : "unknown"}`);
     return null;

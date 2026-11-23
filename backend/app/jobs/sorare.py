@@ -38,6 +38,7 @@ from app.services.publish import notify_app, put, put_times
 from app.services.scoring import LABELS, difficulty_label, label_bucket
 from app.services.timeutil import Laps, as_utc
 from app.sorare import (
+    ahead,
     arcade_said,
     audit,
     card_art,
@@ -741,6 +742,19 @@ def run(
     )
     db.rollback()
     laps("game scores")
+    # Sofix's xS for every upcoming game of every tracked player, not only his next one: Arcade's later games and Pro's weeks ahead
+    # read it (plans/xs-ahead.md). Not in a quick run near a lock, which only refreshes the week about to start.
+    ahead_players: dict[str, int] = {}
+    if scores_of is not None and not quick:
+        ahead_players = optional(
+            db,
+            failed,
+            "xs ahead",
+            lambda: ahead.publish(db, snapshot, scores_of, foreign_grids, fetched, write=not dry_run),
+            {},
+        )
+        db.rollback()
+    laps("xs ahead")
     # The board's own read of each LaLiga game, so the plan's games say what /difficulty and the overlay say. None: Sorare's odds stay.
     laliga_board = optional(db, failed, "board games", lambda: board_games(db, fetched), None)
     db.rollback()
@@ -853,6 +867,7 @@ def run(
         "recorded": len((record or {}).get("players") or {}),
         "essenceOrder": list(order),
         "leagueFF": len(league_lineups.links.links) if league_lineups else 0,
+        "xsAhead": ahead_players,  # players with Sofix's xS for their games of the next 45 days, by league
         "seconds": round((datetime.now(UTC) - started).total_seconds()),
     }
     if snapshot.get("pastGaps"):

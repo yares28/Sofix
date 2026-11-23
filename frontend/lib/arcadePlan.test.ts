@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { AheadGame } from "./xsAheadGames";
 import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, ZERO_START_ON, type ArcadeCard, type ArcadeGame } from "./arcade";
 import { baseScore, bonusPercent, partialFive, batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, noStartNote, type Outlook } from "./arcadePlan";
 
@@ -205,6 +206,15 @@ describe("ranked sources (owner, 20 Nov 2026: the best accuracy first, then the 
     const unknown = outlookOf(card("b", ["Forward"]), later, extras, null, {}, null, records);
     expect(unknown).toMatchObject({ start: null, startSource: null });
     expect(predicted(unknown)).toBeNull();
+  });
+  it("scores a game after his next one with Sofix's own xS for it when a board has it, his form only when none does (24 Nov 2026)", () => {
+    // Owner, 24 Nov 2026: "I need an actual upgrade app wide and not only arcade" (plans/xs-ahead.md).
+    const later = { ...GAME, id: "Game:9", kickoff: "2026-12-06T15:00:00Z" };
+    const ahead = { a: [["2026-12-06T00:00:00Z", GAME.competition.slug, "H", "Sevilla", 57.4, 44.1, 0.3]] as AheadGame[] };
+    const records = { ranking: ranking(["record"], ["sofix", "sorare", "form"]), players: { a: record }, ahead };
+    expect(outlookOf(card("a", ["Forward"]), later, extras, null, ff, null, records)).toMatchObject({ score: 57.4, scoreSource: "sofix" });
+    const elsewhere = { ...later, competition: { ...GAME.competition, slug: "copa-del-rey" } };
+    expect(outlookOf(card("a", ["Forward"]), elsewhere, extras, null, ff, null, records)).toMatchObject({ score: 61, scoreSource: "form" });
   });
   it("corrects a source's chance by its competition's calibration, keeping what the source said (step 9)", () => {
     const records = { ranking: ranking(["record"], ["form"]), players: { a: record }, calibration: { "laliga-es": { record: { points: [[0.1, 0.05], [0.9, 0.79]] as [number, number][] } } } };

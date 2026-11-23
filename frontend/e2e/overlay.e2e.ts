@@ -844,6 +844,84 @@ test.describe("the sorare.com overlay", () => {
     expect(await read("over")).toBeNull();
   });
 
+  test("a card Sorare draws twice (its picture and a smaller copy inside it) gets one crest and one tile (23 Nov 2026: Valverde had two)", async ({ page }) => {
+    await openPage(page, { url: BUILDER_URL });
+    await settled(page);
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      const art = document.querySelector<HTMLImageElement>("#big img")!;
+      const copy = art.cloneNode() as HTMLImageElement;
+      const r = art.getBoundingClientRect();
+      copy.style.cssText = `position:absolute;left:${art.offsetLeft + 5}px;top:${art.offsetTop + 15}px;width:${r.width - 10}px;height:${r.height - 15}px`;
+      art.parentElement!.style.position = "relative";
+      art.after(copy);
+    });
+    const crestsOnBig = () => page.evaluate(() => {
+      const art = document.querySelector("#big img")!.getBoundingClientRect();
+      return [...document.querySelectorAll(".sfx-crests .sfx-crest")].filter((c) => {
+        const r = c.getBoundingClientRect();
+        return r.left < art.right && r.right > art.left && r.top < art.bottom && r.bottom > art.top - 20;
+      }).length;
+    });
+    await page.waitForTimeout(800);
+    await expect.poll(crestsOnBig).toBe(1);
+    await expect(page.locator("#big .sfx-ribs")).toHaveCount(1);
+    await expect(page.locator("#big .sfx-start")).toHaveCount(1);
+  });
+
+  test("a crest under one of Sorare's popups hides, whatever is on top at its place (23 Nov 2026: the Filter by panel's labels)", async ({ page }) => {
+    await openPage(page, { url: BUILDER_URL });
+    await settled(page);
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    const crest = page.locator(".sfx-crests .sfx-crest").filter({ hasText: "" }).first();
+    await expect(crest).toBeVisible();
+    // Sorare's "Filter by" panel: a fixed dialog over the cards, a small label at the card's top edge.
+    await page.evaluate(() => {
+      const art = document.querySelector("#big img")!.getBoundingClientRect();
+      const panel = document.createElement("div");
+      panel.setAttribute("role", "dialog");
+      panel.id = "sorare-filter";
+      panel.style.cssText = `position:fixed;left:${art.left - 40}px;top:${art.top + 1}px;width:${art.width + 80}px;height:200px;z-index:1300;background:#222`;
+      panel.innerHTML = `<div style="position:absolute;left:${art.width / 2 + 10}px;top:0;width:60px;height:30px">Average Score</div>`;
+      document.body.append(panel);
+    });
+    const shownOverPanel = () => page.evaluate(() => {
+      const p = document.getElementById("sorare-filter")!.getBoundingClientRect();
+      return [...document.querySelectorAll<HTMLElement>(".sfx-crests .sfx-crest")].filter((c) => {
+        const r = c.getBoundingClientRect(); // half over the panel is over it too
+        return r.left < p.right && r.right > p.left && r.top < p.bottom && r.bottom > p.top && getComputedStyle(c).visibility !== "hidden";
+      }).length;
+    });
+    for (const wait of [600, 4500]) { // settled, and still so after the next heartbeat pass
+      await page.waitForTimeout(wait);
+      expect(await shownOverPanel()).toBe(0);
+    }
+    await page.evaluate(() => document.getElementById("sorare-filter")!.remove());
+    await expect.poll(() => page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".sfx-crests .sfx-crest")].filter((c) => getComputedStyle(c).visibility !== "hidden").length)).toBeGreaterThan(0);
+
+    // Sorare's panel slides in by script (its transform changes each frame, nothing else on the page does): the crests it slides over
+    // hide as it arrives, not at the overlay's next heartbeat seconds later.
+    await page.waitForTimeout(4200); // just past a heartbeat: the next is about four seconds off
+    await page.evaluate(() => {
+      const art = document.querySelector("#big img")!.getBoundingClientRect();
+      const panel = document.createElement("div");
+      panel.setAttribute("role", "dialog");
+      panel.id = "sorare-filter";
+      panel.style.cssText = `position:fixed;left:${art.left - 40}px;top:${art.top + 1}px;width:${art.width + 80}px;height:200px;z-index:1300;background:#222;transform:translateX(${innerWidth}px)`;
+      panel.innerHTML = `<div style="position:absolute;left:${art.width / 2 + 10}px;top:0;width:60px;height:30px">Average Score</div>`;
+      document.body.append(panel);
+      const start = performance.now();
+      const step = () => {
+        const t = Math.min(1, (performance.now() - start) / 500);
+        panel.style.transform = t < 1 ? `translateX(${(1 - t) * innerWidth}px)` : "";
+        if (t < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+    await page.waitForTimeout(800); // slid in 300 ms ago
+    expect(await shownOverPanel()).toBe(0);
+  });
+
   test("a crest picture that will not load gives way to the club's shield, and a small box of Sorare's on the card's edge does not hide it (9 Nov 2026)", async ({ page }) => {
     await openPage(page, { url: BUILDER_URL, brokenCrests: true }); // every crest picture answers 404 (a refused hot-link)
     await settled(page);

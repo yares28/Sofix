@@ -1183,12 +1183,12 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-21",
-        "note": "21 Nov 2026: loadLeagueMarket joins a league's 16 shard blocks when its block names them (players:CL passed 1.6 MB); week identity untouched.",
+        "date": "2026-11-23",
+        "note": "restoreFrozenPlan now also restores each game's team and opponent crests by club name from the payload's weeks and market rows (presentation only; forecasts, sides and opponents unchanged; a club seen nowhere keeps none)",
         "files": {
           "frontend/lib/playerForecasts.ts": "f49dbdf83c84b0630d251cb153e027d935eb92f628e426edbed77e4fa8566a8e",
           "frontend/lib/playData.ts": "b99963c46ba2fb504326f015a6e3f1b966364706b56008934b0717d85289b0e5",
-          "frontend/lib/frozenPlan.ts": "52a9225f98f98f04a0bd6ca3518219c8c260b16214d58c11925d97fdd5f2af8a",
+          "frontend/lib/frozenPlan.ts": "7f2aecd4c0b2840612d9a160ebb2d5f2a8ca4311cd92d27733b24d71121bdbc2",
           "frontend/lib/playerForecasts.test.ts": "f54ad0aeb5f3ddb87caea2f8a91456341156fb4f5dc07be75536f65eee67a38e"
         }
       }
@@ -1658,11 +1658,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-23",
-        "note": "0.5.30 version bump for the Arcade builder's list bar and team gauge; no change to extension actions",
+        "note": "0.5.33 version bump for the overlay's crest fixes; no change to extension actions",
         "files": {
           "extension/background.js": "fd707ab70c918537c24908ad0ca6b310e6cadf990275789cead4c2355f796603",
           "extension/bridge.js": "867affedbdea8d6fc7e3cf6fe77f151230242f78e1a75b3cea7cd1bef06be149",
-          "extension/manifest.template.json": "a3956a4cb8f572c4cfa9c33232c157a8506e4e1f38de468975792e2c13e75fee",
+          "extension/manifest.template.json": "ba2595062a3a6e06ab78ccbd27d0ed24ee26fbb9d674a20d00c59a70557cd24d",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "51657336068a23031e7eaf97dfa60102c17aab375f8a4b32213e85e2e2941046",

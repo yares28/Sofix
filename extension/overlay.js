@@ -1107,6 +1107,7 @@
     // Only on Sorare's lineup builders and lineup pages (owner, 4 Nov 2026: on the gallery and the other lists it misbehaved), for
     // every card near the screen there (the visibility margin), so one scrolled in already has its crest.
     const shown = crestPage() && !read.covered && (tier === "full" || tier === "compact") && held && held.entry && rect.width > 0;
+    const before = record.crest;
     const button = shown ? buildCrest(record, held.entry, tier) : null;
     if (!button) {
       dropCrest(record);
@@ -1115,7 +1116,8 @@
     const icon = subIconOf(record, rect);
     record.crestDx = (icon ? icon.getBoundingClientRect().right + 4 : rect.left + rect.width / 2) - rect.left;
     button.classList.toggle("sfx-crest--beside", Boolean(icon));
-    setCrest(record, rect, read.crestHidden);
+    // A crest drawn this pass was never checked: one Sorare redrew under its open popup showed on top of it for a pass (23 Nov 2026).
+    setCrest(record, rect, button === before ? read.crestHidden : crestCovered(record, rect));
   }
 
   function setCrest(record, rect, hidden) {
@@ -1154,11 +1156,44 @@
     for (const el of document.elementsFromPoint(x, y)) {
       if (el.closest("[data-sfx]")) continue;
       if (block.contains(el) || el.contains(record.media)) return false;
+      // Anything in one of Sorare's popups (its "Filter by" panel is a fixed dialog) hides it, however small: its labels and sliders
+      // sat under the crests (23 Nov 2026).
+      if (el.closest('[role="dialog"], dialog[open], [aria-modal="true"]')) return true;
       // Only a bar (a sticky header or search bar, wider than two cards) hides it: a small box of Sorare's on the card's edge, a
       // slot's frame or a badge, did too and the crest went missing (9 Nov 2026).
       return el.getBoundingClientRect().width > rect.width * 2;
     }
     return false;
+  }
+
+  // Sorare's popups slide in by script (its "Filter by" panel, 23 Nov 2026): nothing the page observer sees changes while one moves, so
+  // the crests it slid over stayed on top of it until the next heartbeat. When a popup opens or closes, every crest is checked on each
+  // frame for a second and a half.
+  const POPUP_FOLLOW_MS = 1500;
+  let popups = "";
+  let follow = 0;
+  let followUntil = 0;
+  function watchPopups() {
+    const now = [...document.querySelectorAll('[role="dialog"], dialog[open], [aria-modal="true"]')]
+      .filter((el) => !el.closest("[data-sfx]"))
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 ? "1" : "0";
+      })
+      .join("");
+    if (now === popups) return;
+    popups = now;
+    followPopupsFor();
+  }
+  function followPopupsFor() {
+    followUntil = performance.now() + POPUP_FOLLOW_MS;
+    if (!follow) follow = requestAnimationFrame(guard(followPopups));
+  }
+  function followPopups() {
+    follow = 0;
+    if (!enabled) return;
+    moveCrests();
+    if (performance.now() < followUntil) follow = requestAnimationFrame(guard(followPopups));
   }
 
   /** A scroll moves the crests and nothing else (3b.1): every card's box is read first, then every crest is written. */
@@ -1374,7 +1409,7 @@
     };
 
     // Read every measurement first, then write every change: alternating the two makes a page of 200 cards stutter.
-    const reads = drawing.map((record) => {
+    let reads = drawing.map((record) => {
       const rect = record.media.getBoundingClientRect();
       const tier = core.surfaceOf(rect.width, rect.height, isRound(record.media, rect));
       const size = tier === "compact" && rect.width < TINY_UNDER ? "tiny" : tier === "full" && rect.width < NARROW_UNDER ? "narrow" : tier;
@@ -1394,6 +1429,23 @@
       };
       return read;
     });
+    // Sorare draws some cards' picture twice, a smaller copy inside the first (23 Nov 2026, Arcade's list: Valverde had two crests and
+    // two tiles): of two pictures of one card mostly on top of each other, only the bigger is drawn on.
+    const copies = new Set();
+    const seen = new Map(); // card key -> its reads so far
+    for (const read of reads) {
+      const key = slugOf(read.record);
+      const a = read.rect;
+      if (!key || !a.width || !a.height) continue;
+      const area = (r) => r.width * r.height;
+      for (const other of seen.get(key) || []) {
+        const b = other.rect;
+        const overlap = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+        if (overlap > 0.5 * Math.min(area(a), area(b))) copies.add(area(a) > area(b) ? other : read);
+      }
+      seen.set(key, [...(seen.get(key) || []), read]);
+    }
+    if (copies.size) reads = reads.filter((read) => !copies.has(read));
     const pitch = pitchOf(reads);
     const column = builderPage() ? teamAnchor() : null;
 
@@ -1406,6 +1458,7 @@
         return false;
       }
     };
+    for (const copy of copies) clearDrawn(copy.record); // after every read: the copy keeps nothing of ours
     let again = false;
     for (const read of reads) {
       for (const [key, place] of CARD_PARTS) if (part(key, place, read)) again = true;
@@ -1416,6 +1469,8 @@
     part("clear", placeClear);
     part("worth", placeWorthBox);
     part("profile", placeStrip);
+    // A popup open while Sorare redraws the cards under it (its filters re-render the list): their new crests are followed too.
+    if (popups.includes("1")) followPopupsFor();
     report();
   }
 
@@ -2986,6 +3041,7 @@
         pageEpoch += 1;
         if (list.some((change) => change.type === "attributes" || change.addedNodes.length)) scan = true;
         scheduleSoon();
+        watchPopups();
       }),
     );
     mutations.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset", "poster", "alt"] });
@@ -3026,6 +3082,9 @@
     frame = 0;
     if (moving) cancelAnimationFrame(moving);
     moving = 0;
+    if (follow) cancelAnimationFrame(follow);
+    follow = 0;
+    popups = "";
     clearTimeout(settleTimer);
     clearTimeout(soonTimer);
     settleTimer = soonTimer = 0;

@@ -1395,7 +1395,7 @@
       return read;
     });
     const pitch = pitchOf(reads);
-    const column = builderPage() ? bonusColumn() : null;
+    const column = builderPage() ? teamAnchor() : null;
 
     // Each part on its own: one that throws (a card, a page it does not fit) must not take the others with it, on that card or the page.
     const part = (key, place, ...args) => {
@@ -1444,7 +1444,8 @@
   const needPage = () => NEED_PAGES.some((page) => page.test(location.pathname));
 
   function wantNeed() {
-    if (!needPage() || needAsking || document.visibilityState !== "visible") return;
+    // Arcade's builder too: its step's target and captain bonus are what the team gauge aims at (teamBoard).
+    if (!(needPage() || arcadeBuilder()) || needAsking || document.visibilityState !== "visible") return;
     const entered = location.pathname !== needPath;
     if (!entered && now() - needAskedAt < NEED_ASK_MS) return;
     needAsking = true;
@@ -1805,7 +1806,25 @@
   }
 
   // -- Sorare's pitch on its builder (the team gauge counts it) -----------------------------------------------------------
-  const builderPage = () => Boolean(core.composeBoard(location.pathname)) || /^\/football\/series\/[^/]+\/compose-team(?:\/|$)/.test(location.pathname);
+  const ARCADE_BUILDER = /^\/football\/series\/([^/]+)\/compose-team(?:\/|$)/;
+  const arcadeBuilder = () => ARCADE_BUILDER.test(location.pathname);
+  const builderPage = () => Boolean(core.composeBoard(location.pathname)) || arcadeBuilder();
+
+  /**
+   * The board the team gauge counts against: the app's for a regular builder, else on Arcade's builder its step as the extension
+   * read it (the address names the step): five cards, the step's captain bonus, one level, the step's target (23 Nov 2026).
+   */
+  function teamBoard() {
+    if (teamNow) return teamNow;
+    const found = ARCADE_BUILDER.exec(location.pathname);
+    const steps = (found && need && need.arcade && need.arcade.steps) || {};
+    // Sorare's ids carry their type ("CareerStep:<uuid>"); the address has the bare one. Else the step you are on.
+    const id = found ? decodeURIComponent(found[1]) : "";
+    const key = Object.keys(steps).find((k) => k === id || k.endsWith(`:${id}`)) || (need && need.arcade && need.arcade.current);
+    const step = key ? steps[key] : null;
+    if (!step || !(step.target > 0)) return null;
+    return { size: 5, comp: "", captainBonus: Number(step.captain) || 0, clubBonus: null, averageBonus: null, tiers: [{ need: step.target, label: step.level ? `Clear step ${step.level}` : "Clear the step" }] };
+  }
 
   /**
    * The cards on Sorare's pitch, each with whether Sorare has it as captain. A placed card sits in a slot button labelled "Select
@@ -1842,12 +1861,13 @@
   // own simulation). Hover or focus opens the team panel: the total and its likely range, three rings around the likeliest reward,
   // the team's stats. Worked out again only when the pitch changes.
   let team = null; // { el, sig }
-  let columnAt = { epoch: -1, el: null };
+  let columnAt = { epoch: -1, el: null, pitch: false };
 
   /** Sorare's bonus column (the box holding "Lineup Bonus"), found once per page change. */
   function bonusColumn() {
     if (columnAt.epoch === pageEpoch && columnAt.el && columnAt.el.isConnected) return columnAt.el;
     let el = null;
+    let pitch = false; // Arcade's pitch rather than Sorare's bonus column
     for (const one of document.querySelectorAll("div")) {
       if (one.childElementCount === 0 && /^lineup bonus$/i.test(one.textContent.trim())) {
         el = one;
@@ -1855,8 +1875,34 @@
       }
     }
     while (el && el.getBoundingClientRect().height < 100) el = el.parentElement;
-    columnAt = { epoch: pageEpoch, el };
+    if (!el && arcadeBuilder()) {
+      // Arcade's builder has no bonus column (23 Nov 2026): the gauge takes the pitch's top right, the place it has on the others.
+      // The pitch is the panel around the step's heading ("Chapter 1 - Step 2"), the first box up from it as wide as 40% of the window.
+      for (const one of document.querySelectorAll("div, span, p")) {
+        // its own words, not its children's: Sorare puts the target ("260 pts") inside the same box (23 Nov 2026)
+        const own = [...one.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim();
+        if (!one.closest("[data-sfx]") && /^Chapter \d+\s*[-–]\s*Step \d+\b/i.test(own)) {
+          el = one;
+          break;
+        }
+      }
+      while (el && el !== document.body && el.getBoundingClientRect().width < innerWidth * 0.4) el = el.parentElement;
+      // then the outermost box of that width: the panel itself, not a row inside it
+      while (el && el.parentElement && el.parentElement !== document.body && Math.abs(el.parentElement.getBoundingClientRect().width - el.getBoundingClientRect().width) < 4) el = el.parentElement;
+      if (el === document.body) el = null;
+      pitch = Boolean(el);
+    }
+    columnAt = { epoch: pageEpoch, el, pitch };
     return el;
+  }
+
+  /** Where the gauge's top right goes: under Sorare's bonus column, or 16 px inside the top right of Arcade's pitch. */
+  function teamAnchor() {
+    const el = bonusColumn();
+    if (!el || !el.isConnected) return null;
+    const r = el.getBoundingClientRect();
+    if (!r.width) return null;
+    return columnAt.pitch ? { width: r.width, right: r.right - 16, bottom: r.top } : r;
   }
 
   const meanOf = (values) => {
@@ -1876,14 +1922,15 @@
       const mu = typeof e.mu === "number" ? e.mu : e.p > 0 ? e.x / e.p : 0;
       cards.push({ p: e.p, mu, sd: e.sd, mult: typeof e.mult === "number" ? e.mult : 1, pos: e.pos, game: e.match && e.match.id, venue: e.match && e.match.venue, club: e.club || null, average: e.average, captain });
     }
-    const sim = core.teamChances(cards, teamNow || {});
+    const board = teamBoard();
+    const sim = core.teamChances(cards, board || {});
     if (!sim) return null;
     const keepers = entries.filter((e) => e.pos === "GK" || e.pos === "DEF");
     const xds = entries.map((e) => e.xd).filter((v) => typeof v === "number");
     return {
       sim,
       rings: core.teamRings(sim.tiers),
-      size: (teamNow && teamNow.size) || 5,
+      size: (board && board.size) || 5,
       stats: {
         xd: xds.length ? xds.reduce((a, b) => a + b, 0) : null,
         win: meanOf(entries.map((e) => e.game && e.game.win)),
@@ -1956,14 +2003,15 @@
   }
 
   function placeTeam(pitch, column) {
-    const rect = column && column.isConnected ? column.getBoundingClientRect() : null;
+    const rect = column; // teamAnchor's
     if (!rect || !rect.width) {
       if (team) team.el.remove();
       team = null;
       return;
     }
     const t = teamRead(pitch);
-    const size = t ? t.size : (teamNow && teamNow.size) || 5;
+    const board = teamBoard();
+    const size = t ? t.size : (board && board.size) || 5;
     const n = t ? t.sim.n : 0;
     const sig = t ? `${Math.round(t.sim.x)}|${Math.round(t.sim.lo)}|${Math.round(t.sim.hi)}|${n}|${size}|${t.sim.tiers.map((x) => Math.round(x.p * 100)).join(",")}|${t.stats.xd}|${t.stats.fdr}` : `none|${size}`;
     if (!team || !team.el.isConnected || team.sig !== sig) {
@@ -2095,6 +2143,29 @@
     schedule();
   };
 
+  /**
+   * Arcade's builder list (seen 23 Nov 2026): no "Select your …" heading, one grid of cards under a header row holding Sorare's search
+   * box and sort. The header is the box just before the one the cards are in; the grid is the first box up from a card holding two or
+   * more of them. The bar goes in that header.
+   */
+  function arcadeList() {
+    const search = [...document.querySelectorAll("input")].find((el) => /^search by player/i.test(el.placeholder || "") && !el.closest("[data-sfx]"));
+    if (!search) return null;
+    const media = [...live].map((r) => r.media).filter((m) => m.isConnected && !m.closest("button[aria-label^='Select ']"));
+    for (let row = search.parentElement; row && row !== document.body; row = row.parentElement) {
+      const after = row.nextElementSibling;
+      const first = after && media.find((m) => after.contains(m));
+      if (!first) continue;
+      const cards = (el) => [...el.children].filter((c) => media.some((m) => c.contains(m))).length;
+      let grid = first.parentElement;
+      while (grid !== after && cards(grid) < 2) grid = grid.parentElement;
+      if (cards(grid) < 2) return null;
+      const items = [...grid.children].filter((c) => c.querySelector("img, video") && !c.hasAttribute("data-sfx"));
+      return items.length ? { head: row, row, grid, items } : null;
+    }
+    return null;
+  }
+
   /** Sorare's "Select your …" lists on the page: each heading and the grid items under it. Found once per page change. */
   function cardLists() {
     if (listsAt.epoch === pageEpoch && listsAt.lists.every((l) => l.head.isConnected)) return listsAt.lists;
@@ -2113,6 +2184,10 @@
       while (grid.childElementCount === 1) grid = grid.firstElementChild;
       const items = [...grid.children].filter((c) => c.querySelector("img") && !c.hasAttribute("data-sfx"));
       if (items.length) lists.push({ head: el, row, grid, items });
+    }
+    if (!lists.length && arcadeBuilder()) {
+      const arcade = arcadeList();
+      if (arcade) lists.push(arcade);
     }
     listsAt = { epoch: pageEpoch, lists };
     return lists;
@@ -2850,7 +2925,7 @@
     if (on("worth")) wantWorth();
     if (on("profile")) wantProfile();
     wantNumbers();
-    if (on("need") || on("clear")) wantNeed();
+    if (on("need") || on("clear") || on("team")) wantNeed();
     paint();
   }
 

@@ -1929,6 +1929,62 @@ test.describe("the sorare.com overlay", () => {
     await expect(gauge).toHaveCount(0);
   });
 
+  // Arcade's builder (seen 23 Nov 2026, /football/series/<step>/compose-team): the step and its target top left over the pitch, no
+  // "Lineup Bonus" column; the card list is one grid under a header row with Sorare's search and sort, no "Select your ..." heading.
+  const ARCADE_BUILDER = "https://sorare.com/football/series/hot-streak-step-2/compose-team";
+  const ARCADE_HTML = FIXTURE.replace('<div class="pickhead" id="pickhead"><span>Select your</span> <b>Defender</b></div>', `<div id="pitchside" style="position:fixed;left:0;top:0;width:50vw;height:420px">
+    <div><div>Hot Streaks</div><div id="arcstep">Chapter 1 - Step 2 <span>•</span><span>260 pts</span></div></div>
+  </div>
+  <div id="arcadehead"><div><div>Hot Streaks</div><div>Upcoming Matches</div></div><input placeholder="Search by Player, Club or League"><div>Average Score</div></div>`)
+    .replace('<div class="row picks" id="picks">', '<div id="arcadelist"><div class="row picks" id="picks" style="display:grid;grid-template-columns:repeat(6,auto)">')
+    .replace('  <h2 id="pickhead2">Select your Forward</h2>', '  </div>\n  <h2 id="pickhead2">Forwards</h2>');
+  const ARCADE_NEED = { arcade: { steps: { "CareerStep:hot-streak-step-2": { level: 2, target: 260, captain: 0.5 } } } }; // Sorare's ids carry their type
+
+  test("Arcade's builder gets the sort, filter and compare bar in its list header (23 Nov 2026: it had none)", async ({ page }) => {
+    expect(ARCADE_HTML).toContain('id="arcadelist"');
+    expect(ARCADE_HTML).not.toContain("Select your Defender");
+    await openPage(page, { url: ARCADE_BUILDER, html: ARCADE_HTML, need: ARCADE_NEED });
+    await settled(page);
+    await page.locator("#pick-1").scrollIntoViewIfNeeded();
+    const bar = page.locator("#arcadehead .sfx-listbar");
+    await expect(bar).toBeVisible();
+    await expect(page.locator(".sfx-listbar")).toHaveCount(1);
+    await expect(bar.locator(".sfx-lb-count")).toHaveText("6 of 6");
+    await expect.poll(() => page.locator("#pick-1").evaluate((el) => el.style.order)).toBe("0"); // best xS first
+    await bar.getByRole("button", { name: "+ Filter" }).click();
+    await page.getByRole("menu", { name: "Add a filter" }).getByRole("menuitem", { name: "xScore" }).click();
+    await bar.getByRole("slider", { name: "xScore threshold" }).fill("60");
+    await expect(bar.locator(".sfx-lb-count")).toHaveText("3 of 6");
+    await expect(page.locator("#pick-4")).toHaveClass(/sfx-faded/);
+    await bar.getByRole("button", { name: "Clear" }).click();
+    await expect(bar.locator(".sfx-lb-count")).toHaveText("6 of 6");
+    await expect(page.locator(".sfx-faded")).toHaveCount(0);
+  });
+
+  test("Arcade's builder gets the team gauge, aimed at the step's target, top right of the pitch (23 Nov 2026: it had none)", async ({ page }) => {
+    await openPage(page, { url: ARCADE_BUILDER, html: ARCADE_HTML, need: ARCADE_NEED });
+    await settled(page);
+    const gauge = page.locator(".sfx-team");
+    await expect(gauge).toBeVisible();
+    await expect(gauge.locator(".sfx-team-count")).toHaveText("0 of 5");
+    const [at, pitch] = [await box(page, ".sfx-team"), await box(page, "#pitchside")];
+    expect(Math.abs(at.right - (pitch.right - 16))).toBeLessThan(2);
+    expect(Math.abs(at.top - 16)).toBeLessThan(2);
+    await page.locator("#pick-1").scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      const card = document.getElementById("pick-1")!;
+      const slot = document.createElement("button");
+      slot.setAttribute("aria-label", "Select Pick 1");
+      slot.style.cssText = "all:unset;display:block";
+      card.replaceWith(slot);
+      slot.append(card);
+    });
+    await expect(gauge.locator(".sfx-team-count")).toHaveText("1 of 5");
+    await gauge.hover();
+    await expect(page.locator(".sfx-team-panel .sfx-team-ring--above .sfx-team-need")).toHaveText("at 260");
+    await expect(page.locator(".sfx-team-panel .sfx-team-ring--above .sfx-team-prize")).toHaveText("Clear step 2");
+  });
+
   test("on Sorare's builder list: Sofix sorts and filters the cards, outlines its lineup and compares two, and gives the list back", async ({ page }, testInfo) => {
     await openPage(page, { url: BUILDER_URL, team: { size: 5, comp: "All Star", captainBonus: 0.5, clubBonus: null, averageBonus: null, tiers: [] } });
     await settled(page);

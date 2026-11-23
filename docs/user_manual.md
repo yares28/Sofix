@@ -1133,6 +1133,8 @@ it writes to Sorare.
   holds (his game started, or over a day old) goes grey; the hover says why. Old numbers stay drawn everywhere (0.5.27, 23 Nov 2026): the
   start % badge goes grey too, and the team gauge, list bar, chance to clear and price keep using them; only a started game takes them off.
   A gameweek's numbers stop at its lock, so before this they all vanished a day into every week in play.
+- **Arcade's builder** (0.5.30, 23 Nov 2026) has the sort, filter and compare bar in its card list's header, beside Sorare's search, and the
+  team gauge at the pitch's top right, aimed at the step's target ("Clear the step at 260") with the step's captain bonus.
 - **His chance of starting** is a badge at the top right, under Sorare's own start badge and grade (in their place when the card has
   none), drawn like Sorare's (0.4.40) and in one column with its badge, past the card's edge where Sorare's hangs (0.4.41): its colours for the chance (red under 50%, yellow under 80%, cyan above), with a mark where
   Sorare has its shirt for whose number it is: FF's expected lineup where it has him, else Sorare's odds, else the app's own. An FF

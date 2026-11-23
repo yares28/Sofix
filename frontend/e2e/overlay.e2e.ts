@@ -1288,8 +1288,11 @@ test.describe("the sorare.com overlay", () => {
     await expect(await seen("doubtful")).toHaveAttribute("data-tip", "Sofix 31% · Sorare 40%");
     // Hover, small card: one line naming the number's own source.
     await expect(await seen("slot-b")).toHaveAttribute("data-tip", "FF 31%");
-    // No start % on a thumbnail, or on a number that no longer holds.
-    for (const id of ["thumb", "over", "old"]) await expect(await seen(id)).toHaveCount(0);
+    // No start % on a thumbnail, or about a game that has started. A day-old number keeps its chip, greyed, with the reason on hover:
+    // a gameweek's numbers stop at its lock, so hiding them took the chips off every lineup a day into the week (23 Nov 2026).
+    for (const id of ["thumb", "over"]) await expect(await seen(id)).toHaveCount(0);
+    await expect(await seen("old")).toHaveCSS("background-color", "rgb(163, 163, 171)");
+    await expect(await seen("old")).toHaveAttribute("data-tip", /These numbers are 40 h old\./);
 
     // Under Sorare's own start badge and grade at the card's top right, right-aligned with the card; in their place without them.
     await page.locator("#graded").scrollIntoViewIfNeeded();
@@ -1607,14 +1610,14 @@ test.describe("the sorare.com overlay", () => {
     await settled(page);
     await page.waitForTimeout(250);
 
-    // Grey chips, no start %, no "Started" or "Old" written on the card: the reason is on hover.
+    // Grey chips, no "Started" or "Old" written on the card: the reason is on hover. A started game has no start % left to show.
     expect(await text(page, "over")).toEqual(["58"]);
     await expect(tileOf(page, "over")).toHaveClass(/sfx-tile--stale/);
     await expect(tileOf(page, "over").locator(".sfx-score")).toHaveCSS("background-color", "rgb(163, 163, 171)");
     await expect(tileOf(page, "over")).toHaveAttribute("title", "His game has started: these numbers were about a game no longer ahead.");
     await expect(tileOf(page, "over")).toHaveAttribute("aria-label", /His game has started: these numbers were about a game no longer ahead\./);
 
-    expect(await text(page, "old")).toEqual(["58"]);
+    expect(await text(page, "old")).toEqual(["58", "90%"]);
     await expect(tileOf(page, "old")).toHaveClass(/sfx-tile--stale/);
     await expect(tileOf(page, "old")).toHaveAttribute("title", "These numbers are 40 h old.");
 

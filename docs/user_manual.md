@@ -1130,7 +1130,9 @@ it writes to Sorare.
 - **The tile** (extension 0.4.38, 3 Nov 2026) is two chips at the card's top left: his xScore, and "64 FDR" for his game under it
   (0.4.40), black on Sorare's colours, drawn like Sorare's start badge mirrored for the left side and hanging past the card's left
   edge where Sorare's badge hangs past the right (0.4.42); a small card has the xScore chip only. No plan tick, captain star, rank or "×2" any more. A number that no longer
-  holds (his game started, or over a day old) goes grey; the hover says why.
+  holds (his game started, or over a day old) goes grey; the hover says why. Old numbers stay drawn everywhere (0.5.27, 23 Nov 2026): the
+  start % badge goes grey too, and the team gauge, list bar, chance to clear and price keep using them; only a started game takes them off.
+  A gameweek's numbers stop at its lock, so before this they all vanished a day into every week in play.
 - **His chance of starting** is a badge at the top right, under Sorare's own start badge and grade (in their place when the card has
   none), drawn like Sorare's (0.4.40) and in one column with its badge, past the card's edge where Sorare's hangs (0.4.41): its colours for the chance (red under 50%, yellow under 80%, cyan above), with a mark where
   Sorare has its shirt for whose number it is: FF's expected lineup where it has him, else Sorare's odds, else the app's own. An FF

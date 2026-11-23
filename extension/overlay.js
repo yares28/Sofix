@@ -537,6 +537,12 @@
   // -- the tile ---------------------------------------------------------------------------------------------------
 
   const STALE_INK = "#a3a3ab"; // the score of a number that no longer holds: the colour goes, the number stays
+  /**
+   * Whether a number is still about a game ahead. Only a started game takes the start chip, team gauge, list bar, chance to clear and
+   * price off; a number merely old is still Sofix's latest and is drawn greyed. A gameweek's numbers stop at its lock, so hiding old
+   * ones took those parts off every page of the week in play a day after it locked (23 Nov 2026).
+   */
+  const ahead = (entry) => !entry.over;
 
   /** What the best plan does with this very card (a copy of the player, by its slug), or null: a card it leaves out has nothing. */
   function planFor(record, entry) {
@@ -1338,6 +1344,8 @@
     return created || !box;
   }
 
+  const CARD_PARTS = [["tile", placeTile], ["need", placeNeed], ["start", placeStart], ["price", placePrice], ["crest", placeCrest], ["worth", placeWorth]];
+
   function paint() {
     const drawing = [];
     for (const record of live) {
@@ -1389,29 +1397,25 @@
     const pitch = pitchOf(reads);
     const column = builderPage() ? bonusColumn() : null;
 
+    // Each part on its own: one that throws (a card, a page it does not fit) must not take the others with it, on that card or the page.
+    const part = (key, place, ...args) => {
+      if (!on(key)) return false;
+      try {
+        return place(...args) === true;
+      } catch {
+        return false;
+      }
+    };
     let again = false;
     for (const read of reads) {
-      try {
-        if (on("tile") && placeTile(read)) again = true;
-        if (on("need") && placeNeed(read)) again = true;
-        if (on("start") && placeStart(read)) again = true;
-        if (on("price") && placePrice(read)) again = true;
-        if (on("crest")) placeCrest(read);
-        if (on("worth")) placeWorth(read);
-      } catch {
-        // one card that will not take a tile must not stop the others
-      }
+      for (const [key, place] of CARD_PARTS) if (part(key, place, read)) again = true;
     }
     if (again) schedule();
-    try {
-      if (on("team")) placeTeam(pitch, column);
-      if (on("list")) placeList();
-      if (on("clear")) placeClear();
-      if (on("worth")) placeWorthBox();
-      if (on("profile")) placeStrip();
-    } catch {
-      // the box and the strip are niceties: a page they do not fit keeps everything else
-    }
+    part("team", placeTeam, pitch, column);
+    part("list", placeList);
+    part("clear", placeClear);
+    part("worth", placeWorthBox);
+    part("profile", placeStrip);
     report();
   }
 
@@ -1661,7 +1665,7 @@
     const { record, rect, tier, size } = read;
     const held = entryOf(record);
     const entry = held && held.entry;
-    const shown = (tier === "full" || tier === "compact") && size !== "tiny" && entry && !core.staleness(entry, now()) && typeof core.startChance(entry) === "number";
+    const shown = (tier === "full" || tier === "compact") && size !== "tiny" && entry && ahead(entry) && typeof core.startChance(entry) === "number";
     let chip = record.start && record.start.isConnected ? record.start : null;
     if (!shown) {
       if (tip && tip.chip === chip) closeTip();
@@ -1671,10 +1675,11 @@
     }
     const onPage = record.playerSlug ? pageOdds.get(record.playerSlug) : undefined;
     const f = facts(entry, onPage);
-    const hover = core.startHover(entry, onPage, tier === "full");
-    // Sorare's own start badge colours: its steps for the chance, amber for an FF doubt, red for a player who will not start.
+    const old = !entry.live && core.staleness(entry, now());
+    const hover = `${core.startHover(entry, onPage, tier === "full")}${old ? ` · These numbers are ${old.hours} h old.` : ""}`;
+    // Sorare's own start badge colours: its steps for the chance, amber for an FF doubt, red for a player who will not start; grey when old.
     const level = f.tone === "out" ? "low" : f.tone === "doubt" && core.startLevel(f.startChance) === "high" ? "medium" : core.startLevel(f.startChance);
-    const background = startColour(level);
+    const background = old ? STALE_INK : startColour(level);
     const sig = `${tier}|${f.startChance}|${f.tone}|${f.source}|${Boolean(f.apart)}|${hover}|${background}`;
     let fresh = false;
     if (!chip) {
@@ -1866,7 +1871,7 @@
     for (const { read, captain } of pitch) {
       const held = entryOf(read.record);
       const e = held && held.entry;
-      if (!e || core.staleness(e, now()) || !(e.p >= 0)) continue;
+      if (!e || !ahead(e) || !(e.p >= 0)) continue;
       entries.push(e);
       const mu = typeof e.mu === "number" ? e.mu : e.p > 0 ? e.x / e.p : 0;
       cards.push({ p: e.p, mu, sd: e.sd, mult: typeof e.mult === "number" ? e.mult : 1, pos: e.pos, game: e.match && e.match.id, venue: e.match && e.match.venue, club: e.club || null, average: e.average, captain });
@@ -2014,7 +2019,7 @@
         const result = core.lineupChance(lineup.target, lineup.cards.map((c) => {
           const record = bySlug.get(c.slug);
           const held = record && entryOf(record);
-          return { ...c, entry: held && held.entry && !core.staleness(held.entry, now()) ? held.entry : null };
+          return { ...c, entry: held && held.entry && ahead(held.entry) ? held.entry : null };
         }));
         if (!result) continue;
         seen.add(lineup.key);
@@ -2122,7 +2127,7 @@
         let record = null;
         for (const img of item.querySelectorAll("img, video")) if ((record = byMedia.get(img))) break;
         const held = record && entryOf(record);
-        return { item, record, entry: held && held.entry && !core.staleness(held.entry, now()) ? held.entry : null };
+        return { item, record, entry: held && held.entry && ahead(held.entry) ? held.entry : null };
       }),
     );
   }
@@ -2452,7 +2457,7 @@
     const { record, rect, tier } = read;
     const held = tier === "full" && !read.covered && pricePage() && limitedCard(record) ? entryOf(record) : null;
     const entry = held && held.entry;
-    const price = entry && entry.price && !core.staleness(entry, now()) ? entry.price : null;
+    const price = entry && entry.price && ahead(entry) ? entry.price : null;
     let pill = record.price && record.price.isConnected ? record.price : null;
     if (!price) {
       if (pill) pill.remove();

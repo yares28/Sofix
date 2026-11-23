@@ -10,7 +10,7 @@ from dataclasses import replace
 
 import pytest
 
-from app.sorare.forecast import GameStart, PlayerWeek, forecast
+from app.sorare.forecast import ZERO_START_ON, GameStart, PlayerWeek, forecast
 
 HISTORY = [
     ("2026-09-20", 60.0, True),
@@ -73,12 +73,12 @@ def test_a_benched_player_comes_on_as_often_as_sorares_substitute_odds_say() -> 
 
 
 def test_without_sorares_odds_the_chance_of_coming_on_is_from_his_form() -> None:
-    made = forecast(week(game_starts=[ff("g1", 0.0)]))  # five starts in five: he has never come on
-    # (0 substitute appearances + 2 x the outfield prior 0.30) / (0 games not started + 2)
-    assert made.p_on == pytest.approx(1.0 * 0.30)
-    assert made.p_start == 0.0 and made.p_play == pytest.approx(0.30, abs=1e-4), (
-        "0% is a chance of the bench, not of nothing"
-    )
+    made = forecast(week(game_starts=[ff("g1", 0.2)]))  # five starts in five: he has never come on
+    # (0 substitute appearances + 2 x the outfield prior 0.30) / (0 games not started + 2), of the 80% he does not start
+    assert made.p_on == pytest.approx(0.8 * 0.30)
+    # 0% is still a chance of the bench, not of nothing, but only the 6% such players came on (23 Nov 2026), not his form's 30%
+    zero = forecast(week(game_starts=[ff("g1", 0.0)]))
+    assert zero.p_start == 0.0 and zero.p_play == pytest.approx(ZERO_START_ON, abs=1e-4)
 
 
 def test_a_goalkeeper_at_zero_almost_never_comes_on() -> None:
@@ -264,3 +264,19 @@ def test_two_games_without_a_number_for_each_share_the_weeks_score_and_chance() 
     made = forecast(week(games=2, projection=50.0, plays_odds=0.8, start_odds=0.7))
     assert made.game_start == (made.start, made.start)
     assert made.game_x == (40.0, 40.0)  # 80% to play times 50 each, no lift: one game alone has no better of two
+
+
+# ---------------------------------------------------------------------------------------------------- a 0% start (owner, 23 Nov 2026)
+def test_a_player_sorare_gives_0_to_start_comes_on_only_as_often_as_such_players_did() -> None:
+    # Sorare 0% to start: 5.0% of 202 such games he came on; its own 52% to play (Ceballos, 23 Nov 2026) is not believed.
+    told = forecast(week(projection=60.0, plays_odds=0.52, start_odds=0.0))
+    alone = forecast(week(projection=60.0, start_odds=0.0))
+    for f in (told, alone):
+        assert f.p_start == 0.0
+        assert f.p_play == pytest.approx(ZERO_START_ON)
+
+
+def test_a_futbol_fantasy_0_not_marked_out_comes_on_only_as_often_as_such_players_did() -> None:
+    f = forecast(week(game_starts=[ff("g1", 0.0)]))
+    assert f.per_game[0].p_start == 0.0
+    assert f.per_game[0].p_on == pytest.approx(ZERO_START_ON)

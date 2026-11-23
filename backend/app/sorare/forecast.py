@@ -38,6 +38,10 @@ PRIOR_SUB_SCORE = 42.0
 PRIOR_ON = {"GK": 0.02}
 PRIOR_ON_OUTFIELD = 0.30
 REGULAR_STARTER = 0.75  # of the games he plays, the share he starts, above which Sorare's projection is his start score
+# A player a forecast gives 0% to start came on in 5.0% of 202 games (Sorare's 0%) and 6.3% of 475 (Futbol Fantasy's), settled club
+# games in `player_games` to 23 Nov 2026 (owner: an injured Kvaratskhelia had 29% to come on from his form). The same number as
+# `ZERO_START_ON` in frontend/lib/arcade.ts.
+ZERO_START_ON = 0.06
 NATIONAL = {
     "uefa-nations-league",
     "fifa-world-cup",
@@ -239,7 +243,7 @@ def _per_game(week: PlayerWeek, split: Split, plays: float) -> tuple[tuple[GameC
             played.append(0.0)
         else:
             p_start = min(1.0, max(0.0, told.p_start))
-            p_on = (1.0 - p_start) * split.benched_on
+            p_on = (1.0 - p_start) * split.benched_on if p_start > 0 else min(ZERO_START_ON, split.benched_on)
             chances.append(GameChance(game, p_start, p_on, "futbolfantasy", told.info))
             played.append(min(1.0, p_start + p_on))
     return tuple(chances), played
@@ -266,6 +270,8 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         # not start, his form says how often he comes on.
         on = (1 - week.start_odds) * _on_from_form(week)
         week = dataclasses.replace(week, plays_odds=min(1.0, week.start_odds + on))
+    if week.start_odds == 0 and week.plays_odds is not None and week.plays_odds > ZERO_START_ON:
+        week = dataclasses.replace(week, plays_odds=ZERO_START_ON)
     plays, mu = _from_form(week.history)
     source = "form"
     if week.projection is not None:

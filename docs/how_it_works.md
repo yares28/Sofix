@@ -529,7 +529,8 @@ it); in a week of club games the site has simply not reached it yet.
 
 The extension does the same arithmetic for a chance it reads live: his chance of coming on is what is left, at the rate he comes
 on in the games he does not start (`benchedOn`, published with the player): `pOn = (1 - pStart) x benchedOn`, and nothing when he
-is out. `forecast._per_game` and `extension/core.js` (`liveSplit`) both read `backend/tests/fixtures/live_start_cases.json`.
+is out. A 0% start (not marked out) comes on at most 6% (`ZERO_START_ON`): 5.0% of 202 games Sorare said 0% and 6.3% of 475 Futbol
+Fantasy said 0% saw him come on (23 Nov 2026); Sorare's own chance to play is capped the same way when it says 0% to start. `forecast._per_game` and `extension/core.js` (`liveSplit`) both read `backend/tests/fixtures/live_start_cases.json`.
 
 The injury lines on Lineups are translated in `frontend/lib/absence.ts`: a diagnosis is a kind (rotura, lesión, molestias, sobrecarga,
 esguince, fractura, ...) plus a body part, so a new combination of known words needs no change; the notes are "Duda / Disponible / Baja

@@ -876,12 +876,14 @@
    * The same arithmetic as `_per_game` in backend/app/sorare/forecast.py; both read backend/tests/fixtures/live_start_cases.json.
    * The plan's ticks, his xScore and the rankings stay as the job made them. Null when there is nothing to apply.
    */
+  const ZERO_START_ON = 0.06;
   function liveSplit(entry, live, atIso) {
     if (!entry || !live || !Number.isFinite(live.p) || live.p < 0 || live.p > 1) return null;
     const rate = typeof entry.benchedOn === "number" ? entry.benchedOn : benchOnChance(entry);
     const out = live.lesion === 0;
     const pStart = out ? 0 : live.p;
-    const pOn = out ? 0 : (1 - pStart) * (rate === null ? 0 : rate);
+    // A 0% start still comes on, but only as often as such players did: 6% (forecast.ZERO_START_ON, 23 Nov 2026).
+    const pOn = out || rate === null ? 0 : pStart > 0 ? (1 - pStart) * rate : Math.min(ZERO_START_ON, rate);
     const kind = LESION_KIND[live.lesion];
     const before = entry.ffStatus || {};
     // The injury list's cause and date are not on this page's players: they are kept while the kind stays the same.

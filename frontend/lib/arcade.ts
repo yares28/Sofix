@@ -823,6 +823,12 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
 }
 
 /**
+ * How often a player a forecast gave 0% to start still came on: 5.0% of 202 games for Sorare's 0%, 6.3% of 475 for Futbol Fantasy's
+ * (`player_games`, settled club games to 23 Nov 2026). The same number as `ZERO_START_ON` in backend/app/sorare/forecast.py.
+ */
+export const ZERO_START_ON = 0.06;
+
+/**
  * A card's outlook in one game. An official eleven overrides every forecast. Otherwise start % uses Sofix's number (when its game is this one),
  * else Sorare's as saved. Score if he plays: Sofix's xScore for that game (each league's model passed its own check), else Sorare's
  * projection, else his own average of the games he played. Nothing is filled in where no source has a number.
@@ -850,10 +856,10 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
   const start = said_ !== null && fix ? calibrated(fix, said_) : said_;
   // Coming on: his record's chance to come on when he does not start, applied to this game's chance of not starting.
   const benchRate = record && record.s < 1 ? record.o / (1 - record.s) : 0;
-  // A forecast's 0% means he is out of the game (owner, 23 Nov 2026: an injured Kvaratskhelia had xS 14 from coming on); an announced
-  // eleven without him still leaves him on the bench.
-  const out = !confirmed && start === 0;
-  const on = injured || out || start === null || !record ? 0 : startSource === "record" ? record.o : Math.min(1 - start, (1 - start) * benchRate);
+  // A forecast's 0% (owner, 23 Nov 2026: an injured Kvaratskhelia had xS 14 from his record's 29% to come on): such players came on in
+  // 6% of games, whatever their record; an announced eleven without him keeps his bench chance.
+  const zero = !confirmed && start === 0;
+  const on = injured || start === null || !record ? 0 : zero ? ZERO_START_ON : startSource === "record" ? record.o : Math.min(1 - start, (1 - start) * benchRate);
   const form = record?.x ?? (past.length >= 3 ? past.reduce((a, b) => a + b, 0) / past.length : null);
   const scores: Partial<Record<ScoreRank, number | null>> = { sofix: sameGame ? sofix.mu ?? null : null, sorare: projection ?? null, form };
   const score = firstOf(scoreOrder(records, game.competition.slug), scores);

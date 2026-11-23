@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
+import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, ZERO_START_ON, type ArcadeCard, type ArcadeGame } from "./arcade";
 import { baseScore, bonusPercent, partialFive, batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, noStartNote, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
@@ -213,12 +213,12 @@ describe("ranked sources (owner, 20 Nov 2026: the best accuracy first, then the 
     const confirmed = outlookOf(card("a", ["Forward"]), GAME, extras, null, {}, { "Game:1": { a: [10000, 1] } }, records);
     expect(confirmed).toMatchObject({ start: 1, confirmed: true }); // the announced eleven is never corrected
   });
-  it("scores 0 when a source says 0% to start: out of the game, so no chance to come on either (owner, 23 Nov 2026)", () => {
+  it("gives a player a source says 0% to start only the 6% such players came on, not his record's bench chance (owner, 23 Nov 2026)", () => {
     // Kvaratskhelia on 23 Nov 2026: Sorare 0% (injured), yet xS 14 from his record's 29% chance to come on × 47.
     const records = { ranking: ranking(["sorare", "record"], ["sofix", "form"]), players: { a: { ...record, s: 0.317, o: 0.2 } } };
     const out = outlookOf(card("a", ["Forward"]), GAME, extras, { "Game:1": { a: [0, 0] } }, {}, null, records);
-    expect(out).toMatchObject({ start: 0, startSource: "sorare", on: 0 });
-    expect(baseScore(out)).toBe(0);
+    expect(out).toMatchObject({ start: 0, startSource: "sorare", on: ZERO_START_ON });
+    expect(baseScore(out)).toBeCloseTo(ZERO_START_ON * 40, 5);
     // An announced eleven without him still leaves him on the bench: his chance to come on stays.
     const benched = outlookOf(card("a", ["Forward"]), GAME, extras, null, {}, { "Game:1": { a: [0, 1] } }, records);
     expect(benched.start).toBe(0);

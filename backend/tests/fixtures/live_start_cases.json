@@ -6,7 +6,7 @@
     { "name": "a player who is out starts nothing and comes on never", "benchedOn": 0.3, "live": { "p": 0.7, "lesion": 0 }, "expect": { "pStart": 0, "pOn": 0 } },
     { "name": "a certain starter has nobody to come on for", "benchedOn": 0.3, "live": { "p": 1, "lesion": -1 }, "expect": { "pStart": 1, "pOn": 0 } },
     { "name": "a goalkeeper hardly ever comes on", "benchedOn": 0.02, "live": { "p": 0.05, "lesion": -1 }, "expect": { "pStart": 0.05, "pOn": 0.019 } },
-    { "name": "a player the site has at zero can still come on", "benchedOn": 0.3, "live": { "p": 0, "lesion": -1 }, "expect": { "pStart": 0, "pOn": 0.3 } },
+    { "name": "a player the site has at zero can still come on, as often as such players did", "benchedOn": 0.3, "live": { "p": 0, "lesion": -1 }, "expect": { "pStart": 0, "pOn": 0.06 } },
     { "name": "a knock he is available despite changes nothing", "benchedOn": 0.4, "live": { "p": 0.8, "lesion": 2 }, "expect": { "pStart": 0.8, "pOn": 0.08 } }
   ]
 }

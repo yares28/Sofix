@@ -261,3 +261,45 @@ def test_the_price_record_keeps_one_price_a_player_a_day():
     assert day2["in"] == {"aspas": [60, None], "saka": [None, 900]}  # cents; an estimate when nothing is listed
     assert day2["listed"] == {"aspas": [True, None], "saka": [None, False]}
     assert day2["cl"] == {"aspas": [44, None], "saka": [None, None]}
+
+
+# ---- Q5: the start-of-season pick, from every player's own record last season
+
+
+LAST = datetime(2025, 9, 6, 16, tzinfo=UTC)  # a Saturday of 2025/26
+
+
+def test_last_seasons_rounds_are_the_weekends_and_midweeks_most_clubs_played_in():
+    games = {f"p{c}": games_for(f"Club {c}", ["S50"] * 3, start=LAST) for c in "ABCD"}
+    games["pA"] += games_for("Club A", ["S50"], start=LAST + timedelta(days=25))  # a lone rearranged game, a Wednesday
+    rounds = squads.rounds_of(games, LEAGUE, datetime(2025, 7, 1, tzinfo=UTC), datetime(2026, 7, 1, tzinfo=UTC))
+    assert len(rounds) == 3
+
+
+def test_the_start_of_season_team_counts_each_players_own_record_at_any_club_last_season():
+    stayed = {s: games_for("Club A", ["S50"] * 6, start=LAST) for s in ("keeper", "back", "mid", "striker")}
+    signing = games_for("Club B", ["S70"] * 6, start=LAST)  # started every round for another club
+    others = {f"x{c}": games_for(f"Club {c}", ["S40"] * 6, start=LAST) for c in "CD"}
+    rows = [m for m, _ in base_rows()[:4]] + [market("signing", "MID", 3.0), market("newboy", "FWD", 1.0)]
+    games = {**stayed, "signing": signing, **others}
+    block = squads.next_block(LEAGUE, rows, games, NOW, owned=frozenset(), art={}, board=[(320, 0.0, 500)], lines=[])
+    assert block is not None and block["record"] == "2025/26" and block["rounds"] == 6
+    c = block["clubs"][0]
+    assert c["players"]["signing"]["from"] == "Club B"
+    assert c["players"]["signing"]["played"] == "S" * 6
+    assert [p["slug"] for p in c["newcomers"]] == ["newboy"]  # no LaLiga record: listed, never guessed
+    team = next(t for t in c["teams"] if t["id"] == c["pro"]["0.9"]["full"][-1]["id"])
+    assert "signing" in team["cards"] and team["cov"] == 1.0
+    assert team["proof"] == {"games": 0, "five": 0, "mean": None, "clears": 0}  # nothing of 2026/27 in these rows
+
+
+def test_the_proof_is_how_last_augusts_pick_did_this_season():
+    last = {s: games_for("Club A", ["S50"] * 4, start=LAST) for s in ("keeper", "back", "mid", "striker", "wide")}
+    now = {s: games_for("Club A", ["S60", "S60", None]) for s in ("keeper", "back", "mid", "striker", "wide")}
+    games = {s: last[s] + now[s] for s in last}
+    games |= {f"x{c}": games_for(f"Club {c}", ["S40"] * 4, start=LAST) for c in "BCD"}  # the rest of the league
+    block = squads.next_block(
+        LEAGUE, [m for m, _ in base_rows()], games, NOW, owned=frozenset(), art={}, board=[(320, 0.0, 500)], lines=[]
+    )
+    team = next(t for t in block["clubs"][0]["teams"] if t["id"] == block["clubs"][0]["pro"]["0.9"]["full"][-1]["id"])
+    assert team["proof"] == {"games": 3, "five": 2, "mean": round(330 * 2 / 3, 1), "clears": 2}  # 5 x 60 + captain

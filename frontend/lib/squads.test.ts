@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { choice, ladder, ranked, tier, within, type Tile } from "./squads";
+import { ANY, choice, ladder, ranked, tier, within, type Tile } from "./squads";
 
 const BOARD = [{ target: 320, cash: 0, essence: 500 }, { target: 360, cash: 5, essence: 0 }, { target: 380, cash: 10, essence: 0 }];
 
@@ -37,7 +37,7 @@ describe("tier", () => {
 });
 
 const tile = (club: string, pro: { from: number; toBuy: number; full: number; over: number }[], arena: { from: number; toBuy: number; full: number; started: number }[] = []): Tile => ({
-  club, crest: null, games: 10,
+  club, crest: null, games: 10, promoted: false,
   pro: { "0.9": { full: pro.map((p, id) => ({ id, ...p, from: p.full, mean: 300, cov: 1 })), owned: pro.map((p, id) => ({ id, ...p, mean: 300, cov: 1 })) } },
   arena: { full: arena.map((a, id) => ({ id, ...a, from: a.full, mean: 290 })), owned: arena.map((a, id) => ({ id, ...a, mean: 290 })) },
 });
@@ -62,5 +62,12 @@ describe("choice and ranked", () => {
       tile("Same", [{ from: 9, toBuy: 9, full: 9, over: 5 }]),
     ], s).map((x) => x.tile.club);
     expect(order).toEqual(["Best", "Same", "Cheap", "Over"]);
+  });
+  it("at the start of season, a club with no team at the target shows the best team inside the budget with its coverage, after those that reach it", () => {
+    const short = tile("Short", [{ from: 50, toBuy: 50, full: 50, over: 2 }]);
+    short.pro[ANY] = { full: [], owned: [{ id: 9, from: 12, toBuy: 12, full: 20, over: 2, mean: 280, cov: 0.45 }] };
+    expect(choice(short, s)).toMatchObject({ mode: "short", price: 12, entry: { cov: 0.45 } });
+    const order = ranked([short, tile("Fits", [{ from: 29, toBuy: 29, full: 29, over: 1 }])], s).map((x) => x.tile.club);
+    expect(order).toEqual(["Fits", "Short"]);
   });
 });

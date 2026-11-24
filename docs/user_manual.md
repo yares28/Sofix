@@ -826,7 +826,14 @@ once a day (read models `squads:LALIGA`, `squads:PL`, `squads:BL1`, `squads:FL1`
 and cards. Prices are what the cards cost now: the cheapest listed Limited card, or Sorare's market value marked "est." when none
 is listed. A team may hold one classic card (Sorare allows one per in-season lineup), the one that saves most, tagged "Classic";
 a classic card of yours fills that place for nothing. Each day's prices are kept (`squad_prices:<code>`). Tap a point on the curve
-to see the team at that price.
+to see the team at that price. **Season: Start of season** picks each team as you would before the first game:
+- **The record:** every player at the club now counts with his own games of last season's 38 rounds, at whichever club he played
+  for, and the card says "from Elche" when that was another club.
+- **New players:** those with no game in the league last season are listed under "New to LaLiga" and not counted.
+- **The proof:** how that team did this season.
+- **The picker:** a club that cannot reach the target inside the budget shows the coverage it reaches, and a promoted club says
+  NEW.
+- **Leagues:** LaLiga only for now (`squads_next:LALIGA`); the other leagues' games are kept from August 2026.
 
 ## 10a. Missions
 

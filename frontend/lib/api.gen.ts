@@ -440,7 +440,8 @@ export interface paths {
         };
         /**
          * Squads Page
-         * @description A league's Squads block the refresh published (LALIGA, PL, BL1, FL1). Local development only, like /sorare.
+         * @description A league's Squads block the refresh published (LALIGA, PL, BL1, FL1); `season=start` the start-of-season one. Local
+         *     development only, like /sorare.
          */
         get: operations["squads_page_api_squads__code__get"];
         put?: never;
@@ -1500,7 +1501,9 @@ export interface operations {
     };
     squads_page_api_squads__code__get: {
         parameters: {
-            query?: never;
+            query?: {
+                season?: string;
+            };
             header?: never;
             path: {
                 code: string;

@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { scoreColour } from "../../lib/cards";
 import {
-  choice, day, eur, laneKey, ladder, LEAGUES, oppCode, prize, ranked, shortName, shortPrize, TARGETS, tier, within,
-  type Settings, type SquadClub, type SquadPlayer, type SquadsPage, type SquadSeven, type SquadTeam, type Target,
+  ANY, choice, day, eur, laneKey, ladder, LEAGUES, oppCode, prize, ranked, shortName, shortPrize, TARGETS, tier, within,
+  type Season, type Settings, type SquadClub, type SquadPlayer, type SquadsPage, type SquadSeven, type SquadTeam, type Target,
 } from "../../lib/squads";
 import CardArt from "../cards/CardArt";
 import SorareImage from "../play/SorareImage";
@@ -34,9 +34,11 @@ function useCents(target: number): number {
   return value;
 }
 
-function href(code: string, club: string, s: Settings) {
-  const q = new URLSearchParams({ league: code, club, budget: String(s.budget), cover: String(Math.round(s.target * 100)) });
+function href(code: string, club: string | null, s: Settings, season: Season) {
+  const q = new URLSearchParams({ league: code, budget: String(s.budget), cover: String(Math.round(s.target * 100)) });
+  if (club) q.set("club", club);
   if (!s.mine) q.set("mine", "0");
+  if (season === "start") q.set("season", "start");
   return `/squads?${q}`;
 }
 
@@ -51,15 +53,16 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
   const settings = useMemo(() => ({ budget, target, mine }), [budget, target, mine]);
 
   useEffect(() => {
-    window.history.replaceState(null, "", href(data.code, club.club, settings)); // shareable, no new render on the server
-  }, [data.code, club.club, settings]);
+    window.history.replaceState(null, "", href(data.code, club.club, settings, data.season)); // shareable, no new render on the server
+  }, [data.code, club.club, settings, data.season]);
 
   const order = useMemo(() => ranked(data.tiles, settings), [data.tiles, settings]);
   const mineTile = data.tiles.find((t) => t.club === club.club)!;
   const verdict = choice(mineTile, settings);
   const lane = mine ? "owned" : "full";
   const proLane = club.pro[laneKey(target)]?.[lane] ?? [];
-  const proEntry = within(proLane, budget) ?? proLane[0] ?? null;
+  // start of season, nothing at the target inside the budget: the best team it buys, shown with its coverage
+  const proEntry = within(proLane, budget) ?? (verdict.mode === "short" ? within(club.pro[ANY]?.[lane], budget) : null) ?? proLane[0] ?? null;
   const team = proEntry ? club.teams.find((t) => t.id === proEntry.id) ?? null : null;
   const arenaEntry = within(club.arena[lane], budget) ?? club.arena[lane]?.[0] ?? null;
   const seven = arenaEntry ? club.sevens.find((s) => s.id === arenaEntry.id) ?? null : null;
@@ -74,9 +77,15 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
   return (
     <div className="sq-page">
       <form className="sq-filters" aria-label="Filters" onSubmit={(e) => e.preventDefault()}>
+        <div className="sq-field">
+          <span>Season</span>
+          <SegmentedControl label="Season" value={data.season}
+            options={[{ value: "now", label: "Now" }, { value: "start", label: "Start of season" }]}
+            onChange={(v) => router.push(href(data.code, club.club, settings, v as Season))} />
+        </div>
         <label className="sq-field">
           <span>League</span>
-          <select name="league" value={data.code} onChange={(e) => router.push(`/squads?league=${e.target.value}&budget=${budget}&cover=${Math.round(target * 100)}${mine ? "" : "&mine=0"}`)}>
+          <select name="league" value={data.code} onChange={(e) => router.push(href(e.target.value, null, settings, data.season))}>
             {LEAGUES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
           </select>
         </label>
@@ -102,6 +111,8 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
 
       <Hero data={data} club={club} verdict={verdict} team={team} seven={seven} showArena={showArena} settings={settings}
         onBudget={(n) => { setBudget(n); setDraft(String(n)); }} />
+
+      {data.season === "start" && club.newcomers.length ? <Newcomers club={club} league={data.name} /> : null}
 
       <Team club={club} cards={cards} seven={showArena ? seven : null}
         classic={(showArena ? (mine ? seven?.classicToBuy : seven?.classic) : mine ? team?.classicToBuy : team?.classic) ?? null} />
@@ -133,14 +144,17 @@ function Picker({ data, order, club, settings, page, setPage }: {
       </div>
       <ul className="sq-tiles">
         {shown.map(({ tile, choice: c }) => {
-          const share = c.mode === "pro" ? c.entry.over / (tile.games || 1) : 0;
+          const share = c.mode === "pro" || c.mode === "short" ? c.entry.over / (tile.games || 1) : 0;
           const tone = c.mode === "none" ? "off" : share >= 0.5 ? "good" : share >= 0.3 ? "mid" : "low";
+          const games = data.season === "start" ? "rounds" : "games";
           const label = c.mode === "none"
-            ? `${tile.club}, no team inside €${settings.budget}${c.cheapest ? `, from ${eur(c.cheapest)}` : ""}`
-            : `${tile.club}, ${eur(c.price)} in ${c.mode === "pro" ? "Pro" : "the Arena"}${c.mode === "pro" ? `, best five over the first step in ${c.entry.over} of ${tile.games}` : ""}`;
+            ? `${tile.club}, ${tile.promoted ? "new to the league, " : ""}no team inside €${settings.budget}${c.cheapest ? `, from ${eur(c.cheapest)}` : ""}`
+            : c.mode === "short"
+              ? `${tile.club}, ${eur(c.price)}: five starters in ${Math.round(c.entry.cov * 100)}% of last season's rounds`
+              : `${tile.club}, ${eur(c.price)} in ${c.mode === "pro" ? "Pro" : "the Arena"}${c.mode === "pro" ? `, best five over the first step in ${c.entry.over} of ${tile.games} ${games}` : ""}`;
           return (
             <li key={tile.club}>
-              <Link href={href(data.code, tile.club, settings)} prefetch={false} className="sq-tile" data-tone={tone}
+              <Link href={href(data.code, tile.club, settings, data.season)} prefetch={false} className="sq-tile" data-tone={tone}
                 aria-current={tile.club === club ? "true" : undefined} aria-label={label}>
                 <span className="sq-ring">
                   <svg viewBox="0 0 56 56" aria-hidden="true">
@@ -153,7 +167,9 @@ function Picker({ data, order, club, settings, page, setPage }: {
                   <span className="sq-tile-name">{tile.club}</span>
                   <span className="sq-tile-price">
                     <b>{c.mode === "none" ? (c.cheapest ? `€${Math.ceil(c.cheapest)}` : "—") : eur(c.price)}</b>
-                    <span className="sq-pill" data-mode={c.mode}>{c.mode === "pro" ? "PRO" : c.mode === "arena" ? "ARENA" : "OVER"}</span>
+                    <span className="sq-pill" data-mode={c.mode === "none" && tile.promoted ? "new" : c.mode}>
+                      {c.mode === "pro" ? "PRO" : c.mode === "arena" ? "ARENA" : c.mode === "short" ? `${Math.round(c.entry.cov * 100)}%` : tile.promoted ? "NEW" : "OVER"}
+                    </span>
                   </span>
                 </span>
               </Link>
@@ -177,6 +193,9 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget 
   const owned = members.filter((s) => club.players[s]?.owned).length;
   const fives = team ? team.best.filter((v) => v !== null).length : 0;
   const first = data.board?.[0]?.target;
+  const start = data.season === "start";
+  const games = start ? "rounds" : "games";
+  const proof = start ? team?.proof ?? null : null;
   return (
     <section className="sq-card sq-hero" aria-labelledby="sq-club">
       <div className="sq-hero-main">
@@ -184,7 +203,7 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget 
           <SorareImage src={club.crest} width={52} height={52} />
           <div>
             <h1 id="sq-club">{club.club}</h1>
-            <p>{data.name} · {n} games this season</p>
+            <p>{start ? `${data.name} · picked from ${data.record}, ${n} rounds` : `${data.name} · ${n} games this season`}</p>
           </div>
           <span className="sq-pill" data-mode={showArena ? "arena" : "pro"}>{showArena ? "ARENA" : `${data.name.toUpperCase()} PRO`}</span>
         </div>
@@ -203,14 +222,18 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget 
             <span className="sq-price-side">
               <b>{members.length} cards</b>
               <span>{settings.mine ? "to complete · " : ""}{eur(unit?.full ?? 0)} for all{owned ? <> · <em>you own {owned}</em></> : null}</span>
+              {start && !data.cardsOut ? <span className="sq-note">This season&apos;s cards are not out yet: last season&apos;s prices</span> : null}
             </span>
           </div>
         )}
         {team ? (
           <dl className="sq-stats">
-            <div><dt>games with five starters</dt><dd>{fives} of {n}</dd></div>
-            <div><dt>a game, best five</dt><dd>{Math.round(team.mean)}</dd></div>
-            {first ? <div><dt>over {first}</dt><dd className="good">{team.over} of {n}</dd></div> : null}
+            <div><dt>{games} with five starters</dt><dd>{fives} of {n}</dd></div>
+            <div><dt>a {start ? "round" : "game"}, best five</dt><dd>{Math.round(team.mean)}</dd></div>
+            {first && !proof ? <div><dt>over {first}</dt><dd className="good">{team.over} of {n}</dd></div> : null}
+            {proof && proof.games ? (
+              <div className="sq-proof"><dt>bought like this, this season</dt><dd>{Math.round(proof.mean ?? 0)} a game · {proof.five} of {proof.games} with five</dd></div>
+            ) : null}
           </dl>
         ) : null}
       </div>
@@ -223,7 +246,7 @@ function Curve({ club, settings, team, onBudget }: { club: SquadClub; settings: 
   const lane = club.pro[laneKey(settings.target)]?.[settings.mine ? "owned" : "full"] ?? [];
   const points = lane.flatMap((e) => {
     const t = club.teams.find((x) => x.id === e.id);
-    return t ? [{ x: settings.mine ? t.toBuy : t.full, y: t.mean, id: t.id }] : [];
+    return t ? [{ x: settings.mine ? t.toBuy : t.full, y: t.mean, id: t.id, from: e.from }] : []; // a team is picked from its entry's budget, which can top its own price
   });
   if (points.length < 2) return null;
   const W = 400, H = 170, L = 34, B = 150;
@@ -256,8 +279,8 @@ function Curve({ club, settings, team, onBudget }: { club: SquadClub; settings: 
         {points.map((p) => (
           // each team on the curve opens at its price: the budget moves there and the team below shows its players
           <g key={p.id} className={p.id === here?.id ? "pt on" : "pt"} role="button" tabIndex={0} aria-label={`${eur(p.x)}, ${Math.round(p.y)} a game: show this team`}
-            aria-pressed={p.id === here?.id} onClick={() => onBudget(Math.ceil(p.x))}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onBudget(Math.ceil(p.x)); } }}>
+            aria-pressed={p.id === here?.id} onClick={() => onBudget(Math.ceil(p.from))}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onBudget(Math.ceil(p.from)); } }}>
             <circle cx={X(p.x)} cy={Y(p.y)} r={12} className="hit" />
             <circle cx={X(p.x)} cy={Y(p.y)} r={p.id === here?.id ? 6 : 4} className="dot" />
           </g>
@@ -301,7 +324,8 @@ function Team({ club, cards, seven, classic }: { club: SquadClub; cards: string[
                       {yours ? <span className="sq-own">Yours</span> : null}
                       {isClassic ? <span className="sq-classic" title="An older season's card: Sorare lets a lineup take one">Classic</span> : null}
                     </span>
-                    <b className="sq-name" title={p.name}>{shortName(p.name)}</b>
+                    <b className="sq-name" title={p.from ? `${p.name}, from ${p.from}` : p.name}>{shortName(p.name)}</b>
+                    {p.from ? <span className="sq-from">from {p.from}</span> : null}
                     <span className="sq-meta"><s data-owned={yours ? "" : undefined} title={price.note}>{eur(price.value)}{price.est ? <small> est.</small> : null}</s><span>{r ? `${r} · ` : ""}{starts}/{n} · {Math.round(avg)}</span></span>
                     <span className="sq-rate" style={{ "--w": `${Math.round((starts / (n || 1)) * 100)}%` } as CSSProperties} data-tone={starts / n >= 0.75 ? "good" : starts / n >= 0.45 ? "mid" : "low"} aria-hidden="true"><i /></span>
                   </li>
@@ -311,6 +335,23 @@ function Team({ club, cards, seven, classic }: { club: SquadClub; cards: string[
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+/** Start of season: the players with no game in the league last season, so the team could not count them. */
+function Newcomers({ club, league }: { club: SquadClub; league: string }) {
+  return (
+    <section className="sq-card sq-new" aria-labelledby="sq-new-h">
+      <h2 id="sq-new-h">New to {league} <span>no games last season: not counted</span></h2>
+      <ul>
+        {club.newcomers.map((p) => (
+          <li key={p.slug}>
+            <span className="sq-art"><CardArt src={p.art} name={p.name} /></span>
+            <b className="sq-name" title={p.name}>{shortName(p.name)}</b>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -339,10 +380,10 @@ function WhoPlayed({ club, cards }: { club: SquadClub; cards: string[] }) {
             <tr>
               <th scope="col"><span className="sq-sr">Player</span></th>
               {club.games.map((g) => (
-                <th scope="col" key={g.id} aria-label={`${g.home ? "home to" : "away at"} ${g.opponent}, ${day(g.date)}`}>
-                  <SorareImage src={g.crest} width={22} height={22} />
-                  <b>{oppCode(g.opponent)}</b>
-                  <span>{g.home ? "H" : "A"} · {day(g.date)}</span>
+                <th scope="col" key={g.id} aria-label={g.opponent ? `${g.home ? "home to" : "away at"} ${g.opponent}, ${day(g.date)}` : `round ${g.id.slice(1)}, ${day(g.date)}`}>
+                  {g.opponent ? <SorareImage src={g.crest} width={22} height={22} /> : null}
+                  <b>{g.opponent ? oppCode(g.opponent) : g.id}</b>
+                  <span>{g.opponent ? `${g.home ? "H" : "A"} · ` : ""}{day(g.date)}</span>
                 </th>
               ))}
             </tr>
@@ -390,7 +431,10 @@ function Replay({ data, club, team, seven, initial, mine }: {
   const [score, setScore] = useState<Score>("best");
   const unit = mode === "arena" ? seven : team;
   const hasXs = !!unit && unit.xsReal.some((v) => v !== null);
-  const key = pick === "xs" ? (score === "exp" ? "xsExp" : "xsReal") : (score as "best" | "median" | "average");
+  // a team with no xS numbers (last season's rounds) is replayed in hindsight, whatever was picked before
+  const xs = pick === "xs" && hasXs;
+  const shown = xs ? score : score === "real" || score === "exp" ? "best" : score;
+  const key = xs ? (shown === "exp" ? "xsExp" : "xsReal") : (shown as "best" | "median" | "average");
   const values = unit ? (unit[key] as (number | null)[]) : [];
   const top = Math.max(480, ...values.filter((v): v is number => v !== null));
   const LO = 150;
@@ -445,8 +489,8 @@ function Replay({ data, club, team, seven, initial, mine }: {
           <SegmentedControl label="Lineup" value={pick} onChange={(v) => { setPick(v); setScore(v === "xs" ? "real" : "best"); }}
             options={[{ value: "hind", label: "Hindsight" }, { value: "xs", label: "Sofix xS, before kickoff" }]} />
         ) : null}
-        <SegmentedControl label="Score" value={score} onChange={setScore}
-          options={pick === "xs" ? [{ value: "real", label: "What it scored" }, { value: "exp", label: "What xS said" }]
+        <SegmentedControl label="Score" value={shown} onChange={setScore}
+          options={xs ? [{ value: "real", label: "What it scored" }, { value: "exp", label: "What xS said" }]
             : [{ value: "best", label: "Best" }, { value: "median", label: "Median" }, { value: "average", label: "Average" }]} />
       </div>
       <div className="sq-replay-body">
@@ -487,7 +531,7 @@ function Replay({ data, club, team, seven, initial, mine }: {
           <div className="sq-axis">
             {club.games.map((g, i) => (
               <span key={g.id}>
-                <SorareImage src={g.crest} width={dense ? 14 : 20} height={dense ? 14 : 20} />
+                {g.opponent ? <SorareImage src={g.crest} width={dense ? 14 : 20} height={dense ? 14 : 20} /> : null}
                 <b data-tone={cols[i]?.markTone}><span className="long">{cols[i]?.mark}</span><span className="short">{short(cols[i]?.mark ?? "")}</span></b>
               </span>
             ))}

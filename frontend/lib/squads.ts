@@ -6,6 +6,10 @@ import { z } from "zod";
  * a budget picks the last frontier entry whose `from` fits it.
  */
 export const SQUADS_PREFIX = "squads:";
+/** The start-of-season view: each club's team picked from last season's record, as bought before the first game. */
+export const SQUADS_START_PREFIX = "squads_next:";
+export type Season = "now" | "start";
+export const seasonOf = (raw: string | undefined): Season => (raw === "start" ? "start" : "now");
 export const LEAGUES = [
   { code: "LALIGA", label: "LaLiga" },
   { code: "PL", label: "Premier League" },
@@ -23,6 +27,7 @@ const player = z.object({
   name: z.string(), pos: z.enum(["GK", "DEF", "MID", "FWD"]), eur: z.number(), owned: z.boolean(), art: z.string().nullable(),
   // v2 (Q3): eur is the cheapest listing when `listed`, else the market value; `classic` the cheapest listed classic card
   listed: z.boolean().default(false), classic: z.number().nullable().default(null), ownedClassic: z.boolean().default(false),
+  from: z.string().nullable().default(null), // start of season: his club last season, when not this one
   played: z.string(), scores: z.array(z.number()), mins: z.array(z.number()),
 });
 // The one classic card a team buys (Sorare lets an in-season lineup take one): for the full price, and with your cards counted.
@@ -30,6 +35,8 @@ const classicOf = { classic: z.string().nullable().default(null), classicToBuy: 
 const team = z.object({
   id: z.number().int(), cards: z.array(z.string()), full: z.number(), toBuy: z.number(), mean: z.number(), cov: z.number(),
   over: z.number().int(), ...series, ...classicOf,
+  // start of season: how this team, bought before the first game, did this season
+  proof: z.object({ games: z.number(), five: z.number(), mean: z.number().nullable(), clears: z.number() }).nullable().default(null),
   ladder: z.object({ clears: z.number(), cash: z.number(), essence: z.number(), top: z.number() }).nullable(),
 });
 const seven = z.object({
@@ -41,10 +48,14 @@ const game = z.object({ id: z.string(), date: z.string(), home: z.boolean(), opp
 const club = z.object({
   club: z.string(), crest: z.string().nullable(), games: z.array(game), players: z.record(z.string(), player),
   teams: z.array(team), pro: z.record(z.string(), lanes), sevens: z.array(seven), arena: z.object({ full: z.array(entry), owned: z.array(entry) }).partial(),
+  // start of season: players with no game in the league last season (listed, never guessed); a club new to the league
+  newcomers: z.array(z.object({ slug: z.string(), name: z.string(), pos: z.string(), art: z.string().nullable() })).default([]),
+  promoted: z.boolean().default(false),
 });
 const block = z.object({
   version: z.union([z.literal(1), z.literal(2)]), generatedAt: z.string(), league: z.string(), code: z.string(), name: z.string(), season: z.number().int(),
   targets: z.array(z.number()), captain: z.number(),
+  record: z.string().nullable().default(null), rounds: z.number().int().nullable().default(null), cardsOut: z.boolean().default(true),
   board: z.array(z.object({ target: z.number(), cash: z.number(), essence: z.number() })).nullable(),
   arenaLines: z.array(z.object({ score: z.number(), cash: z.number(), essence: z.number() })),
   clubs: z.array(club),
@@ -79,6 +90,8 @@ export const budgetOf = (raw: string | undefined): number => {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? Math.min(Math.round(n), 5000) : 40;
 };
+/** The start-of-season lane of the best team inside a budget whatever its coverage (shown when none reaches the target). */
+export const ANY = "0.0";
 /** A lane key the block uses for a target ("0.9", "1.0"). */
 export const laneKey = (t: Target) => (t === 1 ? "1.0" : String(t));
 
@@ -164,6 +177,7 @@ export type Tile = {
   club: string;
   crest: string | null;
   games: number;
+  promoted: boolean;
   pro: Record<string, { full: TileEntry[]; owned: TileEntry[] }>;
   arena: { full: ArenaEntry[]; owned: ArenaEntry[] };
 };
@@ -173,26 +187,32 @@ export function tile(c: SquadClub): Tile {
   const teams = new Map(c.teams.map((t) => [t.id, t]));
   const sevens = new Map(c.sevens.map((s) => [s.id, s]));
   const pro: Tile["pro"] = {};
+  const mapLane = (es: Entry[] | undefined): TileEntry[] =>
+    (es ?? []).flatMap((e) => {
+      const team = teams.get(e.id);
+      return team ? [{ ...e, toBuy: team.toBuy, full: team.full, mean: team.mean, over: team.over, cov: team.cov }] : [];
+    });
   for (const t of TARGETS) {
     const lanes = c.pro[laneKey(t)];
-    const map = (es: Entry[] | undefined): TileEntry[] =>
-      (es ?? []).flatMap((e) => {
-        const team = teams.get(e.id);
-        return team ? [{ ...e, toBuy: team.toBuy, full: team.full, mean: team.mean, over: team.over, cov: team.cov }] : [];
-      });
-    pro[laneKey(t)] = { full: map(lanes?.full), owned: map(lanes?.owned) };
+    pro[laneKey(t)] = { full: mapLane(lanes?.full), owned: mapLane(lanes?.owned) };
   }
   const arena = (es: Entry[] | undefined): ArenaEntry[] =>
     (es ?? []).flatMap((e) => {
       const s = sevens.get(e.id);
       return s ? [{ ...e, toBuy: s.toBuy, full: s.full, mean: s.mean, started: s.started }] : [];
     });
-  return { club: c.club, crest: c.crest, games: c.games.length, pro, arena: { full: arena(c.arena.full), owned: arena(c.arena.owned) } };
+  const any = c.pro[ANY];
+  if (any) pro[ANY] = { full: mapLane(any.full), owned: mapLane(any.owned) };
+  return { club: c.club, crest: c.crest, games: c.games.length, promoted: c.promoted, pro, arena: { full: arena(c.arena.full), owned: arena(c.arena.owned) } };
 }
 
 
 export type SquadsPage = {
   code: LeagueCode;
+  season: Season;
+  record: string | null;
+  rounds: number | null;
+  cardsOut: boolean;
   name: string;
   generatedAt: string;
   captain: number;
@@ -206,6 +226,7 @@ export type Settings = { budget: number; target: Target; mine: boolean };
 export type Choice =
   | { mode: "pro"; entry: TileEntry; price: number }
   | { mode: "arena"; entry: ArenaEntry; price: number }
+  | { mode: "short"; entry: TileEntry; price: number } // start of season: the best team inside the budget, below the target
   | { mode: "none"; cheapest: number | null };
 
 /** What a club offers at these settings: the Arena seven when it fields all five starters often enough, else the Pro team. */
@@ -215,6 +236,8 @@ export function choice(t: Tile, s: Settings): Choice {
   const arena = within(t.arena[lane], s.budget) as ArenaEntry | null;
   if (arena && arena.started >= s.target - 1e-9 && (!pro || arena.toBuy <= pro.toBuy)) return { mode: "arena", entry: arena, price: s.mine ? arena.toBuy : arena.full };
   if (pro) return { mode: "pro", entry: pro, price: s.mine ? pro.toBuy : pro.full };
+  const short = within(t.pro[ANY]?.[lane], s.budget) as TileEntry | null;
+  if (short) return { mode: "short", entry: short, price: s.mine ? short.toBuy : short.full };
   const first = t.pro[laneKey(s.target)]?.[lane]?.[0];
   return { mode: "none", cheapest: first ? (s.mine ? first.toBuy : first.full) : null };
 }
@@ -223,7 +246,9 @@ export function choice(t: Tile, s: Settings): Choice {
 export function ranked(tiles: Tile[], s: Settings): { tile: Tile; choice: Choice }[] {
   const out = tiles.map((tile) => ({ tile, choice: choice(tile, s) }));
   const key = (x: { tile: Tile; choice: Choice }) =>
-    x.choice.mode === "none" ? [1, 0, x.choice.cheapest ?? 1e9] : [0, -(x.choice.mode === "pro" ? x.choice.entry.over : 0) / (x.tile.games || 1), x.choice.price];
+    x.choice.mode === "none" ? [2, 0, x.choice.cheapest ?? 1e9]
+      : x.choice.mode === "short" ? [1, -x.choice.entry.cov, x.choice.price]
+      : [0, -(x.choice.mode === "pro" ? x.choice.entry.over : 0) / (x.tile.games || 1), x.choice.price];
   return out.sort((a, b) => {
     const ka = key(a), kb = key(b);
     return ka[0]! - kb[0]! || ka[1]! - kb[1]! || ka[2]! - kb[2]!;

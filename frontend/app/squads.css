@@ -25,6 +25,8 @@
 .sq-pill { display: inline-block; padding: 3px 7px; border-radius: 7px; font-size: 11px; font-weight: 800; letter-spacing: .12em; white-space: nowrap; background: var(--sq-pro-bg); color: var(--sq-pro-ink); }
 .sq-pill[data-mode="arena"] { background: var(--sq-arena-bg); color: var(--sq-arena-ink); }
 .sq-pill[data-mode="none"] { background: var(--hover); color: var(--ink-2); }
+.sq-pill[data-mode="short"] { background: color-mix(in srgb, var(--sq-mid) 16%, transparent); color: color-mix(in srgb, var(--sq-mid) 55%, var(--ink)); letter-spacing: .04em; }
+.sq-pill[data-mode="new"] { background: var(--ink); color: var(--surface); }
 
 /* ---- Filters ---- */
 .sq-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
@@ -58,7 +60,9 @@
 .sq-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sq-tile:active { transform: scale(.98); }
 .sq-tile[aria-current="true"] { border-color: var(--ink); background: var(--hover); }
-.sq-tile[data-tone="off"] { opacity: .6; }
+/* a club with no team inside the budget: crest and ring faded, its text still readable */
+.sq-tile[data-tone="off"] .sq-ring { opacity: .5; }
+.sq-tile[data-tone="off"] .sq-tile-text { color: var(--ink-2); }
 .sq-ring { position: relative; width: 56px; height: 56px; display: grid; place-items: center; }
 .sq-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
 .sq-ring .track { fill: none; stroke: var(--line); stroke-width: 4.5; }
@@ -96,6 +100,16 @@
 .sq-stats dt { font-size: 14px; color: var(--ink-2); }
 .sq-stats dd { margin: 0; font-size: 17px; font-weight: 700; }
 .sq-stats dd.good { color: var(--sq-good); }
+.sq-stats .sq-proof { flex-direction: column-reverse; align-items: flex-start; gap: 2px; padding-left: 18px; border-left: 2px solid var(--sq-good); }
+.sq-stats .sq-proof dt { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.sq-price-side .sq-note { font-size: 13px; color: var(--sq-mid); font-weight: 600; }
+.sq-from { margin-top: -5px; font-size: 11px; font-weight: 600; color: var(--sq-arena-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sq-new { padding: 22px 30px 26px; display: flex; flex-direction: column; gap: 14px; }
+.sq-new h2 { margin: 0; font-size: 18px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.sq-new h2 span { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.sq-new ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 12px; }
+.sq-new li { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sq-new .sq-art { opacity: .9; }
 .sq-curve { position: relative; margin: 0; padding: 16px 18px 10px; border-radius: 18px; background: var(--bg); border: 1px solid var(--line); }
 .sq-curve figcaption { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 700; margin-bottom: 6px; }
 .sq-curve figcaption span { font-size: 12px; font-weight: 500; color: var(--ink-2); }
@@ -145,7 +159,9 @@
 .sq-key i.dnp { background: var(--hover); }
 .sq-scroll { overflow-x: auto; }
 .sq-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
-.sq-strip table { width: 100%; min-width: calc(130px + var(--n) * 34px); border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+.sq-strip table { width: 100%; min-width: calc(130px + var(--n) * 54px); border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+/* a season's 38 rounds scroll sideways: the names stay in view */
+.sq-strip thead th:first-child, .sq-strip tbody th { position: sticky; left: 0; z-index: 1; background: var(--surface); }
 .sq-strip th, .sq-strip td { padding: 0; }
 .sq-strip thead th:first-child, .sq-strip tbody th { width: 130px; text-align: left; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sq-strip thead th { vertical-align: bottom; text-align: center; font-weight: 400; }
@@ -230,7 +246,7 @@
   .sq-club h1 { font-size: 21px; }
   .sq-club .sq-pill { margin-left: auto; }
   .sq-stats dt { font-size: 13px; } .sq-stats dd { font-size: 15px; }
-  .sq-team, .sq-strip, .sq-replay { padding: 18px 14px; }
+  .sq-team, .sq-strip, .sq-replay, .sq-new { padding: 18px 14px; }
   .sq-shelves { grid-template-columns: 1fr !important; gap: 18px; }
   .sq-shelf ul { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .sq-replay-bar .segmented:first-of-type { margin-left: 0; }

@@ -256,9 +256,11 @@ def reward_bars_page(db: Session = Depends(get_db)):
 
 
 @router.get("/squads/{code}", response_model=ApiResponse[dict[str, Any]])
-def squads_page(code: str, db: Session = Depends(get_db)):
-    """A league's Squads block the refresh published (LALIGA, PL, BL1, FL1). Local development only, like /sorare."""
-    row = db.get(ReadModel, f"{squads.PREFIX}{code}") if code in {c for c, _, _ in squads.LEAGUES.values()} else None
+def squads_page(code: str, season: str = "now", db: Session = Depends(get_db)):
+    """A league's Squads block the refresh published (LALIGA, PL, BL1, FL1); `season=start` the start-of-season one. Local
+    development only, like /sorare."""
+    prefix = squads.NEXT if season == "start" else squads.PREFIX
+    row = db.get(ReadModel, f"{prefix}{code}") if code in {c for c, _, _ in squads.LEAGUES.values()} else None
     if row is None:
         return ApiResponse[dict[str, Any]](success=False, error="The squads have not been written yet.")
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)

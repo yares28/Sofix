@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import SiteNav from "../../components/SiteNav";
 import SquadsView from "../../components/squads/SquadsView";
 import { loadGrid } from "../../lib/api";
-import { budgetOf, leagueOf, LEAGUES, ranked, targetOf } from "../../lib/squads";
+import { budgetOf, leagueOf, LEAGUES, ranked, seasonOf, targetOf } from "../../lib/squads";
 import { loadSquads } from "../../lib/squadsData";
 import { loadSystem } from "../../lib/system";
 
@@ -18,8 +18,9 @@ export default async function SquadsPage({ searchParams }: { searchParams: Searc
   const one = (key: string) => (typeof params[key] === "string" ? (params[key] as string) : undefined);
   const code = leagueOf(one("league"));
   const settings = { budget: budgetOf(one("budget")), target: targetOf(one("cover")), mine: one("mine") !== "0" };
+  const season = seasonOf(one("season"));
   const [data, system, { meta }] = await Promise.all([
-    loadSquads(code, (tiles) => one("club") ?? ranked(tiles, settings)[0]?.tile.club),
+    loadSquads(code, season, (tiles) => one("club") ?? ranked(tiles, settings)[0]?.tile.club),
     loadSystem(),
     loadGrid(),
   ]);
@@ -33,8 +34,11 @@ export default async function SquadsPage({ searchParams }: { searchParams: Searc
           <section className="sq-empty" role="status">
             <h1>Squads</h1>
             <p>
-              {LEAGUES.find((l) => l.code === code)?.label}&apos;s teams appear after the next refresh works them out (once a day).
+              {season === "start"
+                ? `The start of season picks each team from last season's games, which Sofix keeps for LaLiga only so far.`
+                : `${LEAGUES.find((l) => l.code === code)?.label}'s teams appear after the next refresh works them out (once a day).`}
             </p>
+            {season === "start" ? <p><a href={`/squads?league=${code}`}>See {LEAGUES.find((l) => l.code === code)?.label} now</a></p> : null}
           </section>
         )}
       </main>

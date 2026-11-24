@@ -248,6 +248,29 @@ then only new players), never linked to a lineup.
   - The club list and each club are cached apart, because the v2 LaLiga block is 1.5 MB against Next's 2 MB item limit.
   - v1 blocks still read, so production keeps working until the next refresh writes v2.
 
+**Q5 built (24 Nov 2026, committed locally, not pushed):** the Season choice, "Now" or "Start of season".
+- **The pick:** the start of season picks each club's team from last season's record (`squads_next:<code>`, written with
+  `squads:<code>` once a day). Every player at the club now counts with his own games for any club of the league last season.
+- **Rounds:** last season's games are lined up by round: weekends (Friday to Monday) and midweeks (Tuesday to Thursday) in
+  which at least half of the league's clubs played. A lone rearranged game is not a round of its own.
+- **On the page:**
+  - The team's cards say where a player came from ("from Elche").
+  - Players with no game in the league last season are shown under "New to LaLiga" and not counted.
+  - The proof: how the team, bought before the first game, did this season (its best five a game, with a game without five
+    counted as 0).
+  - A club whose best team inside the budget does not reach the target shows the coverage it does reach (Elche 76%), from an
+    extra "0.0" lane; a club that was not in the league says NEW.
+  - Before Sorare releases the season's cards (no in-season card listed at all) the price says "This season's cards are not
+    out yet: last season's prices".
+- **Real LaLiga run:** 38 rounds. Celta €4.26 to complete, 12 cards, 37 of 38 rounds with five, 315 a round. Bought that way,
+  it made 278 a game this season with five in 12 of 13 and cleared 5 Pro steps (the same numbers as the round-3 canvas).
+  Alavés €9.39 made 311 (13 of 13). Six clubs reach 90% inside €40.
+- **Who played** scrolls sideways at 54 px a round, with the names pinned.
+- **Size:** the block is 1.8 MB, and each club is cached apart.
+- **Not covered:** the Premier League, Bundesliga and Ligue 1 have no start of season yet. Sofix keeps their games only from
+  August 2026, so the page says so. Reading their 2025/26 games is a separate step for the owner to approve (extra Sorare
+  reads and stored rows).
+
 Round 4 comments (24 Nov, 19:03-19:13) still open:
 - The LaLiga logo in place of "LALIGA PRO": AGENTS.md's art rule says "no LaLiga mark", so the owner must choose.
 - The ring colours: green when the best five topped the first Pro step in at least half of the games, amber at 30%, grey below.

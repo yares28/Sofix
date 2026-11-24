@@ -709,7 +709,7 @@
     "/api/squads/{code}": {
       "get": {
         "summary": "Squads Page",
-        "description": "A league's Squads block the refresh published (LALIGA, PL, BL1, FL1). Local development only, like /sorare.",
+        "description": "A league's Squads block the refresh published (LALIGA, PL, BL1, FL1); `season=start` the start-of-season one. Local\ndevelopment only, like /sorare.",
         "operationId": "squads_page_api_squads__code__get",
         "parameters": [
           {
@@ -719,6 +719,16 @@
             "schema": {
               "type": "string",
               "title": "Code"
+            }
+          },
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "now",
+              "title": "Season"
             }
           }
         ],

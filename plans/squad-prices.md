@@ -34,6 +34,25 @@ his low score), so "all five started" is stricter than round 1's "full five with
 Celta's 5 of 13. The two-clubs board is now computed: Alavés + Levante (€38.03, two tries a matchday) cleared 11 steps for $80 +
 3,000 essence, up to 420; Alavés alone 7 steps.
 
+### Round 3 (24 Nov 2026)
+
+Where round 3 and round 2 differ, round 3 wins (the next-season numbers changed with the method below).
+
+| You said | Change |
+|---|---|
+| "This page is a wreck, it doesn't take into account the user flow and the main point" (the states board) | No separate states board. Next season and Two clubs are **the same page with its filters changed**: pick a club (or pair) in the picker, see its price and team, check who played, replay the season. Three desktop boards: Now, Next season, Two clubs. |
+| "Too bloated, too much text, too much clutter" (Pro/Arena summary) | The summary is the big number, what it won, and the board's steps (Pro) or the seven (Arena). Rows and footnotes gone. |
+| "Add a bit more of life" (cells) | A started cell wears Sorare's score colour (`frontend/lib/cards.ts` bands) with the score; came on: white with the band's outline and the minutes; did not play: a faint dot. Cells pop in; "Five starters" is a thin green/coral bar. |
+
+Next season, measured: the team is picked from **every player's own 2025/26 LaLiga record at any club, by round** (Fri–Mon and
+Tue–Thu rounds), so a signing from another LaLiga club counts with his old club's starts ("from Elche" on Febas). Players with no
+LaLiga record (from abroad or the second division) are listed as new. A club whose best team inside the budget does not reach the
+target shows its coverage instead of PRO (Elche 45%: its keeper on record started 22 of 38); promoted clubs say NEW. Celta: €31.94,
+12 cards, 37 of 38 rounds with five, 315 a round; bought that way last August it made 278 a game this season, 12 of 13 with five
+(the best team in hindsight: 319). Alavés picked the same way made 311, Levante 287, Elche 269. Two clubs is counted by round (two
+tries a round, three when a club plays twice): Alavés + Levante €38.03, 11 steps, $80 + 3,000 essence; their Arena seven from both
+clubs €15.33, paid in 4 of 15 rounds.
+
 ## 1 · What the page answers
 
 One question: **"For €X, I can field a full five every week with this team, in Pro or in the Arena."** The hero is the price; the
@@ -152,16 +171,17 @@ scrolls sideways inside its card; the Pro/Arena card stacks (chart, then summary
 
 ## 5 · Start of season (2027 cards)
 
-1. **Before the first game:** the team is picked from the whole previous season (players at the club now); new arrivals with no
-   record are listed. Sorare drops the new cards before the first game, so the price is the new cards' price from the drop.
+1. **Before the first game:** the team is picked from the whole previous season: every player at the club now, with his own
+   LaLiga record at any club, by round; players with no LaLiga record are listed as new. Sorare drops the new cards before the
+   first game, so the price is the new cards' price from the drop.
 2. **The drop:** the refresh reads `lowestPriceAnyCard(rarity: limited, inSeason: true)` for the new season; until then the board
    says "2027 cards not out yet" beside last season's price.
 3. **As games are played:** the new season's games join the record game by game; no waiting state.
 4. **Price record from today:** each refresh's prices go into a small per-league history (one number per player per day, R2 block
    `squad_prices:<league>`, a season ≈ 300 kB per league); each card then shows a price line, and next August the launch price and
    how fast it fell are measured.
-5. **Proof shown:** the team picked this way last August and how it did this season (Celta: 13 of 13 with five starters, 308 a
-   game, 5 Pro steps).
+5. **Proof shown:** the team picked this way last August and how it did this season (Celta: 12 of 13 with five starters, 278 a
+   game, 5 Pro steps, against 319 for the best team in hindsight).
 
 ## 6 · Upgrades (built with the page unless you say no)
 
@@ -190,15 +210,17 @@ the job (about a minute for LaLiga's 20 clubs in the prototype).
 
 ## 8 · Design canvas
 
-[Sofix Squads · buy a team that always plays](https://claude.ai/artifact/GnHLGGjVjHWjPZR7dZ2xh9) (round 2, 24 Nov 2026, private
-until you share it), every number from today's blocks; the Mode, Lineup, Score and page buttons work:
+[Sofix Squads · buy a team that always plays](https://claude.ai/artifact/GnHLGGjVjHWjPZR7dZ2xh9) (round 3, 24 Nov 2026, private
+until you share it), every number from today's blocks; the Mode, Lineup, Score and page buttons work. One page, three states:
 
-- **Desktop 1440, Celta, one club, now:** filters; club picker (11 clubs inside €40, Alavés first: 9 of 13 over 320); hero
-  €28.88 to complete, 11 cards, you own 6, 319 a game, money curve (€24.36 gives 287, €28.88 gives 319); the team by position; Who
-  played; the Pro/Arena card (Pro: 6 steps, $5 + 2,500 essence; Arena €24.94: paid 5 of 13 weeks, 1,500 essence).
-- **Phone 390, Elche:** picker 6 a page; hero €23.88 (you own Dituro, Chust, Valera), 332 a game, curve; team; Who played
-  (scrolls); the card opened on Arena (€10.90: paid 5 of 13, all five started 10 of 13).
-- **Before the first game and two clubs (900):** Celta picked from 2025/26 with the new arrivals and the proof; Alavés + Levante
-  against each alone, and the next pairs.
+- **1 · Now, Celta (1440):** picker (11 clubs inside €40, Alavés first: 9 of 13 over 320); hero €28.88 to complete, 11 cards,
+  you own 6, 319 a game, money curve; the team by position; Who played in Sorare colours; the Pro/Arena replay (Pro: 6 steps,
+  $5 + 2,500 essence; Arena €24.94: paid 5 of 13, 1,500 essence).
+- **2 · Next season, Celta (1440):** picker of all 20 clubs picked from 2025/26 (coverage shown where a club misses 90%, NEW for
+  promoted); hero €31.94 at the drop and the proof panel; the team with "from" tags; the new arrivals; Who played over 38 rounds;
+  the replay over 38 rounds (14 steps, $10 + 6,000 essence).
+- **3 · Two clubs, Alavés + Levante (1440):** picker of pairs; hero €38.03 and both against each alone; the team with club
+  badges; Who played per club; the replay by round with each try's crest.
+- **Phone 390, Elche:** the same page, picker 6 a page, Who played scrolls, the card opened on Arena.
 
 Not drawn yet: Any clubs (Q4), fixture run and swap a card (Q6).

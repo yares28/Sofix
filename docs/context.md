@@ -938,10 +938,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-23",
-        "note": "24 Nov 2026: the Sorare job adds the xs ahead step after game scores (plans/xs-ahead.md); plan selection unchanged",
+        "date": "2026-11-24",
+        "note": "24 Nov 2026: publish.py adds v3Shape beside the other xS versions; raw forecasts and plan selection unchanged",
         "files": {
-          "backend/app/sorare/publish.py": "1e28009dd525fa793e6ae150df8a3557ca37b838ec7f28bc000055e73c2ad092",
+          "backend/app/sorare/publish.py": "4ed3df49350d3839b58b4870ad36288b1666594693342a6e0ba9047fff709fcc",
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
@@ -1071,10 +1071,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-18",
-        "note": "Saved plan inputs replayed on two real weeks; lineup reasons covered by tests; no live week recorded yet",
+        "date": "2026-11-24",
+        "note": "24 Nov 2026: publish.py adds v3Shape beside the other xS versions; raw forecasts and plan selection unchanged",
         "files": {
-          "backend/app/sorare/publish.py": "1e28009dd525fa793e6ae150df8a3557ca37b838ec7f28bc000055e73c2ad092",
+          "backend/app/sorare/publish.py": "4ed3df49350d3839b58b4870ad36288b1666594693342a6e0ba9047fff709fcc",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
@@ -1127,11 +1127,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-18",
-        "note": "Replayed candidate cutoff handling on eight saved gameweeks; cutoff_tests and strategy_audit tracking covered by tests; no live week scored yet",
+        "date": "2026-11-24",
+        "note": "24 Nov 2026: play.ts types each game's v3Shape; rewards unchanged",
         "files": {
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
-          "frontend/lib/play.ts": "1968c916eb9d8e03e4cd6e120ef5a114fb1a08c8557b98c75ce5bd04d07930d3",
+          "frontend/lib/play.ts": "3e8c5598126eafa91bfcbe1c080f000a15f6dc8b6425532f5c699cd99e78218d",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1603,14 +1603,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-21",
-        "note": "21 Nov 2026: audit.publish also writes arcade_audit after arcade_outlook, each in its own try, rolled back on failure without touching the audit.",
+        "date": "2026-11-24",
+        "note": "24 Nov 2026: test_sofix_v1 adds the v3Shape publishing test; audit evidence unchanged",
         "files": {
           "backend/app/sorare/player_audit.py": "3436b64cf197d937aefbd51a213af0e28c396ebab23ff8b883e52091bea89427",
           "backend/app/sorare/audit.py": "bc144f790b3b24f3b99356f100acf2ba4dc12e45f6e3281a78d874eaaf6398cc",
           "backend/app/sorare/versus.py": "ccbb0ca8f680bef6a82e9671fce559678ec1cf3d984aebb4cf30bd5e682c6879",
           "backend/tests/test_player_audit.py": "2712237e9be35154a26790e59acceaeeb6c921ca0fd1b5990f0f47f7e42f2a63",
-          "backend/tests/test_sofix_v1.py": "9a058692e85a1e68e80fe6e3e9498b9d63a0244427cc393d4cdc0d6bbca71d46"
+          "backend/tests/test_sofix_v1.py": "9ea44c75545f0004bbbd35e30f578465e537e02202e86829b70e13ec21a3c3d6"
         }
       }
     },

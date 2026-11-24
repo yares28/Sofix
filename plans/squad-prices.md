@@ -204,6 +204,16 @@ scrolls sideways inside its card; the Pro/Arena card stacks (chart, then summary
 | Q5 | Next season: previous season's record, new arrivals, the proof, drop prices | the Season dropdown | test with a fake drop date |
 | Q6 | Fixture run, swap a card | on the page | test; look |
 
+**Q1 built (24 Nov 2026, committed locally, not pushed):** `backend/app/sorare/squads.py`, called by the refresh's Sorare step once
+a day (not in quick runs), publishes `squads:LALIGA`, `squads:PL`, `squads:BL1`, `squads:FL1`. Each club: its games (opponent and
+crest), the players its teams use (price, owned, card art, per game started/came on/did not play, score, minutes), the Pro teams as
+frontiers for each target (70/80/90/100%) both ways (full price, your cards free: `from` = the budget a team applies from), each
+team's per-game best/median/average five, Sofix's pick (scored and said) and the ladder on your Limited board for its league, and
+the Arena sevens as frontiers with their series, subs and all-five-started. Keeper candidates widened to three (Rayo now gets a
+team). On today's blocks: 76 clubs in about 95 s; LaLiga ~1 MB, PL 0.7, BL1 0.6, FL1 0.7 MB; Celta €28.88 / 319, Elche €23.88 / 332,
+Alavés €27.97 / 326, the canvas's numbers. Ligue 1 has no Arena prize lines (no Ligue 1 Limited competition in `reward_bars`), and
+a league without your Limited Pro board has no ladder. Tests: `backend/tests/test_squads.py`.
+
 Limits: the Sorare price read is one `anyPlayer` alias per player in batches (keyless 500 complexity), only for players in a
 published team (≈ 20 a club, ≈ 1,600 for four leagues), once a day; nothing on page view. No new Neon table. The search runs in
 the job (about a minute for LaLiga's 20 clubs in the prototype).

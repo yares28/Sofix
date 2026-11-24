@@ -65,6 +65,7 @@ from app.sorare import (
     score_fixes,
     scores,
     sofix_v1,
+    squads,
     start_fixes,
     starts,
 )
@@ -968,24 +969,49 @@ def run(
     put(db, REFERENCES_KEY, snapshot["references"], now)
     # The Targets page: each competition's score to be paid anything, averaged over the finished weeks just saved. Unchanged
     # payloads are not rewritten (`put`), so it moves when a finished gameweek's cut-offs arrive.
-    optional(
+    bars: dict[str, Any] | None = optional(
         db,
         failed,
         "reward bars",
-        lambda: put(
-            db,
-            reward_bars.KEY,
-            reward_bars.build(
-                snapshot["references"],
-                snapshot.get("competitions") or {},
-                snapshot.get("pro"),
-                (row.payload if (row := kept_blocks.read(db, reward_bars.KEY)) else None),
-                reward_bars.entered([(r.key, r.payload) for r in kept_blocks.rows(db, *reward_bars.SAVED)]),
-            ),
-            now,
+        lambda: reward_bars.build(
+            snapshot["references"],
+            snapshot.get("competitions") or {},
+            snapshot.get("pro"),
+            (row.payload if (row := kept_blocks.read(db, reward_bars.KEY)) else None),
+            reward_bars.entered([(r.key, r.payload) for r in kept_blocks.rows(db, *reward_bars.SAVED)]),
         ),
         None,
     )
+    if bars is not None:
+        optional(db, failed, "reward bars", lambda: put(db, reward_bars.KEY, bars, now), None)
+    # Squads: what a club team that plays every week costs, per league (plans/squad-prices.md). Once a day, not near a lock.
+    if not quick and squads.due(db, now):
+        squads_made = optional(
+            db,
+            failed,
+            "squads",
+            lambda: squads.publish(
+                db,
+                now,
+                markets={
+                    "laliga-es": payload.get("market") or [],
+                    **{
+                        league: squads.foreign_rows(
+                            (snapshot.get("foreign") or {}).get(code) or foreign_kept.get(f"league_squads:{code}")
+                        )
+                        for code, league in squads.FOREIGN.items()
+                    },
+                },
+                collection=payload.get("collection") or [],
+                art=art.urls if art else {},
+                raw_boards=snapshot.get("pro"),
+                bars=bars,
+            ),
+            None,
+        )
+        if squads_made:
+            summary["squads"] = squads_made
+    laps("squads")
     if (
         snapshot.get("expected") or {}
     ) != templates:  # a finished week never changes: write only when a new one became the template

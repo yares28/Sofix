@@ -829,6 +829,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/sorare-data-repair.md` | [open](../plans/sorare-data-repair.md) |
 | document (check authority) | `plans/sorare-repair-2026-10-09.md` | [open](../plans/sorare-repair-2026-10-09.md) |
 | document (check authority) | `plans/sorare-start-chances.md` | [open](../plans/sorare-start-chances.md) |
+| document (check authority) | `plans/squad-prices.md` | [open](../plans/squad-prices.md) |
 | document (check authority) | `plans/strategies-decision-board.md` | [open](../plans/strategies-decision-board.md) |
 | document (check authority) | `plans/strategies-podium-charts.md` | [open](../plans/strategies-podium-charts.md) |
 | document (check authority) | `plans/unshipped-commit-review.md` | [open](../plans/unshipped-commit-review.md) |
@@ -939,13 +940,13 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-24",
-        "note": "24 Nov 2026: publish.py adds v3Shape beside the other xS versions; raw forecasts and plan selection unchanged",
+        "note": "24 Nov 2026: the Sorare job builds the reward bars payload once and, once a day outside quick runs, publishes squads:<league> (backend/app/sorare/squads.py, plans/squad-prices.md Q1) after it; plan selection unchanged",
         "files": {
           "backend/app/sorare/publish.py": "4ed3df49350d3839b58b4870ad36288b1666594693342a6e0ba9047fff709fcc",
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "d632b1ddbb76fb9af0817bafeff04bb0f78c909d9d9c0d9cbc01d33c01bda7ec",
+          "backend/app/jobs/sorare.py": "3d0549ac3d2057575aca4dcf0c4e2e896bb914b635c5f8be626bbed55d1ddf69",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
         }

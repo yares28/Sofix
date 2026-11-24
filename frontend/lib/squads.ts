@@ -21,16 +21,20 @@ const entry = z.object({ id: z.number().int(), from: z.number() });
 const lanes = z.object({ full: z.array(entry), owned: z.array(entry) });
 const player = z.object({
   name: z.string(), pos: z.enum(["GK", "DEF", "MID", "FWD"]), eur: z.number(), owned: z.boolean(), art: z.string().nullable(),
+  // v2 (Q3): eur is the cheapest listing when `listed`, else the market value; `classic` the cheapest listed classic card
+  listed: z.boolean().default(false), classic: z.number().nullable().default(null), ownedClassic: z.boolean().default(false),
   played: z.string(), scores: z.array(z.number()), mins: z.array(z.number()),
 });
+// The one classic card a team buys (Sorare lets an in-season lineup take one): for the full price, and with your cards counted.
+const classicOf = { classic: z.string().nullable().default(null), classicToBuy: z.string().nullable().default(null) };
 const team = z.object({
   id: z.number().int(), cards: z.array(z.string()), full: z.number(), toBuy: z.number(), mean: z.number(), cov: z.number(),
-  over: z.number().int(), ...series,
+  over: z.number().int(), ...series, ...classicOf,
   ladder: z.object({ clears: z.number(), cash: z.number(), essence: z.number(), top: z.number() }).nullable(),
 });
 const seven = z.object({
   id: z.number().int(), gk: z.string(), outs: z.array(z.string()), gsub: z.string().nullable(), osub: z.string().nullable(),
-  full: z.number(), toBuy: z.number(), mean: z.number(), started: z.number(), ...series,
+  full: z.number(), toBuy: z.number(), mean: z.number(), started: z.number(), ...series, ...classicOf,
   subIn: z.array(z.boolean()), allStarted: z.array(z.boolean()),
 });
 const game = z.object({ id: z.string(), date: z.string(), home: z.boolean(), opponent: z.string(), crest: z.string().nullable() });
@@ -39,7 +43,7 @@ const club = z.object({
   teams: z.array(team), pro: z.record(z.string(), lanes), sevens: z.array(seven), arena: z.object({ full: z.array(entry), owned: z.array(entry) }).partial(),
 });
 const block = z.object({
-  version: z.literal(1), generatedAt: z.string(), league: z.string(), code: z.string(), name: z.string(), season: z.number().int(),
+  version: z.union([z.literal(1), z.literal(2)]), generatedAt: z.string(), league: z.string(), code: z.string(), name: z.string(), season: z.number().int(),
   targets: z.array(z.number()), captain: z.number(),
   board: z.array(z.object({ target: z.number(), cash: z.number(), essence: z.number() })).nullable(),
   arenaLines: z.array(z.object({ score: z.number(), cash: z.number(), essence: z.number() })),
@@ -57,6 +61,11 @@ export type Line = { score: number; cash: number; essence: number };
 
 export function readable(raw: unknown): SquadsBlock | null {
   const parsed = block.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
+export function readableClub(raw: unknown): SquadClub | null {
+  const parsed = club.safeParse(raw);
   return parsed.success ? parsed.data : null;
 }
 

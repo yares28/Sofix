@@ -823,7 +823,10 @@ with his score in Sorare's colours, came on with his minutes, or did not play) a
 cleared and won) or the Arena (the weeks a prize was reached), by the best, median or average five in hindsight or by Sofix's xS
 before kickoff. The team is the best real score inside the budget, not the cheapest (plans/squad-prices.md); the refresh works it out
 once a day (read models `squads:LALIGA`, `squads:PL`, `squads:BL1`, `squads:FL1`). The address keeps league, club, budget, target
-and cards.
+and cards. Prices are what the cards cost now: the cheapest listed Limited card, or Sorare's market value marked "est." when none
+is listed. A team may hold one classic card (Sorare allows one per in-season lineup), the one that saves most, tagged "Classic";
+a classic card of yours fills that place for nothing. Each day's prices are kept (`squad_prices:<code>`). Tap a point on the curve
+to see the team at that price.
 
 ## 10a. Missions
 

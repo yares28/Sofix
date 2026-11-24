@@ -105,8 +105,12 @@
 .sq-curve .budget { stroke: var(--ink-3); stroke-dasharray: 3 4; }
 .sq-curve .area { fill: color-mix(in srgb, var(--sq-good) 9%, transparent); }
 .sq-curve .line { fill: none; stroke: var(--sq-good); stroke-width: 2.5; stroke-linejoin: round; }
-.sq-curve .dot { fill: var(--surface); stroke: var(--sq-good); stroke-width: 2; }
-.sq-curve .dot.on { fill: var(--sq-good); }
+.sq-curve .dot { fill: var(--surface); stroke: var(--sq-good); stroke-width: 2; transition: r .2s cubic-bezier(.2,.8,.2,1), fill .2s; }
+.sq-curve .pt { cursor: pointer; outline: none; }
+.sq-curve .pt .hit { fill: transparent; }
+.sq-curve .pt:hover .dot, .sq-curve .pt:focus-visible .dot { r: 6px; fill: color-mix(in srgb, var(--sq-good) 30%, var(--surface)); }
+.sq-curve .pt:focus-visible .hit { stroke: var(--ink); stroke-width: 1.5; }
+.sq-curve .pt.on .dot { fill: var(--sq-good); }
 
 /* ---- The team ---- */
 .sq-team { padding: 26px 30px 30px; display: flex; flex-direction: column; gap: 18px; }
@@ -119,6 +123,8 @@
 .sq-art:hover { transform: translateY(-3px); }
 .sq-art .s5-art-fallback { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 700; color: var(--ink-2); }
 .sq-own { position: absolute; top: 7px; left: 7px; z-index: 2; padding: 3px 7px; border-radius: 999px; background: rgba(26,122,78,.95); color: #fff; font-size: 11px; font-weight: 700; }
+.sq-classic { position: absolute; right: 7px; bottom: 7px; z-index: 2; padding: 3px 7px; border-radius: 999px; background: rgba(17,20,32,.82); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .02em; backdrop-filter: blur(4px); }
+.sq-meta s small { font-size: 11px; font-weight: 500; color: var(--ink-2); }
 .sq-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sq-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; font-size: 11px; color: var(--ink-2); white-space: nowrap; }
 .sq-meta s { text-decoration: none; font-size: 13px; font-weight: 700; color: var(--ink); }
@@ -166,7 +172,7 @@
 .sq-modes button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 .sq-modes button:disabled { opacity: .45; cursor: default; }
 .sq-modes button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.sq-replay-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; }
+.sq-replay-body { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; align-items: stretch; }
 .sq-sum { display: flex; flex-direction: column; gap: 6px; padding-right: 24px; border-right: 1px solid var(--line); }
 .sq-sum > b { font-size: 72px; line-height: .9; font-weight: 800; letter-spacing: -.04em; }
 .sq-sum > span { font-size: 15px; font-weight: 600; }
@@ -180,7 +186,7 @@
 .sq-mini li { position: relative; aspect-ratio: 771 / 1248; border-radius: 6px; overflow: hidden; background: var(--hover); }
 .sq-mini li[data-sub] { opacity: .6; }
 .sq-chart { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.sq-plot { position: relative; height: 250px; padding-top: 24px; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 10px; align-items: end; }
+.sq-plot { position: relative; height: 360px; padding-top: 24px; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 10px; align-items: end; }
 .sq-chart[data-dense] .sq-plot, .sq-chart[data-dense] .sq-axis { gap: 3px; }
 .sq-col { position: relative; height: 100%; display: flex; align-items: flex-end; gap: 2px; }
 .sq-bar-wrap { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; }
@@ -233,7 +239,7 @@
   .sq-replay-body { grid-template-columns: 1fr; gap: 16px; }
   .sq-sum { padding: 0 0 14px; border-right: 0; border-bottom: 1px solid var(--line); }
   .sq-sum > b { font-size: 52px; }
-  .sq-plot { height: 180px; gap: 3px; }
+  .sq-plot { height: 240px; gap: 3px; }
   .sq-axis { gap: 3px; }
   .sq-bar-v, .sq-line span { display: none; }
   .sq-axis b { font-size: 10px; }

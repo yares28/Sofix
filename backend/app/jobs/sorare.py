@@ -648,6 +648,21 @@ def run(
             for code in squads.FOREIGN
         }
         others = {row["slug"]: code for code, rows in foreign_squads.items() for row in rows if row.get("slug")}
+        # Squads' buy-now prices, once a day with its search (a few questions for the four leagues).
+        no_prices: dict[str, squads.Price] = {}
+        squad_prices = (
+            optional(
+                db,
+                failed,
+                "squad prices",
+                lambda: squads.prices(
+                    client, [*(r["slug"] for r in snapshot.get("market") or [] if r.get("slug")), *others]
+                ),
+                no_prices,
+            )
+            if not quick and squads.due(db, started)
+            else no_prices
+        )
         art: card_art.Art | None = optional(
             db,
             failed,
@@ -1013,6 +1028,7 @@ def run(
                 art=art.urls if art else {},
                 raw_boards=snapshot.get("pro"),
                 bars=bars,
+                today=squad_prices,
             ),
             None,
         )

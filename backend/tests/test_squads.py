@@ -49,9 +49,26 @@ def market(slug: str, pos: str, eur: float, club: str = "Club A") -> dict:
     }
 
 
-def club_of(rows: list[tuple[dict, list[str | None]]], owned: frozenset[str] = frozenset(), club: str = "Club A"):
+def club_of(
+    rows: list[tuple[dict, list[str | None]]],
+    owned: frozenset[str] = frozenset(),
+    club: str = "Club A",
+    *,
+    prices: dict | None = None,
+    owned_classic: frozenset[str] = frozenset(),
+):
     games = {m["slug"]: games_for(club, plays) for m, plays in rows}
-    return squads.club(club, [m for m, _ in rows], games, LEAGUE, NOW, owned=owned, art={})
+    return squads.club(
+        club,
+        [m for m, _ in rows],
+        games,
+        LEAGUE,
+        NOW,
+        owned=owned,
+        art={},
+        prices=prices or {},
+        owned_classic=owned_classic,
+    )
 
 
 ALL = ["S50"] * 6
@@ -178,3 +195,69 @@ def test_the_league_block_is_json_and_lists_each_target_and_both_prices():
         "xsExp",
         "ladder",
     }
+
+
+# ---- Q3: buy-now prices, one classic card, the price record
+
+
+def offer(eur_cents: int | None = None, usd_cents: int | None = None) -> dict:
+    return {
+        "liveSingleSaleOffer": {"receiverSide": {"amounts": {"eurCents": eur_cents, "usdCents": usd_cents}}},
+        "livePrimaryOffer": None,
+    }
+
+
+def test_buy_now_prices_are_the_cheapest_listings_in_euros_and_the_market_value_when_none_is_listed():
+    answer = {
+        "players": [
+            {
+                "slug": "aspas",
+                "ins": offer(54),
+                "cla": offer(44),
+                "commonPlayer": {"a": {"eurCents": 395}, "b": {"eurCents": 14}},
+            },
+            {"slug": "alonso", "ins": offer(usd_cents=220), "cla": None, "commonPlayer": {"a": {"eurCents": 409}}},
+        ],
+        "config": {"exchangeRate": {"ethRates": {"eurCents": 150000, "usdCents": 165000}}},
+    }
+    out = squads.read_prices(answer)
+    assert out["aspas"] == {"in": 0.54, "inEst": 3.95, "cl": 0.44}
+    assert out["alonso"] == {"in": 2.0, "inEst": 4.09, "cl": None}  # $2.20 at Sorare's rates; no classic listed
+
+
+def test_the_team_costs_what_its_cards_are_listed_at_and_falls_back_to_the_market_value():
+    rows = base_rows()
+    prices = {"keeper": {"in": 1.0, "inEst": 5.0, "cl": None}, "back": {"in": None, "inEst": 3.0, "cl": None}}
+    c = club_of(rows, prices=prices)
+    assert c.players["keeper"].eur == 1.0 and c.players["keeper"].listed
+    assert c.players["back"].eur == 3.0 and not c.players["back"].listed
+    team = squads.pick(c.pro, budget=100, target=1.0, owned=False)
+    assert team.full == 1.0 + 3.0 * 4
+
+
+def test_one_classic_card_at_most_the_one_that_saves_most():
+    # Sorare: an in-season lineup takes at most one classic card. Two cheap classics: only the bigger saving counts.
+    rows = base_rows()
+    prices = {"back": {"in": 3.0, "inEst": 3.0, "cl": 0.5}, "mid": {"in": 3.0, "inEst": 3.0, "cl": 1.0}}
+    c = club_of(rows, prices=prices)
+    team = squads.pick(c.pro, budget=100, target=1.0, owned=False)
+    assert team.full == 5.0 + 3.0 * 4 - 2.5
+    assert squads.classic_of(c, team.cards, owned=False) == "back"
+
+
+def test_a_classic_card_you_own_fills_the_classic_place_for_nothing():
+    rows = base_rows()
+    c = club_of(rows, prices={"back": {"in": 3.0, "inEst": 3.0, "cl": 0.5}}, owned_classic=frozenset({"striker"}))
+    team = squads.pick(c.pro, budget=100, target=1.0, owned=True)
+    assert team.cost == 5.0 + 3.0 * 3  # the striker's classic is yours: one classic place, used by him
+    assert squads.classic_of(c, team.cards, owned=True) == "striker"
+
+
+def test_the_price_record_keeps_one_price_a_player_a_day():
+    day1 = squads.record(None, {"aspas": {"in": 0.54, "inEst": 3.95, "cl": 0.44}}, NOW)
+    day1 = squads.record(day1, {"aspas": {"in": 0.6, "inEst": 3.95, "cl": 0.44}}, NOW + timedelta(hours=3))  # same day
+    day2 = squads.record(day1, {"saka": {"in": None, "inEst": 9.0, "cl": None}}, NOW + timedelta(days=1))
+    assert day2["days"] == ["2026-11-24", "2026-11-25"]
+    assert day2["in"] == {"aspas": [60, None], "saka": [None, 900]}  # cents; an estimate when nothing is listed
+    assert day2["listed"] == {"aspas": [True, None], "saka": [None, False]}
+    assert day2["cl"] == {"aspas": [44, None], "saka": [None, None]}

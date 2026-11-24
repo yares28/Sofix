@@ -9,7 +9,10 @@ For each club of LaLiga, the Premier League, the Bundesliga and Ligue 1, from th
 - **Arena** is entered before the teamsheets: seven cards (five, a keeper sub and an outfield sub), where a sub only
   comes in for a player who did not play at all. Its team is the best average score inside the budget.
 
-Prices are Sorare's Limited in-season market value; with "count my cards" a card the owner already has costs nothing.
+Prices (Q3) are what the cards cost now: the cheapest listed Limited card of each player (`lowestPriceAnyCard`), Sorare's market
+value when none is listed ("est."). Sorare lets an in-season lineup take one classic card (an older season's, often far cheaper):
+a team buys at most one, the one that saves most, so every five it fields is allowed. With "count my cards" a card the owner
+already has costs nothing, and a classic card of his can be that one. Each day's prices are kept (`squad_prices:<code>`).
 Each club's teams are published as frontiers (cheapest first): the page takes the last one whose `from` fits the budget,
 so it never searches. Per team, each game's best, median and average five (hindsight) and Sofix's pick before kickoff
 (what it scored and what xS said) where Sofix saved its numbers. Runs once a day in the refresh's Sorare step.
@@ -35,13 +38,16 @@ from app.services import kept_blocks
 from app.services.publish import put
 from app.services.timeutil import as_utc
 from app.sorare import games_mirror
+from app.sorare.client import SorareClient, SorareError
 from app.sorare.player_games import season_start
 from app.sorare.pro import _prize
+from app.sorare.sync import _asking
 
 logger = logging.getLogger(__name__)
 
 PREFIX = "squads:"
-VERSION = 1
+PRICES = "squad_prices:"
+VERSION = 2
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 OUTFIELD = ("DEF", "MID", "FWD")
 TARGETS = (0.7, 0.8, 0.9, 1.0)
@@ -61,6 +67,23 @@ LEAGUES = {
     "ligue-1-fr": ("FL1", "Ligue 1", "Ligue 1"),
 }
 FOREIGN = {"PL": "premier-league-gb-eng", "BL1": "bundesliga-de", "FL1": "ligue-1-fr"}
+_OFFER = (
+    "liveSingleSaleOffer { receiverSide { amounts { eurCents gbpCents usdCents wei } } } "
+    "livePrimaryOffer { price { eurCents gbpCents usdCents wei } }"
+)
+PRICE_QUERY = (
+    "query($s:[String!]!){ players(slugs: $s) { slug ... on Player { "
+    f"ins: lowestPriceAnyCard(rarity: limited, inSeason: true) {{ {_OFFER} }} "
+    f"cla: lowestPriceAnyCard(rarity: limited, inSeason: false) {{ {_OFFER} }} "
+    "commonPlayer(rarity: limited) { a: marketValue(rarity: limited, seasonEligibility: IN_SEASON) { eurCents } } } } "
+    "config { exchangeRate { ethRates { eurCents gbpCents usdCents } } } }"
+)
+"""One `players(slugs:)` root (Sorare refuses a root field twice): each player's cheapest listed in-season and classic Limited
+card and his in-season market value. A player costs about 40 of the complexity a question may have: 500 without a key, 30000
+with one (read 24 Nov 2026)."""
+PRICE_BATCH = (12, 600)
+
+Price = dict[str, float | None]  # in: listed in-season euros, inEst: in-season market value, cl: listed classic euros
 
 Step = tuple[int, float, int]  # target, cash, essence
 
@@ -70,7 +93,7 @@ class Player:
     slug: str
     name: str
     pos: str
-    eur: float
+    eur: float  # an in-season card now: its cheapest listing, else Sorare's market value
     owned: bool
     art: str | None
     starts: np.ndarray
@@ -78,10 +101,22 @@ class Player:
     mins: np.ndarray
     scores: np.ndarray
     xs: np.ndarray
+    listed: bool = False
+    classic: float | None = None  # the cheapest listed classic card, None when none is for sale
+    owned_classic: bool = False
 
     @property
     def cost(self) -> float:
         return 0.0 if self.owned else self.eur
+
+    def saving(self, owned: bool) -> float:
+        """What buying him as the team's one classic card saves: his own classic is free when your cards count, and an
+        in-season card of his you own saves nothing more."""
+        if owned and self.owned:
+            return 0.0
+        if owned and self.owned_classic:
+            return self.eur
+        return max(0.0, self.eur - self.classic) if self.classic is not None else 0.0
 
     @property
     def rank(self) -> float:
@@ -152,6 +187,8 @@ def club(
     *,
     owned: frozenset[str],
     art: Mapping[str, str],
+    prices: Mapping[str, Price] | None = None,
+    owned_classic: frozenset[str] = frozenset(),
 ) -> Club | None:
     """A club's players over its finished league games of the season; a player counts only his games for this club."""
     since = season_start(now)
@@ -180,11 +217,16 @@ def club(
     for r in rows:
         if r["slug"] not in played:
             continue
+        price = (prices or {}).get(r["slug"]) or {}
+        listed = price.get("in")
         p = Player(
             slug=r["slug"],
             name=r.get("name") or r["slug"],
             pos=r["pos"],
-            eur=float(r["eur"]),
+            eur=float(listed if listed is not None else price.get("inEst") or r["eur"]),
+            listed=listed is not None,
+            classic=price.get("cl"),
+            owned_classic=r["slug"] in owned_classic,
             owned=r["slug"] in owned,
             art=art.get(r["slug"]) or (r.get("pic") if "/card/" in (r.get("pic") or "") else None),
             starts=np.zeros(n, bool),
@@ -234,6 +276,7 @@ def pro_search(c: Club) -> Search | None:
     n = len(c.games)
     combos: dict[str, list[tuple[str, ...]]] = {}
     arrays: dict[str, tuple[np.ndarray, ...]] = {}
+    saves: dict[str, tuple[np.ndarray, np.ndarray]] = {}  # each combo's biggest classic saving, both ways
     for q in POSITIONS:
         ranked = sorted((p for p in c.players.values() if p.pos == q), key=lambda p: -p.rank)[: CANDIDATES[q]]
         cs = [x for r in SIZES[q] if r <= len(ranked) for x in itertools.combinations(ranked, r)]
@@ -247,8 +290,14 @@ def pro_search(c: Club) -> Search | None:
             np.array([sum(p.eur for p in x) for x in cs]),
             np.array([sum(p.cost for p in x) for x in cs]),
         )
+        saves[q] = (
+            np.array([max(p.saving(False) for p in x) for x in cs]),
+            np.array([max(p.saving(True) for p in x) for x in cs]),
+        )
     f1, f2, ffull, fown = arrays["FWD"]
     m1, m2, mfull, mown = arrays["MID"]
+    fm_save_full = np.maximum(saves["FWD"][0][:, None], saves["MID"][0][None, :])
+    fm_save_own = np.maximum(saves["FWD"][1][:, None], saves["MID"][1][None, :])
     nf, nm = len(f1), len(m1)
     fi, mi = np.meshgrid(np.arange(nf), np.arange(nm), indexing="ij")
     fm_full = ffull[:, None] + mfull[None, :]
@@ -269,8 +318,10 @@ def pro_search(c: Club) -> Search | None:
             total = g1 + d1 + fm_sum + extra + CAPTAIN * np.maximum(fm_top, np.maximum(g1, d1))
             mean.append(np.where(ok, total, 0.0).mean(axis=-1).ravel())
             cov.append(ok.mean(axis=-1).ravel())
-            full.append((gfull[gi] + dfull[di] + fm_full).ravel())
-            own.append((gown[gi] + down[di] + fm_own).ravel())
+            save_full = np.maximum(fm_save_full, max(saves["GK"][0][gi], saves["DEF"][0][di]))
+            save_own = np.maximum(fm_save_own, max(saves["GK"][1][gi], saves["DEF"][1][di]))
+            full.append((gfull[gi] + dfull[di] + fm_full - save_full).ravel())
+            own.append((gown[gi] + down[di] + fm_own - save_own).ravel())
             idx.append(np.stack([np.full(nf * nm, gi), np.full(nf * nm, di), mi.ravel(), fi.ravel()], axis=1))
     return Search(
         combos=combos,
@@ -311,6 +362,12 @@ def pick(search: Search | None, *, budget: float, target: float, owned: bool) ->
         return None
     r = front[-1][0]
     return Team(search.cards(r), float(cost[r]), float(search.full[r]), float(search.mean[r]), float(search.cov[r]))
+
+
+def classic_of(c: Club, cards: Iterable[str], *, owned: bool) -> str | None:
+    """The team's one classic card: the member whose classic saves most (None when none saves anything)."""
+    best = max((c.players[s] for s in cards), key=lambda p: p.saving(owned), default=None)
+    return best.slug if best is not None and best.saving(owned) > 0 else None
 
 
 def _five_ok(five: Iterable[Player]) -> bool:
@@ -416,9 +473,9 @@ def arena_search(c: Club) -> list[tuple[Seven, float, float, float, float]]:
                 scores, _, started, _ = _arena(c, seven)
                 mean = float((scores.sum(axis=1) + CAPTAIN * scores.max(axis=1)).mean())
                 members = [c.players[s] for s in seven.cards]
-                tried.append(
-                    (seven, sum(p.eur for p in members), sum(p.cost for p in members), mean, float(started.mean()))
-                )
+                full = sum(p.eur for p in members) - max(p.saving(False) for p in members)
+                own = sum(p.cost for p in members) - max(p.saving(True) for p in members)
+                tried.append((seven, full, own, mean, float(started.mean())))
     return tried
 
 
@@ -489,6 +546,9 @@ def _player_out(p: Player) -> dict[str, Any]:
         "name": p.name,
         "pos": p.pos,
         "eur": round(p.eur, 2),
+        "listed": p.listed,
+        "classic": round(p.classic, 2) if p.classic is not None else None,
+        "ownedClassic": p.owned_classic,
         "owned": p.owned,
         "art": p.art,
         "played": "".join("S" if s else "B" if b else "-" for s, b in zip(p.starts, p.played, strict=True)),
@@ -511,6 +571,8 @@ def club_block(c: Club, board: list[Step] | None, captain: float) -> dict[str, A
                 "cards": list(cards),
                 "full": round(float(full), 2),
                 "toBuy": round(float(cost_owned), 2),
+                "classic": classic_of(c, cards, owned=False),
+                "classicToBuy": classic_of(c, cards, owned=True),
                 "mean": round(float(mean), 1),
                 "cov": round(float(cov), 3),
                 "over": sum(1 for v in s["best"] if v is not None and board and v >= board[0][0]),
@@ -550,6 +612,8 @@ def club_block(c: Club, board: list[Step] | None, captain: float) -> dict[str, A
                         "osub": seven.osub,
                         "full": round(float(full), 2),
                         "toBuy": round(float(own), 2),
+                        "classic": classic_of(c, seven.cards, owned=False),
+                        "classicToBuy": classic_of(c, seven.cards, owned=True),
                         "mean": round(float(mean), 1),
                         "started": round(float(started), 3),
                         **arena_series(c, seven, captain),
@@ -580,13 +644,17 @@ def league_block(
     board: list[Step] | None,
     lines: list[dict[str, Any]],
     captain: float = CAPTAIN,
+    prices: Mapping[str, Price] | None = None,
+    owned_classic: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     by_club: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
         if r.get("club"):
             by_club[r["club"]].append(r)
     clubs = [
-        x for name, rs in sorted(by_club.items()) if (x := club(name, rs, games, league, now, owned=owned, art=art))
+        x
+        for name, rs in sorted(by_club.items())
+        if (x := club(name, rs, games, league, now, owned=owned, art=art, prices=prices, owned_classic=owned_classic))
     ]
     crests = {x.own: (x.name, x.crest) for x in clubs}
     out = []
@@ -641,6 +709,69 @@ def load_games(db: Session, players: set[str], since: datetime) -> dict[str, lis
     return out
 
 
+def read_prices(answer: Mapping[str, Any]) -> dict[str, Price]:
+    """`PRICE_QUERY`'s answer by player, in euros: a listing in another currency goes through Sorare's own rates."""
+    eth = ((answer.get("config") or {}).get("exchangeRate") or {}).get("ethRates") or {}
+    out: dict[str, Price] = {}
+    for p in answer.get("players") or []:
+        if not isinstance(p, dict) or not p.get("slug"):
+            continue
+        ins, cla = (_asking(p[k], eth) if isinstance(p.get(k), dict) else None for k in ("ins", "cla"))
+        est = (((p.get("commonPlayer") or {}).get("a")) or {}).get("eurCents")
+        out[p["slug"]] = {
+            "in": ins / 100 if ins is not None else None,
+            "inEst": est / 100 if isinstance(est, int | float) else None,
+            "cl": cla / 100 if cla is not None else None,
+        }
+    return out
+
+
+def prices(client: SorareClient, slugs: Iterable[str]) -> dict[str, Price]:
+    """Today's prices of these players, as far as Sorare answers: a batch it refuses is left out (its players fall back to
+    the market value already published)."""
+    names = sorted(set(slugs))
+    size = PRICE_BATCH[1] if getattr(client, "api_key", "") else PRICE_BATCH[0]
+    out: dict[str, Price] = {}
+    for i in range(0, len(names), size):
+        try:
+            out |= read_prices(client.query(PRICE_QUERY, {"s": names[i : i + size]}))
+        except (SorareError, KeyError, TypeError) as error:
+            logger.warning("squads: %d prices not answered: %s", len(names[i : i + size]), error)
+    return out
+
+
+def _cents(v: float | None) -> int | None:
+    return round(v * 100) if v is not None else None
+
+
+def record(prior: Mapping[str, Any] | None, today: Mapping[str, Price], now: datetime) -> dict[str, Any]:
+    """The league's price record: one price a player a day in cents (`in`: listed, else the market value, with `listed`
+    saying which; `cl`: listed classic), the same day's later read replacing the earlier one."""
+    day = now.date().isoformat()
+    old = dict(prior or {})
+    days = list(old.get("days") or [])
+    if days and days[-1] == day:
+        days.pop()
+        old = {k: {s: v[:-1] for s, v in (old.get(k) or {}).items()} for k in ("in", "listed", "cl")}
+    n = len(days)
+    out: dict[str, Any] = {"days": [*days, day]}
+    for key in ("in", "listed", "cl"):
+        series = {s: list(v) + [None] * (n - len(v)) for s, v in (old.get(key) or {}).items()}
+        for s in set(series) | set(today):
+            p = today.get(s)
+            if p is None:
+                value: Any = None
+            elif key == "in":
+                value = _cents(p.get("in") if p.get("in") is not None else p.get("inEst"))
+            elif key == "listed":
+                value = p.get("in") is not None
+            else:
+                value = _cents(p.get("cl"))
+            series[s] = [*series.get(s, [None] * n), value]
+        out[key] = series
+    return out
+
+
 def due(db: Session, now: datetime) -> bool:
     row = kept_blocks.read(db, f"{PREFIX}LALIGA")
     at = (row.payload or {}).get("generatedAt") if row and isinstance(row.payload, dict) else None
@@ -656,12 +787,14 @@ def publish(
     art: Mapping[str, str],
     raw_boards: list[dict[str, Any]] | None,
     bars: Mapping[str, Any] | None,
+    today: Mapping[str, Price] | None = None,
     write: bool = True,
 ) -> dict[str, Any]:
-    """`markets`: league slug -> its players' rows (slug, name, pos, club, crest, eur, pic). Writes `squads:<code>`."""
-    owned = frozenset(
-        c["player"] for c in collection if c.get("inSeason") and c.get("rarity") == "limited" and c.get("player")
-    )
+    """`markets`: league slug -> its players' rows (slug, name, pos, club, crest, eur, pic); `today`: their prices
+    (`prices`). Writes `squads:<code>` and adds the day to `squad_prices:<code>`."""
+    limited = [c for c in collection if c.get("rarity") == "limited" and c.get("player")]
+    owned = frozenset(c["player"] for c in limited if c.get("inSeason"))
+    owned_classic = frozenset(c["player"] for c in limited if not c.get("inSeason")) - owned
     since = season_start(now)
     games = load_games(db, {r["slug"] for rows in markets.values() for r in rows if r.get("slug")}, since)
     db.rollback()
@@ -670,11 +803,25 @@ def publish(
     for league, rows in markets.items():
         board, captain = found.get(league, (None, CAPTAIN))
         block = league_block(
-            league, rows, games, now, owned=owned, art=art, board=board, lines=pay_lines(bars, league), captain=captain
+            league,
+            rows,
+            games,
+            now,
+            owned=owned,
+            art=art,
+            board=board,
+            lines=pay_lines(bars, league),
+            captain=captain,
+            prices=today,
+            owned_classic=owned_classic,
         )
-        summary[block["code"]] = {"clubs": len(block["clubs"]), "board": board is not None}
+        mine = {r["slug"]: today[r["slug"]] for r in rows if today and r.get("slug") in today}
+        summary[block["code"]] = {"clubs": len(block["clubs"]), "board": board is not None, "prices": len(mine)}
         if write:
             put(db, f"{PREFIX}{block['code']}", block, now)
+            if mine:
+                kept = kept_blocks.read(db, f"{PRICES}{block['code']}")
+                put(db, f"{PRICES}{block['code']}", record(kept.payload if kept else None, mine, now), now)
     return summary
 
 

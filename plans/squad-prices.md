@@ -226,6 +226,34 @@ Premier League, Bundesliga and Ligue 1 teams showed initials: the card-art step 
 card for each foreign squad player Squads draws (`card_art.refresh(others=...)`, about 43 batched questions the first time,
 then only new players), never linked to a lineup.
 
+**Q3 built (24 Nov 2026, committed locally, not pushed):** buy-now prices and the classic card.
+- **Prices:** once a day the Sorare step asks `players(slugs:)` for each player's `lowestPriceAnyCard` (Limited, in-season and
+  classic) and his market value. Each question holds 12 players without a key and 600 with one, so the four leagues need about 3
+  questions. A card costs its cheapest listing, or Sorare's market value marked "est." when none is listed.
+- **Real read (LaLiga, 664 players):** 484 had an in-season listing and 509 a classic one. Listings were a median 26% of market
+  value (p10 13%, p90 71%).
+- **The classic card:** Sorare's rule is "a minimum of 4 In-Season cards and a maximum of 1 Classic card" in Pro and the In-Season
+  Arena (help article 17629357197341), so a team buys at most one classic card, the one that saves most. A classic card you own
+  fills that place for nothing. The search ranks the same teams on their new costs.
+- **Effect at 90%, €40, your cards counted:**
+  - Celta: €28.86 before, €4.41 now (11 cards, the same 319 a game, Radu's classic card).
+  - Alavés: €27.97 before, €10.16 now.
+  - 18 of 20 clubs now have a team inside €40, against 13 before.
+- **Price record:** `squad_prices:<code>` keeps one in-season price (with whether it was listed) and one classic price per player a
+  day, in cents.
+- **The page:**
+  - Each card's price says "est." when nothing is listed, and the classic card carries a "Classic" tag.
+  - The curve's points are buttons that move the budget to that team.
+  - The replay chart is taller (360 px).
+  - The club list and each club are cached apart, because the v2 LaLiga block is 1.5 MB against Next's 2 MB item limit.
+  - v1 blocks still read, so production keeps working until the next refresh writes v2.
+
+Round 4 comments (24 Nov, 19:03-19:13) still open:
+- The LaLiga logo in place of "LALIGA PRO": AGENTS.md's art rule says "no LaLiga mark", so the owner must choose.
+- The ring colours: green when the best five topped the first Pro step in at least half of the games, amber at 30%, grey below.
+  Those two cut-offs were my choice, not his.
+- Two clubs as one combined team of the usual size (Q4).
+
 Limits: the Sorare price read is one `anyPlayer` alias per player in batches (keyless 500 complexity), only for players in a
 published team (≈ 20 a club, ≈ 1,600 for four leagues), once a day; nothing on page view. No new Neon table. The search runs in
 the job (about a minute for LaLiga's 20 clubs in the prototype).

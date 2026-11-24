@@ -66,6 +66,17 @@ test("the budget, the coverage target and your cards pick the team from the publ
   await expect(page).toHaveURL(/mine=0/);
 });
 
+test("a point on the money curve opens its team, and a card with nothing listed shows Sorare's market value as an estimate", async ({ page }) => {
+  await page.goto("/squads?club=Celta%20de%20Vigo");
+  const lane = celta.pro["0.9"]!.owned;
+  const cheapest = celta.teams.find((t) => t.id === lane[0]!.id)!;
+  await page.getByRole("button", { name: `${price(cheapest.toBuy)}, ${Math.round(cheapest.mean)} a game: show this team` }).click();
+  await expect(page).toHaveURL(new RegExp(`budget=${Math.ceil(cheapest.toBuy)}`));
+  await expect(page.locator(".sq-price")).toHaveText(price(teamAt(Math.ceil(cheapest.toBuy), 0.9, true)!.toBuy));
+  // the fixture predates buy-now prices: every card is priced at its market value, marked "est."
+  await expect(page.getByRole("region", { name: "The team" }).getByText("est.").first()).toBeVisible();
+});
+
 test("who played shows each game's starters with their score, who came on with his minutes, and the five-starters line", async ({ page }) => {
   await page.goto("/squads?club=Celta%20de%20Vigo");
   const team = teamAt(40, 0.9, true)!;

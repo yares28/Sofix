@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { scoreColour } from "../../lib/cards";
 import {
   choice, day, eur, laneKey, ladder, LEAGUES, oppCode, prize, ranked, shortName, shortPrize, TARGETS, tier, within,
-  type Settings, type SquadClub, type SquadsPage, type SquadSeven, type SquadTeam, type Target,
+  type Settings, type SquadClub, type SquadPlayer, type SquadsPage, type SquadSeven, type SquadTeam, type Target,
 } from "../../lib/squads";
 import CardArt from "../cards/CardArt";
 import SorareImage from "../play/SorareImage";
@@ -103,7 +103,8 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
       <Hero data={data} club={club} verdict={verdict} team={team} seven={seven} showArena={showArena} settings={settings}
         onBudget={(n) => { setBudget(n); setDraft(String(n)); }} />
 
-      <Team club={club} cards={cards} seven={showArena ? seven : null} />
+      <Team club={club} cards={cards} seven={showArena ? seven : null}
+        classic={(showArena ? (mine ? seven?.classicToBuy : seven?.classic) : mine ? team?.classicToBuy : team?.classic) ?? null} />
 
       <WhoPlayed club={club} cards={cards} />
 
@@ -213,12 +214,12 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget 
           </dl>
         ) : null}
       </div>
-      <Curve club={club} settings={settings} team={team} />
+      <Curve club={club} settings={settings} team={team} onBudget={onBudget} />
     </section>
   );
 }
 
-function Curve({ club, settings, team }: { club: SquadClub; settings: Settings; team: SquadTeam | null }) {
+function Curve({ club, settings, team, onBudget }: { club: SquadClub; settings: Settings; team: SquadTeam | null; onBudget: (n: number) => void }) {
   const lane = club.pro[laneKey(settings.target)]?.[settings.mine ? "owned" : "full"] ?? [];
   const points = lane.flatMap((e) => {
     const t = club.teams.find((x) => x.id === e.id);
@@ -226,8 +227,10 @@ function Curve({ club, settings, team }: { club: SquadClub; settings: Settings; 
   });
   if (points.length < 2) return null;
   const W = 400, H = 170, L = 34, B = 150;
-  // the budget's dashed line stays on the chart even when it is below the cheapest team
-  const x0 = Math.min(Math.floor(points[0]!.x), settings.budget) - 1, x1 = Math.max(settings.budget, Math.ceil(points[points.length - 1]!.x)) + 1;
+  // the axis spans the teams; the budget's dashed line stays on it, at the left edge below the cheapest team and at the right
+  // edge above the dearest (a €40 budget no longer squeezes €3-5 teams into a corner)
+  const x0 = Math.floor(points[0]!.x) - 1, x1 = Math.ceil(points[points.length - 1]!.x) + 1;
+  const budgetX = Math.min(Math.max(settings.budget, x0), x1);
   const ys = points.map((p) => p.y);
   const y0 = Math.floor((Math.min(...ys) - 12) / 10) * 10, y1 = Math.ceil((Math.max(...ys) + 12) / 10) * 10;
   const X = (v: number) => L + ((v - x0) / (x1 - x0)) * (W - L - 8), Y = (v: number) => 8 + (1 - (v - y0) / (y1 - y0)) * (B - 8);
@@ -244,19 +247,34 @@ function Curve({ club, settings, team }: { club: SquadClub; settings: Settings; 
   return (
     <figure className="sq-curve">
       <figcaption>What more money buys <span>points a game</span></figcaption>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Best score a game for each budget: ${points.map((p) => `${eur(p.x)} gives ${Math.round(p.y)}`).join(", ")}`}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label={`Best score a game for each budget: ${points.map((p) => `${eur(p.x)} gives ${Math.round(p.y)}`).join(", ")}`}>
         {grid.map((g) => <g key={g}><line x1={L} x2={W - 4} y1={Y(g)} y2={Y(g)} className="grid" /><text x={0} y={Y(g) + 4}>{g}</text></g>)}
         {ticks.map((t) => <text key={t} x={X(t)} y={H - 3} textAnchor="middle">€{t}</text>)}
-        <line x1={X(settings.budget)} x2={X(settings.budget)} y1={8} y2={B} className="budget" />
+        <line x1={X(budgetX)} x2={X(budgetX)} y1={8} y2={B} className="budget" />
         <path d={`${path} L${X(x1).toFixed(1)} ${B} L${X(points[0]!.x).toFixed(1)} ${B} Z`} className="area" />
         <path d={path} className="line" />
-        {points.map((p) => <circle key={p.id} cx={X(p.x)} cy={Y(p.y)} r={p.id === here?.id ? 6 : 3.5} className={p.id === here?.id ? "dot on" : "dot"} />)}
+        {points.map((p) => (
+          // each team on the curve opens at its price: the budget moves there and the team below shows its players
+          <g key={p.id} className={p.id === here?.id ? "pt on" : "pt"} role="button" tabIndex={0} aria-label={`${eur(p.x)}, ${Math.round(p.y)} a game: show this team`}
+            aria-pressed={p.id === here?.id} onClick={() => onBudget(Math.ceil(p.x))}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onBudget(Math.ceil(p.x)); } }}>
+            <circle cx={X(p.x)} cy={Y(p.y)} r={12} className="hit" />
+            <circle cx={X(p.x)} cy={Y(p.y)} r={p.id === here?.id ? 6 : 4} className="dot" />
+          </g>
+        ))}
       </svg>
     </figure>
   );
 }
 
-function Team({ club, cards, seven }: { club: SquadClub; cards: string[]; seven: SquadSeven | null }) {
+/** What a card costs now: the cheapest listing, else Sorare's market value marked "est."; the team's one classic card at the
+ *  cheapest classic listing. */
+function cardPrice(p: SquadPlayer, classic: boolean): { value: number; est: boolean; note: string } {
+  if (classic && p.classic !== null) return { value: p.classic, est: false, note: "Cheapest classic card listed now" };
+  return p.listed ? { value: p.eur, est: false, note: "Cheapest card listed now" } : { value: p.eur, est: true, note: "None listed: Sorare's market value" };
+}
+
+function Team({ club, cards, seven, classic }: { club: SquadClub; cards: string[]; seven: SquadSeven | null; classic: string | null }) {
   const n = club.games.length;
   const role = (s: string) => (seven ? (s === seven.gsub ? "GK sub" : s === seven.osub ? "Sub" : null) : null);
   const shelves = POSITIONS.map(([pos, label]) => ({ label, players: cards.filter((s) => club.players[s]?.pos === pos) })).filter((s) => s.players.length);
@@ -273,11 +291,18 @@ function Team({ club, cards, seven }: { club: SquadClub; cards: string[]; seven:
                 const starts = [...p.played].filter((x) => x === "S").length;
                 const avg = starts ? p.scores.filter((_, i) => p.played[i] === "S").reduce((a, b) => a + b, 0) / starts : 0;
                 const r = role(slug);
+                const isClassic = slug === classic;
+                const price = cardPrice(p, isClassic);
+                const yours = isClassic ? p.ownedClassic : p.owned;
                 return (
                   <li key={slug} data-sub={r ? "" : undefined}>
-                    <span className="sq-art"><CardArt src={p.art} name={p.name} />{p.owned ? <span className="sq-own">Yours</span> : null}</span>
+                    <span className="sq-art">
+                      <CardArt src={p.art} name={p.name} />
+                      {yours ? <span className="sq-own">Yours</span> : null}
+                      {isClassic ? <span className="sq-classic" title="An older season's card: Sorare lets a lineup take one">Classic</span> : null}
+                    </span>
                     <b className="sq-name" title={p.name}>{shortName(p.name)}</b>
-                    <span className="sq-meta"><s data-owned={p.owned ? "" : undefined}>{eur(p.eur)}</s><span>{r ? `${r} · ` : ""}{starts}/{n} · {Math.round(avg)}</span></span>
+                    <span className="sq-meta"><s data-owned={yours ? "" : undefined} title={price.note}>{eur(price.value)}{price.est ? <small> est.</small> : null}</s><span>{r ? `${r} · ` : ""}{starts}/{n} · {Math.round(avg)}</span></span>
                     <span className="sq-rate" style={{ "--w": `${Math.round((starts / (n || 1)) * 100)}%` } as CSSProperties} data-tone={starts / n >= 0.75 ? "good" : starts / n >= 0.45 ? "mid" : "low"} aria-hidden="true"><i /></span>
                   </li>
                 );

@@ -16,6 +16,17 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Squads: what a team that always plays costs (you, 24 Nov 2026)
+
+"Start of season/now team buying prices. A page where I can enter and see how much it would cost to buy a team (from all available
+competitions). The team has to have enough players to play each week, either Pro or Arena, depending on how much rotation the team
+does week to week: Celta does a lot of rotation so Pro is better, but Elche doesn't have that much rotation. If the forwards rotate a
+lot, see if forward 2 plays the minutes forward 1 doesn't; the idea is having a full team that plays all the time."
+
+Your answers: now = this season's in-season cards, start of season = next season's (2027) cards when they drop; a filter for one club,
+two clubs or any clubs; you enter a club, a budget, whether your cards count and a coverage target; Limited only. Research, plan and
+design canvas: [plans/squad-prices.md](plans/squad-prices.md). *Planned 24 Nov 2026, not started.*
+
 ## Arcade audit: every tab against the main app (you, 20 Nov 2026)
 
 Everything from 20 Nov is in one plan: [plans/arcade-trust.md](plans/arcade-trust.md) (your words in its §0, the evidence in §2-3,

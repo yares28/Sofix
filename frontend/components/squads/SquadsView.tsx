@@ -226,7 +226,8 @@ function Curve({ club, settings, team }: { club: SquadClub; settings: Settings; 
   });
   if (points.length < 2) return null;
   const W = 400, H = 170, L = 34, B = 150;
-  const x0 = Math.floor(points[0]!.x) - 1, x1 = Math.max(settings.budget, Math.ceil(points[points.length - 1]!.x)) + 1;
+  // the budget's dashed line stays on the chart even when it is below the cheapest team
+  const x0 = Math.min(Math.floor(points[0]!.x), settings.budget) - 1, x1 = Math.max(settings.budget, Math.ceil(points[points.length - 1]!.x)) + 1;
   const ys = points.map((p) => p.y);
   const y0 = Math.floor((Math.min(...ys) - 12) / 10) * 10, y1 = Math.ceil((Math.max(...ys) + 12) / 10) * 10;
   const X = (v: number) => L + ((v - x0) / (x1 - x0)) * (W - L - 8), Y = (v: number) => 8 + (1 - (v - y0) / (y1 - y0)) * (B - 8);
@@ -236,8 +237,8 @@ function Curve({ club, settings, team }: { club: SquadClub; settings: Settings; 
     path += `${i ? " L" : "M"}${X(p.x).toFixed(1)} ${Y(p.y).toFixed(1)} L${X(next).toFixed(1)} ${Y(p.y).toFixed(1)}`;
   });
   const ticks: number[] = [];
-  const stepX = x1 - x0 > 60 ? 20 : x1 - x0 > 25 ? 10 : 5;
-  for (let v = Math.ceil(x0 / stepX) * stepX; v <= x1; v += stepX) ticks.push(v);
+  const stepX = x1 - x0 > 60 ? 20 : x1 - x0 > 25 ? 10 : x1 - x0 > 12 ? 5 : 2;
+  for (let v = Math.ceil(x0 / stepX) * stepX; v <= x1; v += stepX) if (X(v) > L + 12 && X(v) < W - 18) ticks.push(v); // labels never clipped
   const grid = [y0 + 10, Math.round((y0 + y1) / 20) * 10, y1 - 10];
   const here = points.find((p) => p.id === team?.id);
   return (

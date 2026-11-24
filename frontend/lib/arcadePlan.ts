@@ -28,6 +28,9 @@ export type Outlook = {
   /** The fixture's expected decisive contribution as published, separately from conditional mission odds. */
   xd?: number | null;
   scoreSource: "sofix" | "sorare" | "form" | null;
+  /** Sofix v3's whole model for this game, when Sofix's score is the one used: [decisive chance, normal score, decisive score, their
+   * spreads]. The odds draw his start from it; the chip shows v3's number. */
+  shape?: [number, number, number, number, number];
   /** His chance to start, 0 to 1, and whose; null when no source has one (he is then left out). */
   start: number | null;
   /** His chance to come on from the bench (not to start and still play), and his score when he does. */
@@ -93,6 +96,10 @@ export function partialFive(outlooks: Outlook[]): { slot: Slot; outlook: Outlook
     return { slot, outlook: o };
   });
 }
+
+/** Sofix v3's number for a card (the app's default since 24 Nov 2026): his most likely score if he starts, his decisive one from a 75%
+ * chance (sofix_v1.V3_SWITCH); null without v3's model, so a card then keeps v1's. */
+export const v3Number = (o: Pick<Outlook, "shape">): number | null => (o.shape ? (o.shape[0] >= 0.75 ? o.shape[2] : o.shape[1]) : null);
 
 /** What a card shows (owner, 10 Nov 2026): his projection × start chance, no bonus; the bonus is printed apart by bonusPercent. */
 export const baseScore = (o: Outlook): number | null => expectedOf(o);
@@ -174,7 +181,15 @@ export function simulation(captainBonus: number, runs = RUNS, seed = 7, link = T
       // He starts, comes on or stays out, by his chances; a substitute scores around his bench score.
       const u = next(), start = o.start ?? 0;
       const z = Math.sqrt(link) * day![r]! + Math.sqrt(1 - link) * normal(next);
-      if (u < start) return past ? past[Math.min(past.length - 1, Math.floor(phi(z) * past.length))]! : Math.max(0, (o.score ?? 0) * (1 + 0.33 * z));
+      if (u < start) {
+        // Sofix v3's model (24 Nov 2026): his normal or his decisive game at its chance, each with its own spread, Sorare's 0 to 100.
+        if (o.shape) {
+          const [p, plain, dec, sdPlain, sdDec] = o.shape;
+          const big = next() < p;
+          return Math.min(100, Math.max(0, big ? dec + sdDec * z : plain + sdPlain * z));
+        }
+        return past ? past[Math.min(past.length - 1, Math.floor(phi(z) * past.length))]! : Math.max(0, (o.score ?? 0) * (1 + 0.33 * z));
+      }
       return u < start + (o.on ?? 0) ? Math.max(0, (o.benchScore ?? 0) * (1 + 0.33 * z)) : 0;
     });
     cards.set(o, values);

@@ -157,3 +157,20 @@ Pro windows and Arcade still show v1 for every version.
 - The overlay's competition icon: LaLiga's for a LaLiga game; for a Sorare competition pill (Champion, All Star)
   the Sorare league icon used on Targets, if the panel still needs it.
 - v3 joins as a fourth row only after the research's Phase V3 passes.
+
+## Arcade adds lineups up on v3's model (24 Nov 2026)
+
+v3's number alone cannot be summed (it is the most likely score, about 7 points under the average: five of them made 300+ look ten
+times rarer than it was on the 20-24 Nov round). So each game publishes v3's whole model, `v3Shape` = [decisive chance, normal score,
+decisive score, their spreads] (`publish.v3_shape`, also in `xs_ahead`), and Arcade draws a starter's score from it; its chips show
+v3's number (`v3Number`), v1's where a game has no v0. Evidence, LaLiga starters Jan 2024 - Oct 2026 (18,779; v0 fitted period by
+period on earlier games, the walk-forward football forecast made one week ahead; the shipped v1 has seen these games, which flatters it):
+
+| | Happened | v1 as Arcade used it | v3's model |
+| --- | --- | --- | --- |
+| One player 70+ | 13.7% | said 10.5% | said 16.1% |
+| Each day's 10 likeliest for 70+ | | said 26.8%, happened 19.4%, scored 52.5 | said 27.3%, happened 25.0%, scored 55.5 |
+| Each day's best five 330+ (317 days) | | said 13.0%, happened 20.5% | said 22.3%, happened 23.3% |
+
+Forecasts made five weeks ahead give the same figures (team-side drift is negligible for `xs_ahead`). Pro's plans are a separate
+decision (step 3 of the 24 Nov plan).

@@ -17,6 +17,7 @@ from app.research.league_xscore_identity import club_name
 from app.services import team_registry
 from app.sorare.foreign_scores import COMPETITIONS
 from app.sorare.keeper import LALIGA
+from app.sorare.publish import v3_shape
 from app.sorare.scores import Made
 
 HORIZON_DAYS = 45  # an Arcade set runs about six weeks; a Pro gameweek ahead is inside it
@@ -106,7 +107,7 @@ def build(
     grids: dict[str, dict[str, Any]],
     now: datetime,
 ) -> dict[str, dict[str, Any]]:
-    """{league code: {horizonDays, players: {slug: [[kickoff, competition, venue, opponent, xs, xs if he comes on, decisive chance]]}}}."""
+    """{league code: {horizonDays, players: {slug: [[kickoff, competition, venue, opponent, xs, xs if he comes on, decisive chance, v3 shape]]}}}."""
     out: dict[str, dict[str, Any]] = {}
     seen: set[str] = set()
     for row in rows:
@@ -122,6 +123,8 @@ def build(
             found = made.outcomes[0] if len(made.outcomes) == 1 else None
             if found is None:
                 continue
+            # v3's whole model (publish.v3_shape): v0's game, kept beside Sofix v1's number or as the number itself
+            before = getattr(found, "previous_outcome", None) or (None if hasattr(found, "previous_outcome") else found)
             sub = getattr(found, "sub", None)
             on = getattr(getattr(sub, "outcome", None), "start", None)
             listed.append(
@@ -133,6 +136,7 @@ def build(
                     round(found.start, 1),
                     round(on, 1) if on is not None else None,
                     round(found.p_decisive, 3),
+                    v3_shape(before) if before is not None else None,
                 ]
             )
         if listed:
@@ -162,7 +166,8 @@ def remember(
         if _at(key.rsplit("|", 1)[1] + "T00:00:00+00:00") >= now - timedelta(days=KEEP_DAYS)
     }
     for slug, games in (blocks.get("LL") or {}).get("players", {}).items():
-        for kickoff, competition, _venue, _opponent, xs, _on, _dec in games:
+        for kickoff, competition, *_rest in games:
+            xs = _rest[2]
             days = (_at(kickoff) - now).total_seconds() / 86_400
             key = f"{slug}|{competition}|{kickoff[:10]}"
             marks = dict(out.get(key) or {})

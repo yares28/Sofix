@@ -560,6 +560,8 @@ export type XsVersions = {
   startV3?: number;
   pDecPrev?: number;
   decPrevIf?: number;
+  /** v3's whole model for adding lineups up (24 Nov 2026): [decisive chance, normal score, decisive score, their spreads]. */
+  v3Shape?: [number, number, number, number, number];
 };
 
 export type MarketFixture = XsVersions & {

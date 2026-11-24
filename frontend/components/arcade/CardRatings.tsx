@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext } from "react";
-import { baseScore, type Outlook } from "../../lib/arcadePlan";
+import { baseScore, v3Number, type Outlook } from "../../lib/arcadePlan";
 import { scoreColour } from "../../lib/cards";
 import { FdrContext, sideOf } from "./Fdr";
 import { BOARD_OF, fdrOf, leagueLabel } from "../../lib/arcadeFdr";
@@ -15,11 +15,13 @@ export default function CardRatings({ outlook, game, competition, home, detail }
   const fixture = useContext(FdrContext).get(game ?? "");
   const side = sideOf(fixture, home)?.mine;
   const fdr = fdrOf(side);
-  const score = outlook ? baseScore(outlook) : null;
+  // Sofix v3, the app's default (24 Nov 2026): his most likely score if he starts, the start % beside it; v1's number without v3's model.
+  const v3 = outlook ? v3Number(outlook) : null;
+  const score = v3 ?? (outlook ? baseScore(outlook) : null);
   const look = scoreColour(score);
   return (
     <div className="arc-card-ratings">
-      <span className="arc-card-score" aria-label={score === null ? "xS unavailable" : `xS ${Math.round(score)}`} style={{ background: look.fill, color: look.ink }} title={`${detail} · ${outlook?.scoreSource === "sofix" ? "Sofix" : outlook?.scoreSource === "sorare" ? "Sorare" : outlook?.scoreSource === "form" ? "Recent form" : "No"} projection × start chance, before bonuses${outlook?.start === null ? "; start chance unknown, assumed starting" : ""}`}>
+      <span className="arc-card-score" aria-label={score === null ? "xS unavailable" : `xS ${Math.round(score)}`} style={{ background: look.fill, color: look.ink }} title={v3 !== null ? `${detail} · Sofix v3: his most likely score if he starts, before bonuses` : `${detail} · ${outlook?.scoreSource === "sofix" ? "Sofix" : outlook?.scoreSource === "sorare" ? "Sorare" : outlook?.scoreSource === "form" ? "Recent form" : "No"} projection × start chance, before bonuses${outlook?.start === null ? "; start chance unknown, assumed starting" : ""}`}>
         <b>{score === null ? "—" : Math.round(score)}</b>
       </span>
       <span className={`arc-card-fdr${side ? ` f${fdr.band}` : ""}`} title={`${detail} · ${side ? fdr.title : missing}`}>

@@ -8,7 +8,7 @@ import { parseTierOdds, type TierOdds } from "./arcadePacks";
 import type { PlayerStatus } from "./arcadeTeams";
 import { ArcadeAuditSchema, type ArcadeAudit, type ChanceCheck } from "./arcadeLog";
 import { ArcadeRecordsSchema, calibrated, firstOf, scoreOrder, startOrder, type ArcadeRecords, type ScoreRank, type StartRank } from "./arcadeRecords";
-import { aheadGame } from "./xsAheadGames";
+import { aheadGame, type V3Shape } from "./xsAheadGames";
 
 /**
  * Arcade, step 1 (plans/set.md): your set board, common cards, gems, essence and common missions, read from your signed-in
@@ -699,7 +699,7 @@ const EXTRAS_KEEP_MS = 6 * 3_600_000;
 const MAX_PROJECTION_GAMES = 60;
 
 /** What Sofix knows of a LaLiga player's next game (the Lineups numbers), keyed by Sorare slug. */
-export type ArcadeLaLiga = Record<string, { kickoff: string | null; p: number | null; source: StartSource | null; sources: Partial<Record<StartSource, number>>; ffMatch?: { id: number; url: string }; /** Sofix's xScore if he plays. */ mu?: number | null; decisive?: number | null; xd?: number | null }>;
+export type ArcadeLaLiga = Record<string, { kickoff: string | null; p: number | null; source: StartSource | null; sources: Partial<Record<StartSource, number>>; ffMatch?: { id: number; url: string }; /** Sofix's xScore if he plays. */ mu?: number | null; decisive?: number | null; xd?: number | null; /** v3's model (publish.v3_shape). */ v3?: V3Shape | null }>;
 export type ArcadeExtras = {
   /** The club bonus Sorare gives a card of each club, by club slug (0.04 for +4%). */
   club: Record<string, number>;
@@ -864,7 +864,11 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
   const form = record?.x ?? (past.length >= 3 ? past.reduce((a, b) => a + b, 0) / past.length : null);
   // Sofix's own xS: the next game's from the market, any later one's from xs_ahead (plans/xs-ahead.md), the same model either way.
   const later = sameGame ? null : aheadGame(records?.ahead?.[card.player], game.competition.slug, kickoff);
-  const scores: Partial<Record<ScoreRank, number | null>> = { sofix: sameGame ? sofix.mu ?? null : later?.[4] ?? null, sorare: projection ?? null, form };
+  // Sofix v3, the default since 24 Nov 2026: its whole model (two scores, the decisive chance, their spreads) when the game has it, and its
+  // average then stands for Sofix's score, as v1's did; without it Sofix v1's number stays (no made-up v3).
+  const shape: V3Shape | null = (sameGame ? sofix.v3 : later?.[7]) ?? null;
+  const v3Mean = shape ? shape[0] * shape[2] + (1 - shape[0]) * shape[1] : null;
+  const scores: Partial<Record<ScoreRank, number | null>> = { sofix: v3Mean ?? (sameGame ? sofix.mu ?? null : later?.[4] ?? null), sorare: projection ?? null, form };
   const score = firstOf(scoreOrder(records, game.competition.slug), scores);
   const club = card.teamSlug ? extras?.club[card.teamSlug] ?? null : null;
   return {
@@ -874,6 +878,7 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
     decisive: sameGame ? sofix.decisive ?? null : null,
     xd: sameGame ? sofix.xd ?? null : null,
     scoreSource: score?.[1] ?? null,
+    ...(shape && score?.[1] === "sofix" ? { shape } : {}),
     start,
     startSource,
     ...(fix && said_ !== null ? { startSaid: said_ } : {}),

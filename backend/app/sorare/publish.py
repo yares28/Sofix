@@ -224,6 +224,17 @@ def _versions(model: Any, previous_on: float | None) -> dict[str, Any]:
     }
 
 
+def v3_shape(before: Any) -> list[float]:
+    """v0's game as one list: [decisive chance, normal score, decisive score, normal score's spread, decisive score's spread]."""
+    return [
+        round(before.p_decisive, 3),
+        round(before.if_plain, 1),
+        round(before.if_decisive, 1),
+        round(before.sd_plain, 1),
+        round(before.sd_decisive, 1),
+    ]
+
+
 def _v3(before: Any) -> dict[str, Any]:
     """Sofix v3 for a starter (`sofix_v1.v3_start`), from v0's game; its decisive scenario only while the number has not switched
     to it, so a card never names the same score twice. Nothing without v0 on file (the page then shows v2's)."""
@@ -232,6 +243,8 @@ def _v3(before: Any) -> dict[str, Any]:
     switched = before.p_decisive >= sofix_v1.V3_SWITCH
     return {
         "startV3": round(sofix_v1.v3_start(before.if_plain, before.if_decisive, before.p_decisive), 1),
+        # v3's whole model, for adding lineups up (Arcade's odds, owner 24 Nov 2026): [chance, normal, decisive, sd normal, sd decisive]
+        "v3Shape": v3_shape(before),
         **(
             {"pDecPrev": round(before.p_decisive, 3), "decPrevIf": round(before.if_decisive, 1)}
             if not switched and before.p_decisive > 0

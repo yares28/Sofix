@@ -142,6 +142,24 @@ def test_sofix_v3_takes_v0s_decisive_score_from_a_75_percent_chance_and_then_nam
     assert published["startV3"] == 80 and not {"pDecPrev", "decPrevIf"} & published.keys()
 
 
+def test_v3s_whole_model_rides_with_each_game_for_adding_up_lineups():
+    """Arcade's odds add five players (owner, 24 Nov 2026): v3's number alone made 300+ look ten times rarer than it was, so each game
+    carries v0's two scores, the decisive chance and each score's spread, `v3Shape` = [chance, normal, decisive, sd normal, sd decisive]."""
+    model = sofix_v1.Model({"start": [[[[40, 181], [6, 4]]]], "bench": [[[[35], [1]]]]})
+    numbers = keeper.GameNumbers(0.3, 1, 1)
+    before = model.game("DEF", True, numbers, [], None)
+    published = publish._versions(model.game("DEF", True, numbers, [], before), None)
+    o = before
+    assert published["v3Shape"] == [
+        round(o.p_decisive, 3),
+        round(o.if_plain, 1),
+        round(o.if_decisive, 1),
+        round(o.sd_plain, 1),
+        round(o.sd_decisive, 1),
+    ]
+    assert "v3Shape" not in publish._versions(before, None)  # no v0 on file: nothing made up
+
+
 def test_a_game_without_sofix_v1_publishes_no_other_version():
     """No made-up numbers: a game Sofix v1 did not work out names no v0, v2 or decisive scenario (never v1 copied in)."""
     game = {"id": "a", "kickoff": "2026-10-10T20:00:00Z", "competition": keeper.LALIGA}

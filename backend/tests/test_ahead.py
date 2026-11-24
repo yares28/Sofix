@@ -122,6 +122,7 @@ def test_every_game_is_scored_by_the_jobs_own_scorer_and_published_by_league():
     chust = out["LL"]["players"]["chust"]
     assert [r[1] for r in chust] == ["laliga-es", "uefa-champions-league"]
     assert chust[0][:4] == [at(4), "laliga-es", "H", "Atleti"] and chust[0][4] == 51.0 and chust[0][6] == 0.25
+    assert chust[0][7] == [0.25, 45.0, 70.0, 0.0, 0.0]  # v3's whole model: chance, normal, decisive, their spreads
     assert out["PL"]["players"]["saka"][0][3] == "Chelsea"
     assert out["LL"]["horizonDays"] == 45
     assert asked[0][2] == history["chust"]  # his own past, as the job's next-game number uses it

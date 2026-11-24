@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AheadGame } from "./xsAheadGames";
 import { outlookOf, parseBonuses, parseForm, parsePackOdds, parsePast, parseProjections, ZERO_START_ON, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { baseScore, bonusPercent, partialFive, batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, noStartNote, type Outlook } from "./arcadePlan";
+import { v3Number, baseScore, bonusPercent, partialFive, batchChances, bestLineup, bigReward, chanceOf, cutLosses, decisiveRate, fits, rankDecisive, streakTarget, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, simulation, SLOTS, whenLabel, aimStep, noStartNote, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
@@ -184,6 +184,35 @@ describe("a card's outlook", () => {
     expect(outlookOf(card("a", ["Forward"]), GAME, extras, null, sofix)).toMatchObject({ score: 62, scoreSource: "sofix" });
     const otherGame = { a: { ...sofix.a, kickoff: "2026-10-28T20:00:00Z" } };
     expect(outlookOf(card("a", ["Forward"]), GAME, extras, null, otherGame)).toMatchObject({ score: 55, scoreSource: "sorare" });
+  });
+});
+
+describe("Sofix v3's model in Arcade (owner, 24 Nov 2026: v3 the default app wide)", () => {
+  // Mbappé v Alavés: 60% of a decisive game (82), else 49; spreads 10 and 12.
+  const shape: [number, number, number, number, number] = [0.6, 49, 82, 10, 12];
+  it("takes Sofix's score as v3's average, keeps its whole model, and never makes one up for a game without it", () => {
+    const records = { ranking: { start: {}, score: { "laliga-es": [{ source: "sofix", error: 17, n: 500 }, { source: "form", error: 18, n: 500 }] } }, players: { a: { n: 10, s: 0.9, o: 0.05, x: 61, b: 40 } } };
+    const laliga = { a: { kickoff: GAME.kickoff, p: 0.9, source: "futbolfantasy" as const, sources: {}, mu: 60.3, v3: shape } };
+    const o = outlookOf(card("a", ["Forward"]), GAME, null, null, laliga, null, records);
+    expect(o.score).toBeCloseTo(0.6 * 82 + 0.4 * 49, 5);
+    expect(o).toMatchObject({ scoreSource: "sofix", shape });
+    expect(v3Number(o)).toBe(49); // its most likely score: the decisive one only from a 75% chance
+    const plain = outlookOf(card("a", ["Forward"]), GAME, null, null, { a: { ...laliga.a, v3: null } }, null, records);
+    expect(plain.score).toBe(60.3);
+    expect(plain.shape).toBeUndefined();
+    expect(v3Number(plain)).toBeNull();
+  });
+  it("draws a starter's score from v3's two scores at its decisive chance, so big games keep their real share", () => {
+    const o = { ...outlook("a", ["Forward"], 0.6 * 82 + 0.4 * 49, 1), shape };
+    const totals = simulate([{ outlook: o, captain: false }], 0, 4000);
+    const mean = totals.reduce((a, b) => a + b, 0) / totals.length;
+    expect(mean).toBeGreaterThan(66);
+    expect(mean).toBeLessThan(71);
+    const big = totals.filter((t) => t >= 75).length / totals.length;
+    // 0.6 × P(82 ± 12 ≥ 75) + 0.4 × P(49 ± 10 ≥ 75) = 0.6 × 0.72 + 0.4 × 0.005 ≈ 0.43; v3's number (49) alone would say almost never
+    expect(big).toBeGreaterThan(0.39);
+    expect(big).toBeLessThan(0.47);
+    expect(Math.max(...totals)).toBeLessThanOrEqual(100);
   });
 });
 

@@ -15,7 +15,7 @@ const KEY = "arcade_outlook";
 export async function loadArcadeLaLiga(): Promise<ArcadeLaLiga> {
   const [sorare, ...leagues] = await Promise.all([loadSorare(), ...(["PL", "BL1", "FL1", "CL", "EL", "CONF"] as const).map((code) => loadLeagueMarket(code))]);
   return Object.fromEntries([...(sorare?.market ?? []), ...leagues.flat()].filter((p) => p.fixture?.kickoff).map((p) => [`${p.slug}:${Date.parse(p.fixture!.kickoff!)}`, {
-    kickoff: p.fixture?.kickoff ?? null, p: p.pStart ?? null, source: p.startSource ?? null, sources: p.sources ?? {}, ffMatch: p.ffMatch, mu: p.mu ?? null, decisive: p.decisive ?? null, xd: p.xd ?? null,
+    kickoff: p.fixture?.kickoff ?? null, p: p.pStart ?? null, source: p.startSource ?? null, sources: p.sources ?? {}, ffMatch: p.ffMatch, mu: p.mu ?? null, decisive: p.decisive ?? null, xd: p.xd ?? null, v3: p.fixture?.v3Shape ?? null,
   }]));
 }
 

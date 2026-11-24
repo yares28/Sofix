@@ -706,6 +706,46 @@
         }
       }
     },
+    "/api/squads/{code}": {
+      "get": {
+        "summary": "Squads Page",
+        "description": "A league's Squads block the refresh published (LALIGA, PL, BL1, FL1). Local development only, like /sorare.",
+        "operationId": "squads_page_api_squads__code__get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lineups": {
       "get": {
         "summary": "Lineups",

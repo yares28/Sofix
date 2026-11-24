@@ -391,7 +391,7 @@ def arena_series(c: Club, seven: Seven, captain: float = CAPTAIN) -> dict[str, l
             out["xsReal"].append(None)
             out["xsExp"].append(None)
     out["subIn"] = [bool(x) for x in sub_in]
-    out["started"] = [bool(x) for x in all_started]
+    out["allStarted"] = [bool(x) for x in all_started]
     return out
 
 

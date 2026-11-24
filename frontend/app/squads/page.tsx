@@ -1,0 +1,43 @@
+import type { Metadata } from "next";
+import { connection } from "next/server";
+import SiteNav from "../../components/SiteNav";
+import SquadsView from "../../components/squads/SquadsView";
+import { loadGrid } from "../../lib/api";
+import { budgetOf, leagueOf, LEAGUES, ranked, targetOf } from "../../lib/squads";
+import { loadSquads } from "../../lib/squadsData";
+import { loadSystem } from "../../lib/system";
+
+export const metadata: Metadata = { title: "Squads · Sofix" };
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+/** Squads: what a club team that plays every week costs, in Pro or the Arena (plans/squad-prices.md). */
+export default async function SquadsPage({ searchParams }: { searchParams: SearchParams }) {
+  await connection();
+  const params = await searchParams;
+  const one = (key: string) => (typeof params[key] === "string" ? (params[key] as string) : undefined);
+  const code = leagueOf(one("league"));
+  const settings = { budget: budgetOf(one("budget")), target: targetOf(one("cover")), mine: one("mine") !== "0" };
+  const [data, system, { meta }] = await Promise.all([
+    loadSquads(code, (tiles) => one("club") ?? ranked(tiles, settings)[0]?.tile.club),
+    loadSystem(),
+    loadGrid(),
+  ]);
+  return (
+    <>
+      <SiteNav meta={meta} system={system} />
+      <main className="sq">
+        {data && data.club ? (
+          <SquadsView data={data} settings={settings} />
+        ) : (
+          <section className="sq-empty" role="status">
+            <h1>Squads</h1>
+            <p>
+              {LEAGUES.find((l) => l.code === code)?.label}&apos;s teams appear after the next refresh works them out (once a day).
+            </p>
+          </section>
+        )}
+      </main>
+    </>
+  );
+}

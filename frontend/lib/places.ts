@@ -36,6 +36,7 @@ export const PLACES: Place[] = [
       { href: "/players", label: "Players" },
       { href: "/stats", label: "Stats" },
       { href: "/prices", label: "Prices" },
+      { href: "/squads", label: "Squads" }, // what a club team that plays every week costs (24 Nov 2026)
     ],
   },
   {

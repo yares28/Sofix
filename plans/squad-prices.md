@@ -214,6 +214,13 @@ team). On today's blocks: 76 clubs in about 95 s; LaLiga ~1 MB, PL 0.7, BL1 0.6,
 Alavés €27.97 / 326, the canvas's numbers. Ligue 1 has no Arena prize lines (no Ligue 1 Limited competition in `reward_bars`), and
 a league without your Limited Pro board has no ladder. Tests: `backend/tests/test_squads.py`.
 
+**Q2 built (24 Nov 2026, committed locally, not pushed):** `/squads` (Gallery's fifth view): `frontend/app/squads/page.tsx`,
+`components/squads/SquadsView.tsx`, `lib/squads.ts` (budget pick, ladder, Arena prize, picker order; `lib/squads.test.ts`), the
+FastAPI stand-in `/api/squads/{code}`, a 1:1 loading skeleton, `e2e/squads.e2e.ts` on a trimmed real fixture (picker pages, budget,
+target, your cards, "Set €" when nothing fits, Who played, the Pro and Arena replay, axe, text floor and overflow at 1440 and 390
+px). Not in this step: next season and two/any clubs (Q4, Q5), so those filters are not shown yet. The look in your Chrome is still to
+do: the extension was not connected; the isolated browser's screenshots were checked instead.
+
 Limits: the Sorare price read is one `anyPlayer` alias per player in batches (keyless 500 complexity), only for players in a
 published team (≈ 20 a club, ≈ 1,600 for four leagues), once a day; nothing on page view. No new Neon table. The search runs in
 the job (about a minute for LaLiga's 20 clubs in the prototype).

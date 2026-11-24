@@ -263,6 +263,8 @@ for (const player of planning.playing.players.slice(0, 3)) {
 // played yet; the replay of the past from the committed file), and the same page once the record has enough games to give figures, so the figures,
 // their wording and the bands have something to draw.
 const rewardBarsFixture = JSON.parse(readFileSync(new URL("./fixtures/reward-bars-response.json", import.meta.url), "utf8"));
+// LaLiga's Squads block (backend/app/sorare/squads.py on the 24 Nov 2026 blocks): Alavés, Celta and Elche whole, the other clubs' picker numbers.
+const squadsFixture = JSON.parse(readFileSync(new URL("./fixtures/squads-response.json", import.meta.url), "utf8"));
 const auditFixture = JSON.parse(readFileSync(new URL("./fixtures/audit-response.json", import.meta.url), "utf8"));
 function auditPayload(kind) {
   const data = structuredClone(auditFixture.data);
@@ -526,6 +528,11 @@ const server = createServer((req, res) => {
   if (req.method === "GET" && url.pathname === "/api/reward-bars") {
     if (state.sorare === "missing") return send(res, 200, { success: false, data: null, error: "The reward bars have not been written yet." });
     return send(res, 200, rewardBarsFixture);
+  }
+
+  if (req.method === "GET" && url.pathname.startsWith("/api/squads/")) {
+    if (state.sorare === "missing" || url.pathname !== "/api/squads/LALIGA") return send(res, 200, { success: false, data: null, error: "The squads have not been written yet." });
+    return send(res, 200, squadsFixture);
   }
 
   if (req.method === "GET" && url.pathname === "/api/audit") {

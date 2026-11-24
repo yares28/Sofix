@@ -755,6 +755,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | page | `/players` | `frontend/app/players/page.tsx` |
 | page | `/prices` | `frontend/app/prices/page.tsx` |
 | page | `/scores` | `frontend/app/scores/page.tsx` |
+| page | `/squads` | `frontend/app/squads/page.tsx` |
 | page | `/stats` | `frontend/app/stats/page.tsx` |
 | page | `/targets` | `frontend/app/targets/page.tsx` |
 | page | `/team/[code]` | `frontend/app/team/[code]/page.tsx` |

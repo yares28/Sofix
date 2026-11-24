@@ -431,6 +431,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/squads/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Squads Page
+         * @description A league's Squads block the refresh published (LALIGA, PL, BL1, FL1). Local development only, like /sorare.
+         */
+        get: operations["squads_page_api_squads__code__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lineups": {
         parameters: {
             query?: never;
@@ -1474,6 +1494,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_dict_str__Any__"];
+                };
+            };
+        };
+    };
+    squads_page_api_squads__code__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_dict_str__Any__"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

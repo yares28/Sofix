@@ -815,6 +815,16 @@ of the same card (player, rarity, season; for a classic card any copy of him) co
 lists it, in euros, pounds, dollars or ETH (converted at Sorare's rates, 17 Nov 2026), or Sorare sells it itself; with none listed,
 Sorare's market value for that player, marked "est." on the gallery. This page does not see market credits: the gallery does. A card with neither is left out and counted.
 
+**Squads** (`/squads`, the Gallery's fifth view, 24 Nov 2026) is what a club team that plays every week costs. Pick a league, a
+budget, how often the team must field five starters (70-100%) and whether your cards count (free when they do). The club picker
+ranks every club for that budget (ring: games its best five topped the first Pro step; price; PRO or ARENA). The club's page shows
+the price, its cards by position, "What more money buys" (the best score a game for each budget), "Who played" (each game: started
+with his score in Sorare's colours, came on with his minutes, or did not play) and the season replayed in Pro (the board's steps
+cleared and won) or the Arena (the weeks a prize was reached), by the best, median or average five in hindsight or by Sofix's xS
+before kickoff. The team is the best real score inside the budget, not the cheapest (plans/squad-prices.md); the refresh works it out
+once a day (read models `squads:LALIGA`, `squads:PL`, `squads:BL1`, `squads:FL1`). The address keeps league, club, budget, target
+and cards.
+
 ## 10a. Missions
 
 **Load today's missions** reads Sorare's open football pickers through your signed-in sorare.com tab, using extension **0.3.9**. Press Reload on the extension once after updating it. Sofix reads the task group used by Sorare's Missions page, separately for each rarity, and saves one verified import. Missing fields, a partial response, a different signed-in account or a failed save are errors; they do not mean Sorare has no missions. The last saved list is kept and dated. Only a complete read can confirm an empty list. A phone can show saved data; importing needs the extension browser.

@@ -21,6 +21,7 @@ import "./player.css";
 import "./arcade.css";
 import "./arcade-canvas.css";
 import "./targets.css";
+import "./squads.css";
 import "./navigation.css";
 
 // Self-hosted at build time by next/font (no request to Google from the browser, so the CSP stays 'self').

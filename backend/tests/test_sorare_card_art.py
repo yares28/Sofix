@@ -132,6 +132,24 @@ def test_the_first_run_reads_every_squad_then_every_card_and_keeps_them(db: Sess
     assert stored.payload["players"]["mikel-balenziaga"]["url"] is None
 
 
+def test_players_of_other_leagues_get_their_card_kept_past_a_roster_read_but_are_never_linked_to_lineups(
+    db: Session,  # noqa: F811
+) -> None:
+    others = {"bukayo-saka": "PL", "florian-wirtz": "BL1"}
+    cards = {**CARDS, "bukayo-saka": "https://assets.sorare.com/card/ddd/picture/saka.png", "florian-wirtz": None}
+    art = card_art.refresh(db, FakeSorare(squads(), cards), DAY, others=others)
+
+    assert art.urls["bukayo-saka"].endswith("saka.png")
+    assert "bukayo-saka" not in {w.slug for w in art.wanted}, "Lineups link LaLiga people to LaLiga players only"
+
+    again = FakeSorare(squads(), cards)  # the roster is read again a day later: Saka's picture is kept, not asked for
+    art = card_art.refresh(db, again, DAY + timedelta(days=1), others={"bukayo-saka": "PL"})
+    assert not any("bukayo-saka" in text for text in again.asked)
+    assert art.urls["bukayo-saka"].endswith("saka.png")
+    stored = db.get(ReadModel, card_art.ART_KEY)
+    assert stored is not None and "florian-wirtz" not in stored.payload["players"], "a player who left the leagues goes"
+
+
 def test_a_second_run_the_same_day_asks_nothing(db: Session) -> None:  # noqa: F811
     card_art.refresh(db, FakeSorare(squads(), CARDS), DAY)
     again = FakeSorare(squads(), CARDS)

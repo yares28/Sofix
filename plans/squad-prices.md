@@ -221,6 +221,11 @@ target, your cards, "Set €" when nothing fits, Who played, the Pro and Arena r
 px). Not in this step: next season and two/any clubs (Q4, Q5), so those filters are not shown yet. The look in your Chrome is still to
 do: the extension was not connected; the isolated browser's screenshots were checked instead.
 
+**First live data (24 Nov 2026):** all four leagues published (LaLiga 20 clubs, PL 20, BL1 18, FL1 18, every club a team). The
+Premier League, Bundesliga and Ligue 1 teams showed initials: the card-art step only knew LaLiga's roster. It now also keeps a
+card for each foreign squad player Squads draws (`card_art.refresh(others=...)`, about 43 batched questions the first time,
+then only new players), never linked to a lineup.
+
 Limits: the Sorare price read is one `anyPlayer` alias per player in batches (keyless 500 complexity), only for players in a
 published team (≈ 20 a club, ≈ 1,600 for four leagues), once a day; nothing on page view. No new Neon table. The search runs in
 the job (about a minute for LaLiga's 20 clubs in the prototype).

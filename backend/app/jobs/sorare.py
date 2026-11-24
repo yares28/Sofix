@@ -638,10 +638,22 @@ def run(
                 )
             db.rollback()
         laps("sorare")
-        # A real Sorare card for every LaLiga player, owned or not: the Lineups page draws everyone as his card. Without it a
-        # player is drawn as he was before, so a step that fails costs only that.
+        # A real Sorare card for every LaLiga player, owned or not: the Lineups page draws everyone as his card, and Squads the
+        # Premier League, Bundesliga and Ligue 1 squads too. Without it a player is drawn as he was before, so a step that
+        # fails costs only that.
+        foreign_squads = {
+            code: squads.foreign_rows(
+                (snapshot.get("foreign") or {}).get(code) or foreign_kept.get(f"league_squads:{code}")
+            )
+            for code in squads.FOREIGN
+        }
+        others = {row["slug"]: code for code, rows in foreign_squads.items() for row in rows if row.get("slug")}
         art: card_art.Art | None = optional(
-            db, failed, "card art", lambda: card_art.refresh(db, client, started, write=not dry_run), None
+            db,
+            failed,
+            "card art",
+            lambda: card_art.refresh(db, client, started, others=others or None, write=not dry_run),
+            None,
         )
     if art is None:
         art = optional(db, failed, "card art (kept)", lambda: card_art.load(db), None)
@@ -995,12 +1007,7 @@ def run(
                 now,
                 markets={
                     "laliga-es": payload.get("market") or [],
-                    **{
-                        league: squads.foreign_rows(
-                            (snapshot.get("foreign") or {}).get(code) or foreign_kept.get(f"league_squads:{code}")
-                        )
-                        for code, league in squads.FOREIGN.items()
-                    },
+                    **{league: foreign_squads[code] for code, league in squads.FOREIGN.items()},
                 },
                 collection=payload.get("collection") or [],
                 art=art.urls if art else {},

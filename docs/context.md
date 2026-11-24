@@ -941,13 +941,13 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-24",
-        "note": "24 Nov 2026: the Sorare job builds the reward bars payload once and, once a day outside quick runs, publishes squads:<league> (backend/app/sorare/squads.py, plans/squad-prices.md Q1) after it; plan selection unchanged",
+        "note": "Checked jobs/sorare.py on 24 Nov 2026: the card art step now also keeps cards for the Premier League, Bundesliga and Ligue 1 squad players Squads draws, and Squads reuses the same foreign squad rows; Play selection inputs and plan logic are unchanged.",
         "files": {
           "backend/app/sorare/publish.py": "4ed3df49350d3839b58b4870ad36288b1666594693342a6e0ba9047fff709fcc",
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "3d0549ac3d2057575aca4dcf0c4e2e896bb914b635c5f8be626bbed55d1ddf69",
+          "backend/app/jobs/sorare.py": "38594d5a43fef1bcddd325c79810a2e3678e5e2bc50b497badd982e289c170a7",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
         }

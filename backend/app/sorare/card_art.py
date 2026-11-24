@@ -8,6 +8,9 @@ The job keeps one picture address per player in the read model `sorare_card_art`
 one aliased question), and keeps the roster, read from each club's squad, that the lineups' people are linked to by name
 (`ff_link`) so a page's player is found among them. A squad or a question Sorare does not answer leaves what was kept: a player
 without a picture is drawn as he was before, never as nothing.
+
+Squads also draws the Premier League, Bundesliga and Ligue 1 squads: the refresh names those players (`others`), whose cards are
+kept the same way but never linked to a lineup (24 Nov 2026).
 """
 
 from __future__ import annotations
@@ -147,9 +150,18 @@ def _due(entry: Mapping[str, Any], now: datetime) -> bool:
 
 
 def refresh(
-    db: Session, client: SorareClient, now: datetime, competition: str = COMPETITION, *, write: bool = True
+    db: Session,
+    client: SorareClient,
+    now: datetime,
+    competition: str = COMPETITION,
+    *,
+    others: Mapping[str, str] | None = None,
+    write: bool = True,
 ) -> Art:
-    """The roster and each player's card picture, brought up to date as far as Sorare answers, and kept (unless `write` is off)."""
+    """The roster and each player's card picture, brought up to date as far as Sorare answers, and kept (unless `write` is off).
+
+    `others` (slug -> league code) are players of the other leagues Squads draws: their card is kept like a LaLiga player's,
+    but they are never linked to a lineup, and one no longer named is forgotten. None keeps those kept before."""
     model = _load(db)
     db.rollback()  # Sorare is asked for over a minute: Neon closes a connection left inside a transaction
     season = season_of(now)
@@ -166,9 +178,19 @@ def refresh(
             logger.warning("card art: roster unavailable, keeping the last one: %s", error)
             fresh = {}
         if fresh:
-            players = {slug: {**players.get(slug, {"url": None, "at": None}), **entry} for slug, entry in fresh.items()}
+            kept = {slug: entry for slug, entry in players.items() if entry.get("league") and slug not in fresh}
+            players = kept | {
+                slug: {**players.get(slug, {"url": None, "at": None}), **entry, "league": None}
+                for slug, entry in fresh.items()
+            }
             model["rosterAt"] = now.isoformat()
             changed = True
+    if others is not None:
+        gone = [slug for slug, entry in players.items() if entry.get("league") and slug not in others]
+        players = {slug: entry for slug, entry in players.items() if slug not in gone} | {
+            slug: {"url": None, "at": None, "league": league} for slug, league in others.items() if slug not in players
+        }
+        changed = changed or bool(gone) or any(players[slug].get("at") is None for slug in others)
     due = [slug for slug, entry in players.items() if _due(entry, now)]
     for start in range(0, len(due), BATCH):
         batch = due[start : start + BATCH]
@@ -195,6 +217,6 @@ def _art(players: Mapping[str, Mapping[str, Any]]) -> Art:
     wanted = [
         wanted_of(slug, str(entry.get("name") or slug), entry.get("born"), entry.get("pos"), entry.get("clubs") or [])
         for slug, entry in players.items()
-        if slug in urls
+        if slug in urls and not entry.get("league")
     ]
     return Art(wanted=wanted, urls=urls)

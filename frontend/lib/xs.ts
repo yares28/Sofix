@@ -2,20 +2,21 @@ import { cardScore, type PlayCard, type PlayingPlayer, type XsVersions } from ".
 
 /**
  * The xS version switch (plans/xscore-versions.md): the owner picks which number every card shows, kept in this browser
- * like the theme. v1 is the default. Pages draw every version's number and one CSS rule on `html[data-xs]` shows the picked
+ * like the theme. v3 is the default (owner, 24 Nov 2026: "make v3 the default model app wide"; it lands within 7 points most often). Pages draw every version's number and one CSS rule on `html[data-xs]` shows the picked
  * one, so the server renders nothing per choice and switching needs no request.
  */
 export type XsVersion = "v0" | "v1" | "v2" | "v3";
 export const XS_VERSIONS: readonly XsVersion[] = ["v0", "v1", "v2", "v3"];
 export const XS_KEY = "sofix-xs";
-const PICKABLE = new Set<string>(["v0", "v2", "v3"]); // v1 is the default: no attribute
+export const DEFAULT_XS: XsVersion = "v3";
+const PICKABLE = new Set<string>(["v0", "v1", "v2"]); // v3 is the default: no attribute
 
 /** Runs before the first paint, so a saved version never flashes v1's numbers first. */
-export const XS_SCRIPT = `try{var x=localStorage.getItem("${XS_KEY}");if(x==="v0"||x==="v2"||x==="v3")document.documentElement.dataset.xs=x}catch(e){}`;
+export const XS_SCRIPT = `try{var x=localStorage.getItem("${XS_KEY}");if(x==="v0"||x==="v1"||x==="v2")document.documentElement.dataset.xs=x}catch(e){}`;
 
-/** The version on screen: v0, v2 or v3 only when picked, else v1. */
+/** The version on screen: v0, v1 or v2 only when picked, else v3. */
 export function shownXs(saved: string | null | undefined): XsVersion {
-  return saved && PICKABLE.has(saved) ? (saved as XsVersion) : "v1";
+  return saved && PICKABLE.has(saved) ? (saved as XsVersion) : DEFAULT_XS;
 }
 
 export type Roles = { pStart?: number | null; pOn?: number | null };
@@ -102,9 +103,9 @@ export function tileVersions(
 /** What each version is, in the owner's words (plans/xscore-versions.md): the switch's menu and the Audit say the same. */
 export const XS_ABOUT: Record<XsVersion, string> = {
   v0: "Before 12 Nov: normal and decisive score mixed",
-  v1: "Expected points · the default",
+  v1: "Expected points",
   v2: "The most likely final score",
-  v3: "v0's normal score, its decisive one at 75%",
+  v3: "v0's normal score, its decisive one at 75% · the default",
 };
 
 export type Replay = { cases: number; previousHits: number; meanHits: number; hits: number };

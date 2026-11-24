@@ -32,7 +32,7 @@
 
   let enabled = false;
   let off = new Set(); // the parts switched off in the popup (core.OVERLAY_PARTS)
-  let xsVersion = "v1"; // the xS version the app shows (plans/xscore-versions.md), written by the worker from the app
+  let xsVersion = "v3"; // the xS version the app shows (v3 by default since 24 Nov 2026) (plans/xscore-versions.md), written by the worker from the app
   const on = (part) => !off.has(part);
   let dead = false; // the extension was reloaded under this tab: the old script has nothing left to talk to
   let mutations = null;
@@ -3185,7 +3185,7 @@
       () => apply(true),
     );
     const setXs = guard((value) => {
-      const next = ["v0", "v1", "v2", "v3"].includes(value) ? value : "v1";
+      const next = ["v0", "v1", "v2", "v3"].includes(value) ? value : "v3";
       if (next === xsVersion) return;
       xsVersion = next;
       if (!enabled) return;

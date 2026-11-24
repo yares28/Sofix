@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import replay from "../../lib/data/sofix_v1_replay.json";
 import { percent, type Versus, type VersusSide } from "../../lib/audit";
-import { replayRates, shownXs, starterRates, XS_ABOUT, XS_KEY, XS_VERSIONS, type Band, type XsVersion } from "../../lib/xs";
+import { DEFAULT_XS, replayRates, shownXs, starterRates, XS_ABOUT, XS_KEY, XS_VERSIONS, type Band, type XsVersion } from "../../lib/xs";
 import VersusAudit from "./VersusAudit";
 
 const BANDS: Band[] = [7, 10, 15];
@@ -22,8 +22,8 @@ const within = (side: VersusSide, band: Band) => (band === 7 ? side.within : ban
  */
 export default function XsAudit({ versions, fallback, updated }: { versions: Partial<Record<XsVersion, Versus>>; fallback: Versus; updated: ReactNode }) {
   const [band, setBand] = useState<Band>(7);
-  const [inUse, setInUse] = useState<XsVersion>("v1");
-  const [chosen, setChosen] = useState<XsVersion>("v1");
+  const [inUse, setInUse] = useState<XsVersion>(DEFAULT_XS);
+  const [chosen, setChosen] = useState<XsVersion>(DEFAULT_XS);
   useEffect(() => {
     let saved: string | null = null;
     try {

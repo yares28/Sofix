@@ -98,8 +98,8 @@ this browser; until one is made, Sofix follows the system's light or dark settin
 name (accents ignored) and opens his page. Every Sorare card drawn anywhere in the app opens that player's page too.
 
 The **xS** button beside them picks which xS every card shows ([plan](../plans/xscore-versions.md)): **Sofix v1**
-(his expected points, the default), **Sofix v2** (the most likely final score, the number to expect), **Sofix v0**
-(the formula used before 12 Nov) or **Sofix v3** (v0's normal score for a starter, its decisive score once v0 gives a
+(his expected points), **Sofix v2** (the most likely final score, the number to expect), **Sofix v0**
+(the formula used before 12 Nov) or **Sofix v3**, the default since 24 Nov 2026 (v0's normal score for a starter, its decisive score once v0 gives a
 decisive action 75% or more, which is rare; v2's number for a substitute and wherever v0 is not on file). On the research's
 side-by-side replay of 6,754 LaLiga starts (Jan–Oct 2026), v3 landed within 7 / 10 / 15 points 38.7% / 50.1% / 64.6% of the
 time, against v1's 30.1% / 43.3% / 62.8% and v2's 38.4% / 49.5% / 62.6%, and led every replay period at every width. Its menu shows each version's hit rate within ±7, ±10 or ±15 points (±10 and ±15 say

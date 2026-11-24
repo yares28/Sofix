@@ -7,7 +7,7 @@ three rounds of comments (17 Nov). Research behind it: `plans/xscore-accuracy.md
 
 ## What the owner asked for (the contract)
 
-- **Three versions, Sofix v1 the default.**
+- **Three versions, Sofix v1 the default.** Since 24 Nov 2026 **v3 is the default** (owner: "make v3 the default model app wide"; on the 20-24 Nov round's 792 starts v3 landed within 7 points 37.2% of the time, v1 29.0%).
   - **v0:** the formula used before 12 Nov (normal and decisive score mixed by the decisive chance,
     `backend/app/sorare/outfield.py`, `keeper.py`). Live it already exists as `previousSofix` / `previousSofixOn`.
   - **v1:** today's number, his expected points (`sofix` in the score records; `x` / `mu` on cards).

@@ -30,10 +30,11 @@ describe("decisiveOf", () => {
 });
 
 describe("shownXs", () => {
-  it("is v1 unless v0 or v2 was picked", () => {
-    expect(shownXs(null)).toBe("v1");
+  it("is v3 unless v0, v1 or v2 was picked (owner, 24 Nov 2026)", () => {
+    expect(shownXs(null)).toBe("v3");
+    expect(shownXs("v1")).toBe("v1");
     expect(shownXs("v2")).toBe("v2");
-    expect(shownXs("v9")).toBe("v1");
+    expect(shownXs("v9")).toBe("v3");
   });
 });
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import replay from "../lib/data/sofix_v1_replay.json";
-import { shownXs, starterRates, XS_ABOUT, XS_KEY, XS_VERSIONS, type Band, type XsVersion } from "../lib/xs";
+import { DEFAULT_XS, shownXs, starterRates, XS_ABOUT, XS_KEY, XS_VERSIONS, type Band, type XsVersion } from "../lib/xs";
 import ThemeSwitch from "./ThemeSwitch";
 import { askExtension } from "../lib/extension";
 
@@ -41,7 +41,7 @@ export default function XsSwitch() {
   }, [open]);
 
   const pick = (next: XsVersion) => {
-    if (next === "v1") delete document.documentElement.dataset.xs;
+    if (next === DEFAULT_XS) delete document.documentElement.dataset.xs;
     else document.documentElement.dataset.xs = next;
     try {
       localStorage.setItem(XS_KEY, next);
@@ -61,8 +61,8 @@ export default function XsSwitch() {
 
   return (
     <div className="xs-switch" ref={box}>
-      <button type="button" className="xs-switch-btn" aria-haspopup="dialog" aria-expanded={open} aria-label={`xS version: ${version ?? "v1"}`} onClick={() => setOpen((o) => !o)}>
-        <span className="xs-switch-word">xS </span><b>{version ?? "v1"}</b>
+      <button type="button" className="xs-switch-btn" aria-haspopup="dialog" aria-expanded={open} aria-label={`xS version: ${version ?? DEFAULT_XS}`} onClick={() => setOpen((o) => !o)}>
+        <span className="xs-switch-word">xS </span><b>{version ?? DEFAULT_XS}</b>
         <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 9l6 6 6-6" /></svg>
       </button>
       {open ? (

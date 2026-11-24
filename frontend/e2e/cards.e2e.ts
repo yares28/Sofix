@@ -127,11 +127,11 @@ test("every LaLiga player has a start chance and an xScore, not only yours, pric
   await expect(hero.locator(".pd-s")).toHaveText("4%");
 });
 
-test("the xS switch top right shows every card in the picked version, keeps it after a reload, and goes back to v1", async ({ page }) => {
+test("the xS switch top right shows every card in the picked version, keeps it after a reload, and goes back to v3, the default", async ({ page }) => {
   await page.goto("/players");
   await page.getByRole("searchbox").or(page.getByRole("textbox")).first().fill("Raphinha");
   const xs = page.locator(".s5-res", { hasText: "Raphinha" }).locator(".s5-stat", { hasText: "xScore" }).locator("b:visible");
-  await expect(xs).toHaveText("67"); // v1, the default: his expected points
+  await expect(xs).toHaveText("64"); // v3, the default since 24 Nov 2026: v0's normal score for a starter
   const pick = async (version: string) => {
     await page.locator(".xs-switch-btn").click();
     await page.getByRole("radio", { name: new RegExp(`Sofix ${version}`) }).click();
@@ -145,12 +145,12 @@ test("the xS switch top right shows every card in the picked version, keeps it a
   await expect(page.locator(".xs-switch-btn")).toHaveAccessibleName("xS version: v2");
   await pick("v0");
   await expect(xs).toHaveText("72"); // the old formula: 0.85 × 80 + 0.08 × 45
-  await pick("v3");
-  await expect(page.locator("html")).toHaveAttribute("data-xs", "v3");
-  await expect(xs).toHaveText("64"); // v0's normal score, the job's v3 for a starter
   await pick("v1");
+  await expect(page.locator("html")).toHaveAttribute("data-xs", "v1");
+  await expect(xs).toHaveText("67"); // his expected points
+  await pick("v3");
   await expect(page.locator("html")).not.toHaveAttribute("data-xs", /./);
-  await expect(xs).toHaveText("67");
+  await expect(xs).toHaveText("64"); // v0's normal score, the job's v3 for a starter
 });
 
 test("Stats ranks LaLiga players by their mean per start: the first five on a staircase, 1st on the left, the next five as big cards, then a wall", async ({ page }) => {

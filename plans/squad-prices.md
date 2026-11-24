@@ -13,7 +13,26 @@ Your answers (24 Nov 2026):
 - You enter **a club**, **a budget**, whether **cards you own** count, and a **coverage target** (how often a full lineup must play).
 - **Limited** only.
 
-Nothing here is built. Design canvas: *link added when published* (§8).
+Nothing here is built. Design canvas: [Sofix Squads](https://claude.ai/artifact/GnHLGGjVjHWjPZR7dZ2xh9) (§8).
+
+### Your canvas comments (24 Nov 2026, round 2) and what changed
+
+Where this list and the sections below disagree, this list wins.
+
+| You said | Change |
+|---|---|
+| "It needs to take the best players too... why isn't Alonso a choice?" / "balance between starters and best players" | The team is now **the best real score inside the budget**, not the cheapest set that covers: each game the best five of the team's starters (captain +50%), a game without five counts 0, coverage target still required; among sets within 1% of the best score, the cheapest. Celta's team now has Marcos Alonso (9 of 13 started, 59 a start) and costs €28.88 to complete (11 cards, you own 6): 319 a game against 287 for the cheapest (€24.36). A "What more money buys" curve shows the score for each budget (Celta: nothing better past €29). |
+| "Shouldn't this be at the top so I can select the team?" / "restyle... gauge with the crest inside, price at right with Pro or Arena under it" | The club list is a picker under the filters: 12 tiles a page (crest inside a ring = games its best five topped 320; price; PRO pill; clubs with no team inside the budget greyed with their cheapest price). The Club dropdown is gone. |
+| "What is the LL?" | Gone: the pill says LALIGA PRO. |
+| "Why some are black and other blue?" / "did everyone eventually play or we got a DNP?" / "needs the crests" / "sections per position" | The strip is "Who played": black cell = started (his score inside), light blue = came on (minutes), grey = did not play; opponent crests on the game header; rows grouped under Goalkeeper, Defenders, Midfielders, Forwards with space between, no per-row label. |
+| "1 long card with a switch between Arena and Pro... filters hindsight and xScore; best, average, median, expected" | One card, Pro/Arena switch, "Lineup: Hindsight / Sofix xS before kickoff", "Score: Best / Median / Average" (xS: "What it scored / What xS said"). Pro chart: the score each game against the step the board stood on (stair line), cleared steps green with their prize, a miss on a later step marked "back to 320"; summary: steps cleared, won, highest step, resets. One club = one try a matchday. Celta's team in hindsight: 6 steps, $5 + 2,500 essence, highest 360, back to 320 five times. Arena chart: the seven's score (subs in) against the score each LaLiga Limited Arena prize needed (329 = 250 essence, 376 = 500, 437 = 2,000, 471 = $10; `reward_bars`, 7 weeks); summary: weeks paid, won, all five started, a sub came in. Sofix xS was saved per game from 11 Oct only (5 of 13 games): the others show "no number". |
+| "This is bad... help me choose the team before the season starts... I never said wait 5 games" | Removed. Next season picks the team from **the whole previous season** and shows the new cards' price from the drop (cards come out before the first game); no waiting state. |
+| "compare the starts from the whole season before... new transfers can affect start chances" | Next season shows the players new at the club with no LaLiga games last season (Celta: Cáceres, Faye, Driouech, Bayındır), and the proof: Celta's team picked from 2025/26 (38 games) fielded five starters in 13 of 13 this season, 308 a game (the best team in hindsight: 319), 5 Pro steps. |
+
+Corrections found while redoing the numbers: a sub in the Arena only replaces a player who **did not play** (one who came on keeps
+his low score), so "all five started" is stricter than round 1's "full five with a sub": Elche's seven, 10 of 13 (77%), not 92%;
+Celta's 5 of 13. The two-clubs board is now computed: Alavés + Levante (€38.03, two tries a matchday) cleared 11 steps for $80 +
+3,000 essence, up to 420; Alavés alone 7 steps.
 
 ## 1 · What the page answers
 
@@ -90,96 +109,96 @@ described: Hugo González, Pablo Durán and Williot Swedberg each start under ha
 
 ## 3 · The page (`/squads`, in the Gallery bar after Prices)
 
-1. **Filter bar (one row, dropdowns, each with All):** League (All, LaLiga, Premier League, Bundesliga, Ligue 1; European
-   competitions are not a Pro board and only join "Any clubs"); Team (One club / Two clubs / Any clubs); Season (Now · 2026 cards /
-   Next season · 2027 cards); Mode (Best for this club / Pro / Arena). A budget field (€) and a coverage target (70–100%, 90 by
-   default) as a slider. "Count my cards" switch, on by default.
-2. **Hero:** the chosen team's price as one big number (count-up), the mode verdict beside it as a pill (Pro or Arena with its
-   league disc, the Targets look), and the coverage it reaches ("full five in 12 of 13 games"). With your cards counted: "€24 to
-   complete, you own 2".
-3. **The team:** real Limited cards in position shelves (GK, DEF, MID, FWD), each with its price and start rate; cards you own wear
-   an "Owned" corner and cost nothing.
-4. **The relay strip:** one column per league game this season, one row per card; a filled cell where he started. Above it, the
-   lineup line: green when five starters were there, coral when not. Pairs that share a shirt are drawn as one braid (forward 1's
-   gaps lined up with forward 2's starts), so "forward 2 plays when forward 1 doesn't" is seen, not read.
-5. **Pro or Arena, side by side** (below the strip): the same club's two answers in two columns (cards needed, price, coverage,
-   and for Pro the ladder: chance per matchday to clear each step of the board with that team's five, from xS; for Arena the Cap 260
-   check and "no Multi-Club with one club").
-6. **Clubs for your budget:** every club whose team fits the budget, ranked by coverage then price, crest + price + coverage dial;
-   paginated at 12. Tapping one makes it the hero.
+1. **Filter bar:** League (All, LaLiga, Premier League, Bundesliga, Ligue 1; European competitions only join "Any clubs"); Team
+   (One club / Two clubs / Any clubs); Season (Now · 2026 cards / Next season · 2027 cards); a budget (€); the coverage target
+   (five starters in 70–100% of games, 90 by default); "Count my cards", on by default.
+2. **Club picker** (under the filters): every club of the league as a tile, 12 a page: crest inside a ring (games the team's best
+   five topped 320), price to complete, PRO or ARENA under it; clubs with no team inside the budget greyed with their cheapest price.
+   Tapping one makes it the hero.
+3. **Hero:** price to complete (count-up), cards, price for all, cards you own; games with five starters, points a game, games over
+   320; beside it **What more money buys**: the best score a game for each budget, this team and the cheapest marked.
+4. **The team:** real Limited cards in four position sections, each with price (struck when yours), starts and points a start.
+5. **Who played:** one column per league game (opponent crest, H/A, date), a "Five starters" row, then position sections; a cell is
+   started (score inside), came on (minutes) or did not play.
+6. **Pro or Arena, played all season** (one card): the switch, Lineup (Hindsight / Sofix xS before kickoff) and Score (Best /
+   Median / Average, or What it scored / What xS said). Pro: score each game against the board's step (stair line), prizes,
+   resets, summary and the board. Arena: score against the prize lines, the seven, weeks paid, subs, no Multi-Club with one club.
 
-Phone: filters fold into one "Filters" sheet; hero, team (two cards a row), strip (scrolls sideways inside its card, games
-newest-first so today is visible), side by side becomes stacked, budget list.
+Phone: filters fold into one "Filters" sheet; picker 6 a page; hero with the money curve under it; team three cards a row; Who played
+scrolls sideways inside its card; the Pro/Arena card stacks (chart, then summary).
 
 ## 4 · How the team is chosen (backend, published, never in the page)
 
 `backend/app/sorare/squads.py`, run by the refresh's Sorare step, publishes `squads:<league>` blocks; the page only draws.
 
-1. **Pool:** a club's in-season Limited players with a price; games = this season's league games of the club.
-2. **Pro:** the cheapest set (GK 1–2, DEF 1–4, MID 1–4, FWD 1–3, from each position's most-started) that fields GK + DEF + MID +
-   FWD + one outfielder from its starters in at least the target share of games. Exact search over those candidates (the prototype
-   runs a club in seconds). Several targets (70, 80, 90, 100%) are published so the slider does not recompute.
-3. **Arena:** the seven (5 + GK sub + outfield sub) with the most games where five starters were there (a sub covers one
-   non-starter if the lineup stays valid), cheapest among equals; also the Cap 260 total of the five's L15 averages.
-4. **Verdict:** Arena when its seven reach the target, else Pro; ties go to the cheaper.
-5. **Two clubs:** pairs of clubs whose league games rarely share a kickoff hour, each pair's Pro set covering the target in both
-   matches; Arena seven from both clubs (Multi-Club bonus kept). Top 50 pairs per league by price.
-6. **Any clubs:** the league's cheapest seven by start rate per position (Arena) and the cheapest Pro pool; no relay strip
-   (players from different matches), the strip shows each card's own starts.
-7. **Your cards:** an owned in-season Limited card of a chosen player costs 0; the search runs again with owned cards free (so it may
-   pick a different, better set when you already own a player).
-8. **Budget:** the page filters the published teams by price; no search in the page.
-9. **Transfers:** a player who left the club mid-season counts only his games for it; a new signing counts from his first game, and
-   a club with fewer than 5 games says "too early to tell" instead of a coverage.
+1. **Pool:** a club's in-season Limited players with a price; games = the club's league games in the window (this season for Now,
+   the whole previous season for Next season), FINAL or REVIEWING.
+2. **Pro:** every set from each position's leading candidates (GK 1–2, DEF 1–4, MID 1–4, FWD 1–3; candidates ranked by start rate
+   times points a start). For each game, the best valid five of the set's starters plus the captain's 50%; a game without five
+   counts 0. The team is the **best average score inside the budget that reaches the coverage target**; among sets within 1% of
+   that score, the cheapest. Published for each budget step (the curve) and each target (70, 80, 90, 100%): the page never searches.
+3. **Arena:** the club's usual keeper plus four outfielders, a GK sub and an outfield sub; a sub only replaces a player who did not
+   play. Best average score inside the budget.
+4. **Charts:** per game, Pro's best, median and average five of the starters, Sofix's xS pick (real and expected, where Sofix saved
+   its number), and the Arena seven's score with subs; the ladder (one try a matchday a club; a miss sends the board to 320) and the
+   Arena prize lines (`reward_bars`) are worked out from those.
+5. **Verdict:** Arena when its seven started together in at least the target share of games, else Pro.
+6. **Two clubs:** every pair and budget split inside the budget, two tries a matchday (same week), a clear lets the next try aim at
+   the next step; ranked by money won, then steps, then price.
+7. **Any clubs:** the same search over the whole league; the strip shows each card's own starts.
+8. **Your cards:** an owned in-season Limited card costs 0, so the search may pick a better set around them.
+9. **Transfers:** a player counts only his games for the club; players new to the club with no league games in the window are
+   listed as new (start chance unknown) and counted from their first game for it.
 
 ## 5 · Start of season (2027 cards)
 
-1. **Before the 2027 cards drop:** the team is chosen from this season's starts (players still at the club), and each card shows
-   today's 2026 price as a reference, labelled "2027 cards not out yet". No invented launch price.
-2. **When the cards drop:** the refresh reads `lowestPriceAnyCard(rarity: limited, inSeason: true)` for the new season; the Season
-   dropdown's "Next season" becomes the real price.
-3. **The first weeks of a season** have few games: the start record falls back to last season's for the same club (marked), until
-   5 games of the new season.
+1. **Before the first game:** the team is picked from the whole previous season (players at the club now); new arrivals with no
+   record are listed. Sorare drops the new cards before the first game, so the price is the new cards' price from the drop.
+2. **The drop:** the refresh reads `lowestPriceAnyCard(rarity: limited, inSeason: true)` for the new season; until then the board
+   says "2027 cards not out yet" beside last season's price.
+3. **As games are played:** the new season's games join the record game by game; no waiting state.
 4. **Price record from today:** each refresh's prices go into a small per-league history (one number per player per day, R2 block
    `squad_prices:<league>`, a season ≈ 300 kB per league); each card then shows a price line, and next August the launch price and
    how fast it fell are measured.
+5. **Proof shown:** the team picked this way last August and how it did this season (Celta: 13 of 13 with five starters, 308 a
+   game, 5 Pro steps).
 
-## 6 · Upgrades proposed (built with the page unless you say no)
+## 6 · Upgrades (built with the page unless you say no)
 
-1. **Ladder reach (Pro):** for the chosen team, the chance per matchday to clear each step of its league's board, from its five's xS
-   (`pro.py`'s step math), and its real record this season. A team that cannot clear 360 is shown as such: price is only half of the
-   answer. Measured on Celta's €38 Pro team: it fielded five starters in 12 of 13 games, and their real scores (best-average five of
-   the starters, before captain and bonuses) were 189-347, over the first step's 320 in 2 of 12. Elche's five: 142-360, 2 of 12.
-2. **Fixture run:** the next 6 league games of the club with the difficulty colours, so you buy before an easy run.
-3. **Cheapest buy now:** each card links to its cheapest listing on sorare.com (link only, Sofix never buys).
-4. **Price line:** from the record in §5.4, each card's price over the season, so you can wait for a dip.
+1. **What more money buys** (drawn): the best score for each budget; shows where money stops buying points.
+2. **Ladder and prize replay** (drawn): the Pro and Arena season replays in §3.6.
+3. **Pre-season proof** (drawn): last August's pick, measured on this season.
+4. **Fixture run:** the next 6 league games of the club with the difficulty colours, so you buy before an easy run.
+5. **Cheapest buy now:** each card links to its cheapest listing on sorare.com (link only, Sofix never buys).
+6. **Price line:** from the record in §5.4, each card's price over the season, so you can wait for a dip.
+7. **Swap a card:** tap a card for the club's next-best players at that position, each with what the team's score and price become.
 
 ## 7 · Steps (depth-first, each one shippable)
 
 | Step | What | Done when | Check |
 |---|---|---|---|
-| Q1 | `squads.py`: Pro and Arena search, one club, now prices, tests (coverage, owned free, transfers, too-early) | `squads:<league>` published for LaLiga, PL, BL1, FL1 | pytest; one SELECT of the block after a refresh |
-| Q2 | `/squads` page: filters, hero, team, relay strip, side by side, budget list, 1:1 skeleton | your clubs on real data at 1440 and 390 px | `e2e/squads.e2e.ts`, mobile spec, look in your Chrome, web-design-guidelines |
+| Q1 | `squads.py`: Pro and Arena search by score inside the budget, one club, now prices, per-game series, budget curve; tests (best five, coverage, owned free, sub rule, transfers) | `squads:<league>` published for LaLiga, PL, BL1, FL1 | pytest; one SELECT of the block after a refresh |
+| Q2 | `/squads` page: filters, club picker, hero and curve, team, Who played, the Pro/Arena card with its filters, 1:1 skeleton | your clubs on real data at 1440 and 390 px | `e2e/squads.e2e.ts`, mobile spec, look in your Chrome, web-design-guidelines |
 | Q3 | Buy-now prices (`lowestPriceAnyCard`) and the daily price record | prices say "listed" or "est." | test; a real read of 3 players |
 | Q4 | Two clubs and Any clubs | the Team dropdown's three options | tests; look |
-| Q5 | Ladder reach and fixture run | the Pro column shows the step chances | test against `pro.py`; look |
-| Q6 | Next season mode (reference prices until the drop, then real) | the Season dropdown | test with a fake drop date |
+| Q5 | Next season: previous season's record, new arrivals, the proof, drop prices | the Season dropdown | test with a fake drop date |
+| Q6 | Fixture run, swap a card | on the page | test; look |
 
 Limits: the Sorare price read is one `anyPlayer` alias per player in batches (keyless 500 complexity), only for players in a
-published team (≈ 20 a club, ≈ 1,600 for four leagues), once a day; nothing on page view. No new Neon table.
+published team (≈ 20 a club, ≈ 1,600 for four leagues), once a day; nothing on page view. No new Neon table. The search runs in
+the job (about a minute for LaLiga's 20 clubs in the prototype).
 
 ## 8 · Design canvas
 
-[Sofix Squads · buy a team that always plays](https://claude.ai/artifact/GnHLGGjVjHWjPZR7dZ2xh9) (24 Nov 2026, private until you
-share it), every number from today's blocks:
+[Sofix Squads · buy a team that always plays](https://claude.ai/artifact/GnHLGGjVjHWjPZR7dZ2xh9) (round 2, 24 Nov 2026, private
+until you share it), every number from today's blocks; the Mode, Lineup, Score and page buttons work:
 
-- **Desktop 1440, Celta, one club, now:** filter bar; hero €34.37 to complete (count-up) with the Pro pill and a 13-segment ring
-  (12 green, 1 coral); the eight cards on position shelves with start bars and "Yours" on Hugo González; "Who started" with the
-  three forwards in three blues and an "Any forward" row that braids them; Pro beside Arena (Pro: the five's real score per game
-  against the 320 and 360 lines and the board's steps; Arena: €20 with four owned, 7 of 13); 11 clubs within €40.
-- **Phone 390, Elche, Arena:** filters folded into one button; hero €18 with the ring; the seven in rows of three; the strip;
-  Arena and Pro as two rows; the club list.
-- **States:** two clubs (Elche + Levante, €29 for two tries a matchday), next season (Celta's cards greyed, "Waiting for the 2027
-  cards", today's €38 as reference), and too early (3 games).
+- **Desktop 1440, Celta, one club, now:** filters; club picker (11 clubs inside €40, Alavés first: 9 of 13 over 320); hero
+  €28.88 to complete, 11 cards, you own 6, 319 a game, money curve (€24.36 gives 287, €28.88 gives 319); the team by position; Who
+  played; the Pro/Arena card (Pro: 6 steps, $5 + 2,500 essence; Arena €24.94: paid 5 of 13 weeks, 1,500 essence).
+- **Phone 390, Elche:** picker 6 a page; hero €23.88 (you own Dituro, Chust, Valera), 332 a game, curve; team; Who played
+  (scrolls); the card opened on Arena (€10.90: paid 5 of 13, all five started 10 of 13).
+- **Before the first game and two clubs (900):** Celta picked from 2025/26 with the new arrivals and the proof; Alavés + Levante
+  against each alone, and the next pairs.
 
-Not drawn yet: Any clubs (Q4 computes it) and the ladder-reach chances (Q5).
+Not drawn yet: Any clubs (Q4), fixture run and swap a card (Q6).

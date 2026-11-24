@@ -27,6 +27,10 @@ Your answers: now = this season's in-season cards, start of season = next season
 two clubs or any clubs; you enter a club, a budget, whether your cards count and a coverage target; Limited only. Research, plan and
 design canvas: [plans/squad-prices.md](plans/squad-prices.md). *Planned 24 Nov 2026, not started.*
 
+Your 12 canvas comments (24 Nov): best players, not only starters ("why isn't Alonso a choice?"); the club list at the top as a
+compact picker; one Pro/Arena card with hindsight/xS and best/median/average filters; who came on versus did not play; crests; no
+"too early" wait, pick before the first game from last season with transfers. Each one and its change: the plan's round-2 table.
+
 ## Arcade audit: every tab against the main app (you, 20 Nov 2026)
 
 Everything from 20 Nov is in one plan: [plans/arcade-trust.md](plans/arcade-trust.md) (your words in its §0, the evidence in §2-3,

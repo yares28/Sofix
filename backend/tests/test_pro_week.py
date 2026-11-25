@@ -126,3 +126,36 @@ def test_the_page_block_has_each_batch_both_plans_and_legal_subs():
     defender = next(s for s in starters if s["slot"] == "DEF")
     assert defender["subs"] and all(sub["pos"] == "DEF" for sub in defender["subs"])
     assert all(s["late"] is None or s["subs"] == [] for s in starters)  # a player entered blind has no sub
+
+
+def test_leftovers_are_cards_free_after_the_laliga_in_season_lineups_and_not_placed_after_every_lineup():
+    from app.sorare.publish import pro_spare
+
+    week = {
+        "playing": {
+            "players": [
+                {"player": "a", "name": "A", "pos": "GK", "cards": 2, "inSeason": True, "x": 50, "pStart": 0.9},
+                {"player": "b", "name": "B", "pos": "DEF", "cards": 1, "inSeason": True, "x": 60, "p": 0.8},
+                {"player": "c", "name": "C", "pos": "MID", "cards": 1, "inSeason": False, "x": 40, "p": 0.5},
+            ]
+        },
+        "plans": [
+            {
+                "lineups": [
+                    {
+                        "key": "LALIGA EA SPORTS | Limited",
+                        "group": "In-season",
+                        "starters": [{"player": "a"}],
+                        "subs": [],
+                    },
+                    {"key": "Champion | Limited", "group": "Classic", "starters": [{"player": "b"}], "subs": []},
+                ]
+            }
+        ],
+    }
+    spare = pro_spare(week)
+    # a has a second card; b only plays in the Champion lineup, so he is free after the LaLiga ones
+    assert [(r["player"], r["free"]) for r in spare["leftovers"]] == [("b", 1), ("a", 1), ("c", 1)]
+    assert [(r["player"], r["free"]) for r in spare["notPlaced"]] == [("a", 1), ("c", 1)]
+    assert spare["leftovers"][1]["start"] == 0.9 and spare["leftovers"][0]["start"] == 0.8
+    assert pro_spare({}) == {"leftovers": [], "notPlaced": []}

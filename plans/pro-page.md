@@ -120,8 +120,8 @@ each player's last 15 starts; captain +50%, other bonuses +6% until the build re
   Cost measured at about 9 s per board per week. Tests: `backend/tests/test_pro_week.py`.
 - Frontend: `/pro` in This week (`lib/proWeek.ts` chain, reach, moves, matchday hold, with tests; `components/pro/ProView.tsx`;
   `app/pro.css`; skeleton), spec `e2e/pro.e2e.ts` on a fixture built from GW35's real data.
-- Not built yet: the Arena leftovers and Not placed views (they need the Sorare page's chosen lineups in the block), the phone
-  board's final look check in the owner's Chrome at 390 px (checked by the spec at 390 px: no overflow, no small text, axe clean).
+- Arena leftovers and Not placed (`publish.pro_spare`, from the week's first Sorare plan) built the same day; every control was
+  driven in the owner's Chrome, and 1440 / 390 px screenshots taken with Chrome through Playwright (his window was hidden).
 
 ## Build notes
 

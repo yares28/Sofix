@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import math
 import zlib
+from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
@@ -1072,6 +1073,45 @@ def pro_plan_payload(
         ],
         **plans_out,
     }
+
+
+def pro_spare(week: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """The Pro page's two other views, from the week's first Sorare plan (the one its page recommends): `leftovers`, your cards with
+    a game this week not in its LaLiga in-season lineups (the owner, 25 Nov 2026: "what cards are still to be assigned after the
+    laliga in season lineups"), and `notPlaced`, those in none of its lineups. One entry per player, with how many of his cards are
+    free, best expected score first."""
+    lineups = ((week.get("plans") or [{}])[0] or {}).get("lineups") or []
+
+    def used(keep: Callable[[dict[str, Any]], bool]) -> Counter[str]:
+        return Counter(
+            c["player"] for lu in lineups if keep(lu) for c in [*lu.get("starters", []), *lu.get("subs", [])] if c
+        )
+
+    laliga = used(lambda lu: str(lu.get("key", "")).startswith("LALIGA EA SPORTS") and lu.get("group") == "In-season")
+    every = used(lambda lu: True)
+
+    def free(taken: Counter[str]) -> list[dict[str, Any]]:
+        rows = []
+        for p in (week.get("playing") or {}).get("players") or []:
+            spare = int(p.get("cards") or 1) - taken[p["player"]]
+            if spare <= 0:
+                continue
+            rows.append(
+                {
+                    "player": p["player"],
+                    "name": p["name"],
+                    "pos": p["pos"],
+                    "pic": p.get("pic"),
+                    "crest": p.get("crest"),
+                    "inSeason": bool(p.get("inSeason")),
+                    "free": spare,
+                    "start": round(float(p["pStart"] if p.get("pStart") is not None else p.get("p") or 0), 3),
+                    "x": p.get("x") or 0,
+                }
+            )
+        return sorted(rows, key=lambda r: (-r["x"], r["name"]))
+
+    return {"leftovers": free(laliga), "notPlaced": free(every)}
 
 
 def _place(place: int) -> str:

@@ -974,6 +974,7 @@ def run(
             "start": w["gameweek"]["start"],
             "end": w["gameweek"]["end"],
             "boards": plan,
+            **sorare_publish.pro_spare(w),  # Arena leftovers and Not placed, from the Sorare page's own first plan
         }
         for w in payload.get("weeks") or []
         if isinstance(w, dict) and (plan := w.pop("proPlan", None)) is not None

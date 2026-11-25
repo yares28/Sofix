@@ -24,10 +24,21 @@ const board = z.object({
   batches: z.array(z.object({ from: z.string(), to: z.string(), cards: z.array(proCard) })),
   byBatch: z.array(planned), bestFive: z.array(planned),
 });
+/** A player of yours with free cards after the Sorare page's lineups (backend `pro_spare`). */
+const spare = z.object({
+  player: z.string(), name: z.string(), pos: z.string(), pic: z.string().nullable().default(null), crest: z.string().nullable().default(null),
+  inSeason: z.boolean(), free: z.number().int().positive(), start: z.number(), x: z.number(),
+});
 const block = z.object({
   version: z.literal(1), builtAt: z.string(),
-  weeks: z.array(z.object({ slug: z.string(), number: z.number().int(), start: z.string(), end: z.string(), boards: z.array(board) })),
+  weeks: z.array(z.object({
+    slug: z.string(), number: z.number().int(), start: z.string(), end: z.string(), boards: z.array(board),
+    leftovers: z.array(spare).default([]), notPlaced: z.array(spare).default([]),
+  })),
 });
+export type ProSpare = z.infer<typeof spare>;
+/** A list longer than this is paginated (AGENTS.md, page design). */
+export const PAGE_SIZE = 12;
 
 export type ProBlock = z.infer<typeof block>;
 export type ProBoard = z.infer<typeof board>;

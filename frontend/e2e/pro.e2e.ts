@@ -52,11 +52,35 @@ test("a player entered before his own teamsheet shows his kickoff and has no sub
   await expect(card.locator(".pro-bench > *")).toHaveCount(0);
 });
 
+test("Arena leftovers and Not placed list the cards the Sorare page leaves free, twelve a page", async ({ page }) => {
+  const week = fixture.data.weeks[0]!;
+  await page.goto("/pro");
+  await page.getByRole("tab", { name: "Arena leftovers" }).click();
+  const free = (list: typeof week.leftovers) => `${list.reduce((n, r) => n + r.free, 0)} cards`;
+  await expect(page.locator(".pro-spare-h b")).toHaveText(String(week.leftovers.length));
+  await expect(page.locator(".pro-spare-h span")).toContainText(free(week.leftovers));
+  await expect(page.locator(".pro-spare-c")).toHaveCount(Math.min(12, week.leftovers.length));
+  await expect(page.locator(".pro-spare-c .pro-nm").first()).toHaveText(week.leftovers[0]!.name);
+  await page.getByRole("navigation", { name: "Pages" }).getByRole("button", { name: "2" }).click();
+  await expect(page.locator(".pro-spare-c .pro-nm").first()).toHaveText(week.leftovers[12]!.name);
+  await page.getByRole("tab", { name: "Not placed" }).click();
+  await expect(page.locator(".pro-spare-h b")).toHaveText(String(week.notPlaced.length));
+  await expect(page.locator(".pro-spare-c .pro-nm").first()).toHaveText(week.notPlaced[0]!.name);
+  await page.getByRole("tab", { name: "Pro", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Hold or play" })).toBeVisible();
+});
+
 test("reads at 1440 and 390 px with no small text, no overflow and no accessibility violations", async ({ page }) => {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/pro");
     await expect(page.locator(".pro-row").first()).toBeVisible();
+    for (const view of ["Pro", "Arena leftovers"]) {
+      await page.getByRole("tab", { name: view, exact: true }).click();
+      expect(await smallText(page, width === 390 ? 10 : 11)).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+    }
+    await page.getByRole("tab", { name: "Pro", exact: true }).click();
     expect(await smallText(page, width === 390 ? 10 : 11)).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
     expect((await new AxeBuilder({ page }).include(".pro").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);

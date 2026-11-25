@@ -172,3 +172,21 @@
   .pro-dead { flex-wrap: wrap; padding: 14px 16px; }
   .pro-slots { margin: 0; overflow-x: auto; max-width: 100%; }
 }
+
+/* Arena leftovers and Not placed */
+.pro-spare-h { margin: 0; display: flex; align-items: baseline; gap: 12px; }
+.pro-spare-h b { font-size: 44px; font-weight: 650; letter-spacing: -0.04em; line-height: 1; }
+.pro-spare-h span { color: var(--ink-2); font-size: 14px; }
+.pro-spare { display: flex; flex-direction: column; gap: 14px; }
+.pro-spare-grid { list-style: none; margin: 0; background: var(--surface); border-radius: 28px; padding: 26px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 22px 16px; }
+.pro-spare-c { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.pro-spare-c .pro-img { height: 176px; }
+.pro-spare-c .pro-nm { max-width: 100%; }
+.pro-spare-c .pro-xr { gap: 8px; }
+.pro-pages { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.pro-pages button { width: 44px; height: 44px; border-radius: 12px; border: 0; background: var(--surface); color: var(--ink-2); font: inherit; font-weight: 600; cursor: pointer; }
+.pro-pages button.on { background: var(--ink); color: var(--on-ink); }
+@container pro (max-width: 760px) {
+  .pro-spare-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 16px; }
+  .pro-spare-h b { font-size: 32px; }
+}

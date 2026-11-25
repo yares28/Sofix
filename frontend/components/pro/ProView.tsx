@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import SeasonIcon from "../SeasonIcon";
 import { scoreColour } from "../../lib/cards";
 import {
-  chanceAt, clearChance, holdMatchday, moves, reachChances, stepsPlayed,
-  type ProBlock, type ProBoard, type ProCard, type ProPlanned, type ProStarter, type Result,
+  chanceAt, clearChance, holdMatchday, moves, PAGE_SIZE, reachChances, stepsPlayed,
+  type ProBlock, type ProSpare, type ProBoard, type ProCard, type ProPlanned, type ProStarter, type Result,
 } from "../../lib/proWeek";
 
 const MADRID = "Europe/Madrid";
@@ -19,6 +19,8 @@ const chanceTone = (p: number) => (p >= 0.4 ? "hi" : p >= 0.2 ? "mid" : "lo");
 const shortName = (name: string) => name.replace(/ Pro$/, "");
 
 type Mode = "byBatch" | "bestFive";
+type View = "pro" | "left" | "rest";
+const VIEWS: [View, string][] = [["pro", "Pro"], ["left", "Arena leftovers"], ["rest", "Not placed"]];
 
 /** The Pro page: one board at a time, its staircase, hold or play for the matchday, and its lineups day by day. */
 export default function ProView({ data }: { data: ProBlock | null }) {
@@ -38,6 +40,7 @@ export default function ProView({ data }: { data: ProBlock | null }) {
     return [...new Set(all.map(dayOf))];
   }, [board, lineups]);
   const [day, setDay] = useState<string | null>(null);
+  const [view, setView] = useState<View>("pro");
   const shownDay = day && days.includes(day) ? day : (lineups[0] ? dayOf(lineups[0].start) : days[0]) ?? null;
 
   if (!week || !board) {
@@ -76,15 +79,23 @@ export default function ProView({ data }: { data: ProBlock | null }) {
     <main className="pro" aria-labelledby="pro-title">
       <h1 id="pro-title" className="visually-hidden">Pro</h1>
       <div className="pro-ctl">
-        <div className="pro-seg" role="tablist" aria-label="Board">
-          {week.boards.map((b) => (
-            <button key={b.key} type="button" role="tab" aria-selected={b.key === boardKey} className={b.key === boardKey ? "on" : undefined} onClick={() => { setBoardKey(b.key); setDay(null); }}>
-              {shortName(b.name)}<i>S{b.steps[0]?.level ?? 0}</i>
-            </button>
+        {view === "pro" ? (
+          <div className="pro-seg" role="tablist" aria-label="Board">
+            {week.boards.map((b) => (
+              <button key={b.key} type="button" role="tab" aria-selected={b.key === boardKey} className={b.key === boardKey ? "on" : undefined} onClick={() => { setBoardKey(b.key); setDay(null); }}>
+                {shortName(b.name)}<i>S{b.steps[0]?.level ?? 0}</i>
+              </button>
+            ))}
+          </div>
+        ) : <SpareHead list={view === "left" ? week.leftovers : week.notPlaced} />}
+        <div className="pro-seg" role="tablist" aria-label="View">
+          {VIEWS.map(([v, label]) => (
+            <button key={v} type="button" role="tab" aria-selected={view === v} className={view === v ? "on" : undefined} onClick={() => setView(v)}>{label}</button>
           ))}
         </div>
       </div>
 
+      {view !== "pro" ? <SpareGrid key={view} list={view === "left" ? week.leftovers : week.notPlaced} /> : <>
       {lineups.length ? (
         <section className="pro-hp" aria-label="Hold or play">
           <div className="pro-hp-vd"><small>Step {step0.level} · {step0.target} · {money(step0)}</small><b>{verdict}</b></div>
@@ -161,7 +172,49 @@ export default function ProView({ data }: { data: ProBlock | null }) {
           onTeams={() => setOut({ ...out, [`${resultKey}|${row.i}`]: !out[`${resultKey}|${row.i}`] })}
         />
       ) : <DeadRow key={`b${row.at}`} at={row.at} cards={row.cards} minInSeason={board.minInSeason} />)}
+      </>}
     </main>
+  );
+}
+
+function SpareHead({ list }: { list: ProSpare[] }) {
+  const cards = list.reduce((n, r) => n + r.free, 0);
+  return <p className="pro-spare-h"><b>{list.length}</b><span>players · {cards} cards</span></p>;
+}
+
+/** The cards the Sorare page's plan leaves free: twelve a page, best expected score first. */
+function SpareGrid({ list }: { list: ProSpare[] }) {
+  const [page, setPage] = useState(0);
+  const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const shown = list.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  if (!list.length) return <p className="pro-none">Every card is in a lineup</p>;
+  return (
+    <section className="pro-spare" aria-label="Cards">
+      <ul className="pro-spare-grid">
+        {shown.map((r) => {
+          const xs = scoreColour(r.x);
+          return (
+            <li key={r.player} className="pro-spare-c">
+              <div className="pro-art">
+                <CardArt card={{ name: r.name, pic: r.pic }} />
+                <span className={`pro-sp is-${startTone(r.start)}`}>{pct(r.start)}</span>
+                {r.free > 1 ? <span className="pro-cap" aria-label={`${r.free} cards`}>×{r.free}</span> : null}
+                <span className="s5-season pro-season" title={r.inSeason ? "In season" : "Classic"}><SeasonIcon inSeason={r.inSeason} /></span>
+              </div>
+              <span className="pro-nm">{r.name}</span>
+              <span className="pro-xr"><span className="pro-hex" style={{ background: xs.fill, color: xs.ink }} title="Sofix xS">{Math.round(r.x)}</span><Crest src={r.crest} bucket={null} /></span>
+            </li>
+          );
+        })}
+      </ul>
+      {pages > 1 ? (
+        <nav className="pro-pages" aria-label="Pages">
+          {Array.from({ length: pages }, (_, i) => (
+            <button key={i} type="button" aria-current={i === page ? "page" : undefined} className={i === page ? "on" : undefined} onClick={() => setPage(i)}>{i + 1}</button>
+          ))}
+        </nav>
+      ) : null}
+    </section>
   );
 }
 
@@ -299,7 +352,7 @@ function Player({ s, teamsOut }: { s: ProStarter; teamsOut: boolean }) {
   );
 }
 
-function CardArt({ card, small = false }: { card: ProCard; small?: boolean }) {
+function CardArt({ card, small = false }: { card: Pick<ProCard, "name" | "pic">; small?: boolean }) {
   return card.pic
     // eslint-disable-next-line @next/next/no-img-element -- Sorare's card art, hot-linked
     ? <img className={small ? "pro-img-s" : "pro-img"} src={card.pic} alt={card.name} loading="lazy" />

@@ -128,6 +128,23 @@ test("two clubs: pairs ranked by what their Pro board won, one team from both, e
   await expect(page).not.toHaveURL(/team=two/);
 });
 
+test("a card swaps for another at its position: the team's price and score follow, and one tap brings the best team back", async ({ page }) => {
+  await page.goto("/squads?club=Celta%20de%20Vigo");
+  const team = teamAt(40, 0.9, true)!;
+  const price0 = price(team.toBuy);
+  await expect(page.locator(".sq-price")).toHaveText(price0);
+  const defender = team.cards.find((s) => celta.players[s]!.pos === "DEF")!;
+  await page.getByRole("button", { name: `Swap ${celta.players[defender]!.name}` }).click();
+  const list = page.getByRole("region", { name: `Instead of ${celta.players[defender]!.name}` });
+  await expect(list.getByRole("button").first()).toBeVisible();
+  await list.getByRole("button").first().click();
+  await expect(page.getByRole("button", { name: "Back to the best team" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "The team" }).locator("li[data-swapped]")).toHaveCount(1);
+  await page.getByRole("button", { name: "Back to the best team" }).click();
+  await expect(page.locator(".sq-price")).toHaveText(price0);
+  await expect(page.getByRole("region", { name: "The team" }).locator("li[data-swapped]")).toHaveCount(0);
+});
+
 test("who played shows each game's starters with their score, who came on with his minutes, and the five-starters line", async ({ page }) => {
   await page.goto("/squads?club=Celta%20de%20Vigo");
   const team = teamAt(40, 0.9, true)!;

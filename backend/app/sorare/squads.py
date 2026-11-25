@@ -482,6 +482,7 @@ def next_block(
     owned_classic: frozenset[str] = frozenset(),
     season: float = 0.0,
     logo: str | None = None,
+    grid: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """The start-of-season view: each club's team picked from last season's record, as it would be bought before the first
     game, and how that team did this season (`proof`). None when last season's games are not kept for this league."""
@@ -494,6 +495,7 @@ def next_block(
         return None
     out = []
     names: dict[str, tuple[str, str | None]] = {}  # a club as games spell it: its name and crest, for the opponents
+    fixtures = runs(grid, [this for _, _, this, _, _, _ in built if this is not None])
     for name, rs, this, c, newcomers, own in built:
         # lane "0.0": the best team inside a budget whatever its coverage, shown with it when none reaches the target
         entry = club_block(c, board, captain, targets=(*TARGETS, 0.0))
@@ -501,6 +503,7 @@ def next_block(
             p["from"] = c.players[slug].came_from
         for team in entry["teams"]:
             team["proof"] = _proof(this, team["cards"], board, captain)
+        entry["run"] = fixtures.get(name, [])
         entry["newcomers"] = [
             {
                 "slug": r["slug"],
@@ -551,6 +554,62 @@ def next_block(
         "arenaLines": lines,
         "clubs": out,
     }
+
+
+# ---- the fixture run (Q6): each club's next league games with the fixture grid's difficulty
+
+RUN = 6  # games ahead, as the plan says ("the next 6 league games of the club")
+SWAPS = 2  # players past each position's search candidates that the page can swap in
+
+
+def _minute(at: str | datetime) -> datetime:
+    when = as_utc(at if isinstance(at, datetime) else datetime.fromisoformat(at.replace("Z", "+00:00")))
+    return when.replace(second=0, microsecond=0)
+
+
+def runs(grid: Mapping[str, Any] | None, clubs: Iterable[Club]) -> dict[str, list[dict[str, Any]]]:
+    """Each club's next `RUN` league games from the fixture grid (backend buckets and labels, 1 easiest), the club found by
+    the kickoffs of the games it has played, never by its name (the grid's football-data names are not Sorare's)."""
+    teams = (grid or {}).get("teams") or []
+    kicks = {
+        t["code"]: {
+            _minute(c["kickoff_utc"]) for cells in t.get("cells") or [] for c in cells if c.get("status") == "finished"
+        }
+        for t in teams
+    }
+    found: dict[str, Club] = {}
+    for c in clubs:
+        mine = {_minute(g["date"]) for g in c.games}
+        scores = sorted(((len(mine & ks), code) for code, ks in kicks.items()), reverse=True)
+        if scores and scores[0][0] and (len(scores) == 1 or scores[1][0] < scores[0][0]):
+            found[scores[0][1]] = c
+    out: dict[str, list[dict[str, Any]]] = {}
+    for t in teams:
+        mine_club = found.get(t["code"])
+        if mine_club is None:
+            continue
+        ahead = sorted(
+            (cell for cells in t.get("cells") or [] for cell in cells if cell.get("status") != "finished"),
+            key=lambda cell: cell["kickoff_utc"],
+        )[:RUN]
+        names = {
+            x["code"]: (found[x["code"]].name, found[x["code"]].crest)
+            if x["code"] in found
+            else (x["name"], x.get("crest_url"))
+            for x in teams
+        }
+        out[mine_club.name] = [
+            {
+                "date": _minute(cell["kickoff_utc"]).isoformat(),
+                "home": cell.get("venue") == "H",
+                "opponent": names.get(cell["opponent_code"], (cell["opponent_code"], None))[0],
+                "crest": names.get(cell["opponent_code"], (cell["opponent_code"], None))[1],
+                "bucket": (cell.get("prediction") or {}).get("bucket"),
+                "label": (cell.get("prediction") or {}).get("label"),
+            }
+            for cell in ahead
+        ]
+    return out
 
 
 # ---- two clubs: one team from both, each club's game a try of its round
@@ -697,6 +756,7 @@ def pairs_blocks(
     owned_classic: frozenset[str] = frozenset(),
     season: float = 0.0,
     logo: str | None = None,
+    grid: Mapping[str, Any] | None = None,
     start_of_season: bool = False,
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]] | None:
     """Every pair of the league's clubs: the picker's block and each pair's teams (by pair id). This season's, or with
@@ -712,7 +772,8 @@ def pairs_blocks(
         for lc in last:
             for g in lc.games:
                 g["opponent"], g["crest"] = names.get(g["opponent"], (g["opponent"], None))
-        return _pairs(league, last, now, board, lines, captain, season, logo)
+        this_season = [t for _, _, t, _, _, _ in built if t is not None]
+        return _pairs(league, last, now, board, lines, captain, season, logo, runs(grid, this_season))
     by_club: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
         if r.get("club"):
@@ -740,7 +801,7 @@ def pairs_blocks(
     for x in clubs:
         for g in x.games:
             g["opponent"], g["crest"] = crests.get(g["opponent"], (g["opponent"], None))
-    return _pairs(league, clubs, now, board, lines, captain, season, logo)
+    return _pairs(league, clubs, now, board, lines, captain, season, logo, runs(grid, clubs))
 
 
 def _pairs(
@@ -752,12 +813,13 @@ def _pairs(
     captain: float,
     season: float,
     logo: str | None,
+    fixtures: Mapping[str, list[dict[str, Any]]] | None = None,
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     tiles, details = [], {}
     for a, b in itertools.combinations(clubs, 2):
         c = pair_club(a, b)
         entry = club_block(c, board, captain)
-        entry["clubs"] = [{"club": a.name, "crest": a.crest}, {"club": b.name, "crest": b.crest}]
+        entry["clubs"] = [{"club": x.name, "crest": x.crest, "run": (fixtures or {}).get(x.name, [])} for x in (a, b)]
         tiles.append(pair_tile(entry, a, b))
         details[pair_id(a.name, b.name)] = entry
     code, name, _ = LEAGUES[league]
@@ -1222,7 +1284,13 @@ def club_block(
                     }
                 entries.append({"id": sevens[seven]["id"], "from": round(b, 2)})
             arena[lane] = entries
-    used = {s for t in teams for s in t} | {s for seven in sevens for s in seven.cards}
+    # every team's and seven's cards, and each position's leading players, whom the page offers as swaps (Q6)
+    swaps = {
+        p.slug
+        for q in POSITIONS
+        for p in sorted((p for p in c.players.values() if p.pos == q), key=lambda p: -p.rank)[: CANDIDATES[q] + SWAPS]
+    }
+    used = {s for t in teams for s in t} | {s for seven in sevens for s in seven.cards} | swaps
     return {
         "club": c.name,
         "crest": c.crest,
@@ -1251,6 +1319,7 @@ def league_block(
     owned_classic: frozenset[str] = frozenset(),
     season: float = 0.0,
     logo: str | None = None,
+    grid: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     by_club: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
@@ -1275,13 +1344,14 @@ def league_block(
         )
     ]
     crests = {x.own: (x.name, x.crest) for x in clubs}
+    fixtures = runs(grid, clubs)
     out = []
     for x in clubs:
         for g in x.games:  # the opponent as the league page names it, with its crest
             name, crest = crests.get(g["opponent"], (g["opponent"], None))
             g.update(opponent=name, crest=crest)
         if x.games:
-            out.append(club_block(x, board, captain))
+            out.append({**club_block(x, board, captain), "run": fixtures.get(x.name, [])})
     code, name, _ = LEAGUES[league]
     return {
         "version": VERSION,
@@ -1409,6 +1479,15 @@ def record(prior: Mapping[str, Any] | None, today: Mapping[str, Price], now: dat
     return out
 
 
+def grid_of(db: Session, code: str) -> dict[str, Any] | None:
+    """The league's fixture grid as the refresh published it (`grid` for LaLiga, `grid:<code>` for the others)."""
+    row = kept_blocks.read(db, "grid" if code == "LALIGA" else f"grid:{code}")
+    payload = row.payload if row and isinstance(row.payload, dict) else None
+    if payload and "teams" not in payload and isinstance(payload.get("data"), dict):
+        payload = payload["data"]  # LaLiga's is kept as the API answers it
+    return payload
+
+
 def due(db: Session, now: datetime) -> bool:
     row = kept_blocks.read(db, f"{PREFIX}LALIGA")
     at = (row.payload or {}).get("generatedAt") if row and isinstance(row.payload, dict) else None
@@ -1439,6 +1518,7 @@ def publish(
     found = boards(raw_boards)
     summary: dict[str, Any] = {}
     for league, rows in markets.items():
+        grid = grid_of(db, LEAGUES[league][0])
         board, captain, season = found.get(league, (None, CAPTAIN, SEASON))
         block = league_block(
             league,
@@ -1454,6 +1534,7 @@ def publish(
             owned_classic=owned_classic,
             season=season,
             logo=(league_logos or {}).get(league),
+            grid=grid,
         )
         mine = {r["slug"]: today[r["slug"]] for r in rows if today and r.get("slug") in today}
         start = next_block(
@@ -1470,6 +1551,7 @@ def publish(
             owned_classic=owned_classic,
             season=season,
             logo=(league_logos or {}).get(league),
+            grid=grid,
         )
         summary[block["code"]] = {
             "clubs": len(block["clubs"]),

@@ -55,12 +55,19 @@ const game = z.object({
   id: z.string(), date: z.string(), home: z.boolean(), opponent: z.string(), crest: z.string().nullable(),
   club: z.string().optional(), round: z.number().int().optional(), // two clubs: whose try, and its round
 });
+// the club's next league games, with the fixture grid's difficulty (bucket 1 easiest … 5 hardest, and its label)
+const fixture = z.object({
+  date: z.string(), home: z.boolean(), opponent: z.string(), crest: z.string().nullable(),
+  bucket: z.number().int().nullable(), label: z.string().nullable(),
+});
+export type Fixture = z.infer<typeof fixture>;
 const club = z.object({
   club: z.string(), crest: z.string().nullable(), games: z.array(game), players: z.record(z.string(), player),
   teams: z.array(team), pro: z.record(z.string(), lanes), sevens: z.array(seven), arena: z.object({ full: z.array(entry), owned: z.array(entry) }).partial(),
   // start of season: players with no game in the league last season (listed, never guessed); a club new to the league
   rounds: z.array(z.number().int()).optional(), // two clubs: each game's round
-  clubs: z.array(z.object({ club: z.string(), crest: z.string().nullable() })).optional(),
+  clubs: z.array(z.object({ club: z.string(), crest: z.string().nullable(), run: z.array(fixture).default([]) })).optional(),
+  run: z.array(fixture).default([]),
   newcomers: z.array(z.object({ slug: z.string(), name: z.string(), pos: z.string(), art: z.string().nullable() })).default([]),
   promoted: z.boolean().default(false),
 });
@@ -69,6 +76,7 @@ const block = z.object({
   targets: z.array(z.number()), captain: z.number(),
   record: z.string().nullable().default(null), rounds: z.number().int().nullable().default(null), cardsOut: z.boolean().default(true),
   logo: z.string().nullable().default(null), // the league's logo as Sorare hosts it
+  seasonBonus: z.number().default(0), // an in-season card's bonus the block's scores carry (blocks before it: none)
   board: z.array(z.object({ target: z.number(), cash: z.number(), essence: z.number() })).nullable(),
   arenaLines: z.array(z.object({ score: z.number(), cash: z.number(), essence: z.number() })),
   clubs: z.array(club),
@@ -97,7 +105,7 @@ export function readableClub(raw: unknown): SquadClub | null {
 const row = z.array(z.number());
 const pairsBlock = z.object({
   version: z.number(), generatedAt: z.string(), code: z.string(), name: z.string(), captain: z.number(),
-  logo: z.string().nullable().default(null),
+  logo: z.string().nullable().default(null), seasonBonus: z.number().default(0),
   board: z.array(z.object({ target: z.number(), cash: z.number(), essence: z.number() })).nullable(),
   arenaLines: z.array(z.object({ score: z.number(), cash: z.number(), essence: z.number() })),
   pairs: z.array(z.object({
@@ -190,6 +198,64 @@ export function ladder(rounds: (number | null)[][], board: Step[]): { rungs: Run
   return { rungs, clears, cash, essence, top };
 }
 
+/** A card's saving as the team's one classic card, as squads.Player.saving does: his own classic is free when your cards
+ * count, an in-season card of his you own saves nothing more. */
+function saving(p: SquadPlayer, mine: boolean): number {
+  if (mine && p.owned) return 0;
+  if (mine && p.ownedClassic) return p.eur;
+  return p.classic !== null ? Math.max(0, p.eur - p.classic) : 0;
+}
+
+function* fives<T>(xs: T[], from = 0, picked: T[] = []): Generator<T[]> {
+  if (picked.length === 5) { yield picked; return; }
+  for (let i = from; i <= xs.length - (5 - picked.length); i++) yield* fives(xs, i + 1, [...picked, xs[i]!]);
+}
+
+export type CustomTeam = Pick<SquadTeam, "cards" | "full" | "toBuy" | "classic" | "classicToBuy" | "mean" | "cov" | "over" | "best" | "median" | "average">;
+
+/** A team the page puts together (a swapped card, Q6), scored as the backend scores its own (squads.series, pro_search):
+ * each game's valid fives of its starters (GK, DEF, MID, FWD and one more), every in-season card with the season bonus but
+ * the classic one, the captain on his raw score; a game without five counts 0; for two clubs a round counts its best try. */
+export function customTeam(club: SquadClub, cards: string[], o: { captain: number; season: number; firstStep: number | null }): CustomTeam {
+  const players = cards.map((s) => [s, club.players[s]!] as const);
+  const pick = (mine: boolean) => {
+    const best = players.reduce<{ s: string | null; v: number }>((m, [s, p]) => (saving(p, mine) > m.v ? { s, v: saving(p, mine) } : m), { s: null, v: 0 });
+    return best;
+  };
+  const full = pick(false), owned = pick(true);
+  const classic = owned.s ?? full.s;
+  const best: (number | null)[] = [], median: (number | null)[] = [], average: (number | null)[] = [];
+  club.games.forEach((_, i) => {
+    const on = players.filter(([, p]) => p.played[i] === "S");
+    const totals: number[] = [];
+    for (const f of fives(on)) {
+      const pos = f.map(([, p]) => p.pos);
+      if (pos.filter((x) => x === "GK").length !== 1 || !pos.includes("DEF") || !pos.includes("MID") || !pos.includes("FWD")) continue;
+      const raw = f.map(([, p]) => p.scores[i] ?? 0);
+      totals.push(f.reduce((t, [s], j) => t + raw[j]! * (s === classic ? 1 : 1 + o.season), 0) + o.captain * Math.max(...raw));
+    }
+    if (!totals.length) { best.push(null); median.push(null); average.push(null); return; }
+    totals.sort((a, b) => a - b);
+    const mid = totals.length >> 1;
+    best.push(totals[totals.length - 1]!);
+    median.push(totals.length % 2 ? totals[mid]! : (totals[mid - 1]! + totals[mid]!) / 2);
+    average.push(totals.reduce((a, b) => a + b, 0) / totals.length);
+  });
+  const rounds = club.rounds ?? club.games.map((_, i) => i);
+  const top = new Map<number, number | null>();
+  rounds.forEach((r, i) => { const v = best[i] ?? null; const was = top.get(r) ?? null; top.set(r, v === null ? was : was === null ? v : Math.max(was, v)); });
+  const perRound = [...top.values()];
+  return {
+    cards, classic: full.s, classicToBuy: owned.s,
+    full: players.reduce((t, [, p]) => t + p.eur, 0) - full.v,
+    toBuy: players.reduce((t, [, p]) => t + (p.owned ? 0 : p.eur), 0) - owned.v,
+    mean: perRound.reduce<number>((t, v) => t + (v ?? 0), 0) / (perRound.length || 1),
+    cov: perRound.filter((v) => v !== null).length / (perRound.length || 1),
+    over: o.firstStep === null ? 0 : perRound.filter((v) => v !== null && v >= o.firstStep!).length,
+    best, median, average,
+  };
+}
+
 /** The best Arena prize a score reached: the index of the highest line it cleared, -1 for none. */
 export function tier(v: number | null, lines: Line[]): number {
   if (v === null) return -1;
@@ -268,6 +334,7 @@ export function tile(c: SquadClub): Tile {
 export type SquadsPage = {
   code: LeagueCode;
   logo: string | null;
+  seasonBonus: number;
   alone?: Tile[]; // two clubs: each club's own tile (this season), to set the pair against
   season: Season;
   team: TeamMode;

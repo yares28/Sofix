@@ -56,6 +56,7 @@ def run(code: str, now: datetime, *, start: bool = False, write: bool = True) ->
         head = now_block.payload if now_block and isinstance(now_block.payload, dict) else {}
         record = kept_blocks.read(db, f"{squads.PRICES}{code}")
         art = card_art.load(db).urls
+        grid = squads.grid_of(db, code)
         since = season_start(now)
         if start:  # last season's record too
             since = since.replace(year=since.year - 1)
@@ -80,6 +81,7 @@ def run(code: str, now: datetime, *, start: bool = False, write: bool = True) ->
         prices=prices_of(record.payload if record else None),
         owned_classic=frozenset(c["player"] for c in limited if not c.get("inSeason")) - owned,
         start_of_season=start,
+        grid=grid,
     )
     if built is None:
         return {"pairs": 0, "note": "last season's games are not kept for this league"}

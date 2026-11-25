@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { scoreColour } from "../../lib/cards";
 import {
-  ANY, choice, day, eur, laneKey, ladder, LEAGUES, oppCode, prize, ranked, shortName, shortPrize, TARGETS, tier, within,
-  type Season, type Settings, type SquadClub, type TeamMode, type Tile, type SquadPlayer, type SquadsPage, type SquadSeven, type SquadTeam, type Target,
+  ANY, choice, customTeam, day, eur, laneKey, ladder, LEAGUES, oppCode, prize, ranked, shortName, shortPrize, TARGETS, tier, within,
+  type Fixture, type Season, type Settings, type SquadClub, type TeamMode, type Tile, type SquadPlayer, type SquadsPage, type SquadSeven, type SquadTeam, type Target,
 } from "../../lib/squads";
 import CardArt from "../cards/CardArt";
 import SorareImage from "../play/SorareImage";
@@ -72,7 +72,18 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
   const arenaEntry = within(club.arena[lane], budget) ?? club.arena[lane]?.[0] ?? null;
   const seven = arenaEntry ? club.sevens.find((s) => s.id === arenaEntry.id) ?? null : null;
   const showArena = verdict.mode === "arena" && seven !== null;
-  const cards = showArena && seven ? [seven.gk, ...seven.outs, ...[seven.gsub, seven.osub].filter((s): s is string => !!s)] : team?.cards ?? [];
+  // Q6: swap a card of the Pro team; the page scores the new team as the backend scores its own (customTeam)
+  const [swaps, setSwaps] = useState<Record<string, string>>({});
+  const [swapAt, setSwapAt] = useState<string | null>(null);
+  const baseKey = `${club.club}|${team?.id ?? ""}|${showArena}`;
+  const [swapBase, setSwapBase] = useState(baseKey);
+  if (swapBase !== baseKey) { setSwapBase(baseKey); setSwaps({}); setSwapAt(null); } // a new team: its own cards again
+  const scoring = { captain: data.captain, season: data.seasonBonus, firstStep: data.board?.[0]?.target ?? null };
+  const swapped = !showArena && team !== null && Object.keys(swaps).length > 0;
+  const shown: SquadTeam | null = swapped && team
+    ? { ...team, ...customTeam(club, team.cards.map((s) => swaps[s] ?? s), scoring), xsReal: [], xsExp: [], ladder: null, proof: null }
+    : team;
+  const cards = showArena && seven ? [seven.gk, ...seven.outs, ...[seven.gsub, seven.osub].filter((s): s is string => !!s)] : shown?.cards ?? [];
   const setBudgetFrom = (raw: string) => {
     setDraft(raw);
     const n = Math.round(Number(raw));
@@ -120,17 +131,22 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
 
       <Picker data={data} order={order} club={club.club} settings={settings} page={page} setPage={setPage} />
 
-      <Hero data={data} club={club} verdict={verdict} team={team} seven={seven} showArena={showArena} settings={settings}
+      <Hero data={data} club={club} verdict={verdict} team={shown} seven={seven} showArena={showArena} settings={settings} swapped={swapped}
         onBudget={(n) => { setBudget(n); setDraft(String(n)); }} />
 
       {data.season === "start" && club.newcomers.length ? <Newcomers club={club} league={data.name} /> : null}
 
       <Team club={club} cards={cards} seven={showArena ? seven : null}
-        classic={(showArena ? (mine ? seven?.classicToBuy : seven?.classic) : mine ? team?.classicToBuy : team?.classic) ?? null} />
+        classic={(showArena ? (mine ? seven?.classicToBuy : seven?.classic) : mine ? shown?.classicToBuy : shown?.classic) ?? null}
+        swap={showArena || !shown ? null : {
+          at: swapAt, open: setSwapAt, swapped: Object.values(swaps), mine, scoring, team: shown,
+          apply: (out, into) => { const base = Object.entries(swaps).find(([, v]) => v === out)?.[0] ?? out; setSwaps({ ...swaps, [base]: into }); setSwapAt(null); },
+          undo: swapped ? () => { setSwaps({}); setSwapAt(null); } : null,
+        }} />
 
       <WhoPlayed club={club} cards={cards} />
 
-      <Replay data={data} club={club} team={team} seven={seven} initial={showArena ? "arena" : "pro"} mine={mine} />
+      <Replay key={swapped ? JSON.stringify(swaps) : "published"} data={data} club={club} team={shown} seven={seven} initial={showArena ? "arena" : "pro"} mine={mine} />
     </div>
   );
 }
@@ -194,13 +210,13 @@ function Picker({ data, order, club, settings, page, setPage }: {
   );
 }
 
-function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget }: {
+function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget, swapped }: {
   data: SquadsPage; club: SquadClub; verdict: ReturnType<typeof choice>; team: SquadTeam | null; seven: SquadSeven | null;
-  showArena: boolean; settings: Settings; onBudget: (n: number) => void;
+  showArena: boolean; settings: Settings; onBudget: (n: number) => void; swapped: boolean;
 }) {
   const n = club.games.length;
   const unit = showArena ? seven : team;
-  const price = verdict.mode === "none" ? 0 : verdict.price;
+  const price = swapped && team ? (settings.mine ? team.toBuy : team.full) : verdict.mode === "none" ? 0 : verdict.price;
   const shown = useCents(price);
   const members = showArena && seven ? [seven.gk, ...seven.outs, seven.gsub, seven.osub].filter((s): s is string => !!s) : team?.cards ?? [];
   const owned = members.filter((s) => club.players[s]?.owned).length;
@@ -258,6 +274,7 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget 
             ) : null}
           </dl>
         ) : null}
+        {club.clubs ? club.clubs.map((c) => <FixtureRun key={c.club} run={c.run} who={c.club} />) : <FixtureRun run={club.run} />}
       </div>
       <Curve club={club} settings={settings} team={team} onBudget={onBudget} />
     </section>
@@ -319,13 +336,21 @@ function cardPrice(p: SquadPlayer, classic: boolean): { value: number; est: bool
   return p.listed ? { value: p.eur, est: false, note: "Cheapest card listed now" } : { value: p.eur, est: true, note: "None listed: Sorare's market value" };
 }
 
-function Team({ club, cards, seven, classic }: { club: SquadClub; cards: string[]; seven: SquadSeven | null; classic: string | null }) {
+type Swap = {
+  at: string | null; open: (slug: string | null) => void; apply: (out: string, into: string) => void; undo: (() => void) | null;
+  swapped: string[]; mine: boolean; team: SquadTeam; scoring: { captain: number; season: number; firstStep: number | null };
+};
+
+function Team({ club, cards, seven, classic, swap }: { club: SquadClub; cards: string[]; seven: SquadSeven | null; classic: string | null; swap: Swap | null }) {
   const n = club.games.length;
   const role = (s: string) => (seven ? (s === seven.gsub ? "GK sub" : s === seven.osub ? "Sub" : null) : null);
   const shelves = POSITIONS.map(([pos, label]) => ({ label, players: cards.filter((s) => club.players[s]?.pos === pos) })).filter((s) => s.players.length);
   return (
     <section className="sq-card sq-team" aria-labelledby="sq-team-h">
-      <h2 id="sq-team-h">{seven ? "The seven" : "The team"}</h2>
+      <div className="sq-team-head">
+        <h2 id="sq-team-h">{seven ? "The seven" : "The team"}</h2>
+        {swap?.undo ? <button type="button" className="sq-undo" onClick={swap.undo}>Back to the best team</button> : null}
+      </div>
       <div className="sq-shelves" style={{ gridTemplateColumns: shelves.map((s) => `${s.players.length}fr`).join(" ") } as CSSProperties}>
         {shelves.map((shelf) => (
           <div key={shelf.label} className="sq-shelf">
@@ -340,8 +365,12 @@ function Team({ club, cards, seven, classic }: { club: SquadClub; cards: string[
                 const price = cardPrice(p, isClassic);
                 const yours = isClassic ? p.ownedClassic : p.owned;
                 return (
-                  <li key={slug} data-sub={r ? "" : undefined}>
+                  <li key={slug} data-sub={r ? "" : undefined} data-swapped={swap?.swapped.includes(slug) ? "" : undefined}>
                     <span className="sq-art">
+                      {swap ? (
+                        <button type="button" className="sq-swap-open" aria-expanded={swap.at === slug}
+                          aria-label={`Swap ${p.name}`} onClick={() => swap.open(swap.at === slug ? null : slug)} />
+                      ) : null}
                       <CardArt src={p.art} name={p.name} />
                       {club.clubs ? <span className="sq-badge"><SorareImage src={crestOf(club, p)} width={20} height={20} /></span> : null}
                       {yours ? <span className="sq-own">Yours</span> : null}
@@ -358,7 +387,45 @@ function Team({ club, cards, seven, classic }: { club: SquadClub; cards: string[
           </div>
         ))}
       </div>
+      {swap?.at ? <SwapList club={club} swap={swap} out={swap.at} /> : null}
     </section>
+  );
+}
+
+/** The players who could take a card's place at his position, best first, with what each does to the team. */
+function SwapList({ club, swap, out }: { club: SquadClub; swap: Swap; out: string }) {
+  const p = club.players[out]!;
+  const now = swap.team;
+  const options = Object.entries(club.players)
+    .filter(([s, q]) => q.pos === p.pos && !now.cards.includes(s))
+    .map(([s, q]) => ({ s, q, t: customTeam(club, now.cards.map((c) => (c === out ? s : c)), swap.scoring) }))
+    .sort((a, b) => b.t.mean - a.t.mean)
+    .slice(0, 4);
+  const price = (t: { toBuy: number; full: number }) => (swap.mine ? t.toBuy : t.full);
+  const n = club.games.length;
+  return (
+    <div className="sq-swaps" role="region" aria-label={`Instead of ${p.name}`}>
+      <h3>Instead of {shortName(p.name)}</h3>
+      {options.length ? (
+        <ul>
+          {options.map(({ s, q, t }) => {
+            const dMean = t.mean - now.mean, dPrice = price(t) - price(now);
+            const cost = Math.abs(dPrice) < 0.005 ? "same price" : `${dPrice > 0 ? "+" : "−"}${eur(Math.abs(dPrice))}`;
+            const starts = [...q.played].filter((x) => x === "S").length;
+            return (
+              <li key={s}>
+                <button type="button" onClick={() => swap.apply(out, s)} aria-label={`Swap in ${q.name}: ${dMean >= 0 ? "+" : "−"}${Math.abs(dMean).toFixed(1)} a game, ${cost}`}>
+                  <span className="sq-art"><CardArt src={q.art} name={q.name} /></span>
+                  <b className="sq-name">{shortName(q.name)}</b>
+                  <span className="sq-delta" data-tone={dMean >= 0 ? "good" : "bad"}>{dMean >= 0 ? "+" : "−"}{Math.abs(dMean).toFixed(1)} a game</span>
+                  <span className="sq-delta">{cost} · {starts}/{n}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : <p>No other {p.pos === "GK" ? "keeper" : "player"} at his position played for the club.</p>}
+    </div>
   );
 }
 
@@ -394,6 +461,25 @@ function Alone({ tiles, settings }: { tiles: Tile[]; settings: Settings }) {
         );
       })}
     </ul>
+  );
+}
+
+/** The club's next league games in the fixture grid's colours (1 easiest), so a team is bought before an easy run. */
+function FixtureRun({ run, who }: { run: Fixture[]; who?: string }) {
+  if (!run.length) return null;
+  return (
+    <div className="sq-run">
+      <span className="sq-run-h">{who ? `${shortName(who)}, next` : "Next games"}</span>
+      <ol>
+        {run.map((g) => (
+          <li key={g.date} className={g.bucket ? `f${g.bucket}` : "sq-run-off"}
+            aria-label={`${g.home ? "Home to" : "Away at"} ${g.opponent}, ${day(g.date)}${g.label ? `: ${g.label}` : ""}`}>
+            {g.crest?.startsWith("https://assets.sorare.com/") ? <SorareImage src={g.crest} width={18} height={18} /> : null}
+            <b>{oppCode(g.opponent)}</b><small>{g.home ? "H" : "A"}</small>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 

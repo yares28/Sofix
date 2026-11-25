@@ -317,6 +317,39 @@ season).
   back to July 2025 once each, 150 a night (about six nights), then leaves them to the refresh. The start of season then
   covers those leagues by itself.
 
+**Q6 built (25 Nov 2026, committed locally, not pushed):**
+- **Fixture run:** each club's next 6 league games in the fixture grid's colours, with its own buckets and labels. The grid's
+  club is found by the kickoffs of the games it has played, not its name, which differs ("Celta" against "Celta de Vigo"):
+  20 of 20 LaLiga clubs found.
+- **Swap a card:** tap a Pro card for the four best players at his position (each position's search candidates plus two),
+  each with what the team's score a game and price become. Tapping one swaps it in, and "Back to the best team" undoes it.
+  The page scores the new team as the backend scores its own (`customTeam`, checked against every published team of the
+  test fixture).
+- **Not built:** a link to each card's cheapest listing and the price line (§6.5, §6.6). The price record has only days so
+  far.
+
+### Any clubs: proposed design (for your check, 25 Nov 2026)
+
+**What Sorare allows** ("What is Pro?", 20 Nov 2026): a lineup can be edited "until the first player in it kicks off", so it may
+mix games at different times; a step has 4 lineups and must be cleared by the end of its matchday.
+
+**Proposal:**
+- **The team:** a pool of the usual size from any clubs of the league.
+- **Pro tries:** each matchday's tries are its kickoff windows, games starting within an hour of each other, so every
+  teamsheet is out before the lineup locks (`pro.WINDOW`). Each try's five come from the pool's starters in those games, at
+  most 4 tries a step, scored like Two clubs (a round counts its best try).
+- **Arena:** one seven a round from any clubs. It earns Sorare's +2% Multi-Club bonus when no club has more than 2 of the
+  seven (`sameActiveClub`, lost when a sub comes in), so spreading across clubs is worth points.
+- **Search:** a whole league cannot be searched by trying every combination (10^9 teams). Instead, a local search for each
+  budget step: start from the best one-club and two-club teams inside it, then try swapping, adding or dropping one card
+  among the league's 40 best by points a start, keep any change that lifts the score a matchday while keeping the coverage
+  target, and stop when none does. It runs in the nightly job, one block per league.
+- **What to expect:** most LaLiga kickoffs are alone in their hour, so a try's five still come mostly from one or two
+  clubs. Any clubs adds tries (more windows) rather than mixed fives, which is where its value would be.
+
+**Questions for you:** is "five from games within one hour" the right rule, or do you want lineups that mix games at different
+times (risking a non-starter)? And should Any clubs be one best team per league, or the best team around a club you pick?
+
 Round 4 comments (24 Nov, 19:03-19:13) still open:
 - The ring colours: green when the best five topped the first Pro step in at least half of the games, amber at 30%, grey below.
   Those two cut-offs were my choice, not his.

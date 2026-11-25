@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ANY, choice, ladder, ranked, tier, within, type Tile } from "./squads";
+import { ANY, choice, customTeam, ladder, ranked, readable, tier, within, type Tile } from "./squads";
+import fixture from "../e2e/fixtures/squads-response.json";
+import pairFixture from "../e2e/fixtures/squads-pair-response.json";
 
 const BOARD = [{ target: 320, cash: 0, essence: 500 }, { target: 360, cash: 5, essence: 0 }, { target: 380, cash: 10, essence: 0 }];
 
@@ -84,5 +86,29 @@ describe("choice and ranked", () => {
     expect(choice(short, s)).toMatchObject({ mode: "short", price: 12, entry: { cov: 0.45 } });
     const order = ranked([short, tile("Fits", [{ from: 29, toBuy: 29, full: 29, over: 1 }])], s).map((x) => x.tile.club);
     expect(order).toEqual(["Fits", "Short"]);
+  });
+});
+
+describe("customTeam", () => {
+  it("scores a published team exactly as the backend did (each game's best, median and average five, price, coverage)", () => {
+    const block = readable(fixture.data)!;
+    for (const club of block.clubs.filter((c) => c.teams.some((t) => t.best.length))) { // the clubs the fixture keeps whole
+      for (const team of club.teams.slice(0, 6)) {
+        const mine = customTeam(club, team.cards, { captain: block.captain, season: block.seasonBonus, firstStep: block.board?.[0]?.target ?? null });
+        // the block keeps each player's scores to one decimal, the backend summed the exact ones: five cards and the
+        // captain's half drift by at most 0.05 x 5.5, and the published total is rounded again
+        mine.best.forEach((v, i) => (v === null ? expect(team.best[i]).toBeNull() : expect(Math.abs(v - team.best[i]!)).toBeLessThan(0.33)));
+        expect(mine.toBuy).toBeCloseTo(team.toBuy, 2);
+        expect(mine.cov).toBeCloseTo(team.cov, 3);
+        expect(mine.over).toBe(team.over);
+      }
+    }
+  });
+  it("counts a pair's round by its best try", () => {
+    const pair = readable(pairFixture.data)!.clubs[0]!;
+    const team = pair.teams[0]!;
+    const mine = customTeam(pair, team.cards, { captain: 0.5, season: readable(pairFixture.data)!.seasonBonus, firstStep: 320 });
+    expect(mine.cov).toBeCloseTo(team.cov, 3);
+    expect(mine.over).toBe(team.over);
   });
 });

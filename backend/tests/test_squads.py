@@ -431,3 +431,43 @@ def test_start_of_season_pairs_give_each_club_its_own_try_a_round():
     one = details[squads.pair_id("Club A", "Club B")]["clubs"][0]
     assert one["rounds"] == [0, 0, 1, 1, 2, 2, 3, 3]  # "R1" of each club is its own try, not one shared game
     assert len(picker["pairs"]) == 3
+
+
+# ---- Q6: the fixture run
+
+
+def grid_of(teams: dict[str, list[tuple[str, str, str, str, int | None]]]) -> dict:
+    """{code: [(kickoff, venue, opponent code, status, bucket)]} as the fixture grid publishes it."""
+    return {
+        "teams": [
+            {
+                "code": code,
+                "name": f"Grid {code}",
+                "crest_url": f"https://crests.football-data.org/{code}.png",
+                "cells": [
+                    [
+                        {
+                            "kickoff_utc": at,
+                            "venue": venue,
+                            "opponent_code": opp,
+                            "status": status,
+                            "prediction": {"bucket": bucket, "label": f"label {bucket}"} if bucket else None,
+                        }
+                    ]
+                    for at, venue, opp, status, bucket in cells
+                ],
+            }
+            for code, cells in teams.items()
+        ]
+    }
+
+
+def test_the_fixture_run_is_the_clubs_next_six_league_games_found_by_its_kickoffs_not_its_name():
+    c = club_of(base_rows())  # six weekly games from 1 Sep 2026
+    played = [(g["date"].replace("+00:00", "Z"), "H", "OPP", "finished", None) for g in c.games]
+    ahead = [(f"2026-12-{d:02d}T20:00:00Z", "A" if d % 2 else "H", "RIV", "scheduled", 1 + d % 5) for d in range(1, 9)]
+    grid = grid_of({"OPP": [], "AAA": played + ahead, "RIV": []})
+    runs = squads.runs(grid, [c])
+    run = runs["Club A"]
+    assert len(run) == 6 and run[0]["date"].startswith("2026-12-01") and run[0]["home"] is False
+    assert run[0]["bucket"] == 2 and run[0]["label"] == "label 2" and run[0]["opponent"] == "Grid RIV"

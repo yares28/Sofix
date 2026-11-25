@@ -843,6 +843,11 @@ to see the team at that price. **Season: Start of season** picks each team as yo
 - **When:** every pair of the four leagues is worked out each night after the games are read (`app.jobs.squads_pairs`, in the
   League history workflow), so a new pair list appears the morning after.
 
+Squads also shows each club's next 6 league games in the fixture grid's colours. Tap a Pro card to see the players who could
+take its place, with what each does to the score a game and the price; tap one to swap it in, and "Back to the best team" to
+undo. Every total counts Sorare's 5% in-season bonus (not on the classic card) and Pro's step clock: a step must be cleared
+in its matchday, in four lineups, unless it was started after a clear in that matchday.
+
 ## 10a. Missions
 
 **Load today's missions** reads Sorare's open football pickers through your signed-in sorare.com tab, using extension **0.3.9**. Press Reload on the extension once after updating it. Sofix reads the task group used by Sorare's Missions page, separately for each rarity, and saves one verified import. Missing fields, a partial response, a different signed-in account or a failed save are errors; they do not mean Sorare has no missions. The last saved list is kept and dated. Only a complete read can confirm an empty list. A phone can show saved data; importing needs the extension browser.

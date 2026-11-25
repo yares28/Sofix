@@ -39,6 +39,7 @@ const league = cache(
       rounds: b.rounds,
       cardsOut: b.cardsOut,
       logo: b.logo,
+      seasonBonus: b.seasonBonus,
       name: LEAGUES.find((l) => l.code === code)?.label ?? b.name,
       generatedAt: b.generatedAt,
       captain: b.captain,
@@ -94,7 +95,7 @@ export async function loadSquads(
     const single = await league(code, season);
     return {
       alone: picked?.pair ? (single?.tiles ?? []).filter((t) => picked.pair!.clubs.includes(t.club)) : [],
-      code, season, team, record: null, rounds: null, cardsOut: true, logo: b.logo,
+      code, season, team, record: null, rounds: null, cardsOut: true, logo: b.logo, seasonBonus: b.seasonBonus,
       name: LEAGUES.find((l) => l.code === code)?.label ?? b.name,
       generatedAt: b.generatedAt, captain: b.captain, board: b.board, arenaLines: b.arenaLines, tiles,
       club: id ? readableClub(await pair(code, season, id)) : null,

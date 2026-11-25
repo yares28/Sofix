@@ -10,6 +10,7 @@ describe("placeOf and viewOf", () => {
       ["/lineups", "This week", "Lineups"],
       ["/scores", "This week", "Scores"],
       ["/missions", "This week", "Missions"],
+      ["/pro", "This week", "Pro"],
       ["/season", "Season", "Fixtures"],
       ["/difficulty", "Season", "Difficulty"],
       ["/table", "Season", "Table"],

@@ -930,6 +930,150 @@ def pro_board_payload(
     }
 
 
+PRO_KEY = "sorare_pro"
+"""The Pro page's block (plans/pro-page.md): each Pro board's week plan, kept out of `sorare` so Play's payload does not grow."""
+PRO_SUBS = 2
+
+
+def _pro_card(
+    card: Card,
+    comp: Competition,
+    forecasts: Mapping[str, Forecast],
+    games: dict[str, list[dict[str, Any]]],
+    history: Mapping[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    """A card as the Pro page draws it: its art, start chance, Sofix's xS, the game that counts on this board and its last five."""
+    f = forecasts.get(card.player, Forecast(0, 0))
+    game = next(
+        (
+            g
+            for g in sorted(games.get(card.player) or [], key=lambda g: g.get("kickoff") or "")
+            if comp.leagues is None or g.get("competition") in comp.leagues
+        ),
+        None,
+    )
+    played = [h for h in history.get(card.player, []) if h.get("status") != "PENDING" and h.get("score") is not None]
+    last = sorted(played, key=lambda h: h.get("date") or "")[-5:]
+    return {
+        "slug": card.slug,
+        "player": card.player,
+        "name": card.name,
+        "pos": card.positions[0],
+        "pic": card.picture,
+        "inSeason": card.in_season,
+        "mult": round(comp.multiplier(card), 3),
+        "start": round(pro.starts(f), 3),
+        "x": round(f.p_play * f.mu, 1),
+        "club": card.club_name,
+        "crest": card.club_crest,
+        "fixture": {
+            "opponent": game.get("opponent"),
+            "opponentCrest": game.get("opponentCrest"),
+            "venue": game.get("venue"),
+            "kickoff": game.get("kickoff"),
+            "bucket": (game.get("odds") or {}).get("bucket"),
+        }
+        if game
+        else None,
+        "l5": [[round(float(h["score"])), int(h.get("mins") or 0)] for h in last],
+    }
+
+
+def _pro_subs(
+    planned: pro.Planned,
+    i: int,
+    cards: list[Card],
+    used: set[str],
+    forecasts: Mapping[str, Forecast],
+    games: dict[str, list[dict[str, Any]]],
+) -> list[Card]:
+    """Who takes slot `i` if its player is benched: a card of the same batch, in the slot's positions, in no lineup of the plan,
+    keeping the five legal (in-season count), the likeliest starters first. A player entered blind has none: he is not known yet."""
+    lineup, comp = planned.lineup, planned.lineup.comp
+    starter = lineup.starters[i]
+    if starter.player in planned.late:
+        return []
+    batch_end = planned.start + pro.WINDOW
+    seasons = sum(1 for c in lineup.starters if c.in_season) - starter.in_season
+    options = [
+        c
+        for c in cards
+        if c.player not in used
+        and comp.allows(c)
+        and set(c.positions) & set(comp.starters[i])
+        and (t := pro.kickoff(c, comp, games)) is not None
+        and planned.start <= t <= batch_end
+        and (f := forecasts.get(c.player)) is not None
+        and pro.starts(f) > 0
+        and seasons + c.in_season >= comp.min_in_season
+    ]
+    return sorted(options, key=lambda c: -pro.starts(forecasts[c.player]))[:PRO_SUBS]
+
+
+def pro_plan_payload(
+    comp: Competition,
+    cards: list[Card],
+    forecasts: Mapping[str, Forecast],
+    games: dict[str, list[dict[str, Any]]],
+    history: Mapping[str, list[dict[str, Any]]],
+) -> dict[str, Any] | None:
+    """One Pro board's week for the Pro page: its steps, every batch of your games on it, and the two plans (by batch, best five)."""
+    timed = [(t, c) for c in cards if comp.allows(c) and (t := pro.kickoff(c, comp, games))]
+    if not timed:
+        return None
+    plans_out: dict[str, list[dict[str, Any]]] = {}
+    for mode, any_time in (("byBatch", False), ("bestFive", True)):
+        found = pro.week_plan(comp, cards, forecasts, games, any_time=any_time)
+        used = {c.player for p in found for c in p.lineup.starters}
+        plans_out[mode] = [
+            {
+                "start": p.start.isoformat(),
+                "span": p.span,
+                "reach": p.reach,
+                "x": round(p.expected),
+                "starters": [
+                    {
+                        **_pro_card(card, comp, forecasts, games, history),
+                        "slot": "EXT" if len(comp.starters[i]) > 1 else comp.starters[i][0],
+                        "captain": i == p.lineup.captain,
+                        "late": p.late[card.player].isoformat() if card.player in p.late else None,
+                        "subs": [
+                            _pro_card(s, comp, forecasts, games, history)
+                            for s in _pro_subs(p, i, cards, used, forecasts, games)
+                        ],
+                    }
+                    for i, card in enumerate(p.lineup.starters)
+                ],
+            }
+            for p in found
+        ]
+    return {
+        "key": comp.key,
+        "name": comp.name,
+        "slug": comp.slug,
+        "minInSeason": comp.min_in_season,
+        "steps": [{"level": lv, "target": t, "cash": c, "essence": e} for lv, t, c, e in comp.pro_steps],
+        "batches": [
+            {
+                "from": first.isoformat(),
+                "to": last.isoformat(),
+                "cards": [
+                    _pro_card(c, comp, forecasts, games, history)
+                    for c in {
+                        c.player: c
+                        for t, c in sorted(
+                            timed, key=lambda tc: (tc[0], tc[1].in_season)
+                        )  # an in-season card over a classic one
+                        if first <= t <= last and pro.starts(forecasts.get(c.player, Forecast(0, 0))) > 0
+                    }.values()
+                ],
+            }
+            for first, last in pro.batches_of([t for t, _ in timed])
+        ],
+        **plans_out,
+    }
+
+
 def _place(place: int) -> str:
     return f"{place}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(place if place < 20 else place % 10, 'th') }"
 
@@ -1103,8 +1247,12 @@ def gameweek_payload(
     draws: int = DRAWS,
     seed: int = 11,
     order: tuple[str, ...] = ESSENCE_ORDER,
+    pro_plan: bool = False,
 ) -> dict[str, Any]:
-    """One gameweek: who plays, what can be entered, and the plans (replayed when it is already played)."""
+    """One gameweek: who plays, what can be entered, and the plans (replayed when it is already played).
+
+    `pro_plan` adds `proPlan`, the Pro page's week plan of every Pro board (`pro_plan_payload`); the job moves it to its own
+    block (`PRO_KEY`) before the page is saved."""
     rng = np.random.default_rng(seed)
     # Players of one game score together (links.py): the planner needs to know who plays whom.
     forecasts = {
@@ -1270,6 +1418,14 @@ def gameweek_payload(
         ],
         **({"pro": pro_boards} if pro_boards else {}),
     }
+    if pro_plan and not played:
+        history = snapshot.get("history") or {}
+        boards = [
+            board
+            for comp in comps
+            if comp.pro_steps and (board := pro_plan_payload(comp, cards, forecasts, games, history)) is not None
+        ]
+        out["proPlan"] = boards
     if played and hindsight_comps is not None:
         hindsight = hindsight_plan(
             hindsight_comps, cards, forecasts, games, actual_references or {}, runs=max(4, runs // 2), seed=seed
@@ -1523,6 +1679,7 @@ def build_payload(
         runs=runs,
         draws=draws,
         order=order,
+        pro_plan=True,
     )
     laps("plan")
     alt = sorare_plans(
@@ -1664,6 +1821,7 @@ def build_payload(
                 count=1,  # one plan is enough this far out: the numbers will change before it locks
                 runs=max(4, runs // 4),
                 draws=draws,
+                pro_plan=i == 0,  # the next matchday, for the Pro page's hold or play
             )
         )
 

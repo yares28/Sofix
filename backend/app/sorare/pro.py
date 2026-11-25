@@ -19,6 +19,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import numpy as np
 
@@ -280,3 +281,138 @@ def windows(
         )
     out.sort(key=lambda w: (-w.wait[0], w.start))
     return out[:WINDOWS_SHOWN]
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# The Pro page's week plan (plans/pro-page.md). A lineup is entered once its first batch's teams are out and locks at that batch's
+# first kickoff, so players from later games go in on their chance (no subs in Pro: one who does not play scores 0). Research on
+# GW35 (25 Nov 2026): a legal five rarely survives its own teamsheet, and borrowing from later games turned dead batches into the
+# week's best shots; a wider span is kept only when it beats the narrower one by SPAN_TIE (Arcade's LEG_TIE).
+
+SPAN_TIE = 0.02
+PLAN_SHEETS = 60
+"""Teamsheets drawn for each candidate lineup: enough to tell spans 2 points apart on the owner's week, cheap enough for the refresh."""
+PLAN_DRAWS = 600
+PLAN_LIVES = 4
+"""A step has four lives: the plan holds at most this many lineups."""
+MIN_CHANCE = 0.01
+MADRID = ZoneInfo("Europe/Madrid")
+
+
+@dataclass
+class Planned:
+    """One lineup of the week plan: its first batch, how far it reaches into later games, and its chance at every step."""
+
+    start: datetime
+    span: str  # "batch", "3h", "day", "26h", or "any" (best five, kickoff ignored)
+    lineup: Lineup
+    late: dict[str, datetime]  # the players entered before their own teamsheet, with their kickoff
+    reach: list[float]  # the chance of each step's target, teamsheets drawn
+    expected: float
+
+
+def batches_of(times: list[datetime]) -> list[tuple[datetime, datetime]]:
+    """Kickoffs grouped as Sorare's slots fall: a game within WINDOW of a batch's first one joins it."""
+    out: list[tuple[datetime, datetime]] = []
+    for t in sorted(set(times)):
+        if out and t - out[-1][0] <= WINDOW:
+            out[-1] = (out[-1][0], t)
+        else:
+            out.append((t, t))
+    return out
+
+
+def _spans(first: datetime, last: datetime, any_time: bool, end: datetime) -> list[tuple[str, datetime]]:
+    if any_time:
+        return [("any", end)]
+    day_end = first.astimezone(MADRID).replace(hour=23, minute=59, second=59).astimezone(first.tzinfo)
+    return [("batch", last), ("3h", first + timedelta(hours=3)), ("day", day_end), ("26h", first + timedelta(hours=26))]
+
+
+def _plan_chance(
+    comp: Competition, early: list[Card], late: list[Card], forecasts: Mapping[str, Forecast], key: str
+) -> tuple[np.ndarray, Lineup | None, float]:
+    """The chance of every step averaged over drawn teamsheets of the first batch (only its starters are picked), and the lineup
+    shown: the best five from its likely starters (or all of them) with the later players."""
+    view = {**{c.player: forecasts[c.player] for c in late}, **{c.player: starting(forecasts[c.player]) for c in early}}
+    rng = np.random.default_rng(zlib.crc32(key.encode()))
+    chance = np.array([starts(forecasts[c.player]) for c in early])
+    cache: dict[frozenset[str], np.ndarray] = {}
+    total = np.zeros(len(comp.pro_steps))
+    for sheet in rng.random((PLAN_SHEETS, len(early))) < chance:
+        on = frozenset(c.player for c, s in zip(early, sheet, strict=True) if s)
+        if on not in cache:
+            lineup = _five(comp, [c for c in early if c.player in on] + late, view)
+            cache[on] = np.zeros(len(comp.pro_steps)) if lineup is None else _plan_reach(lineup, view, rng)[0]
+        total += cache[on]
+    likely = [c for c in early if starts(forecasts[c.player]) >= 0.5]
+    shown = _five(comp, likely + late, view) or _five(comp, early + late, view)
+    expected = _plan_reach(shown, view, rng)[1] if shown else 0.0
+    return total / PLAN_SHEETS, shown, expected
+
+
+def _plan_reach(
+    lineup: Lineup, forecasts: Mapping[str, Forecast], rng: np.random.Generator
+) -> tuple[np.ndarray, float]:
+    scores = simulate(lineup, dict(forecasts), rng, PLAN_DRAWS)
+    return np.array([float((scores >= target).mean()) for _, target, _, _ in lineup.comp.pro_steps]), float(
+        scores.mean()
+    )
+
+
+def week_plan(
+    comp: Competition,
+    cards: list[Card],
+    forecasts: Mapping[str, Forecast],
+    games: Mapping[str, list[dict[str, Any]]],
+    *,
+    any_time: bool = False,
+) -> list[Planned]:
+    """The board's lineups for the week, every card used once, best chance first, shown in kick-off order.
+
+    By batch (the default) a lineup starts on a batch's own games and reaches into later ones (3 hours, the rest of the Madrid day,
+    26 hours) only when that is SPAN_TIE better; `any_time` takes any games of the week (the page's "Best five")."""
+    timed = {
+        c.slug: (t, c)
+        for c in cards
+        if comp.allows(c) and (f := forecasts.get(c.player)) and starts(f) > 0 and (t := kickoff(c, comp, games))
+    }
+    if not timed:
+        return []
+    groups = batches_of([t for t, _ in timed.values()])
+    end = max(t for t, _ in timed.values())
+    used: set[str] = set()
+    out: list[Planned] = []
+    while len(out) < PLAN_LIVES:
+        best: Planned | None = None
+        for first, last in groups:
+            early = [c for t, c in timed.values() if first <= t <= last and c.player not in used]
+            if not early:
+                continue
+            options: list[Planned] = []
+            seen_late: set[frozenset[str]] = set()
+            for name, until in _spans(first, last, any_time, end):
+                late = [c for t, c in timed.values() if last < t <= until and c.player not in used]
+                if any_time:
+                    late = [c for t, c in timed.values() if (t < first or t > last) and c.player not in used]
+                signature = frozenset(c.slug for c in late)
+                if name != "batch" and signature in seen_late:
+                    continue  # the same players as a narrower span: nothing new
+                seen_late.add(signature)
+                key = "|".join([comp.key, name, *sorted(c.slug for c in early), *sorted(signature)])
+                reach, shown, expected = _plan_chance(comp, early, late, forecasts, key)
+                if shown is None:
+                    continue
+                late_in = {c.player: timed[c.slug][0] for c in shown.starters if c in late}
+                options.append(Planned(first, name, shown, late_in, [round(float(p), 4) for p in reach], expected))
+            if not options:
+                continue
+            top = max(o.reach[0] for o in options)
+            pick = next(o for o in options if o.reach[0] >= top - SPAN_TIE)  # the narrowest span within the tie
+            if best is None or pick.reach[0] > best.reach[0]:
+                best = pick
+        if best is None or best.reach[0] < MIN_CHANCE:
+            break
+        out.append(best)
+        used |= {c.player for c in best.lineup.starters}
+    return sorted(out, key=lambda p: p.start)

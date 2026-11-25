@@ -17,6 +17,7 @@ export const PLACES: Place[] = [
       { href: "/lineups", label: "Lineups" },
       { href: "/scores", label: "Scores" },
       { href: "/missions", label: "Missions" },
+      { href: "/pro", label: "Pro" }, // each Pro board's week plan (plans/pro-page.md, 25 Nov 2026)
     ],
   },
   {

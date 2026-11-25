@@ -754,6 +754,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | page | `/players/[slug]` | `frontend/app/players/[slug]/page.tsx` |
 | page | `/players` | `frontend/app/players/page.tsx` |
 | page | `/prices` | `frontend/app/prices/page.tsx` |
+| page | `/pro` | `frontend/app/pro/page.tsx` |
 | page | `/scores` | `frontend/app/scores/page.tsx` |
 | page | `/squads` | `frontend/app/squads/page.tsx` |
 | page | `/stats` | `frontend/app/stats/page.tsx` |
@@ -817,6 +818,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | document (check authority) | `plans/play-prizes-and-mission-tooltips.md` | [open](../plans/play-prizes-and-mission-tooltips.md) |
 | document (check authority) | `plans/play-rewards-and-mission-chart.md` | [open](../plans/play-rewards-and-mission-chart.md) |
 | document (check authority) | `plans/points-needed.md` | [open](../plans/points-needed.md) |
+| document (check authority) | `plans/pro-page.md` | [open](../plans/pro-page.md) |
 | document (check authority) | `plans/pro.md` | [open](../plans/pro.md) |
 | document (check authority) | `plans/recap-lineup-scores.md` | [open](../plans/recap-lineup-scores.md) |
 | document (check authority) | `plans/recap-matchnight.md` | [open](../plans/recap-matchnight.md) |
@@ -941,13 +943,13 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-25",
-        "note": "Checked jobs/sorare.py on 25 Nov 2026: Squads' daily reads (prices and the four league logos) now run only on a run that publishes Squads and has players to price; Play selection inputs and plan logic are unchanged.",
+        "note": "25 Nov 2026 Pro page: gameweek_payload gains pro_plan (week plans per Pro board, pro.week_plan), popped by the Sorare job into its own block sorare_pro before the sorare page is saved; Play's plans, contest and payload unchanged. Reviewed publish.py, pro.py, jobs/sorare.py diffs; backend tests ran.",
         "files": {
-          "backend/app/sorare/publish.py": "4ed3df49350d3839b58b4870ad36288b1666594693342a6e0ba9047fff709fcc",
+          "backend/app/sorare/publish.py": "5e75653bae32930f57ebd0e211eca18a70b7b89f692dc2fbbd952b52c84e6d3e",
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
-          "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "f88c1289418e5ccad3f0de623e83a9d306c26e0d4bf4dc8d1c00f8246e9e8f08",
+          "backend/app/sorare/pro.py": "bb46a8871a96b96d7f13d515133e5891a363bf9136754918ab6f28048f6847e0",
+          "backend/app/jobs/sorare.py": "07b960fb1b61da1ce93fbee1b1022a79c928f892cb7bd6da8055e4427fc0364e",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
         }
@@ -1073,10 +1075,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-24",
-        "note": "24 Nov 2026: publish.py adds v3Shape beside the other xS versions; raw forecasts and plan selection unchanged",
+        "date": "2026-11-25",
+        "note": "25 Nov 2026: publish.py only adds the Pro page block (pro_plan_payload) reading the same planning forecasts; no raw or planning forecast changed.",
         "files": {
-          "backend/app/sorare/publish.py": "4ed3df49350d3839b58b4870ad36288b1666594693342a6e0ba9047fff709fcc",
+          "backend/app/sorare/publish.py": "5e75653bae32930f57ebd0e211eca18a70b7b89f692dc2fbbd952b52c84e6d3e",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"

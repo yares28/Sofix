@@ -263,6 +263,8 @@ for (const player of planning.playing.players.slice(0, 3)) {
 // played yet; the replay of the past from the committed file), and the same page once the record has enough games to give figures, so the figures,
 // their wording and the bands have something to draw.
 const rewardBarsFixture = JSON.parse(readFileSync(new URL("./fixtures/reward-bars-response.json", import.meta.url), "utf8"));
+// The Pro page's block for GW35 (25 Nov 2026), built from the owner's real cards, start chances and the plan research (plans/pro-page.md).
+const proFixture = JSON.parse(readFileSync(new URL("./fixtures/pro-response.json", import.meta.url), "utf8"));
 // LaLiga's Squads block (backend/app/sorare/squads.py on the 24 Nov 2026 blocks): Alavés, Celta and Elche whole, the other clubs' picker numbers.
 const squadsFixture = JSON.parse(readFileSync(new URL("./fixtures/squads-response.json", import.meta.url), "utf8"));
 // Its start-of-season block (squads_next:LALIGA, picked from 2025/26): Celta, Elche (no team at 90% inside €40), Deportivo (promoted).
@@ -530,6 +532,11 @@ const server = createServer((req, res) => {
     const bare = (name) => ({ name, club: null, ffId: null, crest: "https://assets.sorare.com/team/e2e/picture/low_res.png", coach: null, rotations: null, predictability: null, season: null, changedAt: null, published: false, squad: null, formation: "", rows: [], alternatives: [], absent: [], unlinked: [] });
     const premier = { id: 1234567890, url: "", ff: false, competition: "premier-league-gb-eng", competitionName: "Premier League", round: null, kickoff: first.kickoff, score: null, readAt: first.readAt, home: bare("Arsenal"), away: bare("Chelsea"), sorare: { id: "Game:e2e-premier", players: {} } };
     return send(res, 200, { ...lineupsPayload, data: { ...lineupsPayload.data, matches: [...lineupsPayload.data.matches, premier] } });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/pro") {
+    if (state.sorare === "missing") return send(res, 200, { success: false, data: null, error: "The Pro week has not been written yet." });
+    return send(res, 200, proFixture);
   }
 
   if (req.method === "GET" && url.pathname === "/api/reward-bars") {

@@ -966,6 +966,20 @@ def run(
     )
     if said:
         summary["arcadeSaid"] = said
+    # The Pro page's week plans travel in the weeks only to here: they get their own block, so the Sorare page stays its size.
+    pro_weeks = [
+        {
+            "slug": w["gameweek"]["slug"],
+            "number": w["gameweek"]["number"],
+            "start": w["gameweek"]["start"],
+            "end": w["gameweek"]["end"],
+            "boards": plan,
+        }
+        for w in payload.get("weeks") or []
+        if isinstance(w, dict) and (plan := w.pop("proPlan", None)) is not None
+    ]
+    if pro_weeks:
+        put(db, sorare_publish.PRO_KEY, {"version": 1, "builtAt": fetched.isoformat(), "weeks": pro_weeks}, now)
     put(db, SORARE_KEY, payload, now)
     # the recommended plan's starters with the chance Sorare gave each: a reading that moves one starts a refresh (frontend/lib/planNews.ts)
     watch = sorare_publish.plan_watch(payload)

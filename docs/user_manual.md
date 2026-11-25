@@ -388,6 +388,19 @@ Pro lineup none of whose players has kicked off. While the gameweek is the one b
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 
+**This week · Pro (`/pro`, 25 Nov 2026, [plans/pro-page.md](../plans/pro-page.md)).** One Pro board at a time (each board Sofix can fill,
+with its step). **Hold or play** on top: your lineups in kick-off order, each tagged play / hold / cleared / missed with its chance,
+and a bar filling to the chance of clearing the step this matchday; every lineup is played (different cards, four lives that last the
+matchday), a lineup waits only when more than four would play one step or it has no chance there, and the whole matchday waits when
+the next one is more than 2 points better. The **staircase** gives the chance of reaching each step. Days switch the lineups shown;
+**By batch** builds each lineup from one batch of games (kick-offs within the hour) and borrows players from later games only when
+that is 2 points better (next 3 h, the rest of the day, 26 h); **Best five** ignores kick-off times. Chances are counted on drawn
+teamsheets: the first batch's players are known when you enter, a later player goes in blind and scores 0 if he does not start (a
+clock and his kick-off under his name). Each card shows its start %, Sofix xS, opponent with difficulty, last five in Sorare's
+colours and up to two legal subs (the 4 in-season rule kept); the dark block gives the target, the expected total against it, the
+chance and the next two steps. Mark a lineup Cleared or Missed: later lineups move up a step and every chance follows. Batches with
+no legal five show the missing slot and the in-season count. The refresh writes it as block `sorare_pro`.
+
 Above the recommended Sofix plan, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
 lineups and drafts are labelled separately and retain their Sorare competition and card list. Each one is drawn as the Recap's
 row (14 Oct 2026): the cards with their xScore under each (their score once they have points), xScore and actual, the reward

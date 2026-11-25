@@ -102,8 +102,9 @@ any global habit of branches, pull requests, CI waits or review subagents.
    push, because every push costs Vercel CPU (deploy screenshots, the `--live` renders, the extension's check-ins after a
    release). When a push is necessary (production broken) or recommended (a fix he is waiting to use), say so and ask; never
    push on your own. Then `git push origin main`. Vercel deploys in one to two minutes. A push that touches `backend/app/**` or
-   `backend/artifacts/**` also starts the refresh (`refresh.yml`), which republishes the read models: never dispatch it by
-   hand for that.
+   `backend/artifacts/**` also starts the refresh (`refresh.yml`), which republishes the read models, but only when no refresh
+   started in the last 3 hours (its gate): after a push, check the "Refresh data" job ran before saying new published data is
+   live; if the gate skipped it, the data waits for the next timed refresh (`clock/timetable.json`) or the owner's refresh button.
 5. **Confirm and hand over:** `node scripts/check.mjs --live /<changed page> ...` waits for the deploy, opens the home page
    and the changed pages on production (anything but 200 fails; `--all-pages` opens all 15, only after a change to shared
    code: each page is a server render billed against Vercel's free 4 h of CPU a month), prints CI's and the refresh's state without waiting for them, makes sure the

@@ -72,6 +72,7 @@ def run(code: str, now: datetime, *, write: bool = True) -> dict[str, Any]:
         board=board,
         lines=head.get("arenaLines") or [],
         captain=float(head.get("captain") or squads.CAPTAIN),
+        season=float(head.get("seasonBonus") or squads.SEASON),
         prices=prices_of(record.payload if record else None),
         owned_classic=frozenset(c["player"] for c in limited if not c.get("inSeason")) - owned,
     )

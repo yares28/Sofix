@@ -299,6 +299,13 @@ season).
 - **Not built:** Any clubs. Searching a whole league needs another method than trying every combination (see the next step).
   Two clubs for the start of season, and each club alone beside the pair in the hero, are not built either.
 
+**Scoring fixes (25 Nov 2026, committed locally, not pushed), found while designing Any clubs:**
+- **The season bonus:** Sorare's Pro boards and the LaLiga Limited In-Season Arena give an in-season card +5% (`engineConfiguration.season`, `sorare_templates`), which Squads had left out. Every total now counts it: score × 1.05 for each in-season card, the team's one classic card without it, and the captain adding 50% of his raw score, as the planner does (planner.py). The level bonus (1% a card level) stays out: a card on sale has no level Sofix knows.
+- **The effect** (LaLiga, €40, 90%, your cards counted):
+  - Celta: 319 → 333 a game, 6 → 7 Pro steps.
+  - Elche: 332 → 347 a game, its board now reaching 420 for $65 instead of $5.
+- **The step clock:** Sorare's "What is Pro?" (20 Nov 2026) says a step must be cleared by the end of the matchday it was started in, in at most 4 lineups, and a step started later in the matchday of a clear has until the end of the following matchday. The ladder (backend and page) now follows it. One club is unchanged (one try a matchday); for two clubs a miss right after a clear no longer resets the board.
+
 Round 4 comments (24 Nov, 19:03-19:13) still open:
 - The LaLiga logo in place of "LALIGA PRO": AGENTS.md's art rule says "no LaLiga mark", so the owner must choose.
 - The ring colours: green when the best five topped the first Pro step in at least half of the games, amber at 30%, grey below.

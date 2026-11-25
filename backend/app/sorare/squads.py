@@ -57,6 +57,10 @@ POSITIONS = ("GK", "DEF", "MID", "FWD")
 OUTFIELD = ("DEF", "MID", "FWD")
 TARGETS = (0.7, 0.8, 0.9, 1.0)
 CAPTAIN = 0.5  # Sorare's captain bonus in Pro and the Arena (`engineConfiguration.captain`); a board's own value wins
+# An in-season card scores +5% in Pro and the In-Season Arena (`engineConfiguration.season`, 24 Nov 2026; a board's own
+# value wins); a classic card does not. The level bonus (`grade`, 1% a card level) is left out: a card on sale has no level
+# Sofix knows. The captain adds his raw score times the captain bonus, as the planner counts it (planner.py).
+SEASON = 0.05
 CANDIDATES = {"GK": 3, "DEF": 7, "MID": 6, "FWD": 6}  # each position's leading players the search combines
 SIZES = {"GK": (1, 2, 3), "DEF": (1, 2, 3, 4), "MID": (1, 2, 3, 4), "FWD": (1, 2, 3)}
 ARENA_OUTFIELD = 11
@@ -160,6 +164,7 @@ class Club:
         default_factory=list
     )  # seven, full, owned, mean, started
     rounds: list[int] | None = None  # two clubs: each game's round (each club's game is a try of that round)
+    season: float = 0.0  # the in-season bonus its scores are counted with (`SEASON`)
     arena_club: Club | None = None  # two clubs: the same players round by round, which the Arena plays
 
 
@@ -198,6 +203,7 @@ def club(
     art: Mapping[str, str],
     prices: Mapping[str, Price] | None = None,
     owned_classic: frozenset[str] = frozenset(),
+    season: float = 0.0,
 ) -> Club | None:
     """A club's players over its finished league games of the season; a player counts only his games for this club."""
     since = season_start(now)
@@ -246,7 +252,7 @@ def club(
         }
         for g in order
     ]
-    out = Club(name=name, crest=crest, own=own, games=games_out, players=players)
+    out = Club(name=name, crest=crest, own=own, games=games_out, players=players, season=season)
     if n:
         out.pro = pro_search(out)
         out.sevens = arena_search(out)
@@ -321,6 +327,7 @@ def next_club(
     art: Mapping[str, str],
     prices: Mapping[str, Price] | None = None,
     owned_classic: frozenset[str] = frozenset(),
+    season: float = 0.0,
 ) -> tuple[Club, list[str]]:
     """The club's players now over last season's rounds, each with his own games for whichever club of the league he played
     for; and the players with no game in the league last season (new to it: listed, never guessed)."""
@@ -370,7 +377,7 @@ def next_club(
             }
         )
     crest = next((r.get("crest") for r in rows if r.get("crest")), None)
-    out = Club(name=name, crest=crest, own=own or name, games=games_out, players=players)
+    out = Club(name=name, crest=crest, own=own or name, games=games_out, players=players, season=season)
     if n and players:
         out.pro = pro_search(out)
         out.sevens = arena_search(out)
@@ -382,7 +389,7 @@ def _proof(c: Club | None, cards: Iterable[str], board: list[Step] | None, capta
     members = [s for s in cards if c is not None and s in c.players]
     if c is None or not c.games or not members:
         return {"games": 0, "five": 0, "mean": None, "clears": 0}
-    best = series(c, members, captain)["best"]
+    best = series(c, members, captain, classic_of(c, members, owned=True))["best"]
     return {
         "games": len(best),
         "five": sum(1 for v in best if v is not None),
@@ -404,6 +411,7 @@ def next_block(
     captain: float = CAPTAIN,
     prices: Mapping[str, Price] | None = None,
     owned_classic: frozenset[str] = frozenset(),
+    season: float = 0.0,
 ) -> dict[str, Any] | None:
     """The start-of-season view: each club's team picked from last season's record, as it would be bought before the first
     game, and how that team did this season (`proof`). None when last season's games are not kept for this league."""
@@ -419,7 +427,18 @@ def next_block(
     out = []
     names: dict[str, tuple[str, str | None]] = {}  # a club as games spell it: its name and crest, for the opponents
     for name, rs in sorted(by_club.items()):
-        this = club(name, rs, games, league, now, owned=owned, art=art, prices=prices, owned_classic=owned_classic)
+        this = club(
+            name,
+            rs,
+            games,
+            league,
+            now,
+            owned=owned,
+            art=art,
+            prices=prices,
+            owned_classic=owned_classic,
+            season=season,
+        )
         own = this.own if this else None
         if own is None:  # before the first game: the club as last season's games spell it, if it was in the league
             sides = Counter(
@@ -444,6 +463,7 @@ def next_block(
             art=art,
             prices=prices,
             owned_classic=owned_classic,
+            season=season,
         )
         if not c.players:
             continue
@@ -497,6 +517,7 @@ def next_block(
         "cardsOut": listed > 0,  # before Sorare releases the season's cards no in-season card is listed at all
         "targets": list(TARGETS),
         "captain": captain,
+        "seasonBonus": season,
         "board": [{"target": t, "cash": c, "essence": e} for t, c, e in board] if board else None,
         "arenaLines": lines,
         "clubs": out,
@@ -553,7 +574,9 @@ def pair_club(a: Club, b: Club) -> Club:
         }
         for j, (_, k, i) in enumerate(order)
     ]
-    out = Club(name=f"{a.name} + {b.name}", crest=a.crest, own="", games=games, players=players, rounds=rounds)
+    out = Club(
+        name=f"{a.name} + {b.name}", crest=a.crest, own="", games=games, players=players, rounds=rounds, season=a.season
+    )
     # the Arena: one lineup a round, each card playing his own club's game of it (the first, when his club played twice)
     r_n = len(index)
     by_round = {}
@@ -571,8 +594,10 @@ def pair_club(a: Club, b: Club) -> Club:
                 )
         q.mine = None
         by_round[p.slug] = q
-    first = {r: games[j] for j, r in reversed(list(enumerate(rounds)))}
-    out.arena_club = Club(name=out.name, crest=a.crest, own="", games=[first[r] for r in range(r_n)], players=by_round)
+    opener = {r: games[j] for j, r in reversed(list(enumerate(rounds)))}
+    out.arena_club = Club(
+        name=out.name, crest=a.crest, own="", games=[opener[r] for r in range(r_n)], players=by_round, season=a.season
+    )
     out.pro = pro_search(out)
     out.sevens = arena_search(out.arena_club)
     return out
@@ -638,6 +663,7 @@ def pairs_blocks(
     captain: float = CAPTAIN,
     prices: Mapping[str, Price] | None = None,
     owned_classic: frozenset[str] = frozenset(),
+    season: float = 0.0,
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     """Every pair of the league's clubs this season: the picker's block and each pair's teams (by pair id)."""
     by_club: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -647,7 +673,20 @@ def pairs_blocks(
     clubs = [
         x
         for name, rs in sorted(by_club.items())
-        if (x := club(name, rs, games, league, now, owned=owned, art=art, prices=prices, owned_classic=owned_classic))
+        if (
+            x := club(
+                name,
+                rs,
+                games,
+                league,
+                now,
+                owned=owned,
+                art=art,
+                prices=prices,
+                owned_classic=owned_classic,
+                season=season,
+            )
+        )
         and x.games
     ]
     crests = {x.own: (x.name, x.crest) for x in clubs}
@@ -671,6 +710,7 @@ def pairs_blocks(
         "season": season_start(now).year,
         "targets": list(TARGETS),
         "captain": captain,
+        "seasonBonus": season,
         "board": [{"target": t, "cash": c, "essence": e} for t, c, e in board] if board else None,
         "arenaLines": lines,
     }
@@ -680,8 +720,8 @@ def pairs_blocks(
 # ---- Pro
 
 
-def _top_two(team: Iterable[Player], n: int) -> tuple[np.ndarray, np.ndarray]:
-    m = np.array([np.where(p.starts, p.scores, NEG) for p in team]).reshape(-1, n)
+def _top_two(team: Iterable[Player], n: int, boost: float = 1.0) -> tuple[np.ndarray, np.ndarray]:
+    m = np.array([np.where(p.starts, p.scores * boost, NEG) for p in team]).reshape(-1, n)
     m.sort(axis=0)
     second = m[-2] if len(m) > 1 else np.full(n, NEG)
     return m[-1], second
@@ -692,6 +732,7 @@ def pro_search(c: Club) -> Search | None:
     For two clubs each game is a try: a round counts its best try, and is covered when any try fields five."""
     n = len(c.games)
     groups = _groups(c.rounds)
+    cap = CAPTAIN / (1 + c.season)  # the scores carry the season bonus, the captain's share is of the raw score
     combos: dict[str, list[tuple[str, ...]]] = {}
     arrays: dict[str, tuple[np.ndarray, ...]] = {}
     saves: dict[str, tuple[np.ndarray, np.ndarray]] = {}  # each combo's biggest classic saving, both ways
@@ -700,7 +741,7 @@ def pro_search(c: Club) -> Search | None:
         cs = [x for r in SIZES[q] if r <= len(ranked) for x in itertools.combinations(ranked, r)]
         if not cs:
             return None
-        tops = [_top_two(x, n) for x in cs]
+        tops = [_top_two(x, n, 1 + c.season) for x in cs]
         combos[q] = [tuple(p.slug for p in x) for x in cs]
         arrays[q] = (
             np.array([t[0] for t in tops]),
@@ -733,7 +774,7 @@ def pro_search(c: Club) -> Search | None:
             g1, d1, d2 = g1s[gi], d1s[di], d2s[di]
             extra = np.maximum(fm_extra, d2)
             ok = fm_ok & (g1 > NEG / 2) & (d1 > NEG / 2) & (extra > NEG / 2)
-            total = g1 + d1 + fm_sum + extra + CAPTAIN * np.maximum(fm_top, np.maximum(g1, d1))
+            total = g1 + d1 + fm_sum + extra + cap * np.maximum(fm_top, np.maximum(g1, d1))
             scored = np.where(ok, total, 0.0)
             if groups is not None:
                 scored = np.maximum.reduceat(scored, groups, axis=-1)
@@ -808,10 +849,19 @@ def _lineup(values: list[float], captain: float = CAPTAIN) -> float:
     return sum(values) + captain * max(values)
 
 
-def series(c: Club, cards: Iterable[str], captain: float = CAPTAIN) -> dict[str, list[float | None]]:
+def series(
+    c: Club, cards: Iterable[str], captain: float = CAPTAIN, classic: str | None = None
+) -> dict[str, list[float | None]]:
     """Each game, over every valid five of the team's starters: the best, median and average score (hindsight), and the five
-    Sofix's xS would have picked (what it scored, what xS said) when Sofix saved a number for every starter."""
+    Sofix's xS would have picked (what it scored, what xS said) when Sofix saved a number for every starter. A card scores
+    with the season bonus unless it is the team's classic card, and the captain adds his raw score times the bonus."""
     team = [c.players[s] for s in cards]
+    boost = {p.slug: 1.0 if p.slug == classic else 1.0 + c.season for p in team}
+
+    def total(five: Iterable[Player], key: str, i: int) -> float:
+        values = [(boost[p.slug], float(getattr(p, key)[i])) for p in five]
+        return sum(b * v for b, v in values) + captain * max(v for _, v in values)
+
     out: dict[str, list[float | None]] = {k: [] for k in ("best", "median", "average", "xsReal", "xsExp")}
     for i in range(len(c.games)):
         started = [p for p in team if p.starts[i]]
@@ -820,15 +870,17 @@ def series(c: Club, cards: Iterable[str], captain: float = CAPTAIN) -> dict[str,
             for k in out:
                 out[k].append(None)
             continue
-        totals = [_lineup([p.scores[i] for p in f], captain) for f in fives]
+        totals = [total(f, "scores", i) for f in fives]
         out["best"].append(round(max(totals), 1))
         out["median"].append(round(statistics.median(totals), 1))
         out["average"].append(round(sum(totals) / len(totals), 1))
         if all(not np.isnan(p.xs[i]) for p in started):
-            chosen = max(fives, key=lambda f: _lineup([p.xs[i] for p in f], captain))
+            chosen = max(fives, key=lambda f: total(f, "xs", i))  # noqa: B023 - used at once
             cap = max(chosen, key=lambda p: p.xs[i])
-            out["xsReal"].append(round(sum(p.scores[i] for p in chosen) + captain * cap.scores[i], 1))
-            out["xsExp"].append(round(_lineup([p.xs[i] for p in chosen], captain), 1))
+            out["xsReal"].append(
+                round(sum(boost[p.slug] * float(p.scores[i]) for p in chosen) + captain * float(cap.scores[i]), 1)
+            )
+            out["xsExp"].append(round(total(chosen, "xs", i), 1))
         else:
             out["xsReal"].append(None)
             out["xsExp"].append(None)
@@ -860,19 +912,21 @@ def _arena(c: Club, seven: Seven) -> tuple[np.ndarray, np.ndarray, np.ndarray, l
     return scores, sub_in, all_started, fives
 
 
-def arena_series(c: Club, seven: Seven, captain: float = CAPTAIN) -> dict[str, list[Any]]:
+def arena_series(c: Club, seven: Seven, captain: float = CAPTAIN, classic: str | None = None) -> dict[str, list[Any]]:
     scores, sub_in, all_started, fives = _arena(c, seven)
     out: dict[str, list[Any]] = {k: [] for k in ("best", "median", "average", "xsReal", "xsExp")}
     for i, row in enumerate(scores):
-        by_captain = [float(row.sum() + captain * v) for v in row]
+        boost = np.array([1.0 if p.slug == classic else 1.0 + c.season for p in fives[i]])
+        base = float((row * boost).sum())  # the season bonus on each in-season card; the captain on his raw score
+        by_captain = [base + captain * float(v) for v in row]
         out["best"].append(round(max(by_captain), 1))
         out["median"].append(round(statistics.median(by_captain), 1))
         out["average"].append(round(sum(by_captain) / len(by_captain), 1))
         xs = [p.xs[i] for p in fives[i]]
         if all(not np.isnan(x) for x in xs):
             cap = int(np.argmax(xs))
-            out["xsReal"].append(round(float(row.sum() + captain * row[cap]), 1))
-            out["xsExp"].append(round(_lineup(xs, captain), 1))
+            out["xsReal"].append(round(base + captain * float(row[cap]), 1))
+            out["xsExp"].append(round(float(sum(b * x for b, x in zip(boost, xs, strict=True))) + captain * max(xs), 1))
         else:
             out["xsReal"].append(None)
             out["xsExp"].append(None)
@@ -900,7 +954,7 @@ def arena_search(c: Club) -> list[tuple[Seven, float, float, float, float]]:
                     gk.slug, tuple(p.slug for p in four), gsub.slug if gsub else None, osub.slug if osub else None
                 )
                 scores, _, started, _ = _arena(c, seven)
-                mean = float((scores.sum(axis=1) + CAPTAIN * scores.max(axis=1)).mean())
+                mean = float((scores.sum(axis=1) * (1 + c.season) + CAPTAIN * scores.max(axis=1)).mean())
                 members = [c.players[s] for s in seven.cards]
                 full = sum(p.eur for p in members) - max(p.saving(False) for p in members)
                 own = sum(p.cost for p in members) - max(p.saving(True) for p in members)
@@ -919,31 +973,45 @@ def arena_pick(c: Club, *, budget: float, owned: bool) -> Seven | None:
 # ---- boards and prizes
 
 
+LIVES = 4  # lineups a step (Sorare's "4 lives and 4 lineup tries per step")
+
+
 def ladder(values: Iterable[float | None], board: list[Step], rounds: list[int] | None = None) -> dict[str, Any]:
-    """A clear wins the step and climbs; a round that ends on a miss sends the board back to its first step. One try a game,
-    or for two clubs each club's game of a round, in kickoff order (`rounds`). Same rule as `ladder` in lib/squads.ts."""
+    """Sorare's step clock ("What is Pro?", 20 Nov 2026): a clear wins the step and climbs; a step must be cleared by the end of
+    the matchday it was started in, in at most `LIVES` lineups, or the board starts again from its first step. A step started
+    later in the matchday of a clear has until the end of the following matchday. One try a game, or for two clubs each
+    club's game of a round, in kickoff order (`rounds`). Same rule as `ladder` in lib/squads.ts."""
     vals = list(values)
     keys = rounds if rounds is not None else list(range(len(vals)))
-    level, path, clears, cash, essence, top = 0, [], 0, 0.0, 0, 0
-    i = 0
-    while i < len(vals):
-        j = next((k for k in range(i, len(vals)) if keys[k] != keys[i]), len(vals))
-        missed = False
-        for v in vals[i:j]:
-            target, c, e = board[level]
-            if v is None:
-                path.append({"target": target, "res": "skip"})
-            elif v >= target:
+    path: list[dict[str, Any]] = []
+    level, clears, cash, essence, top = 0, 0, 0.0, 0, 0
+    lives, deadline, cleared_in = LIVES, None, None  # deadline: the round the current step must be cleared by
+
+    def fail() -> None:
+        nonlocal level, lives, deadline
+        if path and path[-1]["res"] == "miss":
+            path[-1]["back"] = level > 0
+        level, lives, deadline = 0, LIVES, None
+
+    for i, v in enumerate(vals):
+        r = keys[i]
+        target, c, e = board[level]
+        if v is None:
+            path.append({"target": target, "res": "skip"})
+        else:
+            if deadline is None:  # this lineup starts the step
+                deadline = r + 1 if cleared_in == r else r
+            if v >= target:
                 path.append({"target": target, "res": "clear"})
                 clears, cash, essence, top = clears + 1, cash + c, essence + e, max(top, target)
-                level, missed = (level + 1) % len(board), False
+                level, lives, deadline, cleared_in = (level + 1) % len(board), LIVES, None, r
             else:
                 path.append({"target": target, "res": "miss", "back": False})
-                missed = True
-        if missed:
-            path[-1]["back"] = level > 0
-            level = 0
-        i = j
+                lives -= 1
+                if lives == 0:
+                    fail()
+        if (i + 1 == len(vals) or keys[i + 1] != r) and deadline is not None and deadline <= r:
+            fail()  # the matchday ends with the step not cleared
     return {"path": path, "clears": clears, "cash": cash, "essence": essence, "top": top}
 
 
@@ -960,9 +1028,9 @@ def _over(best: list[float | None], board: list[Step] | None, rounds: list[int] 
     return sum(1 for v in top.values() if v >= board[0][0])
 
 
-def boards(raw: list[dict[str, Any]] | None) -> dict[str, tuple[list[Step], float]]:
+def boards(raw: list[dict[str, Any]] | None) -> dict[str, tuple[list[Step], float, float]]:
     """Each league's Limited Pro board, every step (cleared ones too) and its captain bonus, from the owner's boards."""
-    out: dict[str, tuple[list[Step], float]] = {}
+    out: dict[str, tuple[list[Step], float, float]] = {}
     for board in raw or []:
         steps = sorted((s for s in board.get("steps") or [] if "target" in s), key=lambda s: int(s["level"]))
         if not steps:
@@ -973,8 +1041,9 @@ def boards(raw: list[dict[str, Any]] | None) -> dict[str, tuple[list[Step], floa
         leagues = {c.get("slug") for c in (rules.get("Competitions") or {}).get("competitions") or []}
         if len(leagues) != 1 or (league := next(iter(leagues))) not in LEAGUES:
             continue
-        captain = float((steps[0].get("engineConfiguration") or {}).get("captain") or CAPTAIN)
-        out[league] = ([(int(s["target"]), *_prize(s, "limited")) for s in steps], captain)
+        engine = steps[0].get("engineConfiguration") or {}
+        captain, season = float(engine.get("captain") or CAPTAIN), float(engine.get("season") or SEASON)
+        out[league] = ([(int(s["target"]), *_prize(s, "limited")) for s in steps], captain, season)
     return out
 
 
@@ -1027,7 +1096,8 @@ def club_block(
     def team_id(cards: tuple[str, ...], full: float, cost_owned: float, mean: float, cov: float) -> int:
         key = tuple(sorted(cards))
         if key not in teams:
-            s = series(c, cards, captain)
+            # the team's classic card (yours when it counts, else the one bought) scores without the season bonus
+            s = series(c, cards, captain, classic_of(c, cards, owned=True) or classic_of(c, cards, owned=False))
             lad = ladder(s["best"], board, c.rounds) if board else None
             teams[key] = {
                 "id": len(teams),
@@ -1080,7 +1150,14 @@ def club_block(
                         "classicToBuy": classic_of(ac, seven.cards, owned=True),
                         "mean": round(float(mean), 1),
                         "started": round(float(started), 3),
-                        **_lean(arena_series(ac, seven, captain)),
+                        **_lean(
+                            arena_series(
+                                ac,
+                                seven,
+                                captain,
+                                classic_of(ac, seven.cards, owned=True) or classic_of(ac, seven.cards, owned=False),
+                            )
+                        ),
                     }
                 entries.append({"id": sevens[seven]["id"], "from": round(b, 2)})
             arena[lane] = entries
@@ -1111,6 +1188,7 @@ def league_block(
     captain: float = CAPTAIN,
     prices: Mapping[str, Price] | None = None,
     owned_classic: frozenset[str] = frozenset(),
+    season: float = 0.0,
 ) -> dict[str, Any]:
     by_club: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
@@ -1119,7 +1197,20 @@ def league_block(
     clubs = [
         x
         for name, rs in sorted(by_club.items())
-        if (x := club(name, rs, games, league, now, owned=owned, art=art, prices=prices, owned_classic=owned_classic))
+        if (
+            x := club(
+                name,
+                rs,
+                games,
+                league,
+                now,
+                owned=owned,
+                art=art,
+                prices=prices,
+                owned_classic=owned_classic,
+                season=season,
+            )
+        )
     ]
     crests = {x.own: (x.name, x.crest) for x in clubs}
     out = []
@@ -1139,6 +1230,7 @@ def league_block(
         "season": season_start(now).year,
         "targets": list(TARGETS),
         "captain": captain,
+        "seasonBonus": season,
         "board": [{"target": t, "cash": c, "essence": e} for t, c, e in board] if board else None,
         "arenaLines": lines,
         "clubs": out,
@@ -1266,7 +1358,7 @@ def publish(
     found = boards(raw_boards)
     summary: dict[str, Any] = {}
     for league, rows in markets.items():
-        board, captain = found.get(league, (None, CAPTAIN))
+        board, captain, season = found.get(league, (None, CAPTAIN, SEASON))
         block = league_block(
             league,
             rows,
@@ -1279,6 +1371,7 @@ def publish(
             captain=captain,
             prices=today,
             owned_classic=owned_classic,
+            season=season,
         )
         mine = {r["slug"]: today[r["slug"]] for r in rows if today and r.get("slug") in today}
         start = next_block(
@@ -1293,6 +1386,7 @@ def publish(
             captain=captain,
             prices=today,
             owned_classic=owned_classic,
+            season=season,
         )
         summary[block["code"]] = {
             "clubs": len(block["clubs"]),

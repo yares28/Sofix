@@ -386,3 +386,33 @@ def test_the_pairs_game_against_each_other_is_one_try_whose_five_mixes_both_club
     assert len(pair.games) == 3 and pair.games[0]["club"] == "both"
     assert pair.players["a-gk0"].mine.tolist() == [True, True, False]
     assert pair.players["b-gk0"].mine.tolist() == [True, False, True]
+
+
+def test_an_in_season_card_scores_its_season_bonus_the_classic_card_does_not_and_the_captain_counts_raw():
+    rows = [*base_rows()[:4], (market("wide", "MID", 3.0), ["S80"] * 6)]
+    games = {m["slug"]: games_for("Club A", plays) for m, plays in rows}
+    c = squads.club("Club A", [m for m, _ in rows], games, LEAGUE, NOW, owned=frozenset(), art={}, season=0.05)
+    cards = ("keeper", "back", "mid", "striker", "wide")
+    assert squads.series(c, cards)["best"][0] == round(1.05 * (50 * 4 + 80) + 0.5 * 80, 1)
+    assert squads.series(c, cards, classic="keeper")["best"][0] == round(1.05 * (50 * 3 + 80) + 50 + 0.5 * 80, 1)
+    team = squads.pick(c.pro, budget=100, target=1.0, owned=False)
+    assert round(team.mean, 1) == round(1.05 * (50 * 4 + 80) + 0.5 * 80, 1)  # the search counts it the same way
+
+
+def test_the_step_clock_a_step_started_right_after_a_clear_has_until_the_end_of_the_next_matchday():
+    # Sorare's "What is Pro?" (20 Nov 2026): a step must be cleared by the end of the matchday it was started in, with 4
+    # lives; one started later in the matchday of a clear has until the end of the following matchday.
+    board = [(320, 0.0, 500), (360, 5.0, 0), (380, 10.0, 0)]
+    out = squads.ladder([330, 300, 370], board, rounds=[0, 0, 1])
+    assert [s["target"] for s in out["path"]] == [320, 360, 360]  # the 360 step lives on into the next matchday
+    assert [s["res"] for s in out["path"]] == ["clear", "miss", "clear"] and out["path"][1]["back"] is False
+    one = squads.ladder([330, 300, 370], board)  # one club: a try a matchday, a miss fails the step
+    assert [s["target"] for s in one["path"]] == [320, 360, 320] and one["path"][1]["back"] is True
+
+
+def test_four_lives_a_step():
+    board = [(320, 0.0, 500), (360, 5.0, 0)]
+    out = squads.ladder([330, 300, 300, 300, 300, 330], board, rounds=[0, 0, 0, 0, 0, 0])
+    # the 360 step, started after the clear, has four lives: the fourth miss fails it, and the board starts again
+    assert [s["target"] for s in out["path"]] == [320, 360, 360, 360, 360, 320]
+    assert out["path"][4]["back"] is True and out["clears"] == 2

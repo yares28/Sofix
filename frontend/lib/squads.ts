@@ -149,30 +149,39 @@ export function within(lane: Entry[] | undefined, budget: number): Entry | null 
 export type Res = "clear" | "miss" | "skip";
 export type Rung = { target: number; res: Res; back: boolean; prize: Step | null };
 
-/** One try a game (or several, in kickoff order, within a round): a clear climbs, a miss with no clear after it in the round
- * sends the board back to its first step. Same rule as squads.ladder in the backend. */
+export const LIVES = 4; // lineups a step (Sorare's "4 lives and 4 lineup tries per step")
+
+/** Sorare's step clock ("What is Pro?", 20 Nov 2026): a clear climbs; a step must be cleared by the end of the matchday it was
+ * started in, in at most LIVES lineups, or the board starts again from its first step; a step started later in the matchday
+ * of a clear has until the end of the following matchday. One array of tries a round, in kickoff order. Same rule as
+ * squads.ladder in the backend. */
 export function ladder(rounds: (number | null)[][], board: Step[]): { rungs: Rung[][]; clears: number; cash: number; essence: number; top: number } {
-  let level = 0, clears = 0, cash = 0, essence = 0, top = 0;
-  const rungs = rounds.map((tries) => {
-    let missed = false;
-    const out: Rung[] = tries.map((v) => {
+  let level = 0, clears = 0, cash = 0, essence = 0, top = 0, lives = LIVES;
+  let deadline: number | null = null, clearedIn: number | null = null;
+  const rungs: Rung[][] = [];
+  const fail = (out: Rung[]) => {
+    const last = out[out.length - 1] ?? rungs.flat().at(-1);
+    if (last && last.res === "miss") last.back = level > 0;
+    level = 0; lives = LIVES; deadline = null;
+  };
+  rounds.forEach((tries, r) => {
+    const out: Rung[] = [];
+    rungs.push(out);
+    for (const v of tries) {
       const step = board[level]!;
-      if (v === null) return { target: step.target, res: "skip", back: false, prize: null };
+      if (v === null) { out.push({ target: step.target, res: "skip", back: false, prize: null }); continue; }
+      if (deadline === null) deadline = clearedIn === r ? r + 1 : r;
       if (v >= step.target) {
         clears += 1; cash += step.cash; essence += step.essence; top = Math.max(top, step.target);
-        level = (level + 1) % board.length;
-        missed = false;
-        return { target: step.target, res: "clear", back: false, prize: step };
+        out.push({ target: step.target, res: "clear", back: false, prize: step });
+        level = (level + 1) % board.length; lives = LIVES; deadline = null; clearedIn = r;
+      } else {
+        out.push({ target: step.target, res: "miss", back: false, prize: null });
+        lives -= 1;
+        if (lives === 0) fail(out);
       }
-      missed = true;
-      return { target: step.target, res: "miss", back: false, prize: null };
-    });
-    if (missed) {
-      const last = out[out.length - 1]!;
-      last.back = level > 0;
-      level = 0;
     }
-    return out;
+    if (deadline !== null && deadline <= r) fail(out); // the matchday ends with the step not cleared
   });
   return { rungs, clears, cash, essence, top };
 }

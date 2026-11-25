@@ -29,6 +29,21 @@ describe("ladder", () => {
   });
 });
 
+describe("the step clock", () => {
+  const board = [{ target: 320, cash: 0, essence: 500 }, { target: 360, cash: 5, essence: 0 }, { target: 380, cash: 10, essence: 0 }];
+  it("gives a step started right after a clear until the end of the next matchday, as the backend does", () => {
+    const out = ladder([[330, 300], [370]], board);
+    expect(out.rungs.flat().map((x) => x.target)).toEqual([320, 360, 360]);
+    expect(out.clears).toBe(2);
+    expect(out.rungs[0]![1]!.back).toBe(false);
+  });
+  it("fails a step on its fourth miss", () => {
+    const out = ladder([[330, 300, 300, 300, 300, 330]], board);
+    expect(out.rungs[0]!.map((x) => x.target)).toEqual([320, 360, 360, 360, 360, 320]);
+    expect(out.rungs[0]![4]!.back).toBe(true);
+  });
+});
+
 describe("tier", () => {
   it("is the highest prize line a score reached", () => {
     const lines = [{ score: 329, cash: 0, essence: 250 }, { score: 376, cash: 0, essence: 500 }];

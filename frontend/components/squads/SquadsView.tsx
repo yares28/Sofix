@@ -40,7 +40,8 @@ function href(code: string, club: string | null, s: Settings, season: Season, te
   if (team === "two") {
     q.set("team", "two");
     if (pair) q.set("pair", pair);
-  } else if (club) q.set("club", club);
+  } else if (team === "any") q.set("team", "any"); // one team a league: no club in the address
+  else if (club) q.set("club", club);
   if (!s.mine) q.set("mine", "0");
   if (season === "start") q.set("season", "start");
   return `/squads?${q}`;

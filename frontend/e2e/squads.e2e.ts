@@ -155,6 +155,8 @@ test("any clubs: the league's one best team, any five of a matchday in one lineu
   await expect(page.locator(".sq-picker")).toHaveCount(0); // one team a league: nothing to pick
   await expect(page.locator(".sq-price")).toHaveText(price(team.toBuy));
   await expect(page.locator(".sq-team .sq-badge")).toHaveCount(team.cards.length);
+  await expect(page).toHaveURL(/team=any/); // the address keeps the view, so a reload or a shared link opens it again
+  await expect(page).not.toHaveURL(/club=/);
   const axe = await new AxeBuilder({ page }).include("main").analyze();
   expect(axe.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
 });

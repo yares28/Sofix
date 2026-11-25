@@ -270,6 +270,8 @@ const squadsStartFixture = JSON.parse(readFileSync(new URL("./fixtures/squads-st
 // Two clubs (the nightly squads_pairs:LALIGA): 14 pairs for the picker, and one pair's teams, Alavés + Racing.
 const squadsPairsFixture = JSON.parse(readFileSync(new URL("./fixtures/squads-pairs-response.json", import.meta.url), "utf8"));
 const squadsPairFixture = JSON.parse(readFileSync(new URL("./fixtures/squads-pair-response.json", import.meta.url), "utf8"));
+// Any clubs (the nightly squads_any:LALIGA on the 25 Nov 2026 blocks).
+const squadsAnyFixture = JSON.parse(readFileSync(new URL("./fixtures/squads-any-response.json", import.meta.url), "utf8"));
 const auditFixture = JSON.parse(readFileSync(new URL("./fixtures/audit-response.json", import.meta.url), "utf8"));
 function auditPayload(kind) {
   const data = structuredClone(auditFixture.data);
@@ -536,6 +538,7 @@ const server = createServer((req, res) => {
   }
 
   if (req.method === "GET" && url.pathname.startsWith("/api/squads/")) {
+    if (url.pathname === "/api/squads/LALIGA/any" && url.searchParams.get("season") !== "start") return send(res, 200, squadsAnyFixture);
     if (url.pathname === "/api/squads/LALIGA/pairs") return send(res, 200, squadsPairsFixture);
     if (url.pathname === "/api/squads/LALIGA/pairs/deportivo-alaves~racing-santander") return send(res, 200, squadsPairFixture);
     if (state.sorare === "missing" || url.pathname !== "/api/squads/LALIGA") return send(res, 200, { success: false, data: null, error: "The squads have not been written yet." });

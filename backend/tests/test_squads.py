@@ -471,3 +471,50 @@ def test_the_fixture_run_is_the_clubs_next_six_league_games_found_by_its_kickoff
     run = runs["Club A"]
     assert len(run) == 6 and run[0]["date"].startswith("2026-12-01") and run[0]["home"] is False
     assert run[0]["bucket"] == 2 and run[0]["label"] == "label 2" and run[0]["opponent"] == "Grid RIV"
+
+
+# ---- Any clubs: one best team a league, any five of a matchday in one lineup
+
+
+def test_any_clubs_mixes_players_whose_games_are_on_different_days_of_a_matchday():
+    # Club A plays Saturdays, Club B Sundays: neither fields five alone, together they do every matchday
+    sat, sun = datetime(2026, 9, 5, 16, tzinfo=UTC), datetime(2026, 9, 6, 16, tzinfo=UTC)
+    a = [
+        (market(f"a-{p}", pos, 2.0, club="Club A"), ["S60"] * 4)
+        for p, pos in (("gk", "GK"), ("d1", "DEF"), ("d2", "DEF"))
+    ]
+    b = [(market(f"b-{p}", pos, 2.0, club="Club B"), ["S60"] * 4) for p, pos in (("m1", "MID"), ("f1", "FWD"))]
+    games = {m["slug"]: games_for("Club A", plays, start=sat) for m, plays in a}
+    games |= {m["slug"]: games_for("Club B", plays, start=sun) for m, plays in b}
+    others = {f"x{c}": games_for(f"Club {c}", ["S40"] * 4, start=sat) for c in "CD"}  # the rest of the league
+    block = squads.any_block(
+        LEAGUE, [m for m, _ in a + b], {**games, **others}, NOW, owned=frozenset(), art={}, board=None, lines=[]
+    )
+    assert block is not None
+    entry = block["clubs"][0]
+    team = next(t for t in entry["teams"] if t["id"] == entry["pro"]["1.0"]["full"][-1]["id"])
+    assert sorted(team["cards"]) == ["a-d1", "a-d2", "a-gk", "b-f1", "b-m1"] and team["cov"] == 1.0
+    assert entry["players"]["b-m1"]["from"] == "Club B"  # each card's club
+
+
+def test_before_kickoff_a_pick_that_did_not_start_scores_nothing():
+    rows = [*base_rows(), (market("bench", "MID", 3.0), [None] * 6)]
+    games = {m["slug"]: games_for("Club A", plays) for m, plays in rows}
+    for g in (g for gs in games.values() for g in gs):
+        g["sofix_x"] = 90.0 if g is games["bench"][0] else 40.0  # xS loved the benched midfielder in game one
+    c = squads.club("Club A", [m for m, _ in rows], games, LEAGUE, NOW, owned=frozenset(), art={})
+    cards = ("keeper", "back", "mid", "striker", "wide", "bench")
+    blind = squads.series(c, cards, blind=True)
+    assert blind["xsReal"][0] == 50 * 4 + 0 + 0.5 * 0  # picked and captained on his xS, he did not play: 0, captain too
+    assert squads.series(c, cards)["xsReal"][0] == 50 * 5 + 0.5 * 50  # after the teamsheets he is never picked
+
+
+def test_the_any_clubs_block_reads_as_a_club_block():
+    sat = datetime(2026, 9, 5, 16, tzinfo=UTC)
+    rows = [m for name in ("Club A", "Club B") for m, _ in five_of(name, ["S50"] * 3)]
+    games = {}
+    for name in ("Club A", "Club B", "Club C"):
+        games |= {m["slug"]: games_for(name, plays, start=sat) for m, plays in five_of(name, ["S50"] * 3)}
+    block = squads.any_block(LEAGUE, rows, games, NOW, owned=frozenset(), art={}, board=None, lines=[])
+    assert block is not None
+    assert all({"id", "date", "home", "opponent", "crest"} <= set(g) for g in block["clubs"][0]["games"])

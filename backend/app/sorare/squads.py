@@ -53,6 +53,7 @@ NEXT = "squads_next:"
 PAIRS = "squads_pairs:"  # two clubs: every pair of a league, for the picker (R2 only, written by the nightly job)
 PAIR = "squads_pair:"  # one pair's teams: squads_pair:<code>:<pair id> (R2 only)
 PAIRS_NEXT, PAIR_NEXT = "squads_pairs_next:", "squads_pair_next:"  # the same, picked from last season's record
+ANY, ANY_NEXT = "squads_any:", "squads_any_next:"  # Any clubs: one block a league (R2 only, the nightly job)
 VERSION = 2
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 OUTFIELD = ("DEF", "MID", "FWD")
@@ -166,6 +167,7 @@ class Club:
     )  # seven, full, owned, mean, started
     rounds: list[int] | None = None  # two clubs: each game's round (each club's game is a try of that round)
     season: float = 0.0  # the in-season bonus its scores are counted with (`SEASON`)
+    blind: bool = False  # Any clubs: Sofix's xS pick is made before most teamsheets (see `series`)
     arena_club: Club | None = None  # two clubs: the same players round by round, which the Arena plays
 
 
@@ -357,6 +359,8 @@ def next_club(
                 continue  # a lone rearranged game, or a second game in one round: the first counts
             p.starts[i], p.played[i] = bool(g.get("started")), bool(g.get("played"))
             p.mins[i], p.scores[i] = int(g.get("mins") or 0), float(g.get("score") or 0.0)
+            if g.get("sofix_x") is not None:
+                p.xs[i] = float(g["sofix_x"])
             if own in (g["home"], g["away"]):
                 calendar.setdefault(i, g)
         players[p.slug] = p
@@ -553,6 +557,200 @@ def next_block(
         "board": [{"target": t, "cash": c, "essence": e} for t, c, e in board] if board else None,
         "arenaLines": lines,
         "clubs": out,
+    }
+
+
+# ---- Any clubs: one best team a league (the owner, 25 Nov 2026: "Option A"), any five of a matchday in one lineup ("B": a
+# Pro lineup may mix games until its first player kicks off; only 7% of this season's LaLiga games have another within an hour)
+
+POOL = {"GK": 8, "DEF": 20, "MID": 20, "FWD": 16}  # each position's leading players of the league the search draws from
+ANY_BUDGETS = (
+    5,
+    10,
+    15,
+    20,
+    25,
+    30,
+    40,
+    50,
+    60,
+    80,
+    100,
+    150,
+)  # budgets the search climbs to; the frontier fills between
+ANY_STEPS = 40  # moves a search may make before it settles
+
+
+def _score(c: Club, team: tuple[str, ...], cap: float) -> tuple[float, float]:
+    """A team's average score a matchday and its share of matchdays with a valid five (as `pro_search` counts it)."""
+    n = len(c.games)
+    tops: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    for q in POSITIONS:
+        members = [c.players[s] for s in team if c.players[s].pos == q]
+        tops[q] = _top_two(members, n, 1 + c.season) if members else (np.full(n, NEG), np.full(n, NEG))
+    (g1, _), (d1, d2), (m1, m2), (f1, f2) = (tops[q] for q in POSITIONS)
+    extra = np.maximum(np.maximum(d2, m2), f2)
+    ok = (g1 > NEG / 2) & (d1 > NEG / 2) & (m1 > NEG / 2) & (f1 > NEG / 2) & (extra > NEG / 2)
+    total = g1 + d1 + m1 + f1 + extra + cap * np.maximum(np.maximum(g1, d1), np.maximum(m1, f1))
+    return float(np.where(ok, total, 0.0).mean()), float(ok.mean())
+
+
+def _sized(c: Club, team: tuple[str, ...]) -> bool:
+    """No bigger than a one-club team may be (`SIZES`: up to 3 keepers, 4 defenders, 4 midfielders, 3 forwards): the owner's
+    "don't double the number of players" for two clubs, held for any clubs too."""
+    count = Counter(c.players[s].pos for s in team)
+    return all(count[q] <= max(SIZES[q]) for q in POSITIONS)
+
+
+def _cost(c: Club, team: tuple[str, ...], owned: bool) -> float:
+    members = [c.players[s] for s in team]
+    base = sum(p.cost if owned else p.eur for p in members)
+    return base - max((p.saving(owned) for p in members), default=0.0)
+
+
+def any_search(c: Club) -> Search | None:
+    """A local search, the whole league being too many teams to try: for each lane, coverage target and budget step, start
+    from the best five the budget buys, then add, drop or swap one of the league's leading players at a time while it lifts
+    the score a matchday at the target's coverage, until no move does. Every team it settles on joins the frontier."""
+    cap = CAPTAIN / (1 + c.season)
+    pool = {
+        q: [p.slug for p in sorted((p for p in c.players.values() if p.pos == q), key=lambda p: -p.rank)[: POOL[q]]]
+        for q in POSITIONS
+    }
+    if not all(pool.values()):
+        return None
+    cands = [s for q in POSITIONS for s in pool[q]]
+    seen: dict[tuple[str, ...], tuple[float, float]] = {}
+
+    def score(team: tuple[str, ...]) -> tuple[float, float]:
+        key = tuple(sorted(team))
+        if key not in seen:
+            seen[key] = _score(c, key, cap)
+        return seen[key]
+
+    settled: set[tuple[str, ...]] = set()
+    for owned in (False, True):
+        for target in (*TARGETS, 0.0):
+            for budget in ANY_BUDGETS:
+
+                def value(team: tuple[str, ...]) -> float:
+                    mean, cov = score(team)
+                    return (1e6 if cov >= target - 1e-9 else cov * 1e3) + mean  # noqa: B023 - used in this pass
+
+                team: tuple[str, ...] = ()
+                for q in (*POSITIONS, "OUT"):  # a first five: each position's best that still fits
+                    options = [s for s in (pool[q] if q != "OUT" else cands) if s not in team]
+                    if q == "OUT":
+                        options = [s for s in options if c.players[s].pos in OUTFIELD]
+                    fits = [s for s in options if _cost(c, (*team, s), owned) <= budget + 1e-9]
+                    if fits:
+                        team = (*team, max(fits, key=lambda s: c.players[s].rank))
+                for _ in range(ANY_STEPS):
+                    moves = [(*team, s) for s in cands if s not in team]
+                    moves += [tuple(x for x in team if x != out) for out in team]
+                    moves += [
+                        tuple(s if x == out else x for x in team)
+                        for out in team
+                        for s in pool[c.players[out].pos]
+                        if s not in team
+                    ]
+                    moves = [m for m in moves if _cost(c, m, owned) <= budget + 1e-9 and _sized(c, m)]
+                    best = max(moves, key=value, default=None)
+                    if best is None or value(best) <= value(team) + 1e-9:
+                        break
+                    team = best
+                if team:
+                    settled.add(tuple(sorted(team)))
+    if not settled:
+        return None
+    teams = sorted(settled)
+    combos: dict[str, list[tuple[str, ...]]] = {q: [] for q in POSITIONS}
+    index = []
+    for team in teams:
+        row = []
+        for q in POSITIONS:
+            part = tuple(s for s in team if c.players[s].pos == q)
+            if part not in combos[q]:
+                combos[q].append(part)
+            row.append(combos[q].index(part))
+        index.append(row)
+    return Search(
+        combos=combos,
+        index=np.array(index, dtype=np.int32),
+        full=np.round(np.array([_cost(c, t, False) for t in teams]), 2),
+        owned=np.round(np.array([_cost(c, t, True) for t in teams]), 2),
+        mean=np.array([score(t)[0] for t in teams]),
+        cov=np.array([score(t)[1] for t in teams]),
+    )
+
+
+def any_block(
+    league: str,
+    rows: list[dict[str, Any]],
+    games: Mapping[str, list[dict[str, Any]]],
+    now: datetime,
+    *,
+    owned: frozenset[str],
+    art: Mapping[str, str],
+    board: list[Step] | None,
+    lines: list[dict[str, Any]],
+    captain: float = CAPTAIN,
+    prices: Mapping[str, Price] | None = None,
+    owned_classic: frozenset[str] = frozenset(),
+    season: float = 0.0,
+    logo: str | None = None,
+    start_of_season: bool = False,
+) -> dict[str, Any] | None:
+    """Any clubs: the league's best team for each budget from all its players, every matchday (a weekend or a midweek) one
+    lineup of any five who started, each card with his club. This season, or with `start_of_season` from last season's
+    record. None when the league has no matchday in that span."""
+    end = season_start(now)
+    start, stop = (end.replace(year=end.year - 1), end) if start_of_season else (end, now)
+    rounds = rounds_of(games, league, start, stop)
+    if not rounds:
+        return None
+    c, _ = next_club(
+        "Any clubs",
+        [r for r in rows if r.get("club")],
+        games,
+        league,
+        rounds=rounds,
+        start=start,
+        end=stop,
+        own=None,
+        owned=owned,
+        art=art,
+        prices=prices,
+        owned_classic=owned_classic,
+        season=season,
+    )
+    c.blind, c.pro = True, any_search(c)
+    if c.pro is None:
+        return None
+    entry = club_block(c, board, captain, targets=(*TARGETS, 0.0))
+    crests = {r["club"]: r.get("crest") for r in rows if r.get("club")}
+    for g in entry["games"]:  # a matchday of the whole league: no one opponent
+        g.setdefault("crest", None)
+    for slug, p in entry["players"].items():
+        p["from"] = c.players[slug].came_from
+        p["crest"] = crests.get(next((r["club"] for r in rows if r.get("slug") == slug), ""))
+    code, name, _ = LEAGUES[league]
+    return {
+        "version": VERSION,
+        "generatedAt": now.isoformat(),
+        "league": league,
+        "code": code,
+        "name": name,
+        "season": end.year,
+        "record": f"{start.year}/{str(start.year + 1)[2:]}",
+        "rounds": len(rounds),
+        "targets": list(TARGETS),
+        "captain": captain,
+        "seasonBonus": season,
+        "logo": logo,
+        "board": [{"target": t, "cash": c_, "essence": e} for t, c_, e in board] if board else None,
+        "arenaLines": lines,
+        "clubs": [entry],
     }
 
 
@@ -973,7 +1171,7 @@ def _lineup(values: list[float], captain: float = CAPTAIN) -> float:
 
 
 def series(
-    c: Club, cards: Iterable[str], captain: float = CAPTAIN, classic: str | None = None
+    c: Club, cards: Iterable[str], captain: float = CAPTAIN, classic: str | None = None, *, blind: bool = False
 ) -> dict[str, list[float | None]]:
     """Each game, over every valid five of the team's starters: the best, median and average score (hindsight), and the five
     Sofix's xS would have picked (what it scored, what xS said) when Sofix saved a number for every starter. A card scores
@@ -990,18 +1188,28 @@ def series(
         started = [p for p in team if p.starts[i]]
         fives = [f for f in itertools.combinations(started, 5) if _five_ok(f)]
         if not fives:
-            for k in out:
+            for k in ("best", "median", "average"):
                 out[k].append(None)
-            continue
-        totals = [total(f, "scores", i) for f in fives]
-        out["best"].append(round(max(totals), 1))
-        out["median"].append(round(statistics.median(totals), 1))
-        out["average"].append(round(sum(totals) / len(totals), 1))
-        if all(not np.isnan(p.xs[i]) for p in started):
-            chosen = max(fives, key=lambda f: total(f, "xs", i))  # noqa: B023 - used at once
+            if not blind:
+                out["xsReal"].append(None)
+                out["xsExp"].append(None)
+                continue
+            totals: list[float] = []
+        else:
+            totals = [total(f, "scores", i) for f in fives]
+            out["best"].append(round(max(totals), 1))
+            out["median"].append(round(statistics.median(totals), 1))
+            out["average"].append(round(sum(totals) / len(totals), 1))
+        # `blind` (Any clubs: a lineup mixes games of the whole matchday, so it is set before most teamsheets): xS picks among
+        # every card with a number for the round, and one who does not play scores 0, as its captain does
+        pool = [p for p in team if not np.isnan(p.xs[i])] if blind else started
+        pickable = [f for f in itertools.combinations(pool, 5) if _five_ok(f)] if blind else fives
+        if pickable and (blind or all(not np.isnan(p.xs[i]) for p in started)):
+            chosen = max(pickable, key=lambda f: total(f, "xs", i))  # noqa: B023 - used at once
             cap = max(chosen, key=lambda p: p.xs[i])
+            played = {p.slug: float(p.scores[i]) if p.played[i] else 0.0 for p in chosen}
             out["xsReal"].append(
-                round(sum(boost[p.slug] * float(p.scores[i]) for p in chosen) + captain * float(cap.scores[i]), 1)
+                round(sum(boost[p.slug] * played[p.slug] for p in chosen) + captain * played[cap.slug], 1)
             )
             out["xsExp"].append(round(total(chosen, "xs", i), 1))
         else:
@@ -1220,7 +1428,9 @@ def club_block(
         key = tuple(sorted(cards))
         if key not in teams:
             # the team's classic card (yours when it counts, else the one bought) scores without the season bonus
-            s = series(c, cards, captain, classic_of(c, cards, owned=True) or classic_of(c, cards, owned=False))
+            s = series(
+                c, cards, captain, classic_of(c, cards, owned=True) or classic_of(c, cards, owned=False), blind=c.blind
+            )
             lad = ladder(s["best"], board, c.rounds) if board else None
             teams[key] = {
                 "id": len(teams),

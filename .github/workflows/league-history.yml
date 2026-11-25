@@ -80,7 +80,7 @@ jobs:
           path: backend/.cache/player_games.sqlite
           key: player-games-${{ github.run_id }}-${{ github.run_attempt }}
 
-  # Squads, two clubs (backend/app/jobs/squads_pairs.py): every pair of a league's clubs, about five minutes a league, too long
+  # Squads, two clubs and any clubs (backend/app/jobs/squads_pairs.py): every pair of a league's clubs and its one best team, about five minutes a league, too long
   # for the refresh. After the night's games are read, one league a job; R2 only, the pages pick it up within the hour.
   squads-pairs:
     name: Squads, two clubs

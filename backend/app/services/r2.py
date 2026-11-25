@@ -161,7 +161,7 @@ def delete_block(key: str) -> bool:
 # Never copied: the ledger's own rows and the Neon switch's marker. Blocks only R2 holds (built from other tables by
 # app/services/player_blocks.py) are never deleted for missing from read_models.
 NOT_COPIED = ("neon_ledger:", "neon_live", "neon_merged")
-R2_ONLY = ("player_games:", "refresh_runs", "squads_pair")  # squads_pair(s): the nightly two-clubs job
+R2_ONLY = ("player_games:", "refresh_runs", "squads_pair", "squads_any")  # Squads' nightly two-clubs and any-clubs job
 SAME_UPLOAD = timedelta(seconds=1)  # R2 lists whole seconds; an upload is never earlier than its Neon write
 
 

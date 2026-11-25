@@ -2,7 +2,7 @@ import { cache } from "./cache";
 import { published, readModel } from "./db";
 import { SORARE_TAG } from "./play";
 import {
-  LEAGUES, pairTile, readable, readableClub, readablePairs, SQUADS_PAIR_PREFIX, SQUADS_PAIR_START_PREFIX, SQUADS_PAIRS_PREFIX,
+  LEAGUES, pairTile, readable, SQUADS_ANY_PREFIX, SQUADS_ANY_START_PREFIX, readableClub, readablePairs, SQUADS_PAIR_PREFIX, SQUADS_PAIR_START_PREFIX, SQUADS_PAIRS_PREFIX,
   SQUADS_PAIRS_START_PREFIX, SQUADS_PREFIX, SQUADS_START_PREFIX, tile,
   type LeagueCode, type PairsBlock, type Season, type SquadClub, type SquadsBlock, type SquadsPage, type TeamMode, type Tile,
 } from "./squads";
@@ -77,6 +77,14 @@ const pair = cache(
   { tags: [SORARE_TAG], revalidate: 3600 },
 );
 
+// Any clubs: one club entry (the league's pool), small enough to cache whole.
+const anyClubs = cache(
+  async (code: LeagueCode, season: Season): Promise<SquadsBlock | null> =>
+    readable(await raw(`${season === "start" ? SQUADS_ANY_START_PREFIX : SQUADS_ANY_PREFIX}${code}`, `squads/${code}/any${season === "start" ? "?season=start" : ""}`)),
+  ["squads-any-v1"],
+  { tags: [SORARE_TAG], revalidate: 3600 },
+);
+
 /** Null until the first refresh (two clubs: the first night) writes the league, or when it cannot be read. Checked after the
  *  cache: an entry outlives a deploy. `pick` names the tile (club, or "A + B" for a pair) to open. */
 export async function loadSquads(
@@ -85,6 +93,16 @@ export async function loadSquads(
   team: TeamMode,
   pick: (tiles: Tile[]) => string | undefined,
 ): Promise<SquadsPage | null> {
+  if (team === "any") {
+    const b = await anyClubs(code, season);
+    const only = b?.clubs[0];
+    if (!b || !only) return null;
+    return {
+      code, season, team, record: b.record, rounds: b.rounds, cardsOut: b.cardsOut, logo: b.logo, seasonBonus: b.seasonBonus,
+      name: LEAGUES.find((l) => l.code === code)?.label ?? b.name, generatedAt: b.generatedAt, captain: b.captain, board: b.board,
+      arenaLines: b.arenaLines, tiles: [tile(only)], club: only,
+    };
+  }
   if (team === "two") {
     const b = await pairs(code, season);
     if (!b) return null;

@@ -96,7 +96,7 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
         <div className="sq-field">
           <span>Team</span>
           <SegmentedControl label="Team" value={data.team}
-            options={[{ value: "one", label: "One club" }, { value: "two", label: "Two clubs" }]}
+            options={[{ value: "one", label: "One club" }, { value: "two", label: "Two clubs" }, { value: "any", label: "Any clubs" }]}
             onChange={(v) => router.push(href(data.code, null, settings, data.season, v as TeamMode))} />
         </div>
         <div className="sq-field">
@@ -129,7 +129,7 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
         </button>
       </form>
 
-      <Picker data={data} order={order} club={club.club} settings={settings} page={page} setPage={setPage} />
+      {data.team === "any" ? null : <Picker data={data} order={order} club={club.club} settings={settings} page={page} setPage={setPage} />}
 
       <Hero data={data} club={club} verdict={verdict} team={shown} seven={seven} showArena={showArena} settings={settings} swapped={swapped}
         onBudget={(n) => { setBudget(n); setDraft(String(n)); }} />
@@ -224,17 +224,19 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget,
   const first = data.board?.[0]?.target;
   const start = data.season === "start";
   const two = data.team === "two";
-  const games = start || two ? "rounds" : "games";
+  const any = data.team === "any";
+  const games = any ? "matchdays" : start || two ? "rounds" : "games";
   const pairTile = two ? data.tiles.find((t) => t.club === club.club) : undefined;
   const proof = start ? team?.proof ?? null : null;
   return (
     <section className="sq-card sq-hero" aria-labelledby="sq-club">
       <div className="sq-hero-main">
         <div className="sq-club">
-          {pairTile ? <PairCrests tile={pairTile} size={40} /> : <SorareImage src={club.crest} width={52} height={52} />}
+          {pairTile ? <PairCrests tile={pairTile} size={40} /> : <SorareImage src={any ? data.logo : club.crest} width={52} height={52} />}
           <div>
-            <h1 id="sq-club">{club.club}</h1>
-            <p>{start && two ? `${data.name} · picked from last season, ${new Set(club.rounds).size} rounds, a try for each club`
+            <h1 id="sq-club">{any ? `Any clubs, ${data.name}` : club.club}</h1>
+            <p>{any ? `${start ? `picked from ${data.record}, ` : ""}${n} matchdays, any five of each in one lineup`
+              : start && two ? `${data.name} · picked from last season, ${new Set(club.rounds).size} rounds, a try for each club`
               : start ? `${data.name} · picked from ${data.record}, ${n} rounds`
               : two ? `${data.name} · ${new Set(club.rounds).size} rounds, a try for each club's game`
               : `${data.name} · ${n} games this season`}</p>
@@ -267,7 +269,7 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget,
         {team ? (
           <dl className="sq-stats">
             <div><dt>{games} with five starters</dt><dd>{two ? `${Math.round(team.cov * new Set(club.rounds).size)} of ${new Set(club.rounds).size}` : `${fives} of ${n}`}</dd></div>
-            <div><dt>a {start || two ? "round" : "game"}, best five</dt><dd>{Math.round(team.mean)}</dd></div>
+            <div><dt>a {any ? "matchday" : start || two ? "round" : "game"}, best five</dt><dd>{Math.round(team.mean)}</dd></div>
             {first && !proof ? <div><dt>over {first}</dt><dd className="good">{team.over} of {two ? new Set(club.rounds).size : n}</dd></div> : null}
             {proof && proof.games ? (
               <div className="sq-proof"><dt>bought like this, this season</dt><dd>{Math.round(proof.mean ?? 0)} a game · {proof.five} of {proof.games} with five</dd></div>
@@ -372,12 +374,12 @@ function Team({ club, cards, seven, classic, swap }: { club: SquadClub; cards: s
                           aria-label={`Swap ${p.name}`} onClick={() => swap.open(swap.at === slug ? null : slug)} />
                       ) : null}
                       <CardArt src={p.art} name={p.name} />
-                      {club.clubs ? <span className="sq-badge"><SorareImage src={crestOf(club, p)} width={20} height={20} /></span> : null}
+                      {club.clubs || p.crest ? <span className="sq-badge"><SorareImage src={p.crest ?? crestOf(club, p)} width={20} height={20} /></span> : null}
                       {yours ? <span className="sq-own">Yours</span> : null}
                       {isClassic ? <span className="sq-classic" title="An older season's card: Sorare lets a lineup take one">Classic</span> : null}
                     </span>
                     <b className="sq-name" title={p.from ? `${p.name}, from ${p.from}` : p.name}>{shortName(p.name)}</b>
-                    {p.from ? <span className="sq-from">from {p.from}</span> : null}
+                    {p.from ? <span className="sq-from">{p.crest ? p.from : `from ${p.from}`}</span> : null}
                     <span className="sq-meta"><s data-owned={yours ? "" : undefined} title={price.note}>{eur(price.value)}{price.est ? <small> est.</small> : null}</s><span>{r ? `${r} · ` : ""}{starts}/{n} · {Math.round(avg)}</span></span>
                     <span className="sq-rate" style={{ "--w": `${Math.round((starts / (n || 1)) * 100)}%` } as CSSProperties} data-tone={starts / n >= 0.75 ? "good" : starts / n >= 0.45 ? "mid" : "low"} aria-hidden="true"><i /></span>
                   </li>

@@ -15,8 +15,11 @@ export const SQUADS_PAIRS_PREFIX = "squads_pairs:";
 export const SQUADS_PAIR_PREFIX = "squads_pair:";
 export const SQUADS_PAIRS_START_PREFIX = "squads_pairs_next:";
 export const SQUADS_PAIR_START_PREFIX = "squads_pair_next:";
-export type TeamMode = "one" | "two";
-export const teamOf = (raw: string | undefined): TeamMode => (raw === "two" ? "two" : "one");
+export type TeamMode = "one" | "two" | "any";
+export const teamOf = (raw: string | undefined): TeamMode => (raw === "two" || raw === "any" ? raw : "one");
+/** Any clubs: the league's one best team, any five of a matchday in one lineup (written each night, R2 only). */
+export const SQUADS_ANY_PREFIX = "squads_any:";
+export const SQUADS_ANY_START_PREFIX = "squads_any_next:";
 export const LEAGUES = [
   { code: "LALIGA", label: "LaLiga" },
   { code: "PL", label: "Premier League" },
@@ -34,7 +37,8 @@ const player = z.object({
   name: z.string(), pos: z.enum(["GK", "DEF", "MID", "FWD"]), eur: z.number(), owned: z.boolean(), art: z.string().nullable(),
   // v2 (Q3): eur is the cheapest listing when `listed`, else the market value; `classic` the cheapest listed classic card
   listed: z.boolean().default(false), classic: z.number().nullable().default(null), ownedClassic: z.boolean().default(false),
-  from: z.string().nullable().default(null), // start of season: his club last season, when not this one
+  from: z.string().nullable().default(null), // start of season: his club last season, when not this one (any clubs: his club)
+  crest: z.string().nullable().default(null), // any clubs: his club's crest
   played: z.string(), scores: z.array(z.number()), mins: z.array(z.number()),
 });
 // The one classic card a team buys (Sorare lets an in-season lineup take one): for the full price, and with your cards counted.

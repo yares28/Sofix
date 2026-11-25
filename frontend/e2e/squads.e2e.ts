@@ -4,6 +4,7 @@ import { laneKey, ladder, prize, readable, within, type Target } from "../lib/sq
 import fixture from "./fixtures/squads-response.json";
 import startFixture from "./fixtures/squads-start-response.json";
 import pairFixture from "./fixtures/squads-pair-response.json";
+import anyFixture from "./fixtures/squads-any-response.json";
 import { offline, resetBackend, smallText } from "./helpers";
 
 // Squads draws the block the refresh publishes (e2e/fixtures/squads-response.json: LaLiga on the 24 Nov 2026 blocks, built by
@@ -143,6 +144,19 @@ test("a card swaps for another at its position: the team's price and score follo
   await page.getByRole("button", { name: "Back to the best team" }).click();
   await expect(page.locator(".sq-price")).toHaveText(price0);
   await expect(page.getByRole("region", { name: "The team" }).locator("li[data-swapped]")).toHaveCount(0);
+});
+
+test("any clubs: the league's one best team, any five of a matchday in one lineup, each card with its club", async ({ page }) => {
+  const anyBlock = readable(anyFixture.data)!;
+  const pool = anyBlock.clubs[0]!;
+  const team = pool.teams.find((t) => t.id === within(pool.pro["0.9"]!.owned, 40)!.id)!;
+  await page.goto("/squads?team=any");
+  await expect(page.getByRole("heading", { level: 1, name: "Any clubs, LaLiga" })).toBeVisible();
+  await expect(page.locator(".sq-picker")).toHaveCount(0); // one team a league: nothing to pick
+  await expect(page.locator(".sq-price")).toHaveText(price(team.toBuy));
+  await expect(page.locator(".sq-team .sq-badge")).toHaveCount(team.cards.length);
+  const axe = await new AxeBuilder({ page }).include("main").analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
 });
 
 test("who played shows each game's starters with their score, who came on with his minutes, and the five-starters line", async ({ page }) => {

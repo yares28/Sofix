@@ -706,6 +706,56 @@
         }
       }
     },
+    "/api/squads/{code}/any": {
+      "get": {
+        "summary": "Squads Any Page",
+        "description": "A league's Any clubs block (R2 only from the nightly job; locally from a read model, for the tests).",
+        "operationId": "squads_any_page_api_squads__code__any_get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Code"
+            }
+          },
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "now",
+              "title": "Season"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/squads/{code}/pairs": {
       "get": {
         "summary": "Squads Pairs Page",

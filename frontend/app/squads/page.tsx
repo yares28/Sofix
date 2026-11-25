@@ -37,7 +37,9 @@ export default async function SquadsPage({ searchParams }: { searchParams: Searc
           <section className="sq-empty" role="status">
             <h1>Squads</h1>
             <p>
-              {team === "two"
+              {team === "any"
+                ? `${LEAGUES.find((l) => l.code === code)?.label}'s best team from any clubs is worked out each night; it appears after the first night's run.`
+                : team === "two"
                 ? `${LEAGUES.find((l) => l.code === code)?.label}'s pairs of clubs are worked out each night; they appear after the first night's run.`
                 : season === "start"
                 ? `The start of season picks each team from last season's games, which Sofix keeps for LaLiga only so far.`

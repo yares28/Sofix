@@ -66,6 +66,23 @@ def run(code: str, now: datetime, *, start: bool = False, write: bool = True) ->
     owned = frozenset(c["player"] for c in limited if c.get("inSeason"))
     board = [(s["target"], s["cash"], s["essence"]) for s in head.get("board") or []] or None
     started = time.perf_counter()
+    # Any clubs: the league's one best team (a few seconds), written beside the pairs
+    anyone = squads.any_block(
+        league,
+        rows,
+        games,
+        now,
+        owned=owned,
+        art=art,
+        board=board,
+        lines=head.get("arenaLines") or [],
+        captain=float(head.get("captain") or squads.CAPTAIN),
+        season=float(head.get("seasonBonus") or squads.SEASON),
+        logo=head.get("logo"),
+        prices=prices_of(record.payload if record else None),
+        owned_classic=frozenset(c["player"] for c in limited if not c.get("inSeason")) - owned,
+        start_of_season=start,
+    )
     built = squads.pairs_blocks(
         league,
         rows,
@@ -83,6 +100,8 @@ def run(code: str, now: datetime, *, start: bool = False, write: bool = True) ->
         start_of_season=start,
         grid=grid,
     )
+    if write and anyone is not None:
+        r2.put_block(f"{squads.ANY_NEXT if start else squads.ANY}{code}", anyone, now)
     if built is None:
         return {"pairs": 0, "note": "last season's games are not kept for this league"}
     picker, details = built

@@ -255,6 +255,15 @@ def reward_bars_page(db: Session = Depends(get_db)):
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)
 
 
+@router.get("/squads/{code}/any", response_model=ApiResponse[dict[str, Any]])
+def squads_any_page(code: str, season: str = "now", db: Session = Depends(get_db)):
+    """A league's Any clubs block (R2 only from the nightly job; locally from a read model, for the tests)."""
+    row = db.get(ReadModel, f"{squads.ANY_NEXT if season == 'start' else squads.ANY}{code}")
+    if row is None:
+        return ApiResponse[dict[str, Any]](success=False, error="Any clubs has not been written yet.")
+    return ApiResponse[dict[str, Any]](success=True, data=row.payload)
+
+
 @router.get("/squads/{code}/pairs", response_model=ApiResponse[dict[str, Any]])
 def squads_pairs_page(code: str, season: str = "now", db: Session = Depends(get_db)):
     """A league's two-club pair list (written to R2 only by the nightly job; locally from a read model, for the tests)."""

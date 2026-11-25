@@ -720,6 +720,16 @@
               "type": "string",
               "title": "Code"
             }
+          },
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "now",
+              "title": "Season"
+            }
           }
         ],
         "responses": {
@@ -768,6 +778,16 @@
             "schema": {
               "type": "string",
               "title": "Pair"
+            }
+          },
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "now",
+              "title": "Season"
             }
           }
         ],

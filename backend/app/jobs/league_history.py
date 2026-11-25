@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -20,13 +21,33 @@ from app.db import SessionLocal
 from app.jobs.sorare import LEAGUE_STATUS_KEY, SORARE_KEY
 from app.logging_config import configure_logging
 from app.models import ReadModel
-from app.services import data_health
+from app.services import data_health, kept_blocks
 from app.services.publish import notify_app, put
 from app.sorare import audit, player_games, score_checks, sheets, stat_charts
 from app.sorare.client import SorareClient
 from app.sorare.sync import league_history
 
 logger = logging.getLogger(__name__)
+
+
+FOREIGN = ("PL", "BL1", "FL1")
+BACKFILL = 150  # a night's share of them, so LaLiga's daily reads still fit the job's 20 minutes (about six nights)
+
+
+def backfill(indexes: Mapping[str, Any], covered: Mapping[str, str], now: datetime) -> dict[str, datetime]:
+    """The Premier League, Bundesliga and Ligue 1 squad players not yet read back to last season's start (Squads' start of
+    season picks from last season; the owner's go of 25 Nov 2026). Each is read once; the refresh keeps their season after."""
+    last = player_games.season_start(now)
+    last = last.replace(year=last.year - 1)
+    slugs = {
+        row["slug"]
+        for index in indexes.values()
+        for rows in ((index or {}).get("clubs") or {}).values()
+        for row in rows
+        if row.get("slug")
+    }
+    due = [s for s in sorted(slugs) if s not in covered or datetime.fromisoformat(covered[s]) > last]
+    return dict.fromkeys(due[:BACKFILL], last)
 
 
 def run(db: Session, client: SorareClient, now: datetime) -> dict[str, Any]:
@@ -61,7 +82,12 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, Any]:
         for slug, sheet in forms.items()
         if (form := sheet.get("form") or {}).get("seasonFrom")
     }
-    status: dict[str, Any] = {"players": len(slugs), "read": 0, "at": now.isoformat()}
+    wide = backfill(
+        {c: (r.payload if (r := kept_blocks.read(db, f"league_squads:{c}")) else None) for c in FOREIGN}, covered, now
+    )
+    slugs |= set(wide)
+    season_starts.update(wide)
+    status: dict[str, Any] = {"players": len(slugs), "read": 0, "at": now.isoformat(), "backfill": len(wide)}
 
     def save_batch(out: dict[str, Any]) -> None:
         player_games.save(db, {slug: entry["games"] for slug, entry in out.items()}, now)

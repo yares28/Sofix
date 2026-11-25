@@ -13,6 +13,8 @@ export const seasonOf = (raw: string | undefined): Season => (raw === "start" ? 
 /** Two clubs: one team from both clubs, each club's game a try of its round (written each night, R2 only). */
 export const SQUADS_PAIRS_PREFIX = "squads_pairs:";
 export const SQUADS_PAIR_PREFIX = "squads_pair:";
+export const SQUADS_PAIRS_START_PREFIX = "squads_pairs_next:";
+export const SQUADS_PAIR_START_PREFIX = "squads_pair_next:";
 export type TeamMode = "one" | "two";
 export const teamOf = (raw: string | undefined): TeamMode => (raw === "two" ? "two" : "one");
 export const LEAGUES = [
@@ -66,6 +68,7 @@ const block = z.object({
   version: z.union([z.literal(1), z.literal(2)]), generatedAt: z.string(), league: z.string(), code: z.string(), name: z.string(), season: z.number().int(),
   targets: z.array(z.number()), captain: z.number(),
   record: z.string().nullable().default(null), rounds: z.number().int().nullable().default(null), cardsOut: z.boolean().default(true),
+  logo: z.string().nullable().default(null), // the league's logo as Sorare hosts it
   board: z.array(z.object({ target: z.number(), cash: z.number(), essence: z.number() })).nullable(),
   arenaLines: z.array(z.object({ score: z.number(), cash: z.number(), essence: z.number() })),
   clubs: z.array(club),
@@ -94,6 +97,7 @@ export function readableClub(raw: unknown): SquadClub | null {
 const row = z.array(z.number());
 const pairsBlock = z.object({
   version: z.number(), generatedAt: z.string(), code: z.string(), name: z.string(), captain: z.number(),
+  logo: z.string().nullable().default(null),
   board: z.array(z.object({ target: z.number(), cash: z.number(), essence: z.number() })).nullable(),
   arenaLines: z.array(z.object({ score: z.number(), cash: z.number(), essence: z.number() })),
   pairs: z.array(z.object({
@@ -263,6 +267,8 @@ export function tile(c: SquadClub): Tile {
 
 export type SquadsPage = {
   code: LeagueCode;
+  logo: string | null;
+  alone?: Tile[]; // two clubs: each club's own tile (this season), to set the pair against
   season: Season;
   team: TeamMode;
   record: string | null;

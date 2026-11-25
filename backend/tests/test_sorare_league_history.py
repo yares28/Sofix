@@ -197,3 +197,14 @@ def test_reviewing_results_are_revisited_after_newer_final_games_arrive():
     }
     sync.league_history(client, ["a"], cached, NOW, lambda _: None)
     assert client.windows[0]["from"] == "2026-09-17T14:00:00+00:00"
+
+
+def test_other_leagues_players_are_read_back_to_last_season_once_for_the_squads_start_of_season() -> None:
+    now = datetime(2026, 11, 25, tzinfo=UTC)
+    last = datetime(2025, 7, 1, tzinfo=UTC)
+    index = {"clubs": {"arsenal": [{"slug": "bukayo-saka"}, {"slug": "declan-rice"}]}}
+    covered = {"declan-rice": last.isoformat()}  # already read back to last season
+    assert job.backfill({"PL": index}, covered, now) == {"bukayo-saka": last}
+    assert job.backfill({"PL": index}, {**covered, "bukayo-saka": last.isoformat()}, now) == {}
+    many = {"clubs": {"x": [{"slug": f"p{i:04d}"} for i in range(400)]}}
+    assert len(job.backfill({"BL1": many}, {}, now)) == job.BACKFILL  # a night's share at most

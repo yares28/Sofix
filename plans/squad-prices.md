@@ -306,8 +306,18 @@ season).
   - Elche: 332 → 347 a game, its board now reaching 420 for $65 instead of $5.
 - **The step clock:** Sorare's "What is Pro?" (20 Nov 2026) says a step must be cleared by the end of the matchday it was started in, in at most 4 lineups, and a step started later in the matchday of a clear has until the end of the following matchday. The ladder (backend and page) now follows it. One club is unchanged (one try a matchday); for two clubs a miss right after a clear no longer resets the board.
 
+**Small items (25 Nov 2026, committed locally, not pushed):**
+- **The LaLiga logo** (your comment) in place of the league's name on the Pro pill: Sorare's own competition picture
+  (`competition(slug).pictureUrl`, read once a day with the prices), on a light chip. AGENTS.md's art rule now says so.
+- **Each club alone beside a pair** in the hero: its price and score a game for the same budget and target.
+- **Two clubs for the start of season:** each pair picked from its clubs' current players' 2025/26 records, a try for each
+  club a round (two clubs' "R6" stay apart unless they met that round). Written each night beside this season's pairs
+  (`squads_pairs_next:` / `squads_pair_next:`, the workflow's matrix now league x season, 25 minutes a job).
+- **Last season for the Premier League, Bundesliga and Ligue 1** (your go): the League history job reads their squad players
+  back to July 2025 once each, 150 a night (about six nights), then leaves them to the refresh. The start of season then
+  covers those leagues by itself.
+
 Round 4 comments (24 Nov, 19:03-19:13) still open:
-- The LaLiga logo in place of "LALIGA PRO": AGENTS.md's art rule says "no LaLiga mark", so the owner must choose.
 - The ring colours: green when the best five topped the first Pro step in at least half of the games, amber at 30%, grey below.
   Those two cut-offs were my choice, not his.
 - Two clubs as one combined team of the usual size (Q4).

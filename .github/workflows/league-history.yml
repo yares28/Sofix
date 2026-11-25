@@ -87,11 +87,12 @@ jobs:
     needs: league-history
     if: always()
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25 # the start of season's 38 rounds take about twice this season's time
     strategy:
       fail-fast: false
       matrix:
         league: [LALIGA, PL, BL1, FL1]
+        season: [now, start]
     defaults:
       run:
         working-directory: backend
@@ -128,5 +129,5 @@ jobs:
           key: player-games-${{ github.run_id }}
           restore-keys: player-games-
 
-      - name: Every pair of ${{ matrix.league }}
-        run: python -m app.jobs.squads_pairs --league ${{ matrix.league }}
+      - name: Every pair of ${{ matrix.league }} (${{ matrix.season }})
+        run: python -m app.jobs.squads_pairs --league ${{ matrix.league }} ${{ matrix.season == 'start' && '--start' || '' }}

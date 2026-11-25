@@ -1541,7 +1541,9 @@ export interface operations {
     };
     squads_pairs_page_api_squads__code__pairs_get: {
         parameters: {
-            query?: never;
+            query?: {
+                season?: string;
+            };
             header?: never;
             path: {
                 code: string;
@@ -1572,7 +1574,9 @@ export interface operations {
     };
     squads_pair_page_api_squads__code__pairs__pair__get: {
         parameters: {
-            query?: never;
+            query?: {
+                season?: string;
+            };
             header?: never;
             path: {
                 code: string;

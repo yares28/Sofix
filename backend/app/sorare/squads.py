@@ -52,6 +52,7 @@ PRICES = "squad_prices:"
 NEXT = "squads_next:"
 PAIRS = "squads_pairs:"  # two clubs: every pair of a league, for the picker (R2 only, written by the nightly job)
 PAIR = "squads_pair:"  # one pair's teams: squads_pair:<code>:<pair id> (R2 only)
+PAIRS_NEXT, PAIR_NEXT = "squads_pairs_next:", "squads_pair_next:"  # the same, picked from last season's record
 VERSION = 2
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 OUTFIELD = ("DEF", "MID", "FWD")
@@ -398,7 +399,7 @@ def _proof(c: Club | None, cards: Iterable[str], board: list[Step] | None, capta
     }
 
 
-def next_block(
+def _next_clubs(
     league: str,
     rows: list[dict[str, Any]],
     games: Mapping[str, list[dict[str, Any]]],
@@ -406,26 +407,22 @@ def next_block(
     *,
     owned: frozenset[str],
     art: Mapping[str, str],
-    board: list[Step] | None,
-    lines: list[dict[str, Any]],
-    captain: float = CAPTAIN,
-    prices: Mapping[str, Price] | None = None,
-    owned_classic: frozenset[str] = frozenset(),
-    season: float = 0.0,
-) -> dict[str, Any] | None:
-    """The start-of-season view: each club's team picked from last season's record, as it would be bought before the first
-    game, and how that team did this season (`proof`). None when last season's games are not kept for this league."""
+    prices: Mapping[str, Price] | None,
+    owned_classic: frozenset[str],
+    season: float,
+) -> list[tuple[str, list[dict[str, Any]], Club | None, Club, list[str], str | None]]:
+    """Each club now over last season's rounds: (name, its rows, this season's club, last season's, newcomers, the club as
+    last season's games spell it). Empty when last season's games are not kept for this league."""
     end = season_start(now)
     start = end.replace(year=end.year - 1)
     rounds = rounds_of(games, league, start, end)
     if not rounds:
-        return None
+        return []
     by_club: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
         if r.get("club"):
             by_club[r["club"]].append(r)
     out = []
-    names: dict[str, tuple[str, str | None]] = {}  # a club as games spell it: its name and crest, for the opponents
     for name, rs in sorted(by_club.items()):
         this = club(
             name,
@@ -465,8 +462,39 @@ def next_block(
             owned_classic=owned_classic,
             season=season,
         )
-        if not c.players:
-            continue
+        if c.players:
+            out.append((name, rs, this, c, newcomers, own))
+    return out
+
+
+def next_block(
+    league: str,
+    rows: list[dict[str, Any]],
+    games: Mapping[str, list[dict[str, Any]]],
+    now: datetime,
+    *,
+    owned: frozenset[str],
+    art: Mapping[str, str],
+    board: list[Step] | None,
+    lines: list[dict[str, Any]],
+    captain: float = CAPTAIN,
+    prices: Mapping[str, Price] | None = None,
+    owned_classic: frozenset[str] = frozenset(),
+    season: float = 0.0,
+    logo: str | None = None,
+) -> dict[str, Any] | None:
+    """The start-of-season view: each club's team picked from last season's record, as it would be bought before the first
+    game, and how that team did this season (`proof`). None when last season's games are not kept for this league."""
+    end = season_start(now)
+    start = end.replace(year=end.year - 1)
+    built = _next_clubs(
+        league, rows, games, now, owned=owned, art=art, prices=prices, owned_classic=owned_classic, season=season
+    )
+    if not built:
+        return None
+    out = []
+    names: dict[str, tuple[str, str | None]] = {}  # a club as games spell it: its name and crest, for the opponents
+    for name, rs, this, c, newcomers, own in built:
         # lane "0.0": the best team inside a budget whatever its coverage, shown with it when none reaches the target
         entry = club_block(c, board, captain, targets=(*TARGETS, 0.0))
         for slug, p in entry["players"].items():
@@ -513,11 +541,12 @@ def next_block(
         "name": name,
         "season": end.year,
         "record": f"{start.year}/{str(end.year)[2:]}",
-        "rounds": len(rounds),
+        "rounds": len(built[0][3].games),
         "cardsOut": listed > 0,  # before Sorare releases the season's cards no in-season card is listed at all
         "targets": list(TARGETS),
         "captain": captain,
         "seasonBonus": season,
+        "logo": logo,
         "board": [{"target": t, "cash": c, "essence": e} for t, c, e in board] if board else None,
         "arenaLines": lines,
         "clubs": out,
@@ -542,15 +571,19 @@ def _blank(p: Player, n: int) -> Player:
 def pair_club(a: Club, b: Club) -> Club:
     """Both clubs' players over both calendars, in kickoff order: each game is a try of its round (a weekend or a midweek)
     for that club's players; the Arena's copy has one entry a round, each player's own game in it."""
+
     # the clubs' game against each other is one game, one try, whose five may mix both clubs' players
-    first: dict[str, tuple[datetime, int, int]] = {}
+    def key(k: int, g: dict[str, Any]) -> tuple[Any, ...]:
+        return ("met", g["id"]) if g.get("opponent") == (b, a)[k].name else (k, g["id"])
+
+    first: dict[tuple[Any, ...], tuple[datetime, int, int]] = {}
     for k, c in enumerate((a, b)):
         for i, g in enumerate(c.games):
-            first.setdefault(g["id"], (as_utc(datetime.fromisoformat(g["date"])), k, i))
+            first.setdefault(key(k, g), (as_utc(datetime.fromisoformat(g["date"])), k, i))
     order = sorted(first.values())
     n = len(order)
-    slot = {(a, b)[k].games[i]["id"]: j for j, (_, k, i) in enumerate(order)}
-    at = {(k, i): slot[g["id"]] for k, c in enumerate((a, b)) for i, g in enumerate(c.games)}
+    slot = {key(k, (a, b)[k].games[i]): j for j, (_, k, i) in enumerate(order)}
+    at = {(k, i): slot[key(k, g)] for k, c in enumerate((a, b)) for i, g in enumerate(c.games)}
     keys = [rnd(when) for when, _, _ in order]
     index = {r: i for i, r in enumerate(dict.fromkeys(keys))}
     rounds = [index[r] for r in keys]
@@ -565,11 +598,10 @@ def pair_club(a: Club, b: Club) -> Club:
                 assert q.mine is not None
                 q.mine[j] = True
             players[p.slug] = q
-    both = {g["id"] for g in a.games} & {g["id"] for g in b.games}
     games = [
         {
             **(a, b)[k].games[i],
-            "club": "both" if (a, b)[k].games[i]["id"] in both else (a, b)[k].name,
+            "club": "both" if key(k, (a, b)[k].games[i])[0] == "met" else (a, b)[k].name,
             "round": rounds[j],
         }
         for j, (_, k, i) in enumerate(order)
@@ -664,8 +696,23 @@ def pairs_blocks(
     prices: Mapping[str, Price] | None = None,
     owned_classic: frozenset[str] = frozenset(),
     season: float = 0.0,
-) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
-    """Every pair of the league's clubs this season: the picker's block and each pair's teams (by pair id)."""
+    logo: str | None = None,
+    start_of_season: bool = False,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]] | None:
+    """Every pair of the league's clubs: the picker's block and each pair's teams (by pair id). This season's, or with
+    `start_of_season` each club's team from last season's record (None when last season is not kept for the league)."""
+    if start_of_season:
+        built = _next_clubs(
+            league, rows, games, now, owned=owned, art=art, prices=prices, owned_classic=owned_classic, season=season
+        )
+        if not built:
+            return None
+        names = {own: (name, c.crest) for name, _, _, c, _, own in built if own}
+        last = [c for _, _, _, c, _, _ in built]
+        for lc in last:
+            for g in lc.games:
+                g["opponent"], g["crest"] = names.get(g["opponent"], (g["opponent"], None))
+        return _pairs(league, last, now, board, lines, captain, season, logo)
     by_club: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
         if r.get("club"):
@@ -693,6 +740,19 @@ def pairs_blocks(
     for x in clubs:
         for g in x.games:
             g["opponent"], g["crest"] = crests.get(g["opponent"], (g["opponent"], None))
+    return _pairs(league, clubs, now, board, lines, captain, season, logo)
+
+
+def _pairs(
+    league: str,
+    clubs: list[Club],
+    now: datetime,
+    board: list[Step] | None,
+    lines: list[dict[str, Any]],
+    captain: float,
+    season: float,
+    logo: str | None,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     tiles, details = [], {}
     for a, b in itertools.combinations(clubs, 2):
         c = pair_club(a, b)
@@ -711,6 +771,7 @@ def pairs_blocks(
         "targets": list(TARGETS),
         "captain": captain,
         "seasonBonus": season,
+        "logo": logo,
         "board": [{"target": t, "cash": c, "essence": e} for t, c, e in board] if board else None,
         "arenaLines": lines,
     }
@@ -1189,6 +1250,7 @@ def league_block(
     prices: Mapping[str, Price] | None = None,
     owned_classic: frozenset[str] = frozenset(),
     season: float = 0.0,
+    logo: str | None = None,
 ) -> dict[str, Any]:
     by_club: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
@@ -1231,6 +1293,7 @@ def league_block(
         "targets": list(TARGETS),
         "captain": captain,
         "seasonBonus": season,
+        "logo": logo,
         "board": [{"target": t, "cash": c, "essence": e} for t, c, e in board] if board else None,
         "arenaLines": lines,
         "clubs": out,
@@ -1297,6 +1360,23 @@ def prices(client: SorareClient, slugs: Iterable[str]) -> dict[str, Price]:
     return out
 
 
+def logos(client: SorareClient) -> dict[str, str]:
+    """Each league's logo as Sorare hosts it (the owner asked for the league's logo in place of its name, 24 Nov 2026)."""
+    slugs = list(LEAGUES)
+    parts = " ".join(f'l{i}: competition(slug: "{slug}") {{ pictureUrl }}' for i, slug in enumerate(slugs))
+    try:
+        answer = client.query("query { football { " + parts + " } }").get("football") or {}
+    except (SorareError, KeyError, TypeError) as error:
+        logger.warning("squads: league logos not answered: %s", error)
+        return {}
+    out = {}
+    for i, slug in enumerate(slugs):
+        url = (answer.get(f"l{i}") or {}).get("pictureUrl")
+        if isinstance(url, str) and url.startswith("https://assets.sorare.com/"):
+            out[slug] = url
+    return out
+
+
 def _cents(v: float | None) -> int | None:
     return round(v * 100) if v is not None else None
 
@@ -1345,6 +1425,7 @@ def publish(
     raw_boards: list[dict[str, Any]] | None,
     bars: Mapping[str, Any] | None,
     today: Mapping[str, Price] | None = None,
+    league_logos: Mapping[str, str] | None = None,
     write: bool = True,
 ) -> dict[str, Any]:
     """`markets`: league slug -> its players' rows (slug, name, pos, club, crest, eur, pic); `today`: their prices
@@ -1372,6 +1453,7 @@ def publish(
             prices=today,
             owned_classic=owned_classic,
             season=season,
+            logo=(league_logos or {}).get(league),
         )
         mine = {r["slug"]: today[r["slug"]] for r in rows if today and r.get("slug") in today}
         start = next_block(
@@ -1387,6 +1469,7 @@ def publish(
             prices=today,
             owned_classic=owned_classic,
             season=season,
+            logo=(league_logos or {}).get(league),
         )
         summary[block["code"]] = {
             "clubs": len(block["clubs"]),

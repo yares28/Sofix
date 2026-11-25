@@ -2,8 +2,8 @@ import { cache } from "./cache";
 import { published, readModel } from "./db";
 import { SORARE_TAG } from "./play";
 import {
-  LEAGUES, pairTile, readable, readableClub, readablePairs, SQUADS_PAIR_PREFIX, SQUADS_PAIRS_PREFIX, SQUADS_PREFIX,
-  SQUADS_START_PREFIX, tile,
+  LEAGUES, pairTile, readable, readableClub, readablePairs, SQUADS_PAIR_PREFIX, SQUADS_PAIR_START_PREFIX, SQUADS_PAIRS_PREFIX,
+  SQUADS_PAIRS_START_PREFIX, SQUADS_PREFIX, SQUADS_START_PREFIX, tile,
   type LeagueCode, type PairsBlock, type Season, type SquadClub, type SquadsBlock, type SquadsPage, type TeamMode, type Tile,
 } from "./squads";
 
@@ -38,6 +38,7 @@ const league = cache(
       record: b.record,
       rounds: b.rounds,
       cardsOut: b.cardsOut,
+      logo: b.logo,
       name: LEAGUES.find((l) => l.code === code)?.label ?? b.name,
       generatedAt: b.generatedAt,
       captain: b.captain,
@@ -59,17 +60,19 @@ const club = cache(
 
 // Two clubs: the pair list stays in its packed rows in the cache (1.5 MB for 190 pairs) and becomes tiles per request.
 const pairs = cache(
-  async (code: LeagueCode): Promise<PairsBlock | null> => readablePairs(await raw(`${SQUADS_PAIRS_PREFIX}${code}`, `squads/${code}/pairs`)),
-  ["squads-pairs-v1"],
+  async (code: LeagueCode, season: Season): Promise<PairsBlock | null> =>
+    readablePairs(await raw(`${season === "start" ? SQUADS_PAIRS_START_PREFIX : SQUADS_PAIRS_PREFIX}${code}`, `squads/${code}/pairs${season === "start" ? "?season=start" : ""}`)),
+  ["squads-pairs-v2"],
   { tags: [SORARE_TAG], revalidate: 3600 },
 );
 
 const pair = cache(
-  async (code: LeagueCode, id: string): Promise<SquadClub | null> => {
-    const b = readable(await raw(`${SQUADS_PAIR_PREFIX}${code}:${id}`, `squads/${code}/pairs/${encodeURIComponent(id)}`));
+  async (code: LeagueCode, season: Season, id: string): Promise<SquadClub | null> => {
+    const key = `${season === "start" ? SQUADS_PAIR_START_PREFIX : SQUADS_PAIR_PREFIX}${code}:${id}`;
+    const b = readable(await raw(key, `squads/${code}/pairs/${encodeURIComponent(id)}${season === "start" ? "?season=start" : ""}`));
     return b?.clubs[0] ?? null;
   },
-  ["squads-pair-v1"],
+  ["squads-pair-v2"],
   { tags: [SORARE_TAG], revalidate: 3600 },
 );
 
@@ -82,16 +85,19 @@ export async function loadSquads(
   pick: (tiles: Tile[]) => string | undefined,
 ): Promise<SquadsPage | null> {
   if (team === "two") {
-    const b = await pairs(code);
+    const b = await pairs(code, season);
     if (!b) return null;
     const tiles = b.pairs.map(pairTile);
     const name = pick(tiles);
-    const id = tiles.find((t) => t.club === name)?.pair?.id;
+    const picked = tiles.find((t) => t.club === name);
+    const id = picked?.pair?.id;
+    const single = await league(code, season);
     return {
-      code, season: "now", team, record: null, rounds: null, cardsOut: true,
+      alone: picked?.pair ? (single?.tiles ?? []).filter((t) => picked.pair!.clubs.includes(t.club)) : [],
+      code, season, team, record: null, rounds: null, cardsOut: true, logo: b.logo,
       name: LEAGUES.find((l) => l.code === code)?.label ?? b.name,
       generatedAt: b.generatedAt, captain: b.captain, board: b.board, arenaLines: b.arenaLines, tiles,
-      club: id ? readableClub(await pair(code, id)) : null,
+      club: id ? readableClub(await pair(code, season, id)) : null,
     };
   }
   const page = await league(code, season);

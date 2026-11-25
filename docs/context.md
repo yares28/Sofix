@@ -940,14 +940,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-24",
-        "note": "Checked jobs/sorare.py on 24 Nov 2026: the card art step keeps cards for the Premier League, Bundesliga and Ligue 1 squad players, and a once-a-day Squads price read (squads.prices) runs before the Squads publish; Play selection inputs and plan logic are unchanged.",
+        "date": "2026-11-25",
+        "note": "Checked jobs/sorare.py on 25 Nov 2026: Squads' daily reads (prices and the four league logos) now run only on a run that publishes Squads and has players to price; Play selection inputs and plan logic are unchanged.",
         "files": {
           "backend/app/sorare/publish.py": "4ed3df49350d3839b58b4870ad36288b1666594693342a6e0ba9047fff709fcc",
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
-          "backend/app/jobs/sorare.py": "76c91d8fc10fd4abca72bd01e71c348c8bea62e11d3dfb451a89133b77299a79",
+          "backend/app/jobs/sorare.py": "f88c1289418e5ccad3f0de623e83a9d306c26e0d4bf4dc8d1c00f8246e9e8f08",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
         }

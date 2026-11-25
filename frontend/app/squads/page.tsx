@@ -19,7 +19,7 @@ export default async function SquadsPage({ searchParams }: { searchParams: Searc
   const code = leagueOf(one("league"));
   const settings = { budget: budgetOf(one("budget")), target: targetOf(one("cover")), mine: one("mine") !== "0" };
   const team = teamOf(one("team"));
-  const season = team === "two" ? "now" : seasonOf(one("season")); // two clubs is this season's
+  const season = seasonOf(one("season"));
   const wanted = (tiles: { club: string; pair?: { id: string } }[]) =>
     team === "two" ? tiles.find((t) => t.pair?.id === one("pair"))?.club : one("club");
   const [data, system, { meta }] = await Promise.all([

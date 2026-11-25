@@ -380,8 +380,8 @@ def test_the_nightly_pairs_take_the_records_last_day_as_prices():
 def test_the_pairs_game_against_each_other_is_one_try_whose_five_mixes_both_clubs():
     rows_a, rows_b = five_of("Club A", ["S60"] * 2), five_of("Club B", ["S50"] * 2)
     a, b = clubs_of(rows_a, rows_b)
-    for x in (a, b):  # game 0: the two clubs meet
-        x.games[0]["id"] = "Game:derby"
+    for x, other in ((a, b), (b, a)):  # game 0: the two clubs meet
+        x.games[0]["id"], x.games[0]["opponent"] = "Game:derby", other.name
     pair = squads.pair_club(a, b)
     assert len(pair.games) == 3 and pair.games[0]["club"] == "both"
     assert pair.players["a-gk0"].mine.tolist() == [True, True, False]
@@ -416,3 +416,18 @@ def test_four_lives_a_step():
     # the 360 step, started after the clear, has four lives: the fourth miss fails it, and the board starts again
     assert [s["target"] for s in out["path"]] == [320, 360, 360, 360, 360, 320]
     assert out["path"][4]["back"] is True and out["clears"] == 2
+
+
+def test_start_of_season_pairs_give_each_club_its_own_try_a_round():
+    last = {}
+    for name in ("Club A", "Club B", "Club C"):
+        last |= {m["slug"]: games_for(name, plays, start=LAST) for m, plays in five_of(name, ["S50"] * 4)}
+    rows = [m for name in ("Club A", "Club B", "Club C") for m, _ in five_of(name, ["S50"] * 4)]
+    out = squads.pairs_blocks(
+        LEAGUE, rows, last, NOW, owned=frozenset(), art={}, board=[(320, 0.0, 500)], lines=[], start_of_season=True
+    )
+    assert out is not None
+    picker, details = out
+    one = details[squads.pair_id("Club A", "Club B")]["clubs"][0]
+    assert one["rounds"] == [0, 0, 1, 1, 2, 2, 3, 3]  # "R1" of each club is its own try, not one shared game
+    assert len(picker["pairs"]) == 3

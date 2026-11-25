@@ -85,7 +85,10 @@
 .sq-club img { width: 52px; height: 52px; object-fit: contain; }
 .sq-club h1 { text-wrap: balance; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
 .sq-club p { margin: 2px 0 0; font-size: 13px; color: var(--ink-2); }
-.sq-club .sq-pill { margin-left: 6px; }
+.sq-club .sq-pill { margin-left: 6px; display: inline-flex; align-items: center; gap: 5px; }
+/* the league's logo (Sorare's picture) sits on a light chip so its colours read */
+.sq-club .sq-pill:has(img) { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); padding: 3px 8px 3px 5px; }
+.sq-club .sq-pill img { width: 16px; height: 16px; object-fit: contain; }
 .sq-price-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 18px; }
 .sq-price { font-size: clamp(56px, 7vw, 104px); line-height: .9; font-weight: 800; letter-spacing: -.05em; margin: 0; }
 .sq-none .sq-price { font-size: clamp(32px, 4vw, 52px); letter-spacing: -.035em; }
@@ -99,6 +102,10 @@
 .sq-price-side span { font-size: 15px; color: var(--ink-2); }
 .sq-price-side em { font-style: normal; font-weight: 600; color: var(--sq-good); }
 .sq-stats { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; }
+.sq-alone { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; color: var(--ink-2); }
+.sq-alone li { display: inline-flex; align-items: center; gap: 7px; }
+.sq-alone img { width: 20px; height: 20px; object-fit: contain; }
+.sq-alone b { color: var(--ink); font-weight: 600; }
 .sq-stats div { display: flex; flex-direction: row-reverse; align-items: baseline; gap: 6px; }
 .sq-stats dt { font-size: 14px; color: var(--ink-2); }
 .sq-stats dd { margin: 0; font-size: 17px; font-weight: 700; }

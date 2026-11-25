@@ -34,7 +34,7 @@ function useCents(target: number): number {
   return value;
 }
 
-/** The page's address. Two clubs is this season's, so it and the start of season never go together. */
+/** The page's address: league, team (one club, or two and the pair), season, budget, target and your cards. */
 function href(code: string, club: string | null, s: Settings, season: Season, team: TeamMode = "one", pair?: string) {
   const q = new URLSearchParams({ league: code, budget: String(s.budget), cover: String(Math.round(s.target * 100)) });
   if (team === "two") {
@@ -42,7 +42,7 @@ function href(code: string, club: string | null, s: Settings, season: Season, te
     if (pair) q.set("pair", pair);
   } else if (club) q.set("club", club);
   if (!s.mine) q.set("mine", "0");
-  if (season === "start" && team === "one") q.set("season", "start");
+  if (season === "start") q.set("season", "start");
   return `/squads?${q}`;
 }
 
@@ -86,16 +86,14 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
           <span>Team</span>
           <SegmentedControl label="Team" value={data.team}
             options={[{ value: "one", label: "One club" }, { value: "two", label: "Two clubs" }]}
-            onChange={(v) => router.push(href(data.code, null, settings, "now", v as TeamMode))} />
+            onChange={(v) => router.push(href(data.code, null, settings, data.season, v as TeamMode))} />
         </div>
-        {data.team === "one" ? (
-          <div className="sq-field">
-            <span>Season</span>
-            <SegmentedControl label="Season" value={data.season}
-              options={[{ value: "now", label: "Now" }, { value: "start", label: "Start of season" }]}
-              onChange={(v) => router.push(href(data.code, club.club, settings, v as Season))} />
-          </div>
-        ) : null}
+        <div className="sq-field">
+          <span>Season</span>
+          <SegmentedControl label="Season" value={data.season}
+            options={[{ value: "now", label: "Now" }, { value: "start", label: "Start of season" }]}
+            onChange={(v) => router.push(href(data.code, data.team === "one" ? club.club : null, settings, v as Season, data.team, data.tiles.find((t) => t.club === club.club)?.pair?.id))} />
+        </div>
         <label className="sq-field">
           <span>League</span>
           <select name="league" value={data.code} onChange={(e) => router.push(href(e.target.value, null, settings, data.season, data.team))}>
@@ -220,11 +218,15 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget 
           {pairTile ? <PairCrests tile={pairTile} size={40} /> : <SorareImage src={club.crest} width={52} height={52} />}
           <div>
             <h1 id="sq-club">{club.club}</h1>
-            <p>{start ? `${data.name} · picked from ${data.record}, ${n} rounds`
+            <p>{start && two ? `${data.name} · picked from last season, ${new Set(club.rounds).size} rounds, a try for each club`
+              : start ? `${data.name} · picked from ${data.record}, ${n} rounds`
               : two ? `${data.name} · ${new Set(club.rounds).size} rounds, a try for each club's game`
               : `${data.name} · ${n} games this season`}</p>
           </div>
-          <span className="sq-pill" data-mode={showArena ? "arena" : "pro"}>{showArena ? "ARENA" : `${data.name.toUpperCase()} PRO`}</span>
+          <span className="sq-pill" data-mode={showArena ? "arena" : "pro"}>
+            {data.logo ? <SorareImage src={data.logo} width={16} height={16} alt={data.name} /> : showArena ? null : `${data.name.toUpperCase()} `}
+            {showArena ? "ARENA" : "PRO"}
+          </span>
         </div>
         {verdict.mode === "none" ? (
           <div className="sq-none">
@@ -245,6 +247,7 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget 
             </span>
           </div>
         )}
+        {two && data.alone?.length ? <Alone tiles={data.alone} settings={settings} /> : null}
         {team ? (
           <dl className="sq-stats">
             <div><dt>{games} with five starters</dt><dd>{two ? `${Math.round(team.cov * new Set(club.rounds).size)} of ${new Set(club.rounds).size}` : `${fives} of ${n}`}</dd></div>
@@ -373,6 +376,24 @@ function Newcomers({ club, league }: { club: SquadClub; league: string }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+/** Two clubs: what each club buys alone for the same budget and target, beside the pair. */
+function Alone({ tiles, settings }: { tiles: Tile[]; settings: Settings }) {
+  return (
+    <ul className="sq-alone" aria-label="Each club alone">
+      {tiles.map((t) => {
+        const c = choice(t, settings);
+        return (
+          <li key={t.club}>
+            <SorareImage src={t.crest} width={20} height={20} />
+            <span>{t.club} alone</span>
+            <b>{c.mode === "none" ? `no team inside €${settings.budget}` : `${eur(c.price)} · ${Math.round(c.entry.mean)} a game`}</b>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

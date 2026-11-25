@@ -256,18 +256,18 @@ def reward_bars_page(db: Session = Depends(get_db)):
 
 
 @router.get("/squads/{code}/pairs", response_model=ApiResponse[dict[str, Any]])
-def squads_pairs_page(code: str, db: Session = Depends(get_db)):
+def squads_pairs_page(code: str, season: str = "now", db: Session = Depends(get_db)):
     """A league's two-club pair list (written to R2 only by the nightly job; locally from a read model, for the tests)."""
-    row = db.get(ReadModel, f"{squads.PAIRS}{code}")
+    row = db.get(ReadModel, f"{squads.PAIRS_NEXT if season == 'start' else squads.PAIRS}{code}")
     if row is None:
         return ApiResponse[dict[str, Any]](success=False, error="The pairs have not been written yet.")
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)
 
 
 @router.get("/squads/{code}/pairs/{pair}", response_model=ApiResponse[dict[str, Any]])
-def squads_pair_page(code: str, pair: str, db: Session = Depends(get_db)):
+def squads_pair_page(code: str, pair: str, season: str = "now", db: Session = Depends(get_db)):
     """One pair's teams (see squads_pairs_page)."""
-    row = db.get(ReadModel, f"{squads.PAIR}{code}:{pair}")
+    row = db.get(ReadModel, f"{squads.PAIR_NEXT if season == 'start' else squads.PAIR}{code}:{pair}")
     if row is None:
         return ApiResponse[dict[str, Any]](success=False, error="This pair has not been written yet.")
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)

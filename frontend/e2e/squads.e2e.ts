@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { laneKey, ladder, prize, readable, within, type Target } from "../lib/squads";
 import fixture from "./fixtures/squads-response.json";
 import startFixture from "./fixtures/squads-start-response.json";
+import pairFixture from "./fixtures/squads-pair-response.json";
 import { offline, resetBackend, smallText } from "./helpers";
 
 // Squads draws the block the refresh publishes (e2e/fixtures/squads-response.json: LaLiga on the 24 Nov 2026 blocks, built by
@@ -101,6 +102,30 @@ test("the start of season picks each team from last season's record, shows how i
   await page.getByRole("group", { name: "Season" }).getByRole("button", { name: "Now" }).click();
   await expect(page).not.toHaveURL(/season=start/);
   await expect(page.getByText("13 games this season")).toBeVisible();
+});
+
+test("two clubs: pairs ranked by what their Pro board won, one team from both, each club's game a try of its round", async ({ page }) => {
+  const pair = readable(pairFixture.data)!.clubs[0]!;
+  const entry = within(pair.pro["0.9"]!.owned, 40)!;
+  const team = pair.teams.find((t) => t.id === entry.id)!;
+  await page.goto("/squads?team=two");
+  await expect(page.getByRole("heading", { level: 1, name: "Deportivo Alavés + Racing Santander" })).toBeVisible();
+  const picker = page.getByRole("region", { name: "Clubs for €40" });
+  await expect(picker.getByRole("listitem")).toHaveCount(12);
+  await expect(picker.getByText("1 of 2")).toBeVisible();
+  await expect(page.locator(".sq-price")).toHaveText(price(team.toBuy));
+  // not double a club's team: one pool, each card wearing its club's crest
+  await expect(page.getByRole("region", { name: "The team" }).locator("li")).toHaveCount(team.cards.length);
+  await expect(page.locator(".sq-team .sq-badge")).toHaveCount(team.cards.length);
+  // the replay: a column a round, the ladder over both tries of it
+  const rounds = [...new Set(pair.rounds!)].map((r) => pair.rounds!.flatMap((x, i) => (x === r ? [team.best[i] ?? null] : [])));
+  const replay = page.getByRole("region", { name: "Pro or Arena, played all season" });
+  await expect(replay.locator(".sq-sum > b")).toHaveText(String(ladder(rounds, block.board!).clears));
+  await expect(replay.locator(".sq-col")).toHaveCount(rounds.length);
+  const axe = await new AxeBuilder({ page }).include("main").analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
+  await page.getByRole("group", { name: "Team" }).getByRole("button", { name: "One club" }).click();
+  await expect(page).not.toHaveURL(/team=two/);
 });
 
 test("who played shows each game's starters with their score, who came on with his minutes, and the five-starters line", async ({ page }) => {

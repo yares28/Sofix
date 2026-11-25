@@ -79,3 +79,54 @@ jobs:
         with:
           path: backend/.cache/player_games.sqlite
           key: player-games-${{ github.run_id }}-${{ github.run_attempt }}
+
+  # Squads, two clubs (backend/app/jobs/squads_pairs.py): every pair of a league's clubs, about five minutes a league, too long
+  # for the refresh. After the night's games are read, one league a job; R2 only, the pages pick it up within the hour.
+  squads-pairs:
+    name: Squads, two clubs
+    needs: league-history
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        league: [LALIGA, PL, BL1, FL1]
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: prod
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PLAYER_GAMES_MIRROR: .cache/player_games.sqlite
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+
+      - name: Install locked dependencies
+        run: uv pip sync requirements.lock
+
+      - name: Pick the live Neon project
+        run: python -m app.jobs.neon_switch
+
+      # Read only: the history job saved its copy; this job never saves one.
+      - name: Restore the game history copy
+        uses: actions/cache/restore@v4
+        with:
+          path: backend/.cache/player_games.sqlite
+          key: player-games-${{ github.run_id }}
+          restore-keys: player-games-
+
+      - name: Every pair of ${{ matrix.league }}
+        run: python -m app.jobs.squads_pairs --league ${{ matrix.league }}

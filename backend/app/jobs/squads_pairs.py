@@ -1,0 +1,104 @@
+"""Squads, two clubs (plans/squad-prices.md, Q4): every pair of a league's clubs, one team from both, each night.
+
+A pair's search takes about a second and a league has up to 190 pairs, too long for the refresh: the League history workflow
+runs it after the night's games are read, one league a job. It reads what the refresh published (the market, your cards, the
+card art, the day's prices, the Pro board) and writes R2 only: `squads_pairs:<code>` for the picker and
+`squads_pair:<code>:<pair id>` for each pair's teams. The pages pick them up within the hour (their cache's lifetime).
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import time
+from datetime import UTC, datetime
+from typing import Any
+
+from app.db import SessionLocal
+from app.logging_config import configure_logging
+from app.services import kept_blocks, r2
+from app.sorare import card_art, squads
+from app.sorare.player_games import season_start
+
+logger = logging.getLogger(__name__)
+
+
+def prices_of(record: dict[str, Any] | None) -> dict[str, squads.Price]:
+    """The last day of a league's price record (`squads.record`) as prices."""
+    if not record or not record.get("days"):
+        return {}
+    out: dict[str, squads.Price] = {}
+    for slug, series in (record.get("in") or {}).items():
+        cents = series[-1] if series else None
+        listed = ((record.get("listed") or {}).get(slug) or [None])[-1]
+        cl = ((record.get("cl") or {}).get(slug) or [None])[-1]
+        if cents is None:
+            continue
+        out[slug] = {
+            "in": cents / 100 if listed else None,
+            "inEst": None if listed else cents / 100,
+            "cl": cl / 100 if cl is not None else None,
+        }
+    return out
+
+
+def run(code: str, now: datetime, *, write: bool = True) -> dict[str, Any]:
+    league = next(slug for slug, (c, _, _) in squads.LEAGUES.items() if c == code)
+    with SessionLocal() as db:
+        sorare = kept_blocks.read(db, "sorare")
+        payload = sorare.payload if sorare and isinstance(sorare.payload, dict) else {}
+        if code in squads.FOREIGN:
+            kept = kept_blocks.read(db, f"league_squads:{code}")
+            rows = squads.foreign_rows(kept.payload if kept else None)
+        else:
+            rows = payload.get("market") or []
+        now_block = kept_blocks.read(db, f"{squads.PREFIX}{code}")
+        head = now_block.payload if now_block and isinstance(now_block.payload, dict) else {}
+        record = kept_blocks.read(db, f"{squads.PRICES}{code}")
+        art = card_art.load(db).urls
+        games = squads.load_games(db, {r["slug"] for r in rows if r.get("slug")}, season_start(now))
+        db.rollback()
+    limited = [c for c in payload.get("collection") or [] if c.get("rarity") == "limited" and c.get("player")]
+    owned = frozenset(c["player"] for c in limited if c.get("inSeason"))
+    board = [(s["target"], s["cash"], s["essence"]) for s in head.get("board") or []] or None
+    started = time.perf_counter()
+    picker, details = squads.pairs_blocks(
+        league,
+        rows,
+        games,
+        now,
+        owned=owned,
+        art=art,
+        board=board,
+        lines=head.get("arenaLines") or [],
+        captain=float(head.get("captain") or squads.CAPTAIN),
+        prices=prices_of(record.payload if record else None),
+        owned_classic=frozenset(c["player"] for c in limited if not c.get("inSeason")) - owned,
+    )
+    summary: dict[str, Any] = {"pairs": len(picker["pairs"]), "seconds": round(time.perf_counter() - started, 1)}
+    if write:
+        failed = 0
+        for pid, block in details.items():
+            failed += not r2.put_block(f"{squads.PAIR}{code}:{pid}", block, now)
+        failed += not r2.put_block(
+            f"{squads.PAIRS}{code}", picker, now
+        )  # last: the picker never names a pair not written
+        summary["failed"] = failed
+    return summary
+
+
+def main(argv: list[str] | None = None) -> int:
+    configure_logging()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--league", required=True, choices=[c for c, _, _ in squads.LEAGUES.values()])
+    args = parser.parse_args(argv)
+    if not r2.configured():
+        print("R2 is not configured: nothing to write the pairs to.")
+        return 1
+    summary = run(args.league, datetime.now(UTC))
+    print(f"Squads two clubs, {args.league}: {summary}")
+    return 0 if not summary.get("failed") else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

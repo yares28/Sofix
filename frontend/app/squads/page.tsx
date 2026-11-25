@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import SiteNav from "../../components/SiteNav";
 import SquadsView from "../../components/squads/SquadsView";
 import { loadGrid } from "../../lib/api";
-import { budgetOf, leagueOf, LEAGUES, ranked, seasonOf, targetOf } from "../../lib/squads";
+import { budgetOf, leagueOf, LEAGUES, ranked, seasonOf, targetOf, teamOf } from "../../lib/squads";
 import { loadSquads } from "../../lib/squadsData";
 import { loadSystem } from "../../lib/system";
 
@@ -18,9 +18,12 @@ export default async function SquadsPage({ searchParams }: { searchParams: Searc
   const one = (key: string) => (typeof params[key] === "string" ? (params[key] as string) : undefined);
   const code = leagueOf(one("league"));
   const settings = { budget: budgetOf(one("budget")), target: targetOf(one("cover")), mine: one("mine") !== "0" };
-  const season = seasonOf(one("season"));
+  const team = teamOf(one("team"));
+  const season = team === "two" ? "now" : seasonOf(one("season")); // two clubs is this season's
+  const wanted = (tiles: { club: string; pair?: { id: string } }[]) =>
+    team === "two" ? tiles.find((t) => t.pair?.id === one("pair"))?.club : one("club");
   const [data, system, { meta }] = await Promise.all([
-    loadSquads(code, season, (tiles) => one("club") ?? ranked(tiles, settings)[0]?.tile.club),
+    loadSquads(code, season, team, (tiles) => wanted(tiles) ?? ranked(tiles, settings)[0]?.tile.club),
     loadSystem(),
     loadGrid(),
   ]);
@@ -34,7 +37,9 @@ export default async function SquadsPage({ searchParams }: { searchParams: Searc
           <section className="sq-empty" role="status">
             <h1>Squads</h1>
             <p>
-              {season === "start"
+              {team === "two"
+                ? `${LEAGUES.find((l) => l.code === code)?.label}'s pairs of clubs are worked out each night; they appear after the first night's run.`
+                : season === "start"
                 ? `The start of season picks each team from last season's games, which Sofix keeps for LaLiga only so far.`
                 : `${LEAGUES.find((l) => l.code === code)?.label}'s teams appear after the next refresh works them out (once a day).`}
             </p>

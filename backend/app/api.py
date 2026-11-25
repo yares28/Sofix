@@ -255,6 +255,24 @@ def reward_bars_page(db: Session = Depends(get_db)):
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)
 
 
+@router.get("/squads/{code}/pairs", response_model=ApiResponse[dict[str, Any]])
+def squads_pairs_page(code: str, db: Session = Depends(get_db)):
+    """A league's two-club pair list (written to R2 only by the nightly job; locally from a read model, for the tests)."""
+    row = db.get(ReadModel, f"{squads.PAIRS}{code}")
+    if row is None:
+        return ApiResponse[dict[str, Any]](success=False, error="The pairs have not been written yet.")
+    return ApiResponse[dict[str, Any]](success=True, data=row.payload)
+
+
+@router.get("/squads/{code}/pairs/{pair}", response_model=ApiResponse[dict[str, Any]])
+def squads_pair_page(code: str, pair: str, db: Session = Depends(get_db)):
+    """One pair's teams (see squads_pairs_page)."""
+    row = db.get(ReadModel, f"{squads.PAIR}{code}:{pair}")
+    if row is None:
+        return ApiResponse[dict[str, Any]](success=False, error="This pair has not been written yet.")
+    return ApiResponse[dict[str, Any]](success=True, data=row.payload)
+
+
 @router.get("/squads/{code}", response_model=ApiResponse[dict[str, Any]])
 def squads_page(code: str, season: str = "now", db: Session = Depends(get_db)):
     """A league's Squads block the refresh published (LALIGA, PL, BL1, FL1); `season=start` the start-of-season one. Local

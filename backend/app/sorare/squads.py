@@ -22,10 +22,12 @@ from __future__ import annotations
 
 import itertools
 import logging
+import re
 import statistics
+import unicodedata
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -48,6 +50,8 @@ logger = logging.getLogger(__name__)
 PREFIX = "squads:"
 PRICES = "squad_prices:"
 NEXT = "squads_next:"
+PAIRS = "squads_pairs:"  # two clubs: every pair of a league, for the picker (R2 only, written by the nightly job)
+PAIR = "squads_pair:"  # one pair's teams: squads_pair:<code>:<pair id> (R2 only)
 VERSION = 2
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 OUTFIELD = ("DEF", "MID", "FWD")
@@ -106,6 +110,7 @@ class Player:
     classic: float | None = None  # the cheapest listed classic card, None when none is for sale
     owned_classic: bool = False
     came_from: str | None = None  # start of season: the club he played for last season, when not this one
+    mine: np.ndarray | None = None  # two clubs: the tries that are his club's games
 
     @property
     def cost(self) -> float:
@@ -154,6 +159,8 @@ class Club:
     sevens: list[tuple[Seven, float, float, float, float]] = field(
         default_factory=list
     )  # seven, full, owned, mean, started
+    rounds: list[int] | None = None  # two clubs: each game's round (each club's game is a try of that round)
+    arena_club: Club | None = None  # two clubs: the same players round by round, which the Arena plays
 
 
 @dataclass(frozen=True)
@@ -496,6 +503,180 @@ def next_block(
     }
 
 
+# ---- two clubs: one team from both, each club's game a try of its round
+
+
+def _blank(p: Player, n: int) -> Player:
+    return replace(
+        p,
+        starts=np.zeros(n, bool),
+        played=np.zeros(n, bool),
+        mins=np.zeros(n, int),
+        scores=np.zeros(n),
+        xs=np.full(n, np.nan),
+        mine=np.zeros(n, bool),
+    )
+
+
+def pair_club(a: Club, b: Club) -> Club:
+    """Both clubs' players over both calendars, in kickoff order: each game is a try of its round (a weekend or a midweek)
+    for that club's players; the Arena's copy has one entry a round, each player's own game in it."""
+    # the clubs' game against each other is one game, one try, whose five may mix both clubs' players
+    first: dict[str, tuple[datetime, int, int]] = {}
+    for k, c in enumerate((a, b)):
+        for i, g in enumerate(c.games):
+            first.setdefault(g["id"], (as_utc(datetime.fromisoformat(g["date"])), k, i))
+    order = sorted(first.values())
+    n = len(order)
+    slot = {(a, b)[k].games[i]["id"]: j for j, (_, k, i) in enumerate(order)}
+    at = {(k, i): slot[g["id"]] for k, c in enumerate((a, b)) for i, g in enumerate(c.games)}
+    keys = [rnd(when) for when, _, _ in order]
+    index = {r: i for i, r in enumerate(dict.fromkeys(keys))}
+    rounds = [index[r] for r in keys]
+    players: dict[str, Player] = {}
+    for k, c in enumerate((a, b)):
+        for p in c.players.values():
+            q = _blank(p, n)
+            for i in range(len(c.games)):
+                j = at[(k, i)]
+                q.starts[j], q.played[j], q.mins[j] = p.starts[i], p.played[i], p.mins[i]
+                q.scores[j], q.xs[j] = p.scores[i], p.xs[i]
+                assert q.mine is not None
+                q.mine[j] = True
+            players[p.slug] = q
+    both = {g["id"] for g in a.games} & {g["id"] for g in b.games}
+    games = [
+        {
+            **(a, b)[k].games[i],
+            "club": "both" if (a, b)[k].games[i]["id"] in both else (a, b)[k].name,
+            "round": rounds[j],
+        }
+        for j, (_, k, i) in enumerate(order)
+    ]
+    out = Club(name=f"{a.name} + {b.name}", crest=a.crest, own="", games=games, players=players, rounds=rounds)
+    # the Arena: one lineup a round, each card playing his own club's game of it (the first, when his club played twice)
+    r_n = len(index)
+    by_round = {}
+    for p in players.values():
+        q = _blank(p, r_n)
+        for j in range(n):
+            r = rounds[j]
+            if p.mine is not None and p.mine[j] and not (q.played[r] or q.starts[r]):
+                q.starts[r], q.played[r], q.mins[r], q.scores[r], q.xs[r] = (
+                    p.starts[j],
+                    p.played[j],
+                    p.mins[j],
+                    p.scores[j],
+                    p.xs[j],
+                )
+        q.mine = None
+        by_round[p.slug] = q
+    first = {r: games[j] for j, r in reversed(list(enumerate(rounds)))}
+    out.arena_club = Club(name=out.name, crest=a.crest, own="", games=[first[r] for r in range(r_n)], players=by_round)
+    out.pro = pro_search(out)
+    out.sevens = arena_search(out.arena_club)
+    return out
+
+
+def pair_id(a: str, b: str) -> str:
+    """A pair's key in block names: both clubs, plain letters, in alphabetical order."""
+    slug = lambda name: re.sub(
+        r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
+    ).strip("-")  # noqa: E731
+    return "~".join(sorted((slug(a), slug(b))))
+
+
+PAIR_PRO = ("id", "from", "toBuy", "full", "mean", "over", "cov", "cash", "clears")
+PAIR_ARENA = ("id", "from", "toBuy", "full", "mean", "started")
+
+
+def pair_tile(entry: dict[str, Any], a: Club, b: Club) -> dict[str, Any]:
+    """What the pair picker needs of a pair: its two clubs and, per lane, each team as one short row (`PAIR_PRO`,
+    `PAIR_ARENA`): 190 pairs in keyed objects passed Next's 2 MB cache item."""
+    teams = {t["id"]: t for t in entry["teams"]}
+    sevens = {s["id"]: s for s in entry["sevens"]}
+
+    def pro_row(e: dict[str, Any]) -> list[Any]:
+        t = teams[e["id"]]
+        lad = t.get("ladder") or {}
+        return [
+            e["id"],
+            e["from"],
+            t["toBuy"],
+            t["full"],
+            t["mean"],
+            t["over"],
+            t["cov"],
+            lad.get("cash", 0),
+            lad.get("clears", 0),
+        ]
+
+    def arena_row(e: dict[str, Any]) -> list[Any]:
+        seven = sevens[e["id"]]
+        return [e["id"], e["from"], seven["toBuy"], seven["full"], seven["mean"], seven["started"]]
+
+    return {
+        "id": pair_id(a.name, b.name),
+        "clubs": [a.name, b.name],
+        "crests": [a.crest, b.crest],
+        "games": len(set(entry.get("rounds") or [])),
+        "pro": {k: {lane: [pro_row(e) for e in es] for lane, es in lanes.items()} for k, lanes in entry["pro"].items()},
+        "arena": {lane: [arena_row(e) for e in es] for lane, es in entry["arena"].items()},
+    }
+
+
+def pairs_blocks(
+    league: str,
+    rows: list[dict[str, Any]],
+    games: Mapping[str, list[dict[str, Any]]],
+    now: datetime,
+    *,
+    owned: frozenset[str],
+    art: Mapping[str, str],
+    board: list[Step] | None,
+    lines: list[dict[str, Any]],
+    captain: float = CAPTAIN,
+    prices: Mapping[str, Price] | None = None,
+    owned_classic: frozenset[str] = frozenset(),
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    """Every pair of the league's clubs this season: the picker's block and each pair's teams (by pair id)."""
+    by_club: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for r in rows:
+        if r.get("club"):
+            by_club[r["club"]].append(r)
+    clubs = [
+        x
+        for name, rs in sorted(by_club.items())
+        if (x := club(name, rs, games, league, now, owned=owned, art=art, prices=prices, owned_classic=owned_classic))
+        and x.games
+    ]
+    crests = {x.own: (x.name, x.crest) for x in clubs}
+    for x in clubs:
+        for g in x.games:
+            g["opponent"], g["crest"] = crests.get(g["opponent"], (g["opponent"], None))
+    tiles, details = [], {}
+    for a, b in itertools.combinations(clubs, 2):
+        c = pair_club(a, b)
+        entry = club_block(c, board, captain)
+        entry["clubs"] = [{"club": a.name, "crest": a.crest}, {"club": b.name, "crest": b.crest}]
+        tiles.append(pair_tile(entry, a, b))
+        details[pair_id(a.name, b.name)] = entry
+    code, name, _ = LEAGUES[league]
+    head = {
+        "version": VERSION,
+        "generatedAt": now.isoformat(),
+        "league": league,
+        "code": code,
+        "name": name,
+        "season": season_start(now).year,
+        "targets": list(TARGETS),
+        "captain": captain,
+        "board": [{"target": t, "cash": c, "essence": e} for t, c, e in board] if board else None,
+        "arenaLines": lines,
+    }
+    return {**head, "pairs": tiles}, {k: {**head, "clubs": [v]} for k, v in details.items()}
+
+
 # ---- Pro
 
 
@@ -507,8 +688,10 @@ def _top_two(team: Iterable[Player], n: int) -> tuple[np.ndarray, np.ndarray]:
 
 
 def pro_search(c: Club) -> Search | None:
-    """Every pool of each position's leading players: the best five of its starters each game (0 when there is none)."""
+    """Every pool of each position's leading players: the best five of its starters each game (0 when there is none).
+    For two clubs each game is a try: a round counts its best try, and is covered when any try fields five."""
     n = len(c.games)
+    groups = _groups(c.rounds)
     combos: dict[str, list[tuple[str, ...]]] = {}
     arrays: dict[str, tuple[np.ndarray, ...]] = {}
     saves: dict[str, tuple[np.ndarray, np.ndarray]] = {}  # each combo's biggest classic saving, both ways
@@ -551,7 +734,11 @@ def pro_search(c: Club) -> Search | None:
             extra = np.maximum(fm_extra, d2)
             ok = fm_ok & (g1 > NEG / 2) & (d1 > NEG / 2) & (extra > NEG / 2)
             total = g1 + d1 + fm_sum + extra + CAPTAIN * np.maximum(fm_top, np.maximum(g1, d1))
-            mean.append(np.where(ok, total, 0.0).mean(axis=-1).ravel())
+            scored = np.where(ok, total, 0.0)
+            if groups is not None:
+                scored = np.maximum.reduceat(scored, groups, axis=-1)
+                ok = np.logical_or.reduceat(ok, groups, axis=-1)
+            mean.append(scored.mean(axis=-1).ravel())
             cov.append(ok.mean(axis=-1).ravel())
             save_full = np.maximum(fm_save_full, max(saves["GK"][0][gi], saves["DEF"][0][di]))
             save_own = np.maximum(fm_save_own, max(saves["GK"][1][gi], saves["DEF"][1][di]))
@@ -566,6 +753,13 @@ def pro_search(c: Club) -> Search | None:
         mean=np.concatenate(mean),
         cov=np.concatenate(cov),
     )
+
+
+def _groups(rounds: list[int] | None) -> np.ndarray | None:
+    """Where each round's tries start (games are in date order, so a round's tries are next to each other)."""
+    if rounds is None:
+        return None
+    return np.array([i for i, r in enumerate(rounds) if i == 0 or r != rounds[i - 1]])
 
 
 def _frontier(cost: np.ndarray, mean: np.ndarray, ok: np.ndarray) -> list[tuple[int, float]]:
@@ -725,22 +919,45 @@ def arena_pick(c: Club, *, budget: float, owned: bool) -> Seven | None:
 # ---- boards and prizes
 
 
-def ladder(values: Iterable[float | None], board: list[Step]) -> dict[str, Any]:
-    """One try a game: a clear wins the step and climbs, a miss sends the board back to its first step."""
+def ladder(values: Iterable[float | None], board: list[Step], rounds: list[int] | None = None) -> dict[str, Any]:
+    """A clear wins the step and climbs; a round that ends on a miss sends the board back to its first step. One try a game,
+    or for two clubs each club's game of a round, in kickoff order (`rounds`). Same rule as `ladder` in lib/squads.ts."""
+    vals = list(values)
+    keys = rounds if rounds is not None else list(range(len(vals)))
     level, path, clears, cash, essence, top = 0, [], 0, 0.0, 0, 0
-    for v in values:
-        target, c, e = board[level]
-        if v is None:
-            path.append({"target": target, "res": "skip"})
-            continue
-        if v >= target:
-            path.append({"target": target, "res": "clear"})
-            clears, cash, essence, top = clears + 1, cash + c, essence + e, max(top, target)
-            level = (level + 1) % len(board)
-        else:
-            path.append({"target": target, "res": "miss", "back": level > 0})
+    i = 0
+    while i < len(vals):
+        j = next((k for k in range(i, len(vals)) if keys[k] != keys[i]), len(vals))
+        missed = False
+        for v in vals[i:j]:
+            target, c, e = board[level]
+            if v is None:
+                path.append({"target": target, "res": "skip"})
+            elif v >= target:
+                path.append({"target": target, "res": "clear"})
+                clears, cash, essence, top = clears + 1, cash + c, essence + e, max(top, target)
+                level, missed = (level + 1) % len(board), False
+            else:
+                path.append({"target": target, "res": "miss", "back": False})
+                missed = True
+        if missed:
+            path[-1]["back"] = level > 0
             level = 0
+        i = j
     return {"path": path, "clears": clears, "cash": cash, "essence": essence, "top": top}
+
+
+def _over(best: list[float | None], board: list[Step] | None, rounds: list[int] | None) -> int:
+    """Games (for two clubs, rounds) whose best five topped Pro's first step."""
+    if not board:
+        return 0
+    if rounds is None:
+        return sum(1 for v in best if v is not None and v >= board[0][0])
+    top: dict[int, float] = {}
+    for r, v in zip(rounds, best, strict=True):
+        if v is not None:
+            top[r] = max(top.get(r, v), v)
+    return sum(1 for v in top.values() if v >= board[0][0])
 
 
 def boards(raw: list[dict[str, Any]] | None) -> dict[str, tuple[list[Step], float]]:
@@ -786,7 +1003,11 @@ def _player_out(p: Player) -> dict[str, Any]:
         "ownedClassic": p.owned_classic,
         "owned": p.owned,
         "art": p.art,
-        "played": "".join("S" if s else "B" if b else "-" for s, b in zip(p.starts, p.played, strict=True)),
+        # S started, B came on, - did not play; x: for two clubs, the other club's game
+        "played": "".join(
+            "x" if p.mine is not None and not p.mine[i] else "S" if s else "B" if b else "-"
+            for i, (s, b) in enumerate(zip(p.starts, p.played, strict=True))
+        ),
         "scores": [round(float(x), 1) for x in p.scores],
         "mins": [int(x) for x in p.mins],
     }
@@ -807,7 +1028,7 @@ def club_block(
         key = tuple(sorted(cards))
         if key not in teams:
             s = series(c, cards, captain)
-            lad = ladder(s["best"], board) if board else None
+            lad = ladder(s["best"], board, c.rounds) if board else None
             teams[key] = {
                 "id": len(teams),
                 "cards": list(cards),
@@ -817,7 +1038,7 @@ def club_block(
                 "classicToBuy": classic_of(c, cards, owned=True),
                 "mean": round(float(mean), 1),
                 "cov": round(float(cov), 3),
-                "over": sum(1 for v in s["best"] if v is not None and board and v >= board[0][0]),
+                "over": _over(s["best"], board, c.rounds),
                 **_lean(s),
                 "ladder": {k: lad[k] for k in ("clears", "cash", "essence", "top")} if lad else None,
             }
@@ -838,6 +1059,7 @@ def club_block(
             pro[str(target)] = lanes
     sevens: dict[Seven, dict[str, Any]] = {}
     arena: dict[str, list[dict[str, Any]]] = {}
+    ac = c.arena_club or c  # two clubs: the Arena is played round by round
     if c.sevens:
         means = np.array([s[3] for s in c.sevens])
         for lane, k in (("full", 1), ("owned", 2)):
@@ -854,11 +1076,11 @@ def club_block(
                         "osub": seven.osub,
                         "full": round(float(full), 2),
                         "toBuy": round(float(own), 2),
-                        "classic": classic_of(c, seven.cards, owned=False),
-                        "classicToBuy": classic_of(c, seven.cards, owned=True),
+                        "classic": classic_of(ac, seven.cards, owned=False),
+                        "classicToBuy": classic_of(ac, seven.cards, owned=True),
                         "mean": round(float(mean), 1),
                         "started": round(float(started), 3),
-                        **_lean(arena_series(c, seven, captain)),
+                        **_lean(arena_series(ac, seven, captain)),
                     }
                 entries.append({"id": sevens[seven]["id"], "from": round(b, 2)})
             arena[lane] = entries
@@ -872,6 +1094,7 @@ def club_block(
         "pro": pro,
         "sevens": sorted(sevens.values(), key=lambda t: t["id"]),
         "arena": arena,
+        **({"rounds": c.rounds} if c.rounds is not None else {}),
     }
 
 

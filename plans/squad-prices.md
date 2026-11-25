@@ -271,6 +271,34 @@ then only new players), never linked to a lineup.
   August 2026, so the page says so. Reading their 2025/26 games is a separate step for the owner to approve (extra Sorare
   reads and stored rows).
 
+**Q4 built, two clubs (25 Nov 2026, committed locally, not pushed):** the Team choice, "One club" or "Two clubs" (this
+season).
+- **The team:** one pool of the usual size drawn from both clubs, as you asked ("don't double the number of players"). A
+  second club that adds nothing leaves the team all one club's.
+- **Pro:** each club's game is a try of its round (a weekend or a midweek), and its five come from that club's starters. A
+  round counts its best try and is covered when either try fields five. A miss is forgiven when a later try of the round
+  clears: the same ladder as the page. The clubs' match against each other is one try whose five may mix both.
+- **Arena:** one seven a round, each card playing his own club's game.
+- **Ranking:** pairs are ranked by the cash their Pro board won, then steps, then price (cash and essence never convert).
+- **The page:**
+  - Tiles show both crests and both names.
+  - Each card carries its club's crest.
+  - Who played leaves the other club's games blank and marks the shared match "Both".
+  - The replay draws a column a round with a bar a try.
+- **Where it runs:** every pair takes 1.5-2 s (190 pairs in LaLiga, about 5-7 minutes), too long for the refresh. The League
+  history workflow runs it after the night's games, one league a job in parallel (`squads-pairs`, `app.jobs.squads_pairs`).
+- **What it writes:** R2 only, never Neon. `squads_pairs:<code>` is the picker: 1.5 MB, each team as one short row, cached in
+  that form. `squads_pair:<code>:<pair id>` holds each pair's teams, about 80 kB each and 15 MB a league.
+- **Real LaLiga run (25 Nov, €40, 90%):**
+
+  | Pair | Price | Rounds with five | A round | Pro |
+  |---|---|---|---|---|
+  | Alavés + Racing | €26.63 | 14 of 14 | 330 | 9 steps, $30 + 2,500 essence |
+  | Athletic + Levante | €29.09 | | 317 | 8 steps, $20 |
+
+- **Not built:** Any clubs. Searching a whole league needs another method than trying every combination (see the next step).
+  Two clubs for the start of season, and each club alone beside the pair in the hero, are not built either.
+
 Round 4 comments (24 Nov, 19:03-19:13) still open:
 - The LaLiga logo in place of "LALIGA PRO": AGENTS.md's art rule says "no LaLiga mark", so the owner must choose.
 - The ring colours: green when the best five topped the first Pro step in at least half of the games, amber at 30%, grey below.

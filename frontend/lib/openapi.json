@@ -706,6 +706,95 @@
         }
       }
     },
+    "/api/squads/{code}/pairs": {
+      "get": {
+        "summary": "Squads Pairs Page",
+        "description": "A league's two-club pair list (written to R2 only by the nightly job; locally from a read model, for the tests).",
+        "operationId": "squads_pairs_page_api_squads__code__pairs_get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/squads/{code}/pairs/{pair}": {
+      "get": {
+        "summary": "Squads Pair Page",
+        "description": "One pair's teams (see squads_pairs_page).",
+        "operationId": "squads_pair_page_api_squads__code__pairs__pair__get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Code"
+            }
+          },
+          {
+            "name": "pair",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pair"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/squads/{code}": {
       "get": {
         "summary": "Squads Page",

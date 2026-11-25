@@ -16,7 +16,7 @@ def games_for(club: str, plays: list[str | None], *, start: datetime = datetime(
     out = []
     for i, p in enumerate(plays):
         row = {
-            "game_id": f"Game:{i}",
+            "game_id": f"Game:{club}:{i}",
             "date": start + timedelta(days=7 * i),
             "competition": LEAGUE,
             "home": club if i % 2 == 0 else f"Rival {i}",
@@ -303,3 +303,86 @@ def test_the_proof_is_how_last_augusts_pick_did_this_season():
     )
     team = next(t for t in block["clubs"][0]["teams"] if t["id"] == block["clubs"][0]["pro"]["0.9"]["full"][-1]["id"])
     assert team["proof"] == {"games": 3, "five": 2, "mean": round(330 * 2 / 3, 1), "clears": 2}  # 5 x 60 + captain
+
+
+# ---- Q4: two clubs, one team from both, each club's game a try of its round
+
+
+def five_of(club: str, plays: list[str | None]) -> list[tuple[dict, list[str | None]]]:
+    return [
+        (market(f"{club[-1].lower()}-{pos.lower()}{i}", pos, 2.0, club=club), plays)
+        for i, pos in enumerate(("GK", "DEF", "MID", "FWD", "MID"))
+    ]
+
+
+def clubs_of(*squads_: list[tuple[dict, list[str | None]]]):
+    out = []
+    for rows in squads_:
+        name = rows[0][0]["club"]
+        games = {m["slug"]: games_for(name, plays) for m, plays in rows}
+        out.append(squads.club(name, [m for m, _ in rows], games, LEAGUE, NOW, owned=frozenset(), art={}))
+    return out
+
+
+def test_two_tries_in_a_round_a_miss_is_forgiven_when_the_next_try_clears():
+    board = [(320, 0.0, 500), (360, 5.0, 0)]
+    out = squads.ladder([300, 330, 300, 300], board, rounds=[0, 0, 1, 1])
+    assert [s["res"] for s in out["path"]] == ["miss", "clear", "miss", "miss"]
+    assert out["clears"] == 1 and out["path"][-1]["back"] is True
+
+
+def test_a_pair_does_not_double_the_team_when_the_second_club_adds_nothing():
+    a, b = clubs_of(five_of("Club A", ["S60"] * 6), five_of("Club B", ["S30"] * 6))
+    pair = squads.pair_club(a, b)
+    team = squads.pick(pair.pro, budget=100, target=1.0, owned=False)
+    assert {pair.players[s].mine is not None for s in team.cards} == {True}
+    assert all(s.startswith("a-") for s in team.cards) and len(team.cards) == 5
+
+
+def test_a_pair_covers_the_rounds_each_club_alone_misses():
+    a, b = clubs_of(five_of("Club A", ["S60", None] * 3), five_of("Club B", [None, "S50"] * 3))
+    assert squads.pick(a.pro, budget=100, target=0.9, owned=False) is None  # alone: five in half the rounds
+    pair = squads.pair_club(a, b)
+    team = squads.pick(pair.pro, budget=100, target=0.9, owned=False)
+    assert team is not None and team.cov == 1.0 and len(team.cards) == 10
+
+
+def test_the_pairs_blocks_list_every_pair_and_mark_the_other_clubs_games():
+    rows = [
+        m for m, _ in five_of("Club A", ["S60"] * 4) + five_of("Club B", ["S50"] * 4) + five_of("Club C", ["S40"] * 4)
+    ]
+    games: dict = {}
+    for club_name, plays in (("Club A", ["S60"] * 4), ("Club B", ["S50"] * 4), ("Club C", ["S40"] * 4)):
+        games |= {m["slug"]: games_for(club_name, plays) for m, _ in five_of(club_name, plays)}
+    picker, details = squads.pairs_blocks(
+        LEAGUE, rows, games, NOW, owned=frozenset(), art={}, board=[(320, 0.0, 500)], lines=[]
+    )
+    json.dumps(picker), json.dumps(details)
+    assert len(picker["pairs"]) == 3 and set(details) == {p["id"] for p in picker["pairs"]}
+    one = details[squads.pair_id("Club A", "Club B")]["clubs"][0]
+    assert one["rounds"] == [0, 0, 1, 1, 2, 2, 3, 3]
+    assert one["players"]["a-gk0"]["played"] == "SxSxSxSx"
+
+
+def test_the_nightly_pairs_take_the_records_last_day_as_prices():
+    from app.jobs.squads_pairs import prices_of
+
+    day1 = squads.record(
+        None, {"aspas": {"in": 0.54, "inEst": 3.95, "cl": 0.44}, "saka": {"in": None, "inEst": 9.0, "cl": None}}, NOW
+    )
+    assert prices_of(day1) == {
+        "aspas": {"in": 0.54, "inEst": None, "cl": 0.44},
+        "saka": {"in": None, "inEst": 9.0, "cl": None},  # nothing listed: the estimate, as the day's search had it
+    }
+    assert prices_of(None) == {}
+
+
+def test_the_pairs_game_against_each_other_is_one_try_whose_five_mixes_both_clubs():
+    rows_a, rows_b = five_of("Club A", ["S60"] * 2), five_of("Club B", ["S50"] * 2)
+    a, b = clubs_of(rows_a, rows_b)
+    for x in (a, b):  # game 0: the two clubs meet
+        x.games[0]["id"] = "Game:derby"
+    pair = squads.pair_club(a, b)
+    assert len(pair.games) == 3 and pair.games[0]["club"] == "both"
+    assert pair.players["a-gk0"].mine.tolist() == [True, True, False]
+    assert pair.players["b-gk0"].mine.tolist() == [True, False, True]

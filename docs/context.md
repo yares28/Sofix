@@ -157,7 +157,7 @@ Play’s `sorareWrittenAt` version lookup caches for one hour, while split paylo
 
 **Scope/status:** normal job publication reconciliation; implemented. **Requires:** PUBLICATION-R2-001, LOCAL-ISOLATION-001.
 
-**Rule:** list R2 before reading Neon timestamps, then upload missing or sufficiently older blocks in batches of 50. Delete vanished ordinary blocks through the normal publisher, while preserving excluded switch/ledger and R2-only families. Player histories and refresh runs have their own publishers; a missing ordinary read-model row does not authorize deleting those objects. Compare uploaded, deleted and failed counts separately.
+**Rule:** list R2 before reading Neon timestamps, then upload missing or sufficiently older blocks in batches of 50. Delete vanished ordinary blocks through the normal publisher, while preserving excluded switch/ledger and R2-only families. Player histories, refresh runs and Squads' two-club pairs (`squads_pairs:` / `squads_pair:`, the nightly `app.jobs.squads_pairs`) have their own publishers; a missing ordinary read-model row does not authorize deleting those objects. Compare uploaded, deleted and failed counts separately.
 
 **Boundary:** R2 timestamps have whole-second precision. A database rewrite within the one-second tolerance is deliberately considered current; if its immediate upload failed, sync may leave the old block until another write. This is a known recovery limitation, not proof of immediate convergence. Without R2 configuration, zero counters mean no work attempted, not successful publication.
 
@@ -1360,11 +1360,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-21",
-        "note": "21 Nov 2026: a league block over 1.6 MB is published as a header naming its 16 shards (foreign_coverage.blocks); loadLeagueMarket and loadLeaguePlayers read the shards, each its own cached R2 block under 2 MB.",
+        "date": "2026-11-24",
+        "note": "Checked r2.py on 25 Nov 2026: only the R2-only prefix list grew (Squads two-club pairs, written straight to R2 by app.jobs.squads_pairs and read by /squads); page reads, put and publish order unchanged.",
         "files": {
           "backend/app/services/publish.py": "ad9fd1e73e97612ac993e50ef8989d26e6670f3950c0ed160db04fe3ec662f4c",
-          "backend/app/services/r2.py": "82b91dea1f8d9e021b9a0276a4f93b488f8f9b02eed41fcee3eef8f91b065911",
+          "backend/app/services/r2.py": "d3650b8975fba227bbe7a6361f4f2f8717b6ee3f399d297d79c67787891f68e4",
           "frontend/lib/r2.ts": "76b01a34a5961032f76df91b3f68dce1db2c2e21462001387a50d754ef94f147",
           "frontend/lib/playData.ts": "b99963c46ba2fb504326f015a6e3f1b966364706b56008934b0717d85289b0e5",
           "frontend/lib/db.ts": "e0c13b9c1033d87fa114b2ce04322cc9a17a6c38296ff223eb60b2d4c7cfcca3",
@@ -1407,10 +1407,10 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "publication-sync-001",
       "status": "implemented",
       "review": {
-        "date": "2026-11-02",
-        "note": "Player block read_at/last_seen kept to the Madrid day so unchanged histories are not re-uploaded; tests in test_r2_sync.",
+        "date": "2026-11-24",
+        "note": "Checked r2.py on 25 Nov 2026: R2_ONLY now also keeps the squads_pair(s) blocks written by the nightly two-clubs job, so sync never deletes them for having no read-model row; upload and delete order unchanged.",
         "files": {
-          "backend/app/services/r2.py": "82b91dea1f8d9e021b9a0276a4f93b488f8f9b02eed41fcee3eef8f91b065911",
+          "backend/app/services/r2.py": "d3650b8975fba227bbe7a6361f4f2f8717b6ee3f399d297d79c67787891f68e4",
           "backend/app/services/player_blocks.py": "984e04c0e3da31890d4a9a9672a064982bd1a92b4f64bafd14adc7f8335bd872",
           "backend/tests/test_r2_sync.py": "ea643078606d9b1daa57cff509fa5bf3838acf6f216cbdfad17a9936ac435633"
         }

@@ -835,6 +835,14 @@ to see the team at that price. **Season: Start of season** picks each team as yo
   NEW.
 - **Leagues:** LaLiga only for now (`squads_next:LALIGA`); the other leagues' games are kept from August 2026.
 
+**Team: Two clubs** picks one team of the usual size from two clubs together:
+- **Tries:** each club's game is a try in Pro, and its five come from that club's starters.
+- **Arena:** the seven plays each card's own game of the round.
+- **The page:** pairs are ranked by the cash their Pro board won. Each card shows its club's crest, Who played leaves the other
+  club's games blank, and the replay shows a bar per try.
+- **When:** every pair of the four leagues is worked out each night after the games are read (`app.jobs.squads_pairs`, in the
+  League history workflow), so a new pair list appears the morning after.
+
 ## 10a. Missions
 
 **Load today's missions** reads Sorare's open football pickers through your signed-in sorare.com tab, using extension **0.3.9**. Press Reload on the extension once after updating it. Sofix reads the task group used by Sorare's Missions page, separately for each rarity, and saves one verified import. Missing fields, a partial response, a different signed-in account or a failed save are errors; they do not mean Sorare has no missions. The last saved list is kept and dated. Only a complete read can confirm an empty list. A phone can show saved data; importing needs the extension browser.

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { scoreColour } from "../../lib/cards";
 import {
   ANY, choice, day, eur, laneKey, ladder, LEAGUES, oppCode, prize, ranked, shortName, shortPrize, TARGETS, tier, within,
-  type Season, type Settings, type SquadClub, type SquadPlayer, type SquadsPage, type SquadSeven, type SquadTeam, type Target,
+  type Season, type Settings, type SquadClub, type TeamMode, type Tile, type SquadPlayer, type SquadsPage, type SquadSeven, type SquadTeam, type Target,
 } from "../../lib/squads";
 import CardArt from "../cards/CardArt";
 import SorareImage from "../play/SorareImage";
@@ -34,11 +34,15 @@ function useCents(target: number): number {
   return value;
 }
 
-function href(code: string, club: string | null, s: Settings, season: Season) {
+/** The page's address. Two clubs is this season's, so it and the start of season never go together. */
+function href(code: string, club: string | null, s: Settings, season: Season, team: TeamMode = "one", pair?: string) {
   const q = new URLSearchParams({ league: code, budget: String(s.budget), cover: String(Math.round(s.target * 100)) });
-  if (club) q.set("club", club);
+  if (team === "two") {
+    q.set("team", "two");
+    if (pair) q.set("pair", pair);
+  } else if (club) q.set("club", club);
   if (!s.mine) q.set("mine", "0");
-  if (season === "start") q.set("season", "start");
+  if (season === "start" && team === "one") q.set("season", "start");
   return `/squads?${q}`;
 }
 
@@ -53,8 +57,9 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
   const settings = useMemo(() => ({ budget, target, mine }), [budget, target, mine]);
 
   useEffect(() => {
-    window.history.replaceState(null, "", href(data.code, club.club, settings, data.season)); // shareable, no new render on the server
-  }, [data.code, club.club, settings, data.season]);
+    const pairId = data.tiles.find((t) => t.club === club.club)?.pair?.id;
+    window.history.replaceState(null, "", href(data.code, club.club, settings, data.season, data.team, pairId)); // shareable, no new render on the server
+  }, [data.code, data.tiles, club.club, settings, data.season, data.team]);
 
   const order = useMemo(() => ranked(data.tiles, settings), [data.tiles, settings]);
   const mineTile = data.tiles.find((t) => t.club === club.club)!;
@@ -78,14 +83,22 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
     <div className="sq-page">
       <form className="sq-filters" aria-label="Filters" onSubmit={(e) => e.preventDefault()}>
         <div className="sq-field">
-          <span>Season</span>
-          <SegmentedControl label="Season" value={data.season}
-            options={[{ value: "now", label: "Now" }, { value: "start", label: "Start of season" }]}
-            onChange={(v) => router.push(href(data.code, club.club, settings, v as Season))} />
+          <span>Team</span>
+          <SegmentedControl label="Team" value={data.team}
+            options={[{ value: "one", label: "One club" }, { value: "two", label: "Two clubs" }]}
+            onChange={(v) => router.push(href(data.code, null, settings, "now", v as TeamMode))} />
         </div>
+        {data.team === "one" ? (
+          <div className="sq-field">
+            <span>Season</span>
+            <SegmentedControl label="Season" value={data.season}
+              options={[{ value: "now", label: "Now" }, { value: "start", label: "Start of season" }]}
+              onChange={(v) => router.push(href(data.code, club.club, settings, v as Season))} />
+          </div>
+        ) : null}
         <label className="sq-field">
           <span>League</span>
-          <select name="league" value={data.code} onChange={(e) => router.push(href(e.target.value, null, settings, data.season))}>
+          <select name="league" value={data.code} onChange={(e) => router.push(href(e.target.value, null, settings, data.season, data.team))}>
             {LEAGUES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
           </select>
         </label>
@@ -146,7 +159,7 @@ function Picker({ data, order, club, settings, page, setPage }: {
         {shown.map(({ tile, choice: c }) => {
           const share = c.mode === "pro" || c.mode === "short" ? c.entry.over / (tile.games || 1) : 0;
           const tone = c.mode === "none" ? "off" : share >= 0.5 ? "good" : share >= 0.3 ? "mid" : "low";
-          const games = data.season === "start" ? "rounds" : "games";
+          const games = data.season === "start" || tile.pair ? "rounds" : "games";
           const label = c.mode === "none"
             ? `${tile.club}, ${tile.promoted ? "new to the league, " : ""}no team inside €${settings.budget}${c.cheapest ? `, from ${eur(c.cheapest)}` : ""}`
             : c.mode === "short"
@@ -154,17 +167,19 @@ function Picker({ data, order, club, settings, page, setPage }: {
               : `${tile.club}, ${eur(c.price)} in ${c.mode === "pro" ? "Pro" : "the Arena"}${c.mode === "pro" ? `, best five over the first step in ${c.entry.over} of ${tile.games} ${games}` : ""}`;
           return (
             <li key={tile.club}>
-              <Link href={href(data.code, tile.club, settings, data.season)} prefetch={false} className="sq-tile" data-tone={tone}
+              <Link href={href(data.code, tile.club, settings, data.season, data.team, tile.pair?.id)} prefetch={false} className="sq-tile" data-tone={tone}
                 aria-current={tile.club === club ? "true" : undefined} aria-label={label}>
                 <span className="sq-ring">
                   <svg viewBox="0 0 56 56" aria-hidden="true">
                     <circle cx="28" cy="28" r={R} className="track" />
                     <circle cx="28" cy="28" r={R} className="arc" strokeDasharray={`${(C * share).toFixed(1)} ${C.toFixed(1)}`} />
                   </svg>
-                  <SorareImage src={tile.crest} width={30} height={30} />
+                  {tile.pair ? <PairCrests tile={tile} size={24} /> : <SorareImage src={tile.crest} width={30} height={30} />}
                 </span>
                 <span className="sq-tile-text">
-                  <span className="sq-tile-name">{tile.club}</span>
+                  {tile.pair ? (
+                    <span className="sq-tile-name sq-two"><span>{tile.pair.clubs[0]}</span><span>{tile.pair.clubs[1]}</span></span>
+                  ) : <span className="sq-tile-name">{tile.club}</span>}
                   <span className="sq-tile-price">
                     <b>{c.mode === "none" ? (c.cheapest ? `€${Math.ceil(c.cheapest)}` : "—") : eur(c.price)}</b>
                     <span className="sq-pill" data-mode={c.mode === "none" && tile.promoted ? "new" : c.mode}>
@@ -194,16 +209,20 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget 
   const fives = team ? team.best.filter((v) => v !== null).length : 0;
   const first = data.board?.[0]?.target;
   const start = data.season === "start";
-  const games = start ? "rounds" : "games";
+  const two = data.team === "two";
+  const games = start || two ? "rounds" : "games";
+  const pairTile = two ? data.tiles.find((t) => t.club === club.club) : undefined;
   const proof = start ? team?.proof ?? null : null;
   return (
     <section className="sq-card sq-hero" aria-labelledby="sq-club">
       <div className="sq-hero-main">
         <div className="sq-club">
-          <SorareImage src={club.crest} width={52} height={52} />
+          {pairTile ? <PairCrests tile={pairTile} size={40} /> : <SorareImage src={club.crest} width={52} height={52} />}
           <div>
             <h1 id="sq-club">{club.club}</h1>
-            <p>{start ? `${data.name} · picked from ${data.record}, ${n} rounds` : `${data.name} · ${n} games this season`}</p>
+            <p>{start ? `${data.name} · picked from ${data.record}, ${n} rounds`
+              : two ? `${data.name} · ${new Set(club.rounds).size} rounds, a try for each club's game`
+              : `${data.name} · ${n} games this season`}</p>
           </div>
           <span className="sq-pill" data-mode={showArena ? "arena" : "pro"}>{showArena ? "ARENA" : `${data.name.toUpperCase()} PRO`}</span>
         </div>
@@ -228,9 +247,9 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget 
         )}
         {team ? (
           <dl className="sq-stats">
-            <div><dt>{games} with five starters</dt><dd>{fives} of {n}</dd></div>
-            <div><dt>a {start ? "round" : "game"}, best five</dt><dd>{Math.round(team.mean)}</dd></div>
-            {first && !proof ? <div><dt>over {first}</dt><dd className="good">{team.over} of {n}</dd></div> : null}
+            <div><dt>{games} with five starters</dt><dd>{two ? `${Math.round(team.cov * new Set(club.rounds).size)} of ${new Set(club.rounds).size}` : `${fives} of ${n}`}</dd></div>
+            <div><dt>a {start || two ? "round" : "game"}, best five</dt><dd>{Math.round(team.mean)}</dd></div>
+            {first && !proof ? <div><dt>over {first}</dt><dd className="good">{team.over} of {two ? new Set(club.rounds).size : n}</dd></div> : null}
             {proof && proof.games ? (
               <div className="sq-proof"><dt>bought like this, this season</dt><dd>{Math.round(proof.mean ?? 0)} a game · {proof.five} of {proof.games} with five</dd></div>
             ) : null}
@@ -321,6 +340,7 @@ function Team({ club, cards, seven, classic }: { club: SquadClub; cards: string[
                   <li key={slug} data-sub={r ? "" : undefined}>
                     <span className="sq-art">
                       <CardArt src={p.art} name={p.name} />
+                      {club.clubs ? <span className="sq-badge"><SorareImage src={crestOf(club, p)} width={20} height={20} /></span> : null}
                       {yours ? <span className="sq-own">Yours</span> : null}
                       {isClassic ? <span className="sq-classic" title="An older season's card: Sorare lets a lineup take one">Classic</span> : null}
                     </span>
@@ -356,6 +376,23 @@ function Newcomers({ club, league }: { club: SquadClub; league: string }) {
   );
 }
 
+/** A pair's two crests, the second over the first's corner. */
+function PairCrests({ tile, size }: { tile: Tile; size: number }) {
+  return (
+    <span className="sq-pair" style={{ "--s": `${size}px` } as CSSProperties}>
+      <SorareImage src={tile.pair!.crests[0]} width={size} height={size} />
+      <SorareImage src={tile.pair!.crests[1]} width={size} height={size} />
+    </span>
+  );
+}
+
+/** A pair's player's club crest: the club of the first of his own games (not the clubs' game against each other). */
+function crestOf(club: SquadClub, p: SquadPlayer): string | null {
+  const i = [...p.played].findIndex((c, j) => c !== "x" && club.games[j]?.club !== "both");
+  const name = i >= 0 ? club.games[i]?.club : undefined;
+  return club.clubs?.find((c) => c.club === name)?.crest ?? null;
+}
+
 function WhoPlayed({ club, cards }: { club: SquadClub; cards: string[] }) {
   const n = club.games.length;
   const players = cards.map((s) => [s, club.players[s]!] as const);
@@ -383,6 +420,7 @@ function WhoPlayed({ club, cards }: { club: SquadClub; cards: string[] }) {
                 <th scope="col" key={g.id} aria-label={g.opponent ? `${g.home ? "home to" : "away at"} ${g.opponent}, ${day(g.date)}` : `round ${g.id.slice(1)}, ${day(g.date)}`}>
                   {g.opponent ? <SorareImage src={g.crest} width={22} height={22} /> : null}
                   <b>{g.opponent ? oppCode(g.opponent) : g.id}</b>
+                  {g.club ? <i className="sq-try">{g.club === "both" ? "Both" : shortName(g.club)}</i> : null}
                   <span>{g.opponent ? `${g.home ? "H" : "A"} · ` : ""}{day(g.date)}</span>
                 </th>
               ))}
@@ -405,6 +443,7 @@ function WhoPlayed({ club, cards }: { club: SquadClub; cards: string[] }) {
                       const s = p.played[i];
                       const c = scoreColour(p.scores[i] ?? 0);
                       if (s === "S") return <td key={g.id}><span className="cell" role="img" style={{ background: c.fill, color: c.ink }} aria-label={`started, ${Math.round(p.scores[i]!)}`}>{Math.round(p.scores[i]!)}</span></td>;
+                      if (s === "x") return <td key={g.id}><span className="cell off" role="img" aria-label={`${g.club}'s game`} /></td>;
                       if (s === "B") return <td key={g.id}><span className="cell on" role="img" style={{ borderColor: c.fill }} aria-label={`came on for ${p.mins[i]} minutes, ${Math.round(p.scores[i]!)}`}>{p.mins[i]}′</span></td>;
                       return <td key={g.id}><span className="cell dnp" role="img" aria-label="did not play" /></td>;
                     })}
@@ -440,34 +479,50 @@ function Replay({ data, club, team, seven, initial, mine }: {
   const LO = 150;
   const h = (v: number) => `${Math.max(4, Math.round(((Math.min(v, top) - LO) / (top - LO)) * CHART))}px`;
   const lines = arenaLines(data.arenaLines);
-  const n = club.games.length;
+  // two clubs: a column a round, a bar for each club's try in it (the Arena's seven plays once a round)
+  const groups: number[][] = club.rounds
+    ? [...new Set(club.rounds)].map((r) => club.rounds!.flatMap((x, i) => (x === r ? [i] : [])))
+    : club.games.map((_, i) => [i]);
+  const heads = groups.map((g) => club.games[g[0]!]!);
+  const n = groups.length;
   const dense = n > 20;
   let big = "", label = "", won: string | null = null;
   let cols: { bars: { h: string; tone: string; label: string }[]; tick: number | null; mark: string; markTone: string; aria: string }[] = [];
   if (mode === "pro" && unit && data.board) {
-    const lad = ladder(values.map((v) => [v]), data.board);
+    const lad = ladder(groups.map((g) => g.map((i) => values[i] ?? null)), data.board);
     big = String(lad.clears); label = lad.clears === 1 ? "Pro step cleared" : "Pro steps cleared"; won = prize(lad.cash, lad.essence);
-    cols = lad.rungs.map((r, i) => {
-      const step = r[0]!, v = values[i] ?? null;
-      const col = {
-        bars: [{ h: v === null ? "4px" : h(v), tone: v === null ? "none" : step.res === "clear" ? "clear" : "miss", label: v === null || dense ? "" : String(Math.round(v)) }],
-        tick: step.target,
-        mark: step.res === "clear" ? (dense ? "✓" : shortPrize(step.prize!)) : step.res === "miss" ? (step.back ? "↺" : "✕") : "",
-        markTone: step.res === "clear" ? "good" : "bad",
-        aria: `${club.games[i]!.opponent}: ${v === null ? "no five" : `${Math.round(v)} against ${step.target}${step.res === "clear" ? `, cleared, ${shortPrize(step.prize!)}` : ", missed"}`}`,
+    cols = lad.rungs.map((rung, r) => {
+      const vs = groups[r]!.map((i) => values[i] ?? null);
+      const cleared = [...rung].reverse().find((x) => x.res === "clear");
+      const last = rung[rung.length - 1]!;
+      const missed = rung.some((x) => x.res === "miss");
+      const tries = rung.map((x, j) => {
+        const v = vs[j] ?? null, who = rung.length > 1 ? `${club.games[groups[r]![j]!]!.club}: ` : "";
+        return `${who}${v === null ? "no five" : `${Math.round(v)} against ${x.target}${x.res === "clear" ? `, cleared, ${shortPrize(x.prize!)}` : ", missed"}`}`;
+      });
+      return {
+        bars: rung.map((x, j) => {
+          const v = vs[j] ?? null;
+          return { h: v === null ? "4px" : h(v), tone: v === null ? "none" : x.res === "clear" ? "clear" : "miss", label: v === null || dense ? "" : String(Math.round(v)) };
+        }),
+        tick: rung[0]!.target,
+        mark: cleared ? (dense ? "✓" : shortPrize(cleared.prize!)) : missed ? (last.back ? "↺" : "✕") : "",
+        markTone: cleared ? "good" : "bad",
+        aria: `${heads[r]!.opponent || `Round ${r + 1}`}: ${tries.join("; ")}`,
       };
-      return col;
     });
   } else if (unit) {
     let paid = 0, cash = 0, essence = 0;
-    cols = values.map((v, i) => {
+    // the Arena's series is a round's already; a pair's Pro scores without a board: its round's best try
+    const perCol = mode === "arena" ? values : groups.map((g) => g.reduce<number | null>((m, i) => (values[i] == null ? m : m === null ? values[i]! : Math.max(m, values[i]!)), null));
+    cols = perCol.map((v, i) => {
       const t = mode === "arena" ? tier(v, lines) : -1;
       if (t >= 0) { paid += 1; cash += lines[t]!.cash; essence += lines[t]!.essence; }
       const sub = mode === "arena" && seven?.subIn[i];
       return {
         bars: [{ h: v === null ? "4px" : h(v), tone: v === null ? "none" : t >= 0 ? `tier${t}` : "miss", label: v === null || dense ? "" : String(Math.round(v)) }],
         tick: null, mark: sub ? "SUB" : "", markTone: "sub",
-        aria: `${club.games[i]!.opponent}: ${v === null ? "no number" : Math.round(v)}${t >= 0 ? `, paid ${shortPrize(lines[t]!)}` : ""}${sub ? ", a sub came in" : ""}`,
+        aria: `${heads[i]?.opponent || `Round ${i + 1}`}: ${v === null ? "no number" : Math.round(v)}${t >= 0 ? `, paid ${shortPrize(lines[t]!)}` : ""}${sub ? ", a sub came in" : ""}`,
       };
     });
     const known = values.filter((v) => v !== null).length;
@@ -529,7 +584,7 @@ function Replay({ data, club, team, seven, initial, mine }: {
             ))}
           </div>
           <div className="sq-axis">
-            {club.games.map((g, i) => (
+            {heads.map((g, i) => (
               <span key={g.id}>
                 {g.opponent ? <SorareImage src={g.crest} width={dense ? 14 : 20} height={dense ? 14 : 20} /> : null}
                 <b data-tone={cols[i]?.markTone}><span className="long">{cols[i]?.mark}</span><span className="short">{short(cols[i]?.mark ?? "")}</span></b>

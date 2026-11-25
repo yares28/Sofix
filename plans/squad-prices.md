@@ -349,9 +349,14 @@ season).
 
 **Real LaLiga run** (€40, 90%, your cards counted): €36.11, 13 cards from 10 clubs, every matchday with five starters.
 
-**Read with care:** the hindsight best five makes 438 a matchday, while the median five makes 332, and Sofix's xS pick before
-kickoff made 337 over the 5 matchdays it has numbers for. Picking the best five after the games out of 13 players from 10
-clubs flatters any-clubs teams far more than one club's, and the search ranks teams on that hindsight number.
+**Ranked on the median five** (your choice, 25 Nov 2026):
+- **Why:** picking the best five after the games out of 13 players from 10 clubs flattered the first version (438 a matchday
+  against a median five of 332).
+- **How:** the search now finishes with a second pass judged on each matchday's median five (`_median_score`, every valid
+  five). The frontier, the hero ("a matchday, median five"), the swaps and the replay's default all use it.
+- **Effect** (€40, 90%): 9 cards from 7 clubs, a median five of 364 a matchday, and Sofix's xS before kickoff 340 over its
+  5 matchdays (the hindsight-ranked team: 337).
+- **Run time:** 9 s a league this season, 27 s for the start of season.
 
 Round 4 comments (24 Nov, 19:03-19:13) still open:
 - The ring colours: green when the best five topped the first Pro step in at least half of the games, amber at 30%, grey below.

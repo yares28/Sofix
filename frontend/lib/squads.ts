@@ -220,7 +220,9 @@ export type CustomTeam = Pick<SquadTeam, "cards" | "full" | "toBuy" | "classic" 
 /** A team the page puts together (a swapped card, Q6), scored as the backend scores its own (squads.series, pro_search):
  * each game's valid fives of its starters (GK, DEF, MID, FWD and one more), every in-season card with the season bonus but
  * the classic one, the captain on his raw score; a game without five counts 0; for two clubs a round counts its best try. */
-export function customTeam(club: SquadClub, cards: string[], o: { captain: number; season: number; firstStep: number | null }): CustomTeam {
+export function customTeam(
+  club: SquadClub, cards: string[], o: { captain: number; season: number; firstStep: number | null; measure?: "best" | "median" },
+): CustomTeam {
   const players = cards.map((s) => [s, club.players[s]!] as const);
   const pick = (mine: boolean) => {
     const best = players.reduce<{ s: string | null; v: number }>((m, [s, p]) => (saving(p, mine) > m.v ? { s, v: saving(p, mine) } : m), { s: null, v: 0 });
@@ -247,7 +249,8 @@ export function customTeam(club: SquadClub, cards: string[], o: { captain: numbe
   });
   const rounds = club.rounds ?? club.games.map((_, i) => i);
   const top = new Map<number, number | null>();
-  rounds.forEach((r, i) => { const v = best[i] ?? null; const was = top.get(r) ?? null; top.set(r, v === null ? was : was === null ? v : Math.max(was, v)); });
+  const ranked = o.measure === "median" ? median : best; // Any clubs ranks teams on the median five
+  rounds.forEach((r, i) => { const v = ranked[i] ?? null; const was = top.get(r) ?? null; top.set(r, v === null ? was : was === null ? v : Math.max(was, v)); });
   const perRound = [...top.values()];
   return {
     cards, classic: full.s, classicToBuy: owned.s,

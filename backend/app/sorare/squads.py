@@ -595,6 +595,30 @@ def _score(c: Club, team: tuple[str, ...], cap: float) -> tuple[float, float]:
     return float(np.where(ok, total, 0.0).mean()), float(ok.mean())
 
 
+_FIVES: dict[int, np.ndarray] = {}
+
+
+def _median_score(c: Club, team: tuple[str, ...], captain: float) -> tuple[float, float]:
+    """A team's median five a matchday (every valid five of its starters, the season bonus on each card, the captain on his
+    raw score; a matchday without five counts 0) and its share of matchdays with one. Any clubs ranks teams on it: the best
+    five in hindsight flatters a pool of many clubs (the owner chose the median, 25 Nov 2026)."""
+    members = [c.players[s] for s in team]
+    k, n = len(members), len(c.games)
+    if k < 5 or not n:
+        return 0.0, 0.0
+    if k not in _FIVES:
+        _FIVES[k] = np.array(list(itertools.combinations(range(k), 5)), dtype=np.int16)
+    pos = np.eye(len(POSITIONS))[[POSITIONS.index(p.pos) for p in members]][_FIVES[k]].sum(axis=1)
+    five = _FIVES[k][(pos[:, 0] == 1) & (pos[:, 1] >= 1) & (pos[:, 2] >= 1) & (pos[:, 3] >= 1)]
+    if not len(five):
+        return 0.0, 0.0
+    raw = np.array([p.scores for p in members])
+    valid = np.array([p.starts for p in members])[five].all(axis=1)  # (fives, games)
+    totals = (raw[five] * (1 + c.season)).sum(axis=1) + captain * raw[five].max(axis=1)
+    medians = [float(np.median(totals[valid[:, i], i])) if valid[:, i].any() else 0.0 for i in range(n)]
+    return sum(medians) / n, float(valid.any(axis=0).mean())
+
+
 def _sized(c: Club, team: tuple[str, ...]) -> bool:
     """No bigger than a one-club team may be (`SIZES`: up to 3 keepers, 4 defenders, 4 midfielders, 3 forwards): the owner's
     "don't double the number of players" for two clubs, held for any clubs too."""
@@ -621,6 +645,7 @@ def any_search(c: Club) -> Search | None:
         return None
     cands = [s for q in POSITIONS for s in pool[q]]
     seen: dict[tuple[str, ...], tuple[float, float]] = {}
+    medians: dict[tuple[str, ...], tuple[float, float]] = {}
 
     def score(team: tuple[str, ...]) -> tuple[float, float]:
         key = tuple(sorted(team))
@@ -659,6 +684,29 @@ def any_search(c: Club) -> Search | None:
                     if best is None or value(best) <= value(team) + 1e-9:
                         break
                     team = best
+
+                # then the median five: the same moves, judged on what the team makes most matchdays
+                def by_median(team: tuple[str, ...]) -> float:
+                    key = tuple(sorted(team))
+                    if key not in medians:
+                        medians[key] = _median_score(c, key, CAPTAIN)
+                    mean, cov = medians[key]
+                    return (1e6 if cov >= target - 1e-9 else cov * 1e3) + mean  # noqa: B023 - used in this pass
+
+                for _ in range(ANY_STEPS):
+                    moves = [(*team, s) for s in cands if s not in team]
+                    moves += [tuple(x for x in team if x != out) for out in team]
+                    moves += [
+                        tuple(s if x == out else x for x in team)
+                        for out in team
+                        for s in pool[c.players[out].pos]
+                        if s not in team
+                    ]
+                    moves = [m for m in moves if _cost(c, m, owned) <= budget + 1e-9 and _sized(c, m)]
+                    best = max(moves, key=by_median, default=None)
+                    if best is None or by_median(best) <= by_median(team) + 1e-9:
+                        break
+                    team = best
                 if team:
                     settled.add(tuple(sorted(team)))
     if not settled:
@@ -679,8 +727,8 @@ def any_search(c: Club) -> Search | None:
         index=np.array(index, dtype=np.int32),
         full=np.round(np.array([_cost(c, t, False) for t in teams]), 2),
         owned=np.round(np.array([_cost(c, t, True) for t in teams]), 2),
-        mean=np.array([score(t)[0] for t in teams]),
-        cov=np.array([score(t)[1] for t in teams]),
+        mean=np.array([_median_score(c, t, CAPTAIN)[0] for t in teams]),  # the frontier ranks on the median five
+        cov=np.array([_median_score(c, t, CAPTAIN)[1] for t in teams]),
     )
 
 

@@ -845,7 +845,8 @@ to see the team at that price. **Season: Start of season** picks each team as yo
 
 **Team: Any clubs** is the league's one best team for the budget, from any clubs: each matchday one lineup of any five who
 started, wherever they played (Sorare lets a lineup mix games until its first player kicks off). Each card shows its club. Its
-best five in hindsight flatters it: compare the median five or Sofix's xS before kickoff (a pick who does not play scores 0).
+teams are ranked on each matchday's median five, since the best five in hindsight flatters a pool from many clubs; Sofix's xS
+before kickoff (a pick who does not play scores 0) is in the replay.
 
 Squads also shows each club's next 6 league games in the fixture grid's colours. Tap a Pro card to see the players who could
 take its place, with what each does to the score a game and the price; tap one to swap it in, and "Back to the best team" to

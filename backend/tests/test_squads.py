@@ -518,3 +518,19 @@ def test_the_any_clubs_block_reads_as_a_club_block():
     block = squads.any_block(LEAGUE, rows, games, NOW, owned=frozenset(), art={}, board=None, lines=[])
     assert block is not None
     assert all({"id", "date", "home", "opponent", "crest"} <= set(g) for g in block["clubs"][0]["games"])
+
+
+def test_any_clubs_scores_a_team_on_its_median_five_not_the_luckiest():
+    rows = [
+        *base_rows(),
+        (market("hot", "FWD", 3.0), ["S90", None, None, None, None, None]),
+        (market("dud", "MID", 3.0), ["S10", None, None, None, None, None]),
+    ]
+    games = {m["slug"]: games_for("Club A", plays) for m, plays in rows}
+    c = squads.club("Club A", [m for m, _ in rows], games, LEAGUE, NOW, owned=frozenset(), art={})
+    team = ("keeper", "back", "mid", "striker", "wide", "hot", "dud")
+    median, cov = squads._median_score(c, team, squads.CAPTAIN)
+    s = squads.series(c, team)
+    assert cov == 1.0
+    assert round(median, 1) == round(sum(v for v in s["median"] if v is not None) / 6, 1)
+    assert median < squads._score(c, team, squads.CAPTAIN)[0]  # game one's best five flatters it, its median does not

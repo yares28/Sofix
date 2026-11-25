@@ -78,7 +78,10 @@ export default function SquadsView({ data, settings: initial }: { data: SquadsPa
   const baseKey = `${club.club}|${team?.id ?? ""}|${showArena}`;
   const [swapBase, setSwapBase] = useState(baseKey);
   if (swapBase !== baseKey) { setSwapBase(baseKey); setSwaps({}); setSwapAt(null); } // a new team: its own cards again
-  const scoring = { captain: data.captain, season: data.seasonBonus, firstStep: data.board?.[0]?.target ?? null };
+  const scoring = {
+    captain: data.captain, season: data.seasonBonus, firstStep: data.board?.[0]?.target ?? null,
+    measure: data.team === "any" ? ("median" as const) : ("best" as const),
+  };
   const swapped = !showArena && team !== null && Object.keys(swaps).length > 0;
   const shown: SquadTeam | null = swapped && team
     ? { ...team, ...customTeam(club, team.cards.map((s) => swaps[s] ?? s), scoring), xsReal: [], xsExp: [], ladder: null, proof: null }
@@ -269,7 +272,7 @@ function Hero({ data, club, verdict, team, seven, showArena, settings, onBudget,
         {team ? (
           <dl className="sq-stats">
             <div><dt>{games} with five starters</dt><dd>{two ? `${Math.round(team.cov * new Set(club.rounds).size)} of ${new Set(club.rounds).size}` : `${fives} of ${n}`}</dd></div>
-            <div><dt>a {any ? "matchday" : start || two ? "round" : "game"}, best five</dt><dd>{Math.round(team.mean)}</dd></div>
+            <div><dt>a {any ? "matchday" : start || two ? "round" : "game"}, {any ? "median" : "best"} five</dt><dd>{Math.round(team.mean)}</dd></div>
             {first && !proof ? <div><dt>over {first}</dt><dd className="good">{team.over} of {two ? new Set(club.rounds).size : n}</dd></div> : null}
             {proof && proof.games ? (
               <div className="sq-proof"><dt>bought like this, this season</dt><dd>{Math.round(proof.mean ?? 0)} a game · {proof.five} of {proof.games} with five</dd></div>
@@ -340,7 +343,7 @@ function cardPrice(p: SquadPlayer, classic: boolean): { value: number; est: bool
 
 type Swap = {
   at: string | null; open: (slug: string | null) => void; apply: (out: string, into: string) => void; undo: (() => void) | null;
-  swapped: string[]; mine: boolean; team: SquadTeam; scoring: { captain: number; season: number; firstStep: number | null };
+  swapped: string[]; mine: boolean; team: SquadTeam; scoring: { captain: number; season: number; firstStep: number | null; measure: "best" | "median" };
 };
 
 function Team({ club, cards, seven, classic, swap }: { club: SquadClub; cards: string[]; seven: SquadSeven | null; classic: string | null; swap: Swap | null }) {
@@ -576,7 +579,7 @@ function Replay({ data, club, team, seven, initial, mine }: {
 }) {
   const [mode, setMode] = useState<Mode>(initial);
   const [pick, setPick] = useState<Pick>("hind");
-  const [score, setScore] = useState<Score>("best");
+  const [score, setScore] = useState<Score>(data.team === "any" ? "median" : "best"); // Any clubs is ranked on its median five
   const unit = mode === "arena" ? seven : team;
   const hasXs = !!unit && unit.xsReal.some((v) => v !== null);
   // a team with no xS numbers (last season's rounds) is replayed in hindsight, whatever was picked before

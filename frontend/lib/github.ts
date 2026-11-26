@@ -161,6 +161,8 @@ export async function latestWorkflowRun(token: string, workflow = REFRESH_WORKFL
 
 /** Play's "Load from Sorare": the Pro lineups rebuilt on the announced elevens (pro-rebuild.yml). */
 export const PRO_REBUILD_WORKFLOW = "pro-rebuild.yml";
+/** The Pro page planned again on the announced elevens (pro-sheets.yml): the clock starts it, "Check now" too. */
+export const PRO_SHEETS_WORKFLOW = "pro-sheets.yml";
 
 export async function dispatchRefresh(token: string, workflow = REFRESH_WORKFLOW, inputs?: Record<string, string>): Promise<boolean> {
   const url = `${apiBase()}/repos/${repo()}/actions/workflows/${workflow}/dispatches`;

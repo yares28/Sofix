@@ -38,17 +38,19 @@ export function due(jobs, now) {
 
 const hhmm = (date) => date.toISOString().slice(11, 16);
 
+export const githubHeaders = (token) => ({
+  accept: "application/vnd.github+json",
+  authorization: `Bearer ${token}`,
+  "user-agent": "Sofix-clock/1.0 (personal; starts its own workflows)",
+  "x-github-api-version": "2022-11-28",
+});
+
 /** One tick: start what is due and not started yet. Returns one line per start or failure. */
 export async function tick(timetable, env, now, fetch = globalThis.fetch) {
   const hits = due(timetable.jobs, now);
   if (!hits.length) return [];
   if (!env.GITHUB_TOKEN) return ["GITHUB_TOKEN is not set: nothing started"];
-  const headers = {
-    accept: "application/vnd.github+json",
-    authorization: `Bearer ${env.GITHUB_TOKEN}`,
-    "user-agent": "Sofix-clock/1.0 (personal; starts its own workflows)",
-    "x-github-api-version": "2022-11-28",
-  };
+  const headers = githubHeaders(env.GITHUB_TOKEN);
   const base = `${API}/repos/${timetable.repo}/actions/workflows`;
   const log = [];
   for (const { job, slot } of hits) {

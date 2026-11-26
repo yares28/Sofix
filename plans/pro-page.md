@@ -125,6 +125,36 @@ each player's last 15 starts; captain +50%, other bonuses +6% until the build re
 - 26 Nov fix: the gameweek being played lost its European boards ("No Pro games left" in GW34 with Celta in the Europa League that
   night): `live_pro_weeks` now marks each card's competitions from its games not started (`in_week`) before planning the boards.
 
+## Teamsheet watch (owner, 26 Nov 2026)
+
+His words: "what if the lineups for the games in pro are out and the page doesn't update it to see the new teams now with the
+updates starting %". Timed refreshes are rejected: "refreshes tend to lag behind and not start at the set time"; only Pro gets
+the new start % and the Pro rebuild. Cadence: "Each 5 min from 1h -15min to game time until they are out". His worries, each
+an acceptance criterion: it must not silently never fetch; it must not ask so often that Vercel, Neon or R2 pay; "It always need
+to show the fresher % but it needs to be cheap".
+
+Design (evidence: Sorare's public API gives each game's `homeFormation` / `awayFormation` with `startingLineupAvailable`, no
+login; it allows browser calls only from sorare.com, so the page cannot ask it; `pro-rebuild.yml` ran in 26-48 s on demand;
+the clock started today's refreshes to the second, 13:37:10 and 15:07:10 UTC):
+
+- The refresh writes `sorare_pro_inputs` (each Pro week's cards, forecasts, games, last five) and `pro_watch` (each Pro game's
+  id and kickoff, and the teamsheet sides already applied).
+- The clock (Cloudflare, already ticking every minute) reads `pro_watch` from R2 every 5 minutes; for each game from 75 minutes
+  before kickoff to kickoff whose sides are not all applied, it asks Sorare for the formations, and when a side is newly out
+  it starts `pro-sheets.yml` (at most one start per 4 minutes). It writes `pro_watch_beat` (when it last looked) to R2.
+  Nothing of it touches Vercel or Neon.
+- `pro-sheets.yml` (`app.jobs.pro_sheets`) re-plans only the weeks with announced games: an announced starter starts, a
+  benched or left-out player does not (the Pro rule: enter only if all five start); writes `sorare_pro` with each batch's
+  sheets, and `pro_watch` with the sides applied, then revalidates the pages. The refresh applies the same sheets, so a
+  refresh after the teams never brings old chances back.
+- The page: an announced starter shows "XI"; each lineup's pill says "Teams ~17:45", "Teams out 17:46" or, inside the window,
+  when the clock last looked ("Not checked since 17:20" after 12 minutes), with "Check now" (the same job, by hand). While the
+  tab is visible inside a window it asks a small route every 5 minutes whether the block changed, and only then re-renders.
+
+Acceptance: cold start (no watch yet), outside the window (no request), inside it (one look per 5 minutes), teams out (one start,
+then stop), a failed job (the next look starts it again; the page says so), a refresh after the teams (sheets kept), a hidden
+tab (no calls). **Open:** fresher start % before the teams are out (FF / Sorare's newest reading) at no new Vercel/Neon cost.
+
 ## Build notes
 
 New route `frontend/app/(board)/pro`, view added in `frontend/lib/places.ts`; read from the existing `sorare` block (`pro.windows`) and the extension's entered Pro lineups; reuse `arcadeBatch.batchesOf` grouping if the window is unified; skeleton 1:1; page spec before ship (AGENTS.md "Shipping" step 3).

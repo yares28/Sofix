@@ -4,7 +4,7 @@ import { z } from "zod";
 export const PRO_KEY = "sorare_pro";
 
 const fixture = z.object({
-  opponent: z.string().nullable(), opponentCrest: z.string().nullable(), venue: z.string().nullable(),
+  id: z.string().nullable().default(null), opponent: z.string().nullable(), opponentCrest: z.string().nullable(), venue: z.string().nullable(),
   kickoff: z.string().nullable(), bucket: z.number().int().nullable().default(null),
 });
 const proCard = z.object({
@@ -29,13 +29,20 @@ const spare = z.object({
   player: z.string(), name: z.string(), pos: z.string(), pic: z.string().nullable().default(null), crest: z.string().nullable().default(null),
   inSeason: z.boolean(), free: z.number().int().positive(), start: z.number(), x: z.number(),
 });
-const block = z.object({
-  version: z.literal(1), builtAt: z.string(),
-  weeks: z.array(z.object({
-    slug: z.string(), number: z.number().int(), start: z.string(), end: z.string(), boards: z.array(board),
-    live: z.boolean().default(false), leftovers: z.array(spare).default([]), notPlaced: z.array(spare).default([]),
-  })),
+/** A game's announced sides by team slug (backend `pro_sheets.sheet_of`): who starts, who is on the bench. */
+const sheet = z.object({
+  at: z.string(), sides: z.number().int(),
+  teams: z.record(z.string(), z.object({ starters: z.array(z.string()), bench: z.array(z.string()) })),
 });
+const week = z.object({
+  slug: z.string(), number: z.number().int(), start: z.string(), end: z.string(), boards: z.array(board),
+  live: z.boolean().default(false), leftovers: z.array(spare).default([]), notPlaced: z.array(spare).default([]),
+  sheets: z.record(z.string(), sheet).default({}),
+});
+const block = z.object({
+  version: z.literal(1), builtAt: z.string(), sheetsAt: z.string().nullable().default(null), weeks: z.array(week),
+});
+export type ProWeek = z.infer<typeof week>;
 export type ProSpare = z.infer<typeof spare>;
 /** A list longer than this is paginated (AGENTS.md, page design). */
 export const PAGE_SIZE = 12;

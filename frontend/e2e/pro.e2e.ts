@@ -98,6 +98,49 @@ test("follows the week in the top bar: the planned gameweek has its boards, a la
   await expect(page.getByRole("tab", { name: /LaLiga/ })).toBeVisible();
 });
 
+// The teamsheet watch (plans/pro-page.md): the page asks the app only inside a lineup's window, only every 5 minutes, and Check now
+// starts the job by hand.
+function sheetsApi(page: import("@playwright/test").Page, checkedAt: string) {
+  const asked = { gets: 0, posts: 0 };
+  void page.route("**/api/pro-sheets", (route) => {
+    if (route.request().method() === "POST") {
+      asked.posts += 1;
+      return route.fulfill({ status: 202, json: { run: { status: "queued", conclusion: null, at: checkedAt } } });
+    }
+    asked.gets += 1;
+    return route.fulfill({ json: { version: null, checkedAt, run: null } });
+  });
+  return asked;
+}
+
+test("inside a lineup's teamsheet window it shows when the clock last looked, asks every 5 minutes, and Check now starts the job", async ({ page }) => {
+  const start = Date.parse(byBatch[0]!.start);
+  await page.clock.install({ time: new Date(start - 40 * 60_000) });
+  const asked = sheetsApi(page, new Date(start - 39 * 60_000).toISOString());
+  await page.goto("/pro");
+  const sheet = page.locator(".pro-row").first().locator(".pro-sheet");
+  await expect(sheet).toHaveText("Not checked yet");
+  await page.clock.runFor(4 * 60_000);
+  expect(asked.gets).toBe(0); // never sooner than 5 minutes
+  await page.clock.runFor(90_000);
+  await expect.poll(() => asked.gets).toBe(1);
+  await expect(sheet).toHaveText(/^Checked \d\d:\d\d$/);
+  await page.locator(".pro-row").first().getByRole("button", { name: "Check now" }).click();
+  await expect.poll(() => asked.posts).toBe(1);
+});
+
+test("outside every teamsheet window it says when the teams are due and asks nothing", async ({ page }) => {
+  const start = Date.parse(byBatch[0]!.start);
+  await page.clock.install({ time: new Date(start - 3 * 3600_000) });
+  const asked = sheetsApi(page, new Date(start - 3 * 3600_000).toISOString());
+  await page.goto("/pro");
+  const row = page.locator(".pro-row").first();
+  await expect(row.locator(".pro-sheet")).toHaveText(/^Teams ~\d\d:\d\d$/);
+  await expect(row.getByRole("button", { name: "Check now" })).toHaveCount(0);
+  await page.clock.runFor(11 * 60_000);
+  expect(asked.gets).toBe(0);
+});
+
 test("before the first refresh writes it, the page says so", async ({ page, request }) => {
   await resetBackend(request, "no-sorare");
   await page.goto("/pro");

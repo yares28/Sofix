@@ -12,3 +12,8 @@ crons = ["* * * * *"]
 
 [observability]
 enabled = true
+
+# The Pro teamsheet watch (src/watch.js) reads blocks/pro_watch.json and writes blocks/pro_watch_beat.json
+[[r2_buckets]]
+binding = "PAGES"
+bucket_name = "sofix-pages"

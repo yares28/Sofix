@@ -3,6 +3,8 @@ import { connection } from "next/server";
 import ProView from "../../components/pro/ProView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
+import { readModel } from "../../lib/db";
+import { BEAT_KEY } from "../../lib/proSheets";
 import { loadSorare } from "../../lib/playData";
 import { loadProWeek } from "../../lib/proWeekData";
 import { loadSystem } from "../../lib/system";
@@ -14,13 +16,15 @@ export const metadata: Metadata = { title: "Pro · Sofix" };
 export default async function ProPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await connection(); // per request, like the other pages: a build-time render has no data to read
   const params = await searchParams;
-  const [block, system, { grid, meta }, sorare] = await Promise.all([loadProWeek(), loadSystem(), loadGrid(), loadSorare({ market: false })]);
+  const [block, system, { grid, meta }, sorare, beat] = await Promise.all([
+    loadProWeek(), loadSystem(), loadGrid(), loadSorare({ market: false }), readModel<{ checkedAt: string | null }>(BEAT_KEY).catch(() => null),
+  ]);
   const week = weekContext(grid, sorare, new Date(), { w: typeof params.w === "string" ? params.w : null });
   const asked = week.current;
   return (
     <>
       <SiteNav meta={meta} system={system} week={{ ...week, weeks: pageWeeks(week.weeks, "play") }} />
-      <ProView key={asked?.id ?? "none"} data={block} gw={asked?.gw ?? null} name={asked ? sorareName(asked) : null} state={asked?.state ?? null} />
+      <ProView key={asked?.id ?? "none"} data={block} gw={asked?.gw ?? null} name={asked ? sorareName(asked) : null} state={asked?.state ?? null} beat={beat?.payload.checkedAt ?? null} />
     </>
   );
 }

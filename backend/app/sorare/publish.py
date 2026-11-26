@@ -22,7 +22,7 @@ import numpy as np
 from app.services.european_fdr import CONFERENCE_NOTE
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
 from app.services.timeutil import Laps
-from app.sorare import expected, plan_inputs, pro, projection, rules, sofix_v1, strategies, xg
+from app.sorare import expected, plan_inputs, pro, pro_sheets, projection, rules, sofix_v1, strategies, xg
 from app.sorare.forecast import GameStart, PlayerWeek, bench_record, cup_dates, own_start
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
@@ -968,6 +968,7 @@ def _pro_card(
         "club": card.club_name,
         "crest": card.club_crest,
         "fixture": {
+            "id": game.get("id"),
             "opponent": game.get("opponent"),
             "opponentCrest": game.get("opponentCrest"),
             "venue": game.get("venue"),
@@ -1143,7 +1144,7 @@ def live_pro_weeks(
         history = snapshot.get("history") or {}
         # a European board takes a LaLiga card only through its games in that competition
         playing = in_week(cards, later)
-        boards = [b for comp in comps if (b := pro_plan_payload(comp, playing, forecasts, later, history)) is not None]
+        boards, extra = pro_week(comps, playing, forecasts, later, history, snapshot.get("proSheets") or {})
         if boards:
             out.append(
                 {
@@ -1152,9 +1153,30 @@ def live_pro_weeks(
                     "start": week["start"],
                     "end": week["end"],
                     "boards": boards,
+                    **extra,
                 }
             )
     return out
+
+
+def pro_week(
+    comps: list[Competition],
+    cards: list[Card],
+    forecasts: Mapping[str, Forecast],
+    games: dict[str, list[dict[str, Any]]],
+    history: Mapping[str, list[dict[str, Any]]],
+    sheets: Mapping[str, pro_sheets.Sheet],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """A Pro week's boards on the announced elevens (`pro_sheets.apply`), with the sheets the page shows and what the teamsheet job
+    plans the week again on (`_inputs`, which the job moves to its own block)."""
+    comps = [c for c in comps if c.pro_steps]
+    sheeted = pro_sheets.apply(forecasts, games, sheets)
+    boards = [b for comp in comps if (b := pro_plan_payload(comp, cards, sheeted, games, history)) is not None]
+    extra = {
+        "sheets": pro_sheets.of_week(sheets, games),
+        "_inputs": pro_sheets.inputs(comps, cards, forecasts, games, history),
+    }
+    return boards, extra
 
 
 def _place(place: int) -> str:
@@ -1334,7 +1356,7 @@ def gameweek_payload(
 ) -> dict[str, Any]:
     """One gameweek: who plays, what can be entered, and the plans (replayed when it is already played).
 
-    `pro_plan` adds `proPlan`, the Pro page's week plan of every Pro board (`pro_plan_payload`); the job moves it to its own
+    `pro_plan` adds `proPlan`, the Pro page's week plan of every Pro board (`pro_week`); the job moves it to its own
     block (`PRO_KEY`) before the page is saved."""
     rng = np.random.default_rng(seed)
     # Players of one game score together (links.py): the planner needs to know who plays whom.
@@ -1503,12 +1525,8 @@ def gameweek_payload(
     }
     if pro_plan and not played:
         history = snapshot.get("history") or {}
-        boards = [
-            board
-            for comp in comps
-            if comp.pro_steps and (board := pro_plan_payload(comp, cards, forecasts, games, history)) is not None
-        ]
-        out["proPlan"] = boards
+        boards, extra = pro_week(comps, cards, forecasts, games, history, snapshot.get("proSheets") or {})
+        out["proPlan"] = {"boards": boards, **extra}
     if played and hindsight_comps is not None:
         hindsight = hindsight_plan(
             hindsight_comps, cards, forecasts, games, actual_references or {}, runs=max(4, runs // 2), seed=seed

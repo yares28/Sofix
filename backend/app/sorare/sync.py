@@ -18,7 +18,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.services.timeutil import Laps
-from app.sorare import expected, pro
+from app.sorare import expected, pro, pro_sheets
 from app.sorare.client import SorareClient, SorareError
 from app.sorare.model import SORARE_POSITION
 
@@ -1153,6 +1153,17 @@ def snapshot(
     )
     lap("projections")
     pro_boards = pro.boards(client, user)  # your Pro steps and prizes: public, one call
+    # the elevens already out (plans/pro-page.md, "Teamsheet watch"): a refresh after the teams keeps them, one call a game
+    near = {
+        "": [
+            {"id": g["id"], "kickoff": g["date"]}
+            for c in my_cards
+            for alias in aliases
+            for g in (c.get("player") or {}).get(alias) or []
+            if g.get("id") and g.get("date")
+        ]
+    }
+    sheets = pro_sheets.read(client.query, pro_sheets.due(near, now), now)
     lap("pro")
     prices = card_prices(client, user, my_cards)  # Prices page: what you paid and what each card is worth now
     lap("prices")
@@ -1181,6 +1192,7 @@ def snapshot(
         "foreign": foreign,
         "projections": projections,
         "pro": pro_boards,
+        "proSheets": sheets,
         "prices": prices,
         "leagueHistory": league,
         "calls": client.calls,

@@ -59,6 +59,7 @@ from app.sorare import (
     outfield,
     plan_inputs,
     player_games,
+    pro_sheets,
     projection,
     reward_bars,
     score_checks,
@@ -974,7 +975,7 @@ def run(
             "number": w["gameweek"]["number"],
             "start": w["gameweek"]["start"],
             "end": w["gameweek"]["end"],
-            "boards": plan,
+            **plan,
             **sorare_publish.pro_spare(w),  # Arena leftovers and Not placed, from the Sorare page's own first plan
         }
         for w in payload.get("weeks") or []
@@ -983,7 +984,12 @@ def run(
     # The gameweek being played comes first: its Pro boards still play the games not started yet (`live_pro_weeks`).
     pro_weeks = [{**w, "live": True} for w in pro_live] + pro_weeks
     if pro_weeks:
-        put(db, sorare_publish.PRO_KEY, {"version": 1, "builtAt": fetched.isoformat(), "weeks": pro_weeks}, now)
+        # what the teamsheet job plans each week again on (plans/pro-page.md, "Teamsheet watch"); no page reads it
+        pro_inputs = {w["slug"]: w.pop("_inputs") for w in pro_weeks if "_inputs" in w}
+        pro_block = {"version": 1, "builtAt": fetched.isoformat(), "weeks": pro_weeks}
+        put(db, pro_sheets.INPUTS_KEY, {"builtAt": fetched.isoformat(), "weeks": pro_inputs}, now)
+        put(db, sorare_publish.PRO_KEY, pro_block, now)
+        put(db, pro_sheets.WATCH_KEY, pro_sheets.watch(pro_block, now), now)
     put(db, SORARE_KEY, payload, now)
     # the recommended plan's starters with the chance Sorare gave each: a reading that moves one starts a refresh (frontend/lib/planNews.ts)
     watch = sorare_publish.plan_watch(payload)

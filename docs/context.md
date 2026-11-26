@@ -157,7 +157,7 @@ Play’s `sorareWrittenAt` version lookup caches for one hour, while split paylo
 
 **Scope/status:** normal job publication reconciliation; implemented. **Requires:** PUBLICATION-R2-001, LOCAL-ISOLATION-001.
 
-**Rule:** list R2 before reading Neon timestamps, then upload missing or sufficiently older blocks in batches of 50. Delete vanished ordinary blocks through the normal publisher, while preserving excluded switch/ledger and R2-only families. Player histories, refresh runs and Squads' two-club pairs and any-club teams (`squads_pair*`, `squads_any*`, the nightly `app.jobs.squads_pairs`) have their own publishers; a missing ordinary read-model row does not authorize deleting those objects. Compare uploaded, deleted and failed counts separately.
+**Rule:** list R2 before reading Neon timestamps, then upload missing or sufficiently older blocks in batches of 50. Delete vanished ordinary blocks through the normal publisher, while preserving excluded switch/ledger and R2-only families. Player histories, refresh runs and Squads' two-club pairs and any-club teams (`squads_pair*`, `squads_any*`, the nightly `app.jobs.squads_pairs`) and the clock's Pro teamsheet heartbeat (`pro_watch_beat`, clock/src/watch.js) have their own publishers; a missing ordinary read-model row does not authorize deleting those objects. Compare uploaded, deleted and failed counts separately.
 
 **Boundary:** R2 timestamps have whole-second precision. A database rewrite within the one-second tolerance is deliberately considered current; if its immediate upload failed, sync may leave the old block until another write. This is a known recovery limitation, not proof of immediate convergence. Without R2 configuration, zero counters mean no work attempted, not successful publication.
 
@@ -195,6 +195,8 @@ Play’s `sorareWrittenAt` version lookup caches for one hour, while split paylo
 **Scope/status:** Cloudflare clock dispatching GitHub workflows; implemented. **Requires:** none.
 
 **Rule:** clock/timetable.json is the source for UTC schedule entries; the generated inventory below reproduces them. GitHub runs the jobs, while the Worker starts due workflows. The ten-minute catch-up window includes this minute and the preceding nine. Before dispatch, the clock checks whether any run of that workflow was created since its due slot; this suppresses duplicates from clock, button or push. Cron day-of-month and weekday are both required in this implementation; no current entry constrains both.
+
+The same tick also runs the Pro teamsheet watch (clock/src/watch.js, plans/pro-page.md "Teamsheet watch"): on minutes divisible by 5 it reads R2 `blocks/pro_watch.json`; for each listed game from 75 minutes before kickoff to kickoff with fewer than two sides applied it asks Sorare's public API for the formations (a side counts once all eleven are in), writes `blocks/pro_watch_beat.json`, and dispatches pro-sheets.yml when a side is newly out, unless a run of it was created in the last 4 minutes. It needs the R2 binding `PAGES` (wrangler.toml); without it, it logs that and does nothing. It never calls Vercel or Neon.
 
 **Exceptions:** missing GITHUB_TOKEN starts nothing and logs that fact. A list/dispatch failure is reported, not evidence that the downstream job ran. A timer match is not proof of completed data refresh. GitHub backup schedule behavior lives in the workflow; do not count it as an independent requirement to duplicate every Worker dispatch.
 
@@ -429,6 +431,19 @@ Coverage is all 36 main-stage clubs and their current players/calendar; qualifie
 **Effects and failure boundaries:** Reads announced elevens for owner games in the next three hours and dispatches pro-rebuild. Read/load errors before the dispatch try block are not normalized by its catch. No Sorare lineup entry.
 
 **Evidence limit:** inspected handler behavior, not live endpoint proof. Imported validators/loaders define nested schemas and underlying reads; uncaught errors may use framework responses. Do not invoke a write/dispatch merely because this reference documents it.
+
+<a id="api-pro-sheets-001"></a>
+## API-PRO-SHEETS-001 - GET, POST /api/pro-sheets
+
+**Guard:** SAME only (x-fdr-refresh:1 and same-origin evidence).
+
+**Input:** none. GET is the Pro page's teamsheet poll, sent at most every 5 minutes while its tab is visible and a lineup of the week is inside its window (75 minutes before kickoff to kickoff, teams not all out; `lib/proSheets.ts`). POST is "Check now".
+
+**Response/cache:** GET 200 {version of the Pro block from `pro_watch`, the clock's last look from `pro_watch_beat`, GitHub's latest pro-sheets run or null}; POST 202 dispatched or a run already active/under 2 minutes old, 403 guard, 502 refused dispatch, 503 no token or GitHub unreachable; no-store.
+
+**Effects and failure boundaries:** GET reads two small R2 blocks and one GitHub run list; it never reads Neon or Sorare. POST dispatches pro-sheets.yml (`app.jobs.pro_sheets`), which re-plans the Pro weeks on the announced elevens. No Sorare lineup entry.
+
+**Evidence limit:** inspected handler behavior and the mocked page journey (e2e/pro.e2e.ts), not live endpoint proof. Do not invoke the dispatch merely because this reference documents it.
 
 <a id="api-missions-history-001"></a>
 ## API-MISSIONS-HISTORY-001 - POST /api/missions/history
@@ -730,6 +745,7 @@ Generated from tracked plus unignored local file paths, SQLAlchemy table declara
 | API | `/api/my-week` | `frontend/app/api/my-week/route.ts` |
 | API | `/api/players` | `frontend/app/api/players/route.ts` |
 | API | `/api/pro-rebuild` | `frontend/app/api/pro-rebuild/route.ts` |
+| API | `/api/pro-sheets` | `frontend/app/api/pro-sheets/route.ts` |
 | API | `/api/refresh` | `frontend/app/api/refresh/route.ts` |
 | API | `/api/revalidate` | `frontend/app/api/revalidate/route.ts` |
 | API | `/api/settings` | `frontend/app/api/settings/route.ts` |
@@ -943,13 +959,13 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-26",
-        "note": "live_pro_weeks marks each card's competitions from the live week's games not started (in_week) before planning Pro boards; Arena/Play selection unchanged",
+        "note": "publish.py: Pro boards now plan on announced elevens (pro_week, pro_sheets.apply) and carry the game id; Arena/Play selection unchanged. jobs/sorare.py writes sorare_pro_inputs and pro_watch beside sorare_pro.",
         "files": {
-          "backend/app/sorare/publish.py": "a589fcbf92d1d862073d715aff0a5eb86886969ec9bfc76d15fa4283dc68ff19",
+          "backend/app/sorare/publish.py": "dd85cc1c1ea4957673e14865dba6d24cbba8a75cfcb880753a8d090dccc79c77",
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "bb46a8871a96b96d7f13d515133e5891a363bf9136754918ab6f28048f6847e0",
-          "backend/app/jobs/sorare.py": "6e6f42bc4905cffed2a24e747f2d7af8e3cfe486e4882624722dc307efab5e1a",
+          "backend/app/jobs/sorare.py": "a94afafdf05414df36351d72040d29a0c70dd3776b729254476127559a499b41",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
         }
@@ -1076,9 +1092,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-26",
-        "note": "publish.py change only marks the live week's card competitions for the Pro page (in_week); forecast code unchanged",
+        "note": "publish.py: announced elevens override start chances only inside the Pro week plan; the raw forecasts saved and shown elsewhere are unchanged.",
         "files": {
-          "backend/app/sorare/publish.py": "a589fcbf92d1d862073d715aff0a5eb86886969ec9bfc76d15fa4283dc68ff19",
+          "backend/app/sorare/publish.py": "dd85cc1c1ea4957673e14865dba6d24cbba8a75cfcb880753a8d090dccc79c77",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
@@ -1362,11 +1378,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-25",
-        "note": "Checked r2.py on 25 Nov 2026: only the R2-only prefix list grew (Squads' two-club and any-club blocks, written straight to R2 by app.jobs.squads_pairs and read by /squads); page reads, put and publish order unchanged.",
+        "date": "2026-11-26",
+        "note": "r2.py change is the R2-only prefix list only; page read rule unchanged (the Pro page reads pro_watch_beat from R2).",
         "files": {
           "backend/app/services/publish.py": "ad9fd1e73e97612ac993e50ef8989d26e6670f3950c0ed160db04fe3ec662f4c",
-          "backend/app/services/r2.py": "d3527e5a3e67821061e0f8888862582b3bbebaf12ff24333e2e99aeb1b7d7dd1",
+          "backend/app/services/r2.py": "d24e7c91eb893da36656a0958873c8cdee863b48b54308210bacab94da168728",
           "frontend/lib/r2.ts": "76b01a34a5961032f76df91b3f68dce1db2c2e21462001387a50d754ef94f147",
           "frontend/lib/playData.ts": "b99963c46ba2fb504326f015a6e3f1b966364706b56008934b0717d85289b0e5",
           "frontend/lib/db.ts": "e0c13b9c1033d87fa114b2ce04322cc9a17a6c38296ff223eb60b2d4c7cfcca3",
@@ -1409,10 +1425,10 @@ This block is the single machine-readable index for the sections above. Test ref
       "anchor": "publication-sync-001",
       "status": "implemented",
       "review": {
-        "date": "2026-11-25",
-        "note": "Checked r2.py on 25 Nov 2026: R2_ONLY also keeps squads_any blocks (Squads' Any clubs, written by the nightly app.jobs.squads_pairs), so sync never deletes them for having no read-model row; upload and delete order unchanged.",
+        "date": "2026-11-26",
+        "note": "pro_watch_beat added to R2_ONLY so sync keeps the clock's heartbeat; no other sync behavior changed.",
         "files": {
-          "backend/app/services/r2.py": "d3527e5a3e67821061e0f8888862582b3bbebaf12ff24333e2e99aeb1b7d7dd1",
+          "backend/app/services/r2.py": "d24e7c91eb893da36656a0958873c8cdee863b48b54308210bacab94da168728",
           "backend/app/services/player_blocks.py": "984e04c0e3da31890d4a9a9672a064982bd1a92b4f64bafd14adc7f8335bd872",
           "backend/tests/test_r2_sync.py": "ea643078606d9b1daa57cff509fa5bf3838acf6f216cbdfad17a9936ac435633"
         }
@@ -1531,7 +1547,8 @@ This block is the single machine-readable index for the sections above. Test ref
       "paths": [
         "clock/",
         ".github/workflows/refresh.yml",
-        ".github/workflows/near-lock.yml"
+        ".github/workflows/near-lock.yml",
+        ".github/workflows/pro-sheets.yml"
       ],
       "requires": [],
       "sources": [
@@ -1544,6 +1561,13 @@ This block is the single machine-readable index for the sections above. Test ref
           "symbol": "tick"
         },
         {
+          "path": "clock/src/watch.js",
+          "symbol": "watch"
+        },
+        {
+          "path": "clock/wrangler.toml"
+        },
+        {
           "path": "clock/timetable.json"
         },
         {
@@ -1553,18 +1577,24 @@ This block is the single machine-readable index for the sections above. Test ref
       "tests": [
         {
           "path": "clock/test/clock.test.js"
+        },
+        {
+          "path": "clock/test/watch.test.js"
         }
       ],
       "anchor": "schedule-clock-001",
       "status": "implemented",
       "review": {
-        "date": "2026-11-13",
-        "note": "13 Nov 2026: Sofix v1 refits for PL, BL1, FL1, CL, EL, CONF (foreign_scores v1 hook, per-model version recorded in publish, refresh replans on a new competition artifact); LaLiga path unchanged; checked with unit tests and a run on local real blocks, not on a live refresh",
+        "date": "2026-11-26",
+        "note": "Teamsheet watch added (watch.js, R2 binding); 23 mocked clock tests pass; the Worker is not redeployed yet, so the watch is not live.",
         "files": {
-          "clock/src/clock.js": "d1c9ca65b5e06c59a38d9dbacbdce72d3e3bbd2e5faafeb0db581727d297ebca",
+          "clock/src/clock.js": "3b43e37679df76d927416dde7bbab5265f5796128ded6e66ed64c7733ee1ce66",
+          "clock/src/watch.js": "92fba11a9dcdddc39a5aac712fc101b1025476125c48f15c5af573bf5c2e45a3",
+          "clock/wrangler.toml": "69bc3a9a13aeeb23266e587bfe6abebf40544c7ead808b80fc32f6e17a30a00e",
           "clock/timetable.json": "86241a108823e509f86904ba9005f21cb0307f369871b6ee1cfccd5960a54eca",
           ".github/workflows/refresh.yml": "704f40a3d6b7086c427b03946f608de536cede073348f79e1908e6e00ce76c7d",
-          "clock/test/clock.test.js": "642c93350966e1b89b1080e6602804e44e3b92a23d3d1070823eda6c36e3184c"
+          "clock/test/clock.test.js": "642c93350966e1b89b1080e6602804e44e3b92a23d3d1070823eda6c36e3184c",
+          "clock/test/watch.test.js": "3c63e5e97089750ef88f8082f8690c5e553a7220f97cbbffa07abc958b5cc386"
         }
       }
     },
@@ -2397,6 +2427,50 @@ This block is the single machine-readable index for the sections above. Test ref
       }
     },
     {
+      "id": "API-PRO-SHEETS-001",
+      "anchor": "api-pro-sheets-001",
+      "status": "implemented",
+      "aliases": [
+        "/api/pro-sheets"
+      ],
+      "paths": [
+        "frontend/app/api/pro-sheets/route.ts"
+      ],
+      "requires": [],
+      "sources": [
+        {
+          "path": "frontend/app/api/pro-sheets/route.ts"
+        },
+        {
+          "path": "frontend/lib/proSheets.ts",
+          "symbol": "sheetStatus"
+        },
+        {
+          "path": "frontend/lib/refresh.ts",
+          "symbol": "isSameOriginRequest"
+        }
+      ],
+      "tests": [
+        {
+          "path": "frontend/lib/proSheets.test.ts"
+        },
+        {
+          "path": "frontend/e2e/pro.e2e.ts"
+        }
+      ],
+      "review": {
+        "date": "2026-11-26",
+        "note": "Route, page rules and tests inspected on 26 Nov 2026; mocked page journey (e2e/pro.e2e.ts) and vitest pass. No production endpoint call or live dispatch.",
+        "files": {
+          "frontend/app/api/pro-sheets/route.ts": "52f705d81db3169fba5386f16d004b27b78bce5283a627d4b49e7cee61c9f2eb",
+          "frontend/lib/proSheets.ts": "a2dea76b1fddb4629ab476847264ad390017bde9f2dd4ce2939fe5a9321ffb94",
+          "frontend/lib/refresh.ts": "0f6fa0ad8e8437a5f185a82b212691b56f85b77745c9d828a041fb061c01930d",
+          "frontend/lib/proSheets.test.ts": "0b4499a65fc0bca15b0d7d01aeaa21d3a5ea0d0e8673631a4c1216a6d44c9551",
+          "frontend/e2e/pro.e2e.ts": "bff7f08a0ea327e002f71f8516663241054888b2ac3c125359bd91e6073b1900"
+        }
+      }
+    },
+    {
       "id": "API-MISSIONS-HISTORY-001",
       "anchor": "api-missions-history-001",
       "status": "implemented",
@@ -2949,6 +3023,14 @@ This block is the single machine-readable index for the sections above. Test ref
         "POST"
       ],
       "contract": "API-PRO-REBUILD-001"
+    },
+    {
+      "path": "frontend/app/api/pro-sheets/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "contract": "API-PRO-SHEETS-001"
     },
     {
       "path": "frontend/app/api/missions/history/route.ts",

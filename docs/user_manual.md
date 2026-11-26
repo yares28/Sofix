@@ -402,7 +402,11 @@ colours and up to two legal subs (the 4 in-season rule kept); the dark block giv
 chance and the next two steps. Mark a lineup Cleared or Missed: later lineups move up a step and every chance follows. Batches with
 no legal five show the missing slot and the in-season count. **Arena leftovers** lists your cards with a game this week that the
 Sorare page's first plan leaves out of its LaLiga in-season lineups; **Not placed** those in none of its lineups (best xS first,
-twelve a page, ×2 for a second free card). The refresh writes it as block `sorare_pro`.
+twelve a page, ×2 for a second free card). The refresh writes it as block `sorare_pro`. **Teams out** (26 Nov 2026): from 75 minutes
+before a lineup's kickoff the clock asks Sorare every 5 minutes; once a side is out the week is planned again on it within about a
+minute (an announced starter shows **XI**, a benched one leaves the lineup). Each lineup's pill says "Teams ~18:45", when the clock last
+looked ("Checked 17:50"; "Not checked since 17:35" after two missed looks), "2 of 5 in the XI" or "Teams out 17:46"; **Check now** runs
+the same check by hand.
 
 Above the recommended Sofix plan, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
 lineups and drafts are labelled separately and retain their Sorare competition and card list. Each one is drawn as the Recap's

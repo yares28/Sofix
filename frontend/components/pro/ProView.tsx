@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SeasonIcon from "../SeasonIcon";
 import { scoreColour } from "../../lib/cards";
+import { inEleven, POLL_MS, sheetStatus, versionOf, watching, type SheetRun, type Sheets } from "../../lib/proSheets";
 import {
   chanceAt, clearChance, holdMatchday, moves, PAGE_SIZE, reachChances, stepsPlayed,
   type ProBlock, type ProSpare, type ProBoard, type ProCard, type ProPlanned, type ProStarter, type Result,
 } from "../../lib/proWeek";
+import { REFRESH_HEADER } from "../../lib/refresh";
 import type { WeekState } from "../../lib/weeks";
 
 const MADRID = "Europe/Madrid";
@@ -32,15 +35,66 @@ function emptyTitle(data: ProBlock | null, week: ProBlock["weeks"][number] | nul
 type Mode = "byBatch" | "bestFive";
 type View = "pro" | "left" | "rest";
 const VIEWS: [View, string][] = [["pro", "Pro"], ["left", "Arena leftovers"], ["rest", "Not placed"]];
+const NO_SHEETS: Sheets = {};
+
+/**
+ * The teamsheet watch from the page's side (plans/pro-page.md, "Teamsheet watch"): while the tab is visible and a lineup of the week is
+ * inside its window, it asks the app every 5 minutes when the clock last looked and whether the block moved, and re-renders only then.
+ */
+function useSheetWatch(version: string, active: boolean, beat: string | null) {
+  const router = useRouter();
+  const [checkedAt, setCheckedAt] = useState(beat);
+  const [run, setRun] = useState<SheetRun>(null);
+  const [checking, setChecking] = useState(false);
+  const asked = useRef(Date.now());
+  const ask = useCallback(async () => {
+    asked.current = Date.now();
+    const response = await fetch("/api/pro-sheets", { headers: { [REFRESH_HEADER]: "1" }, cache: "no-store" }).catch(() => null);
+    setChecking(false);
+    if (!response?.ok) return;
+    const body = (await response.json()) as { version: string | null; checkedAt: string | null; run: SheetRun };
+    setCheckedAt(body.checkedAt);
+    setRun(body.run);
+    if (body.version && body.version !== version) router.refresh();
+  }, [version, router]);
+  useEffect(() => {
+    if (!active) return;
+    const due = () => { if (document.visibilityState === "visible" && Date.now() - asked.current >= POLL_MS) void ask(); };
+    const timer = setInterval(due, 30_000); // a local look at the time; the app is asked at most every POLL_MS
+    document.addEventListener("visibilitychange", due);
+    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", due); };
+  }, [active, ask]);
+  const check = async () => {
+    setChecking(true);
+    const response = await fetch("/api/pro-sheets", { method: "POST", headers: { [REFRESH_HEADER]: "1" } }).catch(() => null);
+    if (!response?.ok) return setChecking(false);
+    asked.current = Date.now() - POLL_MS + 75_000; // the job takes under a minute: look again then, not before
+  };
+  return { checkedAt, run, checking, check };
+}
+
+/** The time on this side only, updated each minute: the server's render shows what needs no clock (no mismatch on hydration). */
+function useNow(): number {
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  return now;
+}
 
 /** The Pro page: the week in the bar, one board at a time, its staircase, hold or play for the matchday, and its lineups day by day. */
-export default function ProView({ data, gw, name, state }: { data: ProBlock | null; gw: string | null; name: string | null; state: WeekState | null }) {
+export default function ProView({ data, gw, name, state, beat = null }: { data: ProBlock | null; gw: string | null; name: string | null; state: WeekState | null; beat?: string | null }) {
   const at = data ? data.weeks.findIndex((w) => String(w.number) === gw) : -1;
   const week = at >= 0 ? data!.weeks[at]! : null;
   const [boardKey, setBoardKey] = useState(week?.boards.find((b) => b.byBatch.length)?.key ?? week?.boards[0]?.key ?? "");
   const [mode, setMode] = useState<Mode>("byBatch");
   const [results, setResults] = useState<Record<string, Result[]>>({});
-  const [out, setOut] = useState<Record<string, boolean>>({});
+  const now = useNow();
+  const sheets = week?.sheets ?? NO_SHEETS;
+  const active = !!week && watching(week.boards.flatMap((b) => [...b.byBatch, ...b.bestFive]), sheets, now);
+  const watch = useSheetWatch(data ? versionOf(data) : "", active, beat);
   const board = week?.boards.find((b) => b.key === boardKey) ?? null;
   // hold or play compares with the same board's next gameweek that plays it
   const next = data && at >= 0 ? (data.weeks.slice(at + 1).flatMap((w) => w.boards).find((b) => b.key === boardKey) ?? null) : null;
@@ -180,9 +234,11 @@ export default function ProView({ data, gw, name, state }: { data: ProBlock | nu
           lineup={lineups[row.i]!}
           step={played[row.i]!}
           result={res[row.i] ?? "open"}
-          teamsOut={!!out[`${resultKey}|${row.i}`]}
+          sheets={sheets}
+          status={sheetStatus(lineups[row.i]!, sheets, now, watch.checkedAt, watch.run)}
+          checking={watch.checking}
           onResult={(r) => setResult(row.i, r)}
-          onTeams={() => setOut({ ...out, [`${resultKey}|${row.i}`]: !out[`${resultKey}|${row.i}`] })}
+          onCheck={() => void watch.check()}
         />
       ) : <DeadRow key={`b${row.at}`} at={row.at} cards={row.cards} minInSeason={board.minInSeason} />)}
       </>}
@@ -249,16 +305,15 @@ function cumulative(lineups: ProPlanned[], res: Result[], tags: string[]): numbe
   });
 }
 
-function LineupRow({ board, lineup, step, result, teamsOut, onResult, onTeams }: {
-  board: ProBoard; lineup: ProPlanned; step: number; result: Result; teamsOut: boolean;
-  onResult: (r: Result) => void; onTeams: () => void;
+function LineupRow({ board, lineup, step, result, sheets, status, checking, onResult, onCheck }: {
+  board: ProBoard; lineup: ProPlanned; step: number; result: Result; sheets: Sheets;
+  status: ReturnType<typeof sheetStatus>; checking: boolean; onResult: (r: Result) => void; onCheck: () => void;
 }) {
   const target = board.steps[step];
   const ch = chanceAt(lineup, step);
   const seasons = lineup.starters.filter((s) => s.inSeason).length;
   const matches = new Map<string, ProStarter>();
   for (const s of lineup.starters) if (s.fixture) matches.set(`${s.club}|${s.fixture.opponent}`, s);
-  const sheet = new Date(new Date(lineup.start).getTime() - 3_600_000).toISOString();
   return (
     <article className="pro-row" aria-label={`${dayOf(lineup.start)} ${timeOf(lineup.start)}`}>
       <div className="pro-meta">
@@ -268,9 +323,12 @@ function LineupRow({ board, lineup, step, result, teamsOut, onResult, onTeams }:
             <Crest src={s.crest} bucket={s.fixture!.bucket} /><span className="vs">v</span><Crest src={s.fixture!.opponentCrest} bucket={null} />
           </span>
         ))}
-        <button type="button" className={`pro-sheet${teamsOut ? " is-out" : ""}`} aria-pressed={teamsOut} onClick={onTeams}>
-          {teamsOut ? "Teams out" : `Teams ~${timeOf(sheet)}`}
-        </button>
+        <div className="pro-sheets" aria-live="polite">
+          <span className={`pro-sheet is-${status.tone}`}>{status.label}</span>
+          {status.check ? (
+            <button type="button" className="pro-check" onClick={onCheck} disabled={checking}>{checking ? "Checking…" : "Check now"}</button>
+          ) : null}
+        </div>
         <div className="pro-res">
           <button type="button" className={`c${result === "cleared" ? " on" : ""}`} aria-pressed={result === "cleared"} onClick={() => onResult("cleared")}>
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>Cleared
@@ -282,7 +340,7 @@ function LineupRow({ board, lineup, step, result, teamsOut, onResult, onTeams }:
       </div>
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- keyboard access to the five when they scroll on a phone */}
       <div className="pro-five" role="region" aria-label="The five" tabIndex={0}>
-        {lineup.starters.map((s) => <Player key={s.slug} s={s} teamsOut={teamsOut} />)}
+        {lineup.starters.map((s) => <Player key={s.slug} s={s} xi={!s.late && inEleven(s, sheets)} />)}
       </div>
       {target ? (
         <div className="pro-goal">
@@ -323,14 +381,13 @@ function Crest({ src, bucket }: { src: string | null; bucket: number | null }) {
   );
 }
 
-function Player({ s, teamsOut }: { s: ProStarter; teamsOut: boolean }) {
-  const known = teamsOut && !s.late;
+function Player({ s, xi }: { s: ProStarter; xi: boolean }) {
   const xs = scoreColour(s.x);
   return (
     <div className="pro-pc">
       <div className="pro-art">
         <CardArt card={s} />
-        <span className={`pro-sp is-${known ? "hi" : startTone(s.start)}`}>{known ? "XI" : pct(s.start)}</span>
+        <span className={`pro-sp is-${xi ? "hi" : startTone(s.start)}`} title={xi ? "In Sorare's announced eleven" : undefined}>{xi ? "XI" : pct(s.start)}</span>
         {s.captain ? <span className="pro-cap" aria-label="Captain">C</span> : null}
         <span className="s5-season pro-season" title={s.inSeason ? "In season" : "Classic"}><SeasonIcon inSeason={s.inSeason} /></span>
       </div>

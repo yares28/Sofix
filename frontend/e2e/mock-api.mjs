@@ -264,7 +264,9 @@ for (const player of planning.playing.players.slice(0, 3)) {
 // their wording and the bands have something to draw.
 const rewardBarsFixture = JSON.parse(readFileSync(new URL("./fixtures/reward-bars-response.json", import.meta.url), "utf8"));
 // The Pro page's block for GW35 (25 Nov 2026), built from the owner's real cards, start chances and the plan research (plans/pro-page.md).
-const proFixture = JSON.parse(readFileSync(new URL("./fixtures/pro-response.json", import.meta.url), "utf8"));
+// Recorded on GW35; served as the mock's planned gameweek, so the week in the bar is the week it plans.
+const proRecorded = JSON.parse(readFileSync(new URL("./fixtures/pro-response.json", import.meta.url), "utf8"));
+const proFixture = { ...proRecorded, data: { ...proRecorded.data, weeks: proRecorded.data.weeks.map((w) => ({ ...w, number: Number(sorareFixture.data.nextId) })) } };
 // LaLiga's Squads block (backend/app/sorare/squads.py on the 24 Nov 2026 blocks): Alavés, Celta and Elche whole, the other clubs' picker numbers.
 const squadsFixture = JSON.parse(readFileSync(new URL("./fixtures/squads-response.json", import.meta.url), "utf8"));
 // Its start-of-season block (squads_next:LALIGA, picked from 2025/26): Celta, Elche (no team at 90% inside €40), Deportivo (promoted).

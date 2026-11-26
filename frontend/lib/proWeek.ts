@@ -51,25 +51,6 @@ export function readable(raw: unknown): ProBlock | null {
   return parsed.success ? parsed.data : null;
 }
 
-/**
- * Each board once, on the first week it plays in, with the same board a week later for hold or play. The gameweek being played
- * comes first in the block: a midweek European board plays its games not started yet there, LaLiga the weekend after.
- */
-export function boardWeeks(data: ProBlock): { board: ProBoard; next: ProBoard | null }[] {
-  const plays = (b: ProBoard) => b.byBatch.length + b.bestFive.length + b.batches.length > 0;
-  const out = new Map<string, { board: ProBoard; next: ProBoard | null }>();
-  for (const onlyPlaying of [true, false]) {
-    data.weeks.forEach((week, i) => {
-      for (const board of week.boards) {
-        if (out.has(board.key) || (onlyPlaying && !plays(board))) continue;
-        const next = data.weeks.slice(i + 1).flatMap((w) => w.boards).find((b) => b.key === board.key) ?? null;
-        out.set(board.key, { board, next });
-      }
-    });
-  }
-  return [...out.values()];
-}
-
 export type Result = "open" | "cleared" | "missed";
 export const LIVES = 4;
 /** Two plans whose chances are within this are a tie (Arcade's LEG_TIE): a tie plays now. */

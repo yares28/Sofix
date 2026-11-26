@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fixture from "../e2e/fixtures/pro-response.json";
-import { boardWeeks, clearChance, holdMatchday, moves, reachChances, readable, stepsPlayed, type ProPlanned, type Result } from "./proWeek";
+import { clearChance, holdMatchday, moves, reachChances, readable, stepsPlayed, type ProPlanned, type Result } from "./proWeek";
 
 const lineup = (...reach: number[]): ProPlanned => ({ start: "2026-11-28T14:00:00+00:00", span: "batch", reach, x: 300, starters: [] });
 
@@ -9,19 +9,6 @@ describe("the Pro page's block", () => {
     const block = readable(fixture.data);
     expect(block?.weeks[0]?.boards.map((b) => b.name)).toEqual(["LaLiga Pro", "European Champions Pro", "Europa Contenders Pro"]);
     expect(readable({ version: 2 })).toBeNull();
-  });
-});
-
-describe("which week each board plays", () => {
-  it("a European board plays the gameweek being played, LaLiga the next one, each board once", () => {
-    const block = readable(fixture.data)!;
-    const [laliga, champions, europa] = block.weeks[0]!.boards;
-    const live = { ...block.weeks[0]!, slug: "live", live: true, boards: [{ ...laliga!, byBatch: [], bestFive: [], batches: [] }, europa!] };
-    const next = { ...block.weeks[0]!, slug: "next", boards: [laliga!, { ...champions!, byBatch: [], bestFive: [], batches: [] }] };
-    const shown = boardWeeks({ ...block, weeks: [live, next] });
-    expect(shown.map((s) => s.board.name)).toEqual(["Europa Contenders Pro", "LaLiga Pro", "European Champions Pro"]);
-    expect(shown[1]!.board).toBe(laliga); // LaLiga's own games, not the empty board of the week being played
-    expect(shown.find((s) => s.board.key === europa!.key)!.next).toBeNull();
   });
 });
 

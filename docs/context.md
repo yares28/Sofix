@@ -943,9 +943,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-26",
-        "note": "Pro page plans the gameweek being played on its games not started (live_pro_weeks, block sorare_pro); Arena/Play selection unchanged",
+        "note": "Pro block planned for every gameweek ahead and the live one's later games (pro_plan, live_pro_weeks); Arena/Play selection unchanged",
         "files": {
-          "backend/app/sorare/publish.py": "3ad8ed49ac042066dca262339d1c85efd79c581f4777991911e3b8b70900036e",
+          "backend/app/sorare/publish.py": "46d92c5d3ef6a285fba74622e5b9ad4a3b3eb93801c9481c85f6677c41e03f19",
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "bb46a8871a96b96d7f13d515133e5891a363bf9136754918ab6f28048f6847e0",
@@ -1076,9 +1076,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-11-26",
-        "note": "live_pro_weeks builds form forecasts for the live week's later games like the weeks ahead; forecast code unchanged",
+        "note": "Pro plans reuse each week's existing forecasts; live week's later games get form forecasts like weeks ahead; forecast code unchanged",
         "files": {
-          "backend/app/sorare/publish.py": "3ad8ed49ac042066dca262339d1c85efd79c581f4777991911e3b8b70900036e",
+          "backend/app/sorare/publish.py": "46d92c5d3ef6a285fba74622e5b9ad4a3b3eb93801c9481c85f6677c41e03f19",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"

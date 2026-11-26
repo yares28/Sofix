@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import SeasonIcon from "../SeasonIcon";
 import { scoreColour } from "../../lib/cards";
 import {
-  boardWeeks, chanceAt, clearChance, holdMatchday, moves, PAGE_SIZE, reachChances, stepsPlayed,
+  chanceAt, clearChance, holdMatchday, moves, PAGE_SIZE, reachChances, stepsPlayed,
   type ProBlock, type ProSpare, type ProBoard, type ProCard, type ProPlanned, type ProStarter, type Result,
 } from "../../lib/proWeek";
+import type { WeekState } from "../../lib/weeks";
 
 const MADRID = "Europe/Madrid";
 const dayOf = (iso: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: MADRID }).format(new Date(iso));
@@ -18,22 +19,31 @@ const startTone = (p: number) => (p >= 0.8 ? "hi" : p >= 0.5 ? "mid" : "lo");
 const chanceTone = (p: number) => (p >= 0.4 ? "hi" : p >= 0.2 ? "mid" : "lo");
 const shortName = (name: string) => name.replace(/ Pro$/, "");
 
+/** What the page says when the week in the bar has no board to show. */
+function emptyTitle(data: ProBlock | null, week: ProBlock["weeks"][number] | null, name: string | null, state: WeekState | null): string {
+  if (!data) return "No Pro boards read yet";
+  const gw = name ?? "This week";
+  if (week || state === "next") return `No Pro games for you in ${gw}`;
+  if (state === "done") return `${gw} is over`;
+  if (state === "live") return `No Pro games left for you in ${gw}`;
+  return `${gw} is not planned yet`;
+}
+
 type Mode = "byBatch" | "bestFive";
 type View = "pro" | "left" | "rest";
 const VIEWS: [View, string][] = [["pro", "Pro"], ["left", "Arena leftovers"], ["rest", "Not placed"]];
 
-/** The Pro page: one board at a time, its staircase, hold or play for the matchday, and its lineups day by day. */
-export default function ProView({ data }: { data: ProBlock | null }) {
-  // Arena leftovers and Not placed come from the Sorare page's plan, which is the next gameweek's, not the one being played
-  const week = data?.weeks.find((w) => !w.live) ?? data?.weeks[0] ?? null;
-  const boards = useMemo(() => (data ? boardWeeks(data) : []), [data]);
-  const [boardKey, setBoardKey] = useState(boards.find((b) => b.board.byBatch.length)?.board.key ?? boards[0]?.board.key ?? "");
+/** The Pro page: the week in the bar, one board at a time, its staircase, hold or play for the matchday, and its lineups day by day. */
+export default function ProView({ data, gw, name, state }: { data: ProBlock | null; gw: string | null; name: string | null; state: WeekState | null }) {
+  const at = data ? data.weeks.findIndex((w) => String(w.number) === gw) : -1;
+  const week = at >= 0 ? data!.weeks[at]! : null;
+  const [boardKey, setBoardKey] = useState(week?.boards.find((b) => b.byBatch.length)?.key ?? week?.boards[0]?.key ?? "");
   const [mode, setMode] = useState<Mode>("byBatch");
   const [results, setResults] = useState<Record<string, Result[]>>({});
   const [out, setOut] = useState<Record<string, boolean>>({});
-  const picked = boards.find((b) => b.board.key === boardKey) ?? null;
-  const board = picked?.board ?? null;
-  const next = picked?.next ?? null;
+  const board = week?.boards.find((b) => b.key === boardKey) ?? null;
+  // hold or play compares with the same board's next gameweek that plays it
+  const next = data && at >= 0 ? (data.weeks.slice(at + 1).flatMap((w) => w.boards).find((b) => b.key === boardKey) ?? null) : null;
   const lineups = useMemo(() => (board ? [...board[mode]].sort((a, b) => a.start.localeCompare(b.start)) : []), [board, mode]);
   const resultKey = `${boardKey}|${mode}`;
   const res = results[resultKey] ?? [];
@@ -49,7 +59,7 @@ export default function ProView({ data }: { data: ProBlock | null }) {
   if (!week || !board) {
     return (
       <main className="pro" aria-labelledby="pro-title">
-        <h1 id="pro-title" className="pro-empty">No Pro boards read yet</h1>
+        <h1 id="pro-title" className="pro-empty">{emptyTitle(data, week, name, state)}</h1>
       </main>
     );
   }
@@ -84,7 +94,7 @@ export default function ProView({ data }: { data: ProBlock | null }) {
       <div className="pro-ctl">
         {view === "pro" ? (
           <div className="pro-seg" role="tablist" aria-label="Board">
-            {boards.map(({ board: b }) => (
+            {week.boards.map((b) => (
               <button key={b.key} type="button" role="tab" aria-selected={b.key === boardKey} className={b.key === boardKey ? "on" : undefined} onClick={() => { setBoardKey(b.key); setDay(null); }}>
                 {shortName(b.name)}<i>S{b.steps[0]?.level ?? 0}</i>
               </button>

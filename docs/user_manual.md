@@ -388,9 +388,9 @@ Pro lineup none of whose players has kicked off. While the gameweek is the one b
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 
-**This week · Pro (`/pro`, 25 Nov 2026, [plans/pro-page.md](../plans/pro-page.md)).** One Pro board at a time (each board Sofix can fill,
-with its step), each on the first gameweek it plays: a European board keeps the midweek gameweek being played for its games not
-started yet (a Pro lineup locks at its own first kickoff), LaLiga shows the weekend after. **Hold or play** on top: your lineups in kick-off order, each tagged play / hold / cleared / missed with its chance,
+**This week · Pro (`/pro`, 25 Nov 2026, [plans/pro-page.md](../plans/pro-page.md)).** The week in the top bar picks the Sorare gameweek: every
+gameweek Sorare has opened is planned, and the one being played keeps its games not started yet (a Pro lineup locks at its own first
+kickoff, so Thursday's European board still plays after Tuesday's lock). One Pro board at a time (each board Sofix can fill, with its step). **Hold or play** on top: your lineups in kick-off order, each tagged play / hold / cleared / missed with its chance,
 and a bar filling to the chance of clearing the step this matchday; every lineup is played (different cards, four lives that last the
 matchday), a lineup waits only when more than four would play one step or it has no chance there, and the whole matchday waits when
 the next one is more than 2 points better. The **staircase** gives the chance of reaching each step. Days switch the lineups shown;

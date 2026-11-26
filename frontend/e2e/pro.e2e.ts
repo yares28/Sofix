@@ -87,6 +87,17 @@ test("reads at 1440 and 390 px with no small text, no overflow and no accessibil
   }
 });
 
+test("follows the week in the top bar: the planned gameweek has its boards, a later one says it has none", async ({ page }) => {
+  await page.goto("/pro");
+  await expect(page.getByRole("tab", { name: /LaLiga/ })).toBeVisible();
+  await page.getByRole("button", { name: "Next gameweek" }).click();
+  await expect(page).toHaveURL(/[?&]w=/);
+  await expect(page.locator(".pro-empty")).toBeVisible();
+  await expect(page.getByRole("tab", { name: /LaLiga/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Previous gameweek" }).click();
+  await expect(page.getByRole("tab", { name: /LaLiga/ })).toBeVisible();
+});
+
 test("before the first refresh writes it, the page says so", async ({ page, request }) => {
   await resetBackend(request, "no-sorare");
   await page.goto("/pro");

@@ -1902,7 +1902,7 @@ def build_payload(
                 count=1,  # one plan is enough this far out: the numbers will change before it locks
                 runs=max(4, runs // 4),
                 draws=draws,
-                pro_plan=i == 0,  # the next matchday, for the Pro page's hold or play
+                pro_plan=True,  # the Pro page plans each gameweek Sorare has opened, picked in the top bar
             )
         )
 

@@ -48,6 +48,13 @@ const dbRun = (over: Partial<DbRun> = {}): DbRun => ({
 });
 
 describe("toRefreshStatus", () => {
+  it("lets the button start when the last run was a timed one its 3-hour gate skipped", () => {
+    // 25 Nov 2026: a schedule run at 23:33 ended "success" without refreshing, and the button answered 429 at 23:42
+    const status = toRefreshStatus(workflow("completed", "success"), dbRun({ started_at: "2026-09-21T09:00:00Z", status: "succeeded", finished_at: "2026-09-21T09:15:00Z" }), NOW);
+    expect(status.retry_after).toBe(0);
+    expect(status.run).toMatchObject({ id: 14, started_at: "2026-09-21T09:00:00Z" });
+  });
+
   it("is empty when nothing ever ran", () => {
     expect(toRefreshStatus(null, null, NOW)).toEqual({ run: null, retry_after: 0 });
   });

@@ -41,6 +41,10 @@ export function stepsOf(details: DbRun["details"]): RefreshRun["steps"] {
 
 /** What the button needs, from GitHub's latest workflow run and Neon's latest refresh row. */
 export function toRefreshStatus(workflow: WorkflowRun | null, db: DbRun | null, now: number): RefreshStatus {
+  // A timed or push run that refresh.yml's 3-hour gate skipped ends "success" with no refresh row of its own: it refreshed
+  // nothing, so it neither shows as the last refresh nor holds the button back.
+  const skipped = workflow?.status === "completed" && workflow.conclusion === "success" && !(db && Date.parse(db.started_at) >= Date.parse(workflow.created_at) - 60_000);
+  if (skipped) return toRefreshStatus(null, db, now);
   const lastStart = Math.max(
     workflow ? Date.parse(workflow.created_at) : Number.NEGATIVE_INFINITY,
     db ? Date.parse(db.started_at) : Number.NEGATIVE_INFINITY,

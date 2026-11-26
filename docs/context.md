@@ -942,14 +942,14 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-25",
-        "note": "25 Nov 2026 Pro page: gameweek_payload gains pro_plan (pro.week_plan per Pro board); the Sorare job moves it to block sorare_pro with pro_spare (leftovers and not placed read from the week's first plan); Play's plans, contest and payload unchanged. Backend tests ran.",
+        "date": "2026-11-26",
+        "note": "Pro page plans the gameweek being played on its games not started (live_pro_weeks, block sorare_pro); Arena/Play selection unchanged",
         "files": {
-          "backend/app/sorare/publish.py": "c74f4876b43412053f490022cc5e6c4e7845b74ba21611066bf65e1c49bb6ed0",
+          "backend/app/sorare/publish.py": "3ad8ed49ac042066dca262339d1c85efd79c581f4777991911e3b8b70900036e",
           "backend/app/sorare/planner.py": "cf8e498485e641cbe8c433681a1c9d6d1eece4ed78a0d566430cb89ff5c9231b",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "bb46a8871a96b96d7f13d515133e5891a363bf9136754918ab6f28048f6847e0",
-          "backend/app/jobs/sorare.py": "f933d66daa545130e6c8ad4ba10564336191baba913a36669bc48dc33401dcf2",
+          "backend/app/jobs/sorare.py": "6e6f42bc4905cffed2a24e747f2d7af8e3cfe486e4882624722dc307efab5e1a",
           "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"
         }
@@ -1075,10 +1075,10 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-11-25",
-        "note": "25 Nov 2026: publish.py only adds the Pro page block (pro_plan_payload, pro_spare) reading the same planning forecasts; no raw or planning forecast changed.",
+        "date": "2026-11-26",
+        "note": "live_pro_weeks builds form forecasts for the live week's later games like the weeks ahead; forecast code unchanged",
         "files": {
-          "backend/app/sorare/publish.py": "c74f4876b43412053f490022cc5e6c4e7845b74ba21611066bf65e1c49bb6ed0",
+          "backend/app/sorare/publish.py": "3ad8ed49ac042066dca262339d1c85efd79c581f4777991911e3b8b70900036e",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "52929a981e167dd2f172a67ed26821e1e790ccf420b6bd29dfa3f69fc3845a1a"

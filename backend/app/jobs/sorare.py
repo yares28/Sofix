@@ -863,6 +863,7 @@ def run(
     lenses = payload.pop("_lenses", None)
     laps("plans")
     payload_laps = payload.pop("_laps", {})
+    pro_live = payload.pop("_proLive", None) or []
     if art and art.urls:
         payload["market"] = sorare_publish.with_card_art(payload.get("market") or [], art.urls)
     planned_week = sorare_publish.week_of(payload) or {}
@@ -979,6 +980,8 @@ def run(
         for w in payload.get("weeks") or []
         if isinstance(w, dict) and (plan := w.pop("proPlan", None)) is not None
     ]
+    # The gameweek being played comes first: its Pro boards still play the games not started yet (`live_pro_weeks`).
+    pro_weeks = [{**w, "live": True} for w in pro_live] + pro_weeks
     if pro_weeks:
         put(db, sorare_publish.PRO_KEY, {"version": 1, "builtAt": fetched.isoformat(), "weeks": pro_weeks}, now)
     put(db, SORARE_KEY, payload, now)

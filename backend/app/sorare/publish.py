@@ -1114,6 +1114,47 @@ def pro_spare(week: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     return {"leftovers": free(laliga), "notPlaced": free(every)}
 
 
+def live_pro_weeks(
+    snapshot: dict[str, Any],
+    cards: list[Card],
+    now: datetime,
+    *,
+    board: Board | None = None,
+    ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
+    scores: ScoresOf | None = None,
+) -> list[dict[str, Any]]:
+    """The Pro page's plan of the gameweek being played. Sorare locks it for Arena at its first game, but a Pro lineup locks only at
+    its own first kickoff, so a midweek European board is still playable on the games not started yet (owner, 26 Nov 2026)."""
+    comps = [c for c in pro.competitions(snapshot.get("pro")) if c.pro_steps]
+    out = []
+    for i, week in enumerate(snapshot.get("liveGameweeks") or []):
+        later = {
+            player: kept
+            for player, listed in with_board(card_games(snapshot["cards"], f"live{i}"), board).items()
+            if (kept := [g for g in listed if g.get("kickoff") and _dt(g["kickoff"]) > now])
+        }
+        if not later or not comps:
+            continue
+        forecasts = build_forecasts(
+            player_weeks(
+                snapshot["cards"], later, snapshot["history"], now, None, use_sorare=False, ff=ff, scores=scores
+            )
+        )
+        history = snapshot.get("history") or {}
+        boards = [b for comp in comps if (b := pro_plan_payload(comp, cards, forecasts, later, history)) is not None]
+        if boards:
+            out.append(
+                {
+                    "slug": week["slug"],
+                    "number": week["number"],
+                    "start": week["start"],
+                    "end": week["end"],
+                    "boards": boards,
+                }
+            )
+    return out
+
+
 def _place(place: int) -> str:
     return f"{place}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(place if place < 20 else place % 10, 'th') }"
 
@@ -1866,6 +1907,8 @@ def build_payload(
         )
 
     laps("weeks ahead")
+    pro_live = live_pro_weeks(snapshot, cards, now, board=board, ff=ff, scores=scores)
+    laps("pro live")
     timeline = []
     keep = {
         plan_week["slug"],
@@ -1941,6 +1984,7 @@ def build_payload(
             snapshot.get("market") or [], league_forecasts, league_games, (league_next, league_next_games)
         ),
         "essenceOrder": list(order),
+        "_proLive": pro_live,
         "_foreignMarkets": {
             code: {
                 "competition": code,

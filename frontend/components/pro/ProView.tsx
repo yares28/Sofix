@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import SeasonIcon from "../SeasonIcon";
 import { scoreColour } from "../../lib/cards";
 import {
-  chanceAt, clearChance, holdMatchday, moves, PAGE_SIZE, reachChances, stepsPlayed,
+  boardWeeks, chanceAt, clearChance, holdMatchday, moves, PAGE_SIZE, reachChances, stepsPlayed,
   type ProBlock, type ProSpare, type ProBoard, type ProCard, type ProPlanned, type ProStarter, type Result,
 } from "../../lib/proWeek";
 
@@ -24,13 +24,16 @@ const VIEWS: [View, string][] = [["pro", "Pro"], ["left", "Arena leftovers"], ["
 
 /** The Pro page: one board at a time, its staircase, hold or play for the matchday, and its lineups day by day. */
 export default function ProView({ data }: { data: ProBlock | null }) {
-  const week = data?.weeks[0] ?? null;
-  const [boardKey, setBoardKey] = useState(week?.boards.find((b) => b.byBatch.length)?.key ?? week?.boards[0]?.key ?? "");
+  // Arena leftovers and Not placed come from the Sorare page's plan, which is the next gameweek's, not the one being played
+  const week = data?.weeks.find((w) => !w.live) ?? data?.weeks[0] ?? null;
+  const boards = useMemo(() => (data ? boardWeeks(data) : []), [data]);
+  const [boardKey, setBoardKey] = useState(boards.find((b) => b.board.byBatch.length)?.board.key ?? boards[0]?.board.key ?? "");
   const [mode, setMode] = useState<Mode>("byBatch");
   const [results, setResults] = useState<Record<string, Result[]>>({});
   const [out, setOut] = useState<Record<string, boolean>>({});
-  const board = week?.boards.find((b) => b.key === boardKey) ?? null;
-  const next = data?.weeks[1]?.boards.find((b) => b.key === boardKey) ?? null;
+  const picked = boards.find((b) => b.board.key === boardKey) ?? null;
+  const board = picked?.board ?? null;
+  const next = picked?.next ?? null;
   const lineups = useMemo(() => (board ? [...board[mode]].sort((a, b) => a.start.localeCompare(b.start)) : []), [board, mode]);
   const resultKey = `${boardKey}|${mode}`;
   const res = results[resultKey] ?? [];
@@ -81,7 +84,7 @@ export default function ProView({ data }: { data: ProBlock | null }) {
       <div className="pro-ctl">
         {view === "pro" ? (
           <div className="pro-seg" role="tablist" aria-label="Board">
-            {week.boards.map((b) => (
+            {boards.map(({ board: b }) => (
               <button key={b.key} type="button" role="tab" aria-selected={b.key === boardKey} className={b.key === boardKey ? "on" : undefined} onClick={() => { setBoardKey(b.key); setDay(null); }}>
                 {shortName(b.name)}<i>S{b.steps[0]?.level ?? 0}</i>
               </button>

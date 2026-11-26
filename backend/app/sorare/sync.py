@@ -1167,6 +1167,7 @@ def snapshot(
         "planGameweek": plan_gw,
         "pastGameweek": past_gw,
         "aheadGameweeks": ahead_gws,
+        "liveGameweeks": active_gws,  # the gameweeks being played: their games are the card alias `live{i}` (Pro's later games)
         "missionAliases": list(aliases),
         "missionComplete": mission_complete,
         "pastGaps": gaps,

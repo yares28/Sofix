@@ -159,3 +159,36 @@ def test_leftovers_are_cards_free_after_the_laliga_in_season_lineups_and_not_pla
     assert [(r["player"], r["free"]) for r in spare["notPlaced"]] == [("a", 1), ("c", 1)]
     assert spare["leftovers"][1]["start"] == 0.9 and spare["leftovers"][0]["start"] == 0.8
     assert pro_spare({}) == {"leftovers": [], "notPlaced": []}
+
+
+def test_the_gameweek_being_played_plans_its_pro_boards_on_the_games_not_started(monkeypatch):
+    """26 Nov 2026: the midweek week went live on Tuesday and its Europa board vanished, though Thursday's games were still open."""
+    from datetime import datetime
+
+    from app.sorare import publish
+
+    cards = five("a")
+    now = datetime.fromisoformat("2026-11-26T12:00:00+00:00")
+    started = {"kickoff": "2026-11-25T20:00:00+00:00", "competition": "laliga-es"}
+    later = {"kickoff": "2026-11-26T20:00:00+00:00", "competition": "laliga-es"}
+    rows = [{"player": {"slug": c.player, "live0": [started, later]}} for c in cards]
+    seen: dict = {}
+    monkeypatch.setattr(
+        publish, "card_games", lambda rs, key: {r["player"]["slug"]: r["player"].get(key) or [] for r in rs}
+    )
+    monkeypatch.setattr(publish, "player_weeks", lambda *a, **k: a[1])
+    monkeypatch.setattr(publish, "build_forecasts", lambda weeks: forecasts_for(cards, p=1.0, mu=80.0))
+    monkeypatch.setattr(
+        publish, "pro_plan_payload", lambda comp, cs, fc, games, h: seen.update(games) or {"key": comp.key}
+    )
+    week = {"slug": "football-24-27-nov-2026", "number": 34, "start": "s", "end": "e"}
+    snap = {"pro": [LALIGA], "cards": rows, "history": {}, "liveGameweeks": [week]}
+
+    out = publish.live_pro_weeks(snap, cards, now)
+    assert [w["slug"] for w in out] == ["football-24-27-nov-2026"] and out[0]["boards"]
+    assert all(
+        games == [later] for games in seen.values()
+    )  # Wednesday's game has kicked off: only Thursday's is planned
+
+    # once every game has started there is nothing left to enter
+    assert publish.live_pro_weeks(snap, cards, datetime.fromisoformat("2026-11-27T00:00:00+00:00")) == []

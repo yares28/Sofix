@@ -192,3 +192,34 @@ def test_the_gameweek_being_played_plans_its_pro_boards_on_the_games_not_started
 
     # once every game has started there is nothing left to enter
     assert publish.live_pro_weeks(snap, cards, datetime.fromisoformat("2026-11-27T00:00:00+00:00")) == []
+
+
+def test_a_european_board_of_the_week_being_played_takes_laliga_cards_in_its_games(monkeypatch):
+    """26 Nov 2026: GW34's Pro page said "No Pro games left" with Celta in the Europa League that night. A LaLiga club's card
+    belongs to a European board only through its games in that competition this week, so the cards must carry them."""
+    from datetime import datetime
+
+    from app.sorare import publish
+    from tests.test_sorare_pro import step
+
+    europa = {
+        "title": "Europa Contenders",
+        "configSlug": "football-no_periodic-fantasy-europa-contenders",
+        "steps": [step(0, 340, "LINEUP_SET", 500, comps=["uefa-europa-league", "uefa-conference-league"])],
+    }
+    cards = five("a")
+    now = datetime.fromisoformat("2026-11-26T13:10:00+00:00")
+    tonight = {"kickoff": "2026-11-26T17:45:00+00:00", "competition": "uefa-europa-league", "venue": "H"}
+    rows = [{"player": {"slug": c.player, "live0": [tonight]}} for c in cards]
+    monkeypatch.setattr(
+        publish, "card_games", lambda rs, key: {r["player"]["slug"]: r["player"].get(key) or [] for r in rs}
+    )
+    monkeypatch.setattr(publish, "player_weeks", lambda *a, **k: a[1])
+    monkeypatch.setattr(publish, "build_forecasts", lambda weeks: forecasts_for(cards, p=1.0, mu=80.0))
+    week = {"slug": "football-24-27-nov-2026", "number": 34, "start": "s", "end": "e"}
+    snap = {"pro": [LALIGA, europa], "cards": rows, "history": {}, "liveGameweeks": [week]}
+
+    out = publish.live_pro_weeks(snap, cards, now)
+    assert [w["slug"] for w in out] == ["football-24-27-nov-2026"]
+    (board,) = out[0]["boards"]  # LaLiga plays no game this midweek
+    assert board["key"] == "Europa Contenders | Pro" and len(board["batches"]) == 1 and board["byBatch"]

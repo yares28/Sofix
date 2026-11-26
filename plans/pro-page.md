@@ -122,6 +122,8 @@ each player's last 15 starts; captain +50%, other bonuses +6% until the build re
   `app/pro.css`; skeleton), spec `e2e/pro.e2e.ts` on a fixture built from GW35's real data.
 - Arena leftovers and Not placed (`publish.pro_spare`, from the week's first Sorare plan) built the same day; every control was
   driven in the owner's Chrome, and 1440 / 390 px screenshots taken with Chrome through Playwright (his window was hidden).
+- 26 Nov fix: the gameweek being played lost its European boards ("No Pro games left" in GW34 with Celta in the Europa League that
+  night): `live_pro_weeks` now marks each card's competitions from its games not started (`in_week`) before planning the boards.
 
 ## Build notes
 

@@ -1141,7 +1141,9 @@ def live_pro_weeks(
             )
         )
         history = snapshot.get("history") or {}
-        boards = [b for comp in comps if (b := pro_plan_payload(comp, cards, forecasts, later, history)) is not None]
+        # a European board takes a LaLiga card only through its games in that competition
+        playing = in_week(cards, later)
+        boards = [b for comp in comps if (b := pro_plan_payload(comp, playing, forecasts, later, history)) is not None]
         if boards:
             out.append(
                 {
